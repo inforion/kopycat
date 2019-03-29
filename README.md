@@ -1,6 +1,6 @@
 <img src="https://kopy.cat/static/media/big_logo.169d84fb.png" width="384">
 
-Emulator of hardware platforms of various architectures
+Kopycat is a modular software emulator of hardware systems
 
 Main features are:
 
