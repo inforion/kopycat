@@ -1,0 +1,161 @@
+package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
+
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.x86.enums.Flags
+import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
+import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
+import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.CTRLR.cr0
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ss
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.eflags
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.flags
+import ru.inforion.lab403.kopycat.cores.x86.x86utils
+import ru.inforion.lab403.kopycat.modules.cores.x86Core
+
+/**
+ * Created by the bat on 25.06.17.
+ */
+class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
+        AX86Instruction(core, Type.IRET, opcode, prefs) {
+    override val mnem = "iret"
+
+    private fun realAddressingMode(): Unit = TODO("REAL-ADDRESS-MODE")
+
+    private fun returnFromVirtual8086Mode(): Unit = TODO("RETURN-FROM-VIRTUAL-8086-MODE")
+
+    private fun protectedMode() {
+        val nt = eflags.nt(core)
+
+        if (nt) taskReturn()
+
+        val cpl = cs.cpl(core)
+        val tmpip = x86utils.pop(core, prefs.opsize, prefs)
+        val tmpcs = x86utils.pop(core, prefs.opsize, prefs)
+
+        val flagsSize = if (!prefs.is16BitOperandMode) Datatype.DWORD else Datatype.WORD
+        val tmpFlags = x86utils.pop(core, flagsSize, prefs)
+
+        val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
+        ip.value(core, tmpip)
+        cs.value(core, tmpcs)
+
+        val rpl = cs.cpl(core)  // requested privileged level from cs register
+
+//        log.fine { "CPL = $cpl RPL = $rpl" }
+
+        if (tmpFlags[Flags.VM.bit] == 1L && cpl == 0)
+            returnToVirtual8086Mode()
+        else
+            protectedModeReturn(cpl, rpl, tmpFlags)
+    }
+
+    private fun taskReturn(): Unit = TODO("TASK-RETURN; (* PE = 1, VM = 0, NT = 1 *)")
+
+    private fun returnToVirtual8086Mode(): Unit = TODO("RETURN-TO-VIRTUAL-8086-MODE")
+
+    private fun protectedModeReturn(cpl: Int, rpl: Int, tmpFlags: Long): Unit = if (rpl > cpl)
+        returnToOuterPrivilegeLevel(cpl, tmpFlags)
+    else
+        returnToSamePrivilegeLevel(cpl, tmpFlags)
+
+    private fun returnToOuterPrivilegeLevel(cpl: Int, tmpFlags: Long) {
+//        log.fine { "returnToOuterPrivilegeLevel" }
+        val sp = x86Register.gpr(prefs.opsize, x86GPR.ESP)
+        val tmpsp = x86utils.pop(core, prefs.opsize, prefs)
+        sp.value(core, tmpsp)
+
+        val tmpss = x86utils.pop(core, prefs.opsize, prefs)
+        ss.value(core, tmpss)
+
+//        IF new mode ≠ 64-Bit Mode
+//        THEN
+//        IF EIP is not within CS limit
+//        THEN #GP(0); FI;
+//        ELSE (* new mode = 64-bit mode *)
+//        IF RIP is non-canonical
+//        THEN #GP(0); FI;
+//        FI;
+
+        val prevIF = eflags.ifq(core)
+        val prevIOPL = eflags.iopl(core)
+
+        if (!prefs.is16BitOperandMode) {
+            // IF OperandSize = 32 THEN EFLAGS(VM, VIF, VIP) ← tempEFLAGS; FI;
+            eflags.value(core, tmpFlags)
+        } else {
+            flags.value(core, tmpFlags)
+        }
+
+        // IF CPL ≤ IOPL THEN EFLAGS(IF) ← tempEFLAGS; FI;
+        if (cpl > prevIOPL) eflags.ifq(core, prevIF)
+        // IF CPL = 0 THEN EFLAGS(IOPL) ← tempEFLAGS;
+        if (cpl != 0) eflags.iopl(core, prevIOPL)
+
+        // CPL ← CS(RPL);
+
+        /*
+        IF OperandSize = 64 THEN EFLAGS(VIF, VIP) ← tempEFLAGS; FI;
+
+        FOR each SegReg in (ES, FS, GS, and DS)
+        DO
+        tempDesc ← descriptor cache for SegReg (* hidden part of segment register *)
+        IF tempDesc(DPL) < CPL AND tempDesc(Type) is data or non-conforming code
+        THEN (* Segment register invalid *)
+        SegReg ← NULL;
+        FI;
+        OD;
+         */
+    }
+
+    private fun returnToSamePrivilegeLevel(cpl: Int, tmpFlags: Long) {
+//        log.fine { "returnToSamePrivilegeLevel" }
+//        IF new mode ≠ 64-Bit Mode
+//        THEN
+//        IF EIP is not within CS limit
+//        THEN #GP(0); FI;
+//        ELSE (* new mode = 64-bit mode *)
+//        IF RIP is non-canonical
+//        THEN #GP(0); FI;
+//        FI;
+
+        val prevIF = eflags.ifq(core)
+        val prevIOPL = eflags.iopl(core)
+        val prevVIF = eflags.vif(core)
+        val prevVIP = eflags.vip(core)
+
+//        log.fine { "IF = $prevIF IOPL = $prevIOPL VIF = $prevVIF VIP = $prevVIP" }
+
+        if (!prefs.is16BitOperandMode) {
+            eflags.value(core, tmpFlags)
+        } else {
+            flags.value(core, tmpFlags)
+        }
+
+        // IF CPL ≤ IOPL THEN EFLAGS(IF) ← tempEFLAGS; FI;
+        if (cpl > prevIOPL) eflags.ifq(core, prevIF)
+        // IF CPL = 0 THEN (* VM = 0 in flags image *)
+        if (cpl != 0) {
+            // EFLAGS(IOPL) ← tempEFLAGS;
+            eflags.iopl(core, prevIOPL)
+            // IF OperandSize = 32 or OperandSize = 64  THEN EFLAGS(VIF, VIP) ← tempEFLAGS; FI;
+            if (!prefs.is16BitOperandMode) {
+                eflags.vif(core, prevVIF)
+                eflags.vip(core, prevVIP)
+            }
+        }
+    }
+
+    override fun execute() {
+        val pe = cr0.pe(core)
+        val vm = eflags.vm(core)
+
+        if (!pe) realAddressingMode()
+        else {
+            if (vm) returnFromVirtual8086Mode()
+            else protectedMode()
+        }
+    }
+}

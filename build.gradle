@@ -1,0 +1,16 @@
+apply plugin: 'java'
+
+ext.productionDirectoryPath = "${rootProject.projectDir}/production"
+ext.jarOutputDirectoryPath = "${productionDirectoryPath}/library"
+
+dependencies {
+    compile project(':cores:mips')
+    compile project(':cores:x86')
+    compile project(':cores:v850es')
+    compile project(':cores:msp430')
+    compile project(':cores:arm')
+
+    compile project(':mcu:cortexm0')
+    compile project(':mcu:stm32f0xx')
+    compile project(':mcu:msp430x44x')
+}

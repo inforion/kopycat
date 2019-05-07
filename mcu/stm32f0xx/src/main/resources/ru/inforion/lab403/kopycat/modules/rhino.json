@@ -1,0 +1,105 @@
+{
+  "top": true,
+
+  // Plugin name should be the same as file name (or full path from library start)
+  "plugin": "rhino",
+
+  // Directory where plugin places
+  "library": "mcu",
+
+  // Plugin parameters (constructor parameters if jar-plugin version)
+  "params": [
+    { "name": "tty_dbg", "type": "String"},
+    { "name": "tty_bt", "type": "String"},
+    { "name": "fw", "type": "File"}
+  ],
+
+  // Plugin outer ports
+  "ports": [  ],
+
+  // Plugin internal buses
+  "buses": [
+    { "name": "mem", "size": "BUS30" },
+    { "name": "nand", "size": "4" },
+    { "name": "gpio", "size": "BUS32" }
+  ],
+
+  // Plugin internal components
+  "modules": [
+    {
+      "name": "u1_stm32",
+      "plugin": "STM32F042",
+      "library": "mcu",
+      "params": {
+        "firmware:File": "params.fw"
+      }
+    },
+    {
+      "name": "usart_debug",
+      "plugin": "UartSerialTerminal",
+      "library": "terminals",
+      "params": {
+        "tty": "params.tty_dbg"
+      }
+    },
+    {
+      "name": "term_bt",
+      "plugin": "UartSerialTerminal",
+      "library": "terminals",
+      "params": {
+        "tty": "params.tty_bt"
+      }
+    },
+    {
+      "name": "bluetooth",
+      "plugin": "BT",
+      "library": "mcu"
+    },
+
+    { "name": "led_0",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_1",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_2",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_3",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_4",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_5",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_6",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_7",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_8",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_9",  "plugin": "LED", "library": "mcu" },
+    { "name": "led_10", "plugin": "LED", "library": "mcu" },
+    { "name": "led_11", "plugin": "LED", "library": "mcu" },
+    { "name": "led_12", "plugin": "LED", "library": "mcu" },
+    { "name": "led_13", "plugin": "LED", "library": "mcu" },
+    { "name": "led_14", "plugin": "LED", "library": "mcu" },
+    { "name": "led_15", "plugin": "LED", "library": "mcu" }
+  ],
+
+  // Plugin connection between components
+  "connections": [
+    [ "u1_stm32.ports.usart1_m", "usart_debug.ports.term_s"],
+    [ "u1_stm32.ports.usart1_s", "usart_debug.ports.term_m"],
+
+    [ "u1_stm32.ports.usart2_m", "bluetooth.ports.usart_m"],
+    [ "u1_stm32.ports.usart2_s", "bluetooth.ports.usart_s"],
+
+    [ "bluetooth.ports.bt_s", "term_bt.ports.term_m"],
+    [ "bluetooth.ports.bt_m", "term_bt.ports.term_s"],
+
+    [ "led_0.ports.pin",  "u1_stm32.buses.pin_output_a", "0x00"],
+    [ "led_1.ports.pin",  "u1_stm32.buses.pin_output_a", "0x01"],
+    [ "led_2.ports.pin",  "u1_stm32.buses.pin_output_a", "0x02"],
+    [ "led_3.ports.pin",  "u1_stm32.buses.pin_output_a", "0x03"],
+    [ "led_4.ports.pin",  "u1_stm32.buses.pin_output_a", "0x04"],
+    [ "led_5.ports.pin",  "u1_stm32.buses.pin_output_a", "0x05"],
+    [ "led_6.ports.pin",  "u1_stm32.buses.pin_output_a", "0x06"],
+    [ "led_7.ports.pin",  "u1_stm32.buses.pin_output_a", "0x07"],
+    [ "led_8.ports.pin",  "u1_stm32.buses.pin_output_a", "0x08"],
+    [ "led_9.ports.pin",  "u1_stm32.buses.pin_output_a", "0x09"],
+    [ "led_10.ports.pin", "u1_stm32.buses.pin_output_a", "0x0A"],
+    [ "led_11.ports.pin", "u1_stm32.buses.pin_output_a", "0x0B"],
+    [ "led_12.ports.pin", "u1_stm32.buses.pin_output_a", "0x0C"],
+    [ "led_13.ports.pin", "u1_stm32.buses.pin_output_a", "0x0D"],
+    [ "led_14.ports.pin", "u1_stm32.buses.pin_output_a", "0x0E"],
+    [ "led_15.ports.pin", "u1_stm32.buses.pin_output_a", "0x0F"]
+  ]
+}

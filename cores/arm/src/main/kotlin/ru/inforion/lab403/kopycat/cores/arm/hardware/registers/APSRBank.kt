@@ -1,0 +1,18 @@
+package ru.inforion.lab403.kopycat.cores.arm.hardware.registers
+
+import ru.inforion.lab403.kopycat.cores.arm.enums.Flags
+import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
+import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+
+/**
+ * Created by r.valitov on 16.01.18
+ */
+
+class APSRBank(cpu: AARMCore) : ARegistersBank<AARMCore, Flags>(cpu, Flags.values(), bits = 32) {
+    override val name: String = "ARM Application Program Status Register Bank"
+    var n by bitOf(ARMRegister.PSR.APSR, Flags.N.msb)
+    var z by bitOf(ARMRegister.PSR.APSR, Flags.Z.msb)
+    var c by bitOf(ARMRegister.PSR.APSR, Flags.C.msb)
+    var v by bitOf(ARMRegister.PSR.APSR, Flags.V.msb)
+}

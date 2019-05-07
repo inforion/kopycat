@@ -1,0 +1,2 @@
+ru/inforion/lab403/kopycat/modules
+ru/inforion/lab403/kopycat/examples

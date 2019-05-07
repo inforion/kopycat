@@ -1,0 +1,11 @@
+rootProject.name = "kopycat-modules"
+
+include(":cores:mips")
+include(":cores:x86")
+include(":cores:v850es")
+include(":cores:msp430")
+include(":cores:arm")
+
+include(":mcu:cortexm0")
+include(":mcu:stm32f0xx")
+include(":mcu:msp430x44x")
