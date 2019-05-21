@@ -21,10 +21,12 @@ You can download JAR-files with this modules via this link https://kopy.cat/down
 1. Clone this repo to any directory
 2. Import project from this directory
 3. If you have not set the environment variable `KOPYCAT_HOME`, fix all build.gradle files 
+    
     3.1. Remove this lines
           
           ext.kcHome = System.getenv("KOPYCAT_HOME")
           ext.kcJar = new File(kcHome, "lib/kopycat.jar")
     3.2. Replace line
+    
     3.3. Refresh gradle
 4. Now you can build all available modules
