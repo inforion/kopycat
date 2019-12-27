@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 03.02.17.
+ * Created by v.davydov on 03.02.17.
  */
 class SetO(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {

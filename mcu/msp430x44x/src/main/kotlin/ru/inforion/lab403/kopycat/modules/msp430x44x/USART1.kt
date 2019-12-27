@@ -17,7 +17,7 @@ import ru.inforion.lab403.kopycat.modules.PIN
 import java.util.logging.Level
 
 /**
- * Created by shiftdj on 05/03/18.
+ * Created by a.kemurdzhian on 05/03/18.
  */
 
 class USART1(parent: Module, name: String) : Module(parent, name) {

@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 abstract class AARMInstruction(

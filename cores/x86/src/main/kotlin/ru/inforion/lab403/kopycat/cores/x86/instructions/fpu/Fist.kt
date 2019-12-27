@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 08.09.16.
+ * Created by v.davydov on 08.09.16.
  */
 
 class Fist(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operands: AOperand<x86Core>):

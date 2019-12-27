@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Memory
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 fun ARMMemory(dtyp: Datatype, addr: Long, access: Access = ANY) = Memory<AARMCore>(dtyp, DWORD, addr, access)

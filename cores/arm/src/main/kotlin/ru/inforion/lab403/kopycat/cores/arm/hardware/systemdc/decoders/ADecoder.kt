@@ -5,7 +5,7 @@ import ru.inforion.lab403.kopycat.interfaces.ITableEntry
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 abstract class ADecoder<out T: AARMInstruction>(val core: AARMCore): ITableEntry {

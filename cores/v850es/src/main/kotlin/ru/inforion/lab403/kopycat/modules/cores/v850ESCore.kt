@@ -9,16 +9,17 @@ import ru.inforion.lab403.kopycat.cores.v850es.hardware.processors.v850ESCOP
 import ru.inforion.lab403.kopycat.cores.v850es.hardware.processors.v850ESCPU
 
 /**
+ * {RU}
  * Ядро v850ES
  *
- * @author Валитов Р.Ш.
+ * @author r.valitov
  * @since 25.05.17
+ *
  * @property parent модуль, куда встраивается ядро
  * @property name произвольное имя объекта
  * @property frequency частота работы ядра
- *
+ * {RU}
  */
-
 class v850ESCore(parent: Module, name: String, frequency: Long):
         ACore<v850ESCore, v850ESCPU, v850ESCOP>(parent, name, frequency, 1.0) {
 

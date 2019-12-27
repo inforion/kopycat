@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by gladkikh_aa on 11.04.17.
+ * Created by a.gladkikh on 11.04.17.
  */
 class c_cond_s(
         core: MipsCore,

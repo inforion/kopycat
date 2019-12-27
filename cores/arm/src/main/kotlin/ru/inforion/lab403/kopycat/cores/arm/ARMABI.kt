@@ -11,9 +11,11 @@ import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by rusanov_pv on 14.02.18.
+ * {EN}
+ * @author p.rusanov
+ * @since 14.02.18
+ * {EN}
  */
-
 class ARMABI(cpu: AARMCore, heap: LongRange, stack: LongRange, bigEndian: Boolean):
         ABI<AARMCore>(cpu, heap, stack, bigEndian) {
 

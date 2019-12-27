@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 19.01.17.
+ * Created by v.davydov on 19.01.17.
  */
 
 class Leave(core: x86Core, opcode: ByteArray, prefs: Prefixes):

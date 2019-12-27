@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 26.09.16.
+ * Created by v.davydov on 26.09.16.
  */
 
 // Same as SAL

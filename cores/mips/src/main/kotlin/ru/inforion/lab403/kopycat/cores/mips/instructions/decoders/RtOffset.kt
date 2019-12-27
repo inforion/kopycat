@@ -11,7 +11,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by ra on 03.06.2016.
+ * Created by r.aristov on 03.06.2016.
  *
  * LB, LBU, LDC1(rt=ft), LDC2, LH, LHU, LW, LWC1(rt=ft), LWC2, LWL, LWR, LL, SB, SC,
  * SDC1(rt=ft), SDC2, SH, SW, SWC1(rt=ft), SWC2, SWL, SWR

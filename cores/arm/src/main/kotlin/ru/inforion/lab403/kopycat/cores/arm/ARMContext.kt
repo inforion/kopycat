@@ -5,7 +5,7 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AContext
 
 /**
- * Created by rusanov_pv on 14.02.18.
+ * Created by p.rusanov on 14.02.18.
  */
 
 class ARMContext(cpu: AARMCPU): AContext<AARMCPU>(cpu) {

@@ -11,9 +11,11 @@ import ru.inforion.lab403.kopycat.modules.PIN
 import java.util.logging.Level
 
 /**
- * Создан Валитовым Р.Ш. 13.07.17.
+ * {RU}
+ * @author r.valitov
+ * @since 13.07.17.
+ * {RU}
  */
-
 @Suppress("PrivatePropertyName", "PropertyName")
 class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name) {
     companion object {
@@ -45,6 +47,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
     override val ports = Ports()
 
     private val pins = object : Area(ports.pin_input, 0, 0xF, "GPIO_INPUT", ACCESS.I_W) {
+        override fun fetch(ea: Long, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
         override fun read(ea: Long, ss: Int, size: Int) = 0L    // should not used
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             GPIOx_IDR.data = value
@@ -132,16 +135,13 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
     private val GPIOx_IDR    =  object : RegisterBase(RegisterType.IDR, writable = false) {} // A..F
     private val GPIOx_ODR    =  object : RegisterBase(RegisterType.ODR) {
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            data = value
-            lowBitsEach {
-                ports.pin_output.write(it.toLong(), 0, 0, data[it])
-            }
-            logWrite()
+            super.write(ea, ss, size, value)
+            lowBitsEach { ports.pin_output.write(it.toLong(), 0, 0, data[it]) }
         }
     }   // A..F
     private val GPIOx_BSRR   =  object : RegisterBase(RegisterType.BSRR) {
         override fun read(ea: Long, ss: Int, size: Int): Long {
-            logRead()
+            super.read(ea, ss, size)
             return 0x0000
         }
 
@@ -154,7 +154,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
                 }
             }
             GPIOx_ODR.write(0, 0, 0, data)
-            logWrite()
+            log.write(level)
         }
     }   // A..F
     private val GPIOx_LCKR   =  object : RegisterBase(RegisterType.LCKR) {
@@ -186,7 +186,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
                 LockState.LOCKED -> return
             }
             state = LockState.INIT
-            logWrite()
+            log.write(level)
         }
 
         override fun read(ea: Long, ss: Int, size: Int): Long {
@@ -247,11 +247,11 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
     private val GPIOx_BRR    =  object : RegisterBase(RegisterType.BRR) {
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             lowBitsEach { if (value[it] == 1L) GPIOx_ODR.data = GPIOx_ODR.data.clr(it) }
-            logWrite()
+            log.write(level)
         }
 
         override fun read(ea: Long, ss: Int, size: Int): Long {
-            logRead()
+            super.read(ea, ss, size)
             return 0x0000
         }
     }   // A..F

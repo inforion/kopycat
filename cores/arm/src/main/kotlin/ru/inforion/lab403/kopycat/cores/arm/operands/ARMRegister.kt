@@ -13,7 +13,7 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.PSR as ePSR
 import ru.inforion.lab403.kopycat.cores.arm.enums.SPR as eSPR
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 abstract class ARMRegister(
@@ -70,13 +70,13 @@ abstract class ARMRegister(
 
     sealed class GPR(id: Int) : ARMRegister(id, Regtype.GPR) {
         final override fun value(core: AARMCore, data: Long) =
-                if(reg == 13) {
+                if(reg == eGPR.SPMain.id) {
                     val sp = core.cpu.StackPointerSelect()
                     core.cpu.regs.writeIntern(sp, data)
                 } else core.cpu.regs.writeIntern(reg, data)
 
         final override fun value(core: AARMCore): Long =
-                if(reg == 13) {
+                if(reg == eGPR.SPMain.id) {
                     val sp = core.cpu.StackPointerSelect()
                     core.cpu.regs.readIntern(sp)
                 } else core.cpu.regs.readIntern(reg)

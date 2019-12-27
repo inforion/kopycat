@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.gdt.Lldt
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 17.01.17.
+ * Created by v.davydov on 17.01.17.
  */
 
 class LldtDC(core: x86Core) : ADecoder<AX86Instruction>(core) {

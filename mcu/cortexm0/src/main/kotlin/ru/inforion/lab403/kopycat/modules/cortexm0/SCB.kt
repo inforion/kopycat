@@ -11,7 +11,7 @@ import java.util.logging.Level
 
 @Suppress("unused", "PrivatePropertyName")
 /**
- * Created by user on 15.06.17.
+ * Created by r.valitov on 15.06.17.
  */
 
 class SCB(parent: Module, name: String) : Module(parent, name) {

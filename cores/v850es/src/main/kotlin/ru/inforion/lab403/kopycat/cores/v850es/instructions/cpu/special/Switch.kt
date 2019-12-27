@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.v850es.operands.v850esMemory
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by user on 29.05.17.
+ * Created by r.valitov on 29.05.17.
  */
 
 class Switch(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):

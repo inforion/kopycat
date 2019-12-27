@@ -6,9 +6,11 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
 import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.serializer.deserialize
@@ -16,27 +18,33 @@ import java.nio.ByteOrder
 import java.util.logging.Level
 
 /**
- * Created by batman on 09/06/16.
+ * Created by a.gladkikh on 09/06/16.
  *
  * Stub for x86 address translation
  */
 class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
     companion object {
         val log = logger(Level.FINE)
-        val INVALID_GDT_ENTRY = GDTEntry(-1)
+        val INVALID_GDT_ENTRY = SegmentDescriptor(-1)
     }
 
-    val x86 = core as x86Core
+    val x86 = core
 
     data class DescriptorRegister(var limit: Long = 0, var base: Long = 0) {
-        override fun toString(): String = "[base=${base.hex} limit=${limit.hex}]"
+        override fun toString() = "[base=0x${base.hex} limit=0x${limit.hex}]"
     }
 
-    // Load and store from/to physical memory
-    fun load(base: Long) = x86.mmu.ports.outp.inq(base)
-    fun store(base: Long, value: Long) = x86.mmu.ports.outp.outq(base, value)
+    // Load and store from/to physical memory address
+    private fun physicalRead(address: Long, size: Int) = x86.mmu.ports.outp.read(address, 0, size)
+    private fun physicalWrite(address: Long, size: Int, value: Long) = x86.mmu.ports.outp.write(address, 0, size, value)
 
-    data class GDTEntry(val data: Long) {
+    // Load and store from/to linear memory address
+    fun linearRead(address: Long, size: Int, privilege: Boolean = false) =
+            physicalRead(PMLinear2Physical(address, size, LOAD, privilege), size)
+    fun linearWrite(address: Long, size: Int, value: Long, privilege: Boolean = false) =
+            physicalWrite(PMLinear2Physical(address, size, STORE, privilege), size, value)
+
+    data class SegmentDescriptor(val data: Long) {
         val dataHi by lazy { data[63..32] }
         val dataLo by lazy { data[31..0] }
         // -------------------------------------------------------------------------------------------------------------
@@ -71,13 +79,14 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
 
         val isValid: Boolean = data != -1L
 
-        override fun toString(): String = "GDT[base=0x${base.hex8} limit=0x${limit.hex8} d=${d.toInt()} r=${r.toInt()} a=${a.toInt()}]"
+        override fun toString() = "GDT[base=0x${base.hex8} limit=0x${limit.hex8} d=${d.toInt()} r=${r.toInt()} a=${a.toInt()}]"
 
         companion object {
-            fun createGdtEntry(base: Long, limit: Long, g: Boolean = true, d: Boolean = true,
-                               l: Boolean = false, avl: Boolean = false, p: Boolean = true,
-                               dpl: Long = 0, e: Boolean = false, c: Boolean = false,
-                               r: Boolean = true, a: Boolean = true): Long {
+            fun createGdtEntry(
+                    base: Long, limit: Long,
+                    g: Boolean = true, d: Boolean = true, l: Boolean = false, avl: Boolean = false, p: Boolean = true,
+                    dpl: Long = 0, e: Boolean = false, c: Boolean = false, r: Boolean = true, a: Boolean = true
+            ): Long {
                 val baseLow = base[15..0]
                 val baseMiddle = base[23..16]
                 val baseHigh = base[31..24]
@@ -85,7 +94,20 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
                 val limitLow = limit[15..0]
                 val limitHigh = limit[19..16]
 
-                val dataHi = insert(baseMiddle, 7..0).insert(if (a) 1 else 0, 8).insert(if (r) 1 else 0, 9).insert(if (c) 1 else 0, 10).insert(if (e) 1 else 0, 11).insert(1, 12).insert(dpl, 14..13).insert(if (p) 1 else 0, 15).insert(limitHigh, 19..16).insert(if (avl) 1 else 0, 20).insert(if (l) 1 else 0, 21).insert(if (d) 1 else 0, 22).insert(if (g) 1 else 0, 23).insert(baseHigh, 31..24)
+                val dataHi = insert(baseMiddle, 7..0)
+                        .insert(if (a) 1 else 0, 8)
+                        .insert(if (r) 1 else 0, 9)
+                        .insert(if (c) 1 else 0, 10)
+                        .insert(if (e) 1 else 0, 11)
+                        .insert(1, 12)
+                        .insert(dpl, 14..13)
+                        .insert(if (p) 1 else 0, 15)
+                        .insert(limitHigh, 19..16)
+                        .insert(if (avl) 1 else 0, 20)
+                        .insert(if (l) 1 else 0, 21)
+                        .insert(if (d) 1 else 0, 22)
+                        .insert(if (g) 1 else 0, 23)
+                        .insert(baseHigh, 31..24)
                 val dataLo = insert(limitLow, 15..0).insert(baseLow, 31..16)
                 val entry = insert(dataLo, 31..0).insert(dataHi, 63..32)
                 return entry
@@ -93,35 +115,199 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
         }
     }
 
+    // see Figure 4-4. Formats of CR3 and Paging-Structure Entries with 32-Bit Paging
+    interface PagingEntry {
+        val data: Long
+
+        val frame get() = data[31..12] // Physical address of 4-KByte aligned page table referenced by this entry
+
+        val a get() = data[5] == 1L // Accessed; indicates whether software has accessed
+        val pcd get() = data[4] == 1L // Page-level cache disable
+        val pwt get() = data[3] == 1L // Page-level write-through
+        val us get() = data[2] == 1L // User/supervisor; if 0, user-mode accesses are not allowed to the 4-KByte page referenced by this entry
+        val rw get() = data[1] == 1L // Read/write; if 0, writes may not be allowed to the 4-KByte page referenced by this entry
+        val p get() = data[0] == 1L  // Present; must be 1 to map a 4-KByte page
+
+        /*
+US RW P - Description
+0  0  0 - Supervisory process tried to read a non-present page entry
+0  0  1 - Supervisory process tried to read a page and caused a protection fault
+0  1  0 - Supervisory process tried to write to a non-present page entry
+0  1  1 - Supervisory process tried to write a page and caused a protection fault
+1  0  0 - User process tried to read a non-present page entry
+1  0  1 - User process tried to read a page and caused a protection fault
+1  1  0 - User process tried to write to a non-present page entry
+1  1  1 - User process tried to write a page and caused a protection fault
+         */
+        // see also https://wiki.osdev.org/Paging and Interrupt 14—Page-Fault Exception (#PF) at 6-40 Vol. 3A
+        fun checkAccessRights(core: x86Core, address: PageAddress4Kb, I: Int, U: Int, W: Int) {
+            // P = 1 if protection violation or not present!
+            if (!p) throw x86HardwareException.PageFault(core.pc, address.data, I, 0, U, W, 0)
+//            if (!us && U == 1) throw x86HardwareException.PageFault(core.pc, address.data, I, 0, U, W, 1)
+            if (!rw && W == 1) throw x86HardwareException.PageFault(core.pc, address.data, I, 0, U, W, 1)
+        }
+    }
+
+    data class CR3(override val data: Long) : PagingEntry {
+        fun readPDE(core: x86Core, address: PageAddress4Kb): PageDirectoryEntry4Kb {
+//            val pdeAddress = insert(frame, 31..12).insert(address.directory, 11..2)
+            val pdeAddress = (frame shl 12) or (address.directory shl 2)
+            return PageDirectoryEntry4Kb.read(core, pdeAddress)
+        }
+
+        override fun toString() = "CR3[0x${data.hex8}]: frame=0x${frame.hex} pcd=$pcd pwt=$pwt]"
+    }
+
+    class PageDirectoryEntry4Kb(override val data: Long) : PagingEntry {
+        val ps get() = data[7] == 1L  // Page size; must be 0 for 4KB
+
+        fun readPTE(core: x86Core, address: PageAddress4Kb): PageTableEntry4Kb {
+//            val pteAddress = insert(frame, 31..12).insert(address.table, 11..2)
+            val pteAddress = (frame shl 12) or (address.table shl 2)
+            return PageTableEntry4Kb.read(core, pteAddress)
+        }
+
+        fun checkPaging4KbAndReserved(core: x86Core, address: PageAddress4Kb, I: Int, U: Int, W: Int) {
+            // assume present checked before
+            if (core.cpu.cregs.vpse) {
+                // PSE == 1 -> 4MB paging mode
+                // think so right about RSVD bit...
+                if (!ps) throw x86HardwareException.PageFault(core.pc, address.data, I, 1, U, W, 1)  // RSVD: PS must be 1
+                TODO("Can't translate virtual address ${address.hex} for 4MB paging mode!")
+            } else {
+                // PSE == 0 -> 4KB paging mode
+                // If CR4.PSE = 0, no bits are reserved with 32-bit paging.
+                // so no exceptions for RSVD may be thrown...
+                if (ps) throw x86HardwareException.PageFault(core.pc, address.data, I, 1, U, W, 1)  // RSVD: PS must be 1
+            }
+        }
+
+        override fun toString() = "PDE[0x${data.hex8}]: frame=0x${frame.hex} pcd=$pcd pwt=$pwt us=$us rw=$rw p=$p]"
+
+        companion object {
+            fun read(core: x86Core, address: Long): PageDirectoryEntry4Kb {
+                val data = core.mmu.physicalRead(address, 4)
+                return PageDirectoryEntry4Kb(data)
+            }
+        }
+    }
+
+    class PageTableEntry4Kb(override val data: Long) : PagingEntry {
+        val g get() = data[8] == 1L // Global; if CR4.PGE = 1, determines whether the translation is global
+        val pat get() = data[7] == 1L // If the PAT is supported, indirectly determines the memory type used to access
+        val d get() = data[6] == 1L // Dirty; indicates whether software has written
+
+        fun makePhysical(address: PageAddress4Kb): Long {
+//            val physical = insert(frame, 31..12).insert(address.offset, 11..0)
+            val physical = (frame shl 12) or address.offset
+            log.finest { "Translate linear to physical ${address.hex} -> ${physical.hex}" }
+            return physical
+        }
+
+        override fun toString() = "PTE[0x${data.hex8}]: frame=0x${frame.hex}  pcd=$pcd pwt=$pwt us=$us rw=$rw p=$p]"
+
+        companion object {
+            fun read(core: x86Core, address: Long): PageTableEntry4Kb {
+                val data = core.mmu.physicalRead(address, 4)
+                return PageTableEntry4Kb(data)
+            }
+        }
+    }
+
+//    private val pagingCache = THashMap<Long, Pair<PageDirectoryEntry4Kb, PageTableEntry4Kb>>(0x1000)
+
+//    fun invalidatePagingCache() = pagingCache.clear()
+//    fun invalidatePageTranslation(page: Long) = pagingCache.remove(page)
+
+    fun invalidatePagingCache() = Unit
+    fun invalidatePageTranslation(page: Long) = Unit
+
+    inner class PageAddress4Kb(val data: Long) {
+        val directory get() = data[31..22]
+        val table get() = data[21..12]
+        val offset get() = data[11..0]
+
+        val hex get() = data.hex
+
+        val page get() = data and 0xFFFF_F000
+
+        override fun toString() = "Address[0x${data.hex8}]: dir=0x${directory.hex} table=0x${table.hex} off=0x${offset.hex}"
+
+        // 4.3 32-BIT PAGING of Vol. 3A 4-7
+        fun loadTranslationTable(LorS: AccessAction, privilege: Boolean): PageTableEntry4Kb {
+//            val lPage = page
+
+            val I = if (LorS == FETCH) 1 else 0  // just for page-fault exceptions
+            val W = if (LorS == STORE) 1 else 0
+            val U = if (cs.cpl(x86) == 3 && !privilege) 1 else 0 // current access rights (3 - user-mode)
+
+//            val cached = pagingCache[lPage]
+//            if (cached != null) {
+//                val (pde, pte) = cached
+//                // reserved not checked because it can't be cached with ill reserved flags
+//                pde.checkAccessRights(x86, this, I, U, W)
+//                pte.checkAccessRights(x86, this, I, U, W)
+//                return pte
+//            }
+
+            val cr3 = CR3(x86.cpu.cregs.cr3)
+
+            val pde = cr3.readPDE(x86, this).also {
+                it.checkAccessRights(x86, this, I, U, W)
+                it.checkPaging4KbAndReserved(x86, this, I, U, W)
+                // here we sure 4KB paging mode
+            }
+
+            val pte = pde.readPTE(x86, this).also {
+                it.checkAccessRights(x86, this, I, U, W)
+            }
+
+            // Cache PTE for specified page
+//            pagingCache[lPage] = pde to pte
+//            log.warning { "Cached 0x${lPage.hex} -> $pte" }
+
+            return pte
+        }
+
+        /**
+         * Actual address translation using specified PTE
+         */
+        fun translate(LorS: AccessAction, privilege: Boolean) =
+                loadTranslationTable(LorS, privilege).makePhysical(this)
+    }
+
     val gdtr = DescriptorRegister()
     var ldtr = 0L
-    var tssr = 0L
 
     private val cache = Array(6) { INVALID_GDT_ENTRY }
     private val protectedModeEnabled = Array(6) { false }
 
-    fun gdt(ss: Long): GDTEntry {
-        val base: Long
-        val offset: Long
-        if (ss == 0L)
-            throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
-        // The General Protection Fault sets an error code, which is the segment selector index when the exception is segment related. Otherwise, 0.
-        if (ss[2] == 0L) {
-            base = gdtr.base
-            offset = ss
-        } else {
-            if (ldtr == 0L || ldtr > gdtr.limit)
-                throw GeneralException("Incorrect LDTR=${ldtr.hex} GDTR=$gdtr")
-            val LDTData = load(gdtr.base + ldtr)
-            base = GDTEntry(LDTData).base
-            offset = ss and 0xFFFF_FFF8
+    private fun isLDT(ss: Long) = ss[2] != 0L
+
+    private fun descriptorByOffset(base: Long, offset: Long, makeDirty: Boolean): SegmentDescriptor {
+        val linear = base + offset
+        var data = linearRead(linear, 8, true)
+        if (makeDirty) {
+            data = data or 0x10000000000L
+            linearWrite(linear, 8, data, true)
         }
-        val address = base + offset
-        val data = load(address) or 0x10000000000L
-        store(address, data)
-        val result = GDTEntry(data)
+        val result = SegmentDescriptor(data)
         // log.fine { "Reload by [${ss.hex}] GDT -> $result" }
         return result
+    }
+
+    fun readSegmentDescriptor(ss: Long): SegmentDescriptor {
+        if (ss == 0L) throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
+
+        // The General Protection Fault sets an error code, which is the segment selector index
+        // when the exception is segment related. Otherwise, 0.
+        val base = if (isLDT(ss)) {
+            if (ldtr == 0L || ldtr > gdtr.limit)
+                throw GeneralException("Incorrect LDTR=${ldtr.hex} GDTR=$gdtr")
+            descriptorByOffset(gdtr.base, ldtr, false).base
+        } else gdtr.base
+
+        return descriptorByOffset(base, ss and 0xFFFF_FFF8, true)
     }
 
     private fun PMVirtual2Linear(vAddr: Long, ssr: x86Register): Long {
@@ -129,49 +315,50 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
         if (ss > gdtr.limit)
             return RMSegment2Linear(vAddr, ssr)
 
-        var gdtEntry = cache[ssr.reg]
-        if (!gdtEntry.isValid) {
-            gdtEntry = gdt(ss)
-            cache[ssr.reg] = gdtEntry
+        var desc = cache[ssr.reg]
+        if (!desc.isValid) {
+            desc = readSegmentDescriptor(ss)
+            cache[ssr.reg] = desc
 //            log.warning { "Invalid GDT entry in cache -> reload for 0x${vAddr.hex} ssr=$ssr[${ss.hex}] $gdtEntry" }
         }
 
-        if (ssr is x86Register.SSR.cs)
-            x86.cpu.defaultSize = gdtEntry.d
+        if (ssr is cs)
+            x86.cpu.defaultSize = desc.d
 
-        return vAddr + gdtEntry.base
+        return vAddr + desc.base
     }
 
-    private fun PMLinear2Physical(vAddr: Long): Long {
-        if (x86.cpu.cregs.vpae)
-            TODO("Can't translate virtual address ${vAddr.hex} in PAE mode!")
+    /**
+     * Translate linear address to physical address in Paging Mode see 4.3 32-BIT PAGING of Vol. 3A 4-7
+     * It also checks if access range extents current page limit and if so try to translate nearest next page address
+     * by loading it [PageDirectoryEntry4Kb] and [PageTableEntry4Kb] and checks entries flags: U/S, R/W, P.
+     *
+     * If page can't be accessed e.g. not present (P-flag) then [x86HardwareException.PageFault] will be generated.
+     *
+     * WARNING: The second translation is crucial when access among
+     *          two pages in one request - a really weird thing may happen!
+     */
+    private fun PMLinear2Physical(vAddr: Long, size: Int, LorS: AccessAction, privilege: Boolean): Long {
+        if (!x86.cpu.cregs.vpg)
+            return vAddr
 
-        val addressOfPageDirectory = x86.cpu.cregs.cr3[31..12]
-        val directory = vAddr[31..22]
+        val start = PageAddress4Kb(vAddr)
 
-        val pdeAddress = insert(addressOfPageDirectory, 31..12).insert(directory, 11..2)
-        val pde = load(pdeAddress)
+        if (x86.cpu.cregs.vpae) TODO("Can't translate linear address ${start.hex} in PAE mode!")
 
-        if (x86.cpu.cregs.vpse && pde[7] == 1L)  // PSE == 1 and PDE[PS] == 1
-            TODO("Can't translate virtual address ${vAddr.hex} for 4MB paging mode!")
+        val result = start.translate(LorS, privilege)
 
-        // 4KB paging mode
-        if (!x86.cpu.cregs.vpse && pde[7] == 0L) {
-            val addressOfPageTable = pde[31..12]
-            val table = vAddr[21..12]
-            val pteAddress = insert(addressOfPageTable, 31..12).insert(table, 11..2)
-            val pte = load(pteAddress)
+        if (size == 1)
+            return result
 
-            val addressOf4KBPageFrame = pte[31..12]
-            val offset = vAddr[11..0]
-            val address = insert(addressOf4KBPageFrame, 31..12).insert(offset, 11..0)
+        val end = PageAddress4Kb(vAddr + size - 1)
+        if (start.page == end.page)
+            return result
 
-//            log.warning { "Translate linear to physical ${vAddr.hex} -> ${address.hex}" }
+        // Access to first address of next page if page not load then PageFault generates
+        PageAddress4Kb(end.page).loadTranslationTable(LorS, privilege)
 
-            return address
-        }
-
-        throw GeneralException("Incorrect PSE and PDE[PS] mode for ${vAddr.hex}!")
+        return result
     }
 
     private fun RMSegment2Linear(vAddr: Long, ssr: x86Register): Long = (ssr.value(x86) shl 4) + vAddr
@@ -181,7 +368,7 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
             val ssr = x86Register.sreg(ss)
             if (protectedModeEnabled[ss]) {
                 val lAddr = PMVirtual2Linear(ea, ssr)
-                if (x86.cpu.cregs.vpg) PMLinear2Physical(lAddr) else lAddr
+                PMLinear2Physical(lAddr, size, LorS, false)
             } else RMSegment2Linear(ea, ssr)
             // log.fine { "%08X -> %08X".format(vAddr, pAddr) }
         } else ea
@@ -199,13 +386,14 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
             protectedModeEnabled[ssr.reg] = false
     }
 
-    fun invalidateCache() = cache.fill(INVALID_GDT_ENTRY)
+    fun invalidateGdtCache() = cache.fill(INVALID_GDT_ENTRY)
 
     fun invalidateProtectedMode() = protectedModeEnabled.fill(false)
 
     override fun reset(){
-        invalidateCache()
+        invalidateGdtCache()
         invalidateProtectedMode()
+        invalidatePagingCache()
     }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
@@ -221,7 +409,7 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
         gdtr.base = ctxt.loadHex(snapshot, "MMUgdtrBase", 0)
         gdtr.limit = ctxt.loadHex(snapshot, "MMUgdtrLimit", 0)
         ldtr = ctxt.loadHex(snapshot, "Ldtr", 0)
-        cache.deserialize<GDTEntry, String>(ctxt, snapshot["cache"]) { GDTEntry(it.hexAsULong) }
+        cache.deserialize<SegmentDescriptor, String>(ctxt, snapshot["cache"]) { SegmentDescriptor(it.hexAsULong) }
         protectedModeEnabled.deserialize<Boolean, Any>(ctxt, snapshot["protectedModeEnabled"]) { it as Boolean }
     }
 
@@ -251,28 +439,28 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
                 val phy: String? = context["phy"]
                 when {
                     ss != null -> {
-                        val desc = gdt(ss.hexAsULong)
+                        val desc = readSegmentDescriptor(ss.hexAsULong)
                         "base=%08X[hex] limit=%05X[hex] d=%s".format(desc.base, desc.limit, desc.d)
                     }
                     phy != null -> {
                         val offset = (0 until 0x10000 step 8).find {
-                            val desc = gdt(it.asULong)
+                            val desc = readSegmentDescriptor(it.asULong)
                             phy.hexAsULong in desc.base..desc.base + desc.limit
                         }
 
                         if (offset != null) {
-                            val desc = gdt(offset.asULong)
+                            val desc = readSegmentDescriptor(offset.asULong)
                             "[${offset.hex8}] -> $desc"
                         } else "GDT RECORD NOT FOUND FOR $phy"
                     }
                     else -> {
                         val offset = (0 until 0x10000 step 8).find {
-                            val desc = gdt(it.asULong)
+                            val desc = readSegmentDescriptor(it.asULong)
                             desc.limit != 0L && desc.isValid
                         }
 
                         if (offset != null) {
-                            val desc = gdt(offset.asULong)
+                            val desc = readSegmentDescriptor(offset.asULong)
                             "[${offset.hex8}] -> $desc"
                         } else "GDT RECORD NOT FOUND"
                     }
@@ -292,7 +480,7 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
                 val startPaddress = startPaddressString.toULong(16)
                 val size = sizeString.toULong(16)
                 if (startVaddress == 0L && startPaddress == 0L && size == 0x1_0000_0000) {
-                    val data = GDTEntry.createGdtEntry(startVaddress, 0xFFFFF)
+                    val data = SegmentDescriptor.createGdtEntry(startVaddress, 0xFFFFF)
                     x86.store(0xFFFF_FFB0, data.pack(8, ByteOrder.LITTLE_ENDIAN))
                     gdtr.base = 0xFFFF_FFB0
                     gdtr.limit = 0x10

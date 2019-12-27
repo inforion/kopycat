@@ -23,7 +23,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 import java.util.logging.Level
 
 /**
- * Created by shiftdj on 6/02/18.
+ * Created by a.kemurdzhian on 6/02/18.
  */
 
 class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
@@ -112,7 +112,7 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
             /*1,1*/     bicToaDc,       bisToaDc,   xorToaDc,   andToaDc
     )
 
-    fun fetch(where: Long): Long = core.inq(where)
+    fun fetch(where: Long): Long = core.fetch(where, 0, 8)
 
     fun decode(where: Long): AMSP430Instruction {
         val data = fetch(where)

@@ -1,9 +1,12 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.x86.enums.Flags
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86COP
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
@@ -16,7 +19,7 @@ import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by the bat on 25.06.17.
+ * Created by a.gladkikh on 25.06.17.
  */
 class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         AX86Instruction(core, Type.IRET, opcode, prefs) {
@@ -35,7 +38,7 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         val tmpip = x86utils.pop(core, prefs.opsize, prefs)
         val tmpcs = x86utils.pop(core, prefs.opsize, prefs)
 
-        val flagsSize = if (!prefs.is16BitOperandMode) Datatype.DWORD else Datatype.WORD
+        val flagsSize = if (!prefs.is16BitOperandMode) DWORD else WORD
         val tmpFlags = x86utils.pop(core, flagsSize, prefs)
 
         val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
@@ -65,9 +68,8 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
 //        log.fine { "returnToOuterPrivilegeLevel" }
         val sp = x86Register.gpr(prefs.opsize, x86GPR.ESP)
         val tmpsp = x86utils.pop(core, prefs.opsize, prefs)
-        sp.value(core, tmpsp)
-
         val tmpss = x86utils.pop(core, prefs.opsize, prefs)
+        sp.value(core, tmpsp)
         ss.value(core, tmpss)
 
 //        IF new mode ≠ 64-Bit Mode
@@ -156,6 +158,21 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         else {
             if (vm) returnFromVirtual8086Mode()
             else protectedMode()
+        }
+
+        log.info {
+            val prefs = Prefixes(core)
+            val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
+            val sp = x86Register.gpr(prefs.opsize, x86GPR.ESP)
+
+            val cpl = cs.cpl(core)
+            val saved_eflags = eflags.value(core)
+            val saved_cs = cs.value(core)
+            val saved_ip = ip.value(core)
+            val saved_ss = ss.value(core)
+            val saved_sp = sp.value(core)
+
+            "<-- RET cpl=$cpl ip=${saved_cs.hex}:${saved_ip.hex} sp=${saved_ss.hex}:${saved_sp.hex} flags=${saved_eflags.hex}"
         }
     }
 }

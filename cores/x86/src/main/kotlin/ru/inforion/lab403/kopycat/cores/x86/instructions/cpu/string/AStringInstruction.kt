@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.cx
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by batman on 23/10/16.
+ * Created by a.gladkikh on 23/10/16.
  */
 abstract class AStringInstruction(core: x86Core, opcode: ByteArray, prefs: Prefixes, val isRepeOrRepne:Boolean, vararg operands: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {

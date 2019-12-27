@@ -1,13 +1,14 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.gdt
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 04.10.16.
+ * Created by v.davydov on 04.10.16.
  */
 class Lgdt(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, operand) {
@@ -22,5 +23,6 @@ class Lgdt(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<
             core.mmu.gdtr.limit = src[15..0]
             core.mmu.gdtr.base = src[47..16]
         }
+        log.info { "[${core.cpu.pc.hex}] GDTR changed ${core.mmu.gdtr}" }
     }
 }

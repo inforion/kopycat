@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 26.12.16.
+ * Created by v.davydov on 26.12.16.
  */
 
 class Scas(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>):

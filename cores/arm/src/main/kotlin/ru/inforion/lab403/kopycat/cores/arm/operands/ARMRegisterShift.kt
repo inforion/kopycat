@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.cores.arm.enums.GPR as eGPR
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 class ARMRegisterShift(cpu: AARMCore, opcode: Long) : AARMShift(cpu, opcode) {

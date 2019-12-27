@@ -14,7 +14,7 @@ import java.util.logging.Level
 
 @Suppress("unused", "PrivatePropertyName")
 /**
- * Created by user on 15.06.17.
+ * Created by r.valitov on 15.06.17.
  */
 
 class NVIC(parent: Module, name: String) : APIC(parent, name) {

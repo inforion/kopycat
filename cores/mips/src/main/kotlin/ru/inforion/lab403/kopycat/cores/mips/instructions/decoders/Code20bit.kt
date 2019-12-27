@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by ra on 03.06.2016.
+ * Created by r.aristov on 03.06.2016.
  *
  * BREAK, SDBBP, SYSCALL
  */

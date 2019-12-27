@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.v850es.v850ESOperand
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by davydov_vn on 03.06.17.
+ * Created by v.davydov on 03.06.17.
  */
 
 @Suppress("NOTHING_TO_INLINE")

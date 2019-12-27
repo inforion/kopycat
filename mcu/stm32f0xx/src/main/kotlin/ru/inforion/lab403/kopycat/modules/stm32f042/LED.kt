@@ -28,6 +28,7 @@ class LED(parent: Module, name: String) : Module(parent, name) {
     override val ports = Ports()
 
     private val ledControl = object : Area(ports.pin, 0, 0, "GPIO_INPUT", ACCESS.R_W) {
+        override fun fetch(ea: Long, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
         override fun read(ea: Long, ss: Int, size: Int) = state.id.toLong()
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             state = find<STATE> { it.id == value.asInt } ?: STATE.UNKNOWN

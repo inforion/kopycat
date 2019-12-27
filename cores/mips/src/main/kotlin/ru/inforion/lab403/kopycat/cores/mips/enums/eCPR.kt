@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.enums
 
 /**
- * Created by batman on 05/06/16.
+ * Created by a.gladkikh on 05/06/16.
  */
 enum class eCPR(val id: Int, val sel: Int = 0) {
     INDEX(0),

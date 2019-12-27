@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.enums
 
 /**
- * Created by batman on 16/06/17.
+ * Created by a.gladkikh on 16/06/17.
  */
 enum class IntCtl(val range: IntRange) {
     IPTI(31..29),

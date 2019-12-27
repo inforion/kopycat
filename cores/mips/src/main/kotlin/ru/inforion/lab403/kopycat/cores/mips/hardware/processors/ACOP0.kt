@@ -20,7 +20,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import java.util.logging.Level
 
 /**
- * Created by batman on 17/06/17.
+ * Created by a.gladkikh on 17/06/17.
  */
 abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core, name) {
     companion object { val log = logger(Level.INFO) }

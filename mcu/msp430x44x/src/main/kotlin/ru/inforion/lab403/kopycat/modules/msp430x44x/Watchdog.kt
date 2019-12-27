@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.modules.BUS16
 
 /**
- * Created by shiftdj on 02/03/18.
+ * Created by a.kemurdzhian on 02/03/18.
  */
 
 //Simple stub for watchdog

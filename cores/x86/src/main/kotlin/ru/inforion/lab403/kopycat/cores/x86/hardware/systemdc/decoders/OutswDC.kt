@@ -15,7 +15,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ds
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 29.06.17.
+ * Created by v.davydov on 29.06.17.
  */
 class OutswDC(dev: x86Core) : ADecoder<AX86Instruction>(dev) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {

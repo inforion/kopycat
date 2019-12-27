@@ -11,7 +11,7 @@ import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by batman on 12/10/16.
+ * Created by a.gladkikh on 12/10/16.
  */
 class Loopz(core: x86Core, opcode: ByteArray, prefs: Prefixes, val operand: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, operand) {

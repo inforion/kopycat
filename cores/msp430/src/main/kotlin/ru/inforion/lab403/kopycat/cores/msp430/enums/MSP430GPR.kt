@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.msp430.enums
 
 /**
- * Created by shiftdj on 5/02/18.
+ * Created by a.kemurdzhian on 5/02/18.
  */
 
 enum class MSP430GPR(val id: Int, val regName : String) {

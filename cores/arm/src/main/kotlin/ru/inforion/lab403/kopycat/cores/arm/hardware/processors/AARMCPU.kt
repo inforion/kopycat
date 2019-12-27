@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 abstract class AARMCPU(val arm: AARMCore, name: String) : ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>(arm, name) {

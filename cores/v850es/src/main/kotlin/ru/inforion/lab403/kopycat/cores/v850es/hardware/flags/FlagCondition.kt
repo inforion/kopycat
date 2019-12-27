@@ -5,7 +5,7 @@ import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 @Suppress("NOTHING_TO_INLINE")
 /**
- * Created by davydov_vn on 03.06.17.
+ * Created by v.davydov on 03.06.17.
  */
 
 object FlagCondition {

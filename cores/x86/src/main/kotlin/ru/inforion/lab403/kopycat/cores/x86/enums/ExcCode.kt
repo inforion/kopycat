@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.enums
 
 /**
- * Created by batman on 03/06/16.
+ * Created by a.gladkikh on 03/06/16.
  */
 enum class ExcCode(val code: Int, val hasError: Boolean = false) {
     DivisionByZero(0x00),
@@ -24,6 +24,8 @@ enum class ExcCode(val code: Int, val hasError: Boolean = false) {
     MachineCheck(0x12),
     SIMDFloatingPointException(0x13),
     VirtualizationException(0x14),
-    SecurityException(0x1E)
+    SecurityException(0x1E),
+
+    FpuException(0xFF)
 }
 

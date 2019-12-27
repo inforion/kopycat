@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by the bat on 02.07.18.
+ * Created by a.gladkikh on 02.07.18.
  */
 class Ltr(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
@@ -20,13 +20,13 @@ class Ltr(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
 
         if (ss > core.mmu.gdtr.limit) throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
 
-        val gdt = core.mmu.gdt(ss)
+        val desc = core.mmu.readSegmentDescriptor(ss)
 
-        if (!gdt.isForAnAvailableTSS) throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
-        if (!gdt.isPresent) throw x86HardwareException.SegmentNotPresent(core.pc, ss)
+        if (!desc.isForAnAvailableTSS) throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
+        if (!desc.isPresent) throw x86HardwareException.SegmentNotPresent(core.pc, ss)
 
         // TSSSegmentDescriptor.Busy = 1;
 
-        core.mmu.tssr = ss
+        core.cop.tssr = ss
     }
 }

@@ -10,16 +10,20 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.arithm.immediate.AD
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.arithm.register.ADCr
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.branch.BLXi
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.hint.NOP
-import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.logic.immediate.ANDi
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.logic.immediate.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.logic.register.ANDr
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.media.MOVT
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rstore.PUSH
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.thumb.CMPi
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.thumb.MRS
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.thumb.MSRr
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
-class Thumb32Decoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
+class Thumb32Decoder(cpu: AARMCore) : ADecoder<AARMInstruction>(cpu) {
     companion object {
         private val log = logger()
     }
+
     private val undefined = ExceptionDecoder.Undefined(cpu)
     private val unpredictable = ExceptionDecoder.Unpredictable(cpu)
 
@@ -28,7 +32,7 @@ class Thumb32Decoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
     private val stm = Stub("")
     private val pop = Stub("")
     private val ldm = Stub("")
-    private val push = Stub("")
+    private val push = Thumb32PushDecoder.T2(cpu, ::PUSH)
     private val stmdb = Stub("")
     private val ldmdb = Stub("")
 
@@ -132,11 +136,11 @@ class Thumb32Decoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
 
     private val copAdvancedFP = Table("Coprocessor, Advanced SIMD, and Floating-point instructions")
 
-    private val tsti = Stub("")
+    private val tsti = Thumb32DataProcessingImmCarryDecoder(cpu, ::TSTi)
     private val andi = Thumb32DataProcessingImmCarryDecoder(cpu, ::ANDi)
-    private val bici = Stub("")
-    private val orri = Stub("")
-    private val movi = Stub("")
+    private val bici = Thumb32DataProcessingImmCarryDecoder(cpu, ::BICi)
+    private val orri = Thumb32DataProcessingImmCarryDecoder(cpu, ::ORRi)
+    private val moviT2 = Thumb32MovImmDecoder.T2(cpu, ::MOVi)
     private val orni = Stub("")
     private val mvni = Stub("")
     private val teqi = Stub("")
@@ -145,17 +149,17 @@ class Thumb32Decoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
     private val addi = Stub("")
     private val adci = Thumb32DataProcessingImmDecoder(cpu, ::ADCi)
     private val sbci = Stub("")
-    private val cmpi = Stub("")
+    private val cmpi = Thumb32CmpDecoder(cpu, ::CMPi)
     private val subi = Stub("")
     private val rsbi = Stub("")
 
     private val dataProcessingModImm = Table("Data-processing (modified immediate)",
             arrayOf(24..21, 19..16, 11..8, 4),
-            arrayOf("0000,     -   , 1111, 1 " to tsti,
+            arrayOf("0000,     -   , 1111, - " to tsti,
                     "0000,     -   ,   - , - " to andi, // Rd:S not 11111
                     "0001,     -   ,   - , - " to bici,
                     "0010, not 1111,   - , - " to orri,
-                    "0010,     1111,   - , - " to movi,
+                    "0010,     1111,   - , - " to moviT2,
                     "0011, not 1111,   - , - " to orni,
                     "0011,     1111,   - , - " to mvni,
                     "0100,     -   , 1111, 1 " to teqi,
@@ -164,12 +168,13 @@ class Thumb32Decoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
                     "1000,     -   ,   - , - " to addi, // Rd:S not 11111
                     "1010,     -   ,   - , - " to adci,
                     "1011,     -   ,   - , - " to sbci,
-                    "1101,     -   , 1111, 1 " to cmpi,
+                    "1101,     -   , 1111, - " to cmpi,
                     "1101,     -   ,   - , - " to subi, // Rd:S not 11111
                     "1110,     -   ,   - , - " to rsbi))
 
+    private val moviT3 = Thumb32MovImmDecoder.T3(cpu, ::MOVi)
     private val adr = Stub("")
-    private val movt = Stub("")
+    private val movt = Thumb32MovtDecoder.MOVT(cpu, ::MOVT)
     private val ssat = Stub("")
     private val ssat16 = Stub("")
     private val sbfx = Stub("")
@@ -183,7 +188,7 @@ class Thumb32Decoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
             arrayOf(24..20, 19..16, 14..12, 7..6),
             arrayOf("00000, not 1111,  - ,  - " to addi,
                     "00000,     1111,  - ,  - " to adr,
-                    "00100,     -   ,  - ,  - " to movi,
+                    "00100,     -   ,  - ,  - " to moviT3,
                     "01010, not 1111,  - ,  - " to subi,
                     "01010,     1111,  - ,  - " to adr,
                     "01100,     -   ,  - ,  - " to movt,

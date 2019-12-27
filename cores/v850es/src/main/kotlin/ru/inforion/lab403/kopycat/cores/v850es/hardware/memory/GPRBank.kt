@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.v850es.operands.v850esRegister
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by user on 25.05.17.
+ * Created by r.valitov on 25.05.17.
  */
 
 class GPRBank(core: v850ESCore) : ARegistersBank<v850ESCore, GPR>(core, GPR.values(), bits = 32) {

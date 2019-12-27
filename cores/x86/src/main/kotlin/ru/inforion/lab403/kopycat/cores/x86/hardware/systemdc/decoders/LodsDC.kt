@@ -14,7 +14,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.si
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 12.10.16.
+ * Created by v.davydov on 12.10.16.
  */
 
 class LodsDC(core: x86Core) : ADecoder<AX86Instruction>(core) {

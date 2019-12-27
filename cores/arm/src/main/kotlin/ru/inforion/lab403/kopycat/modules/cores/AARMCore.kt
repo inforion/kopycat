@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 abstract class AARMCore(parent: Module, name: String, frequency: Long, val version: Int, ipc: Double):

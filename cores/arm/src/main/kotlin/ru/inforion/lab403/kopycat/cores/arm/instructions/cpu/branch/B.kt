@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 28.01.18
+ * Created by a.gladkikh on 28.01.18
  */
 
 class B(cpu: AARMCore,

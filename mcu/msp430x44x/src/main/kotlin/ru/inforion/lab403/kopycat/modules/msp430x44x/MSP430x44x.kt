@@ -8,7 +8,7 @@ package ru.inforion.lab403.kopycat.modules.msp430x44x
 //import ru.inforion.lab403.kopycat.serializer.Serializer
 //
 ///**
-// * Created by shiftdj on 16/02/18.
+// * Created by a.kemurdzhian on 16/02/18.
 // */
 
 //class MSP430x44x(override val name: String) : ADebuggableMSP430(freq = 16.MHz, debugger = MSP430Debugger())  {

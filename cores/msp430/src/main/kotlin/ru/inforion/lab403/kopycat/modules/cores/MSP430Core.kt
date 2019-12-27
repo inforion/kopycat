@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.msp430.hardware.processors.MSP430CPU
 import ru.inforion.lab403.kopycat.modules.BUS16
 
 /**
- * Created by shiftdj on 5/02/18.
+ * Created by a.kemurdzhian on 5/02/18.
  */
 
 class MSP430Core constructor(parent: Module, name: String, frequency: Long):

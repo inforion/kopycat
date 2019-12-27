@@ -9,7 +9,7 @@
 //import java.util.logging.Level
 //
 ///**
-// * Created by the bat on 01.08.17
+// * Created by a.gladkikh on 01.08.17
 // */
 //class SimisDebugger : x86Debugger() {
 //    companion object {

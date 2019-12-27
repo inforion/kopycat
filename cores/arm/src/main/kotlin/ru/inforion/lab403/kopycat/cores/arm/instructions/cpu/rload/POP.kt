@@ -10,9 +10,11 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegisterList
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 30.01.18
+ * {EN}
+ * @author a.gladkikh
+ * @since 30.01.18
+ * {EN}
  */
-
 class POP(cpu: AARMCore,
           opcode: Long,
           cond: Condition,

@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.v850es.operands.v850esVariable
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by davydov_vn on 26.05.17.
+ * Created by v.davydov on 26.05.17.
  */
 
 class Add(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):

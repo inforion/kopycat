@@ -3,6 +3,7 @@ package ru.inforion.lab403.kopycat.cores.x86.operands
 import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.common.extensions.clr
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
@@ -324,7 +325,13 @@ abstract class x86Register(
 
         object cr1 : CTRLR(eCTRLR.CR1.id)
         object cr2 : CTRLR(eCTRLR.CR2.id)
-        object cr3 : CTRLR(eCTRLR.CR3.id)
+        object cr3 : CTRLR(eCTRLR.CR3.id) {
+            override fun value(core: x86Core, data: Long) {
+                log.severe { "[${core.pc.hex}] CR3 register changed to ${data.hex} -> paging cache invalidated!" }
+                core.cpu.cregs.writeIntern(reg, data)
+                core.mmu.invalidatePagingCache()
+            }
+        }
         object cr4 : CTRLR(eCTRLR.CR4.id)
     }
 

@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.modules.PIN
 import java.util.logging.Level
 
 /**
- * Created by user on 13.07.17.
+ * Created by r.valitov on 13.07.17.
  */
 class RCC(parent: Module, name: String) : Module(parent, name) {
     companion object {

@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 28.09.16.
+ * Created by v.davydov on 28.09.16.
  */
 class Call(
         core: x86Core,

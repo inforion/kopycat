@@ -12,6 +12,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.STORE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
+import ru.inforion.lab403.kopycat.loader.KopycatHelper
 import ru.inforion.lab403.kopycat.modules.BUS30
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.modules.memory.RAM
@@ -19,7 +20,7 @@ import java.nio.ByteOrder.LITTLE_ENDIAN
 import kotlin.test.assertTrue
 
 /**
- * Created by user on 25.07.17.
+ * Created by r.valitov on 25.07.17.
  */
 
 class MipsInstructionsTest: Module(null, "top") {
@@ -40,6 +41,7 @@ class MipsInstructionsTest: Module(null, "top") {
     init {
         mips.ports.mem.connect(buses.mem)
         ram0.ports.mem.connect(buses.mem, 0)
+        KopycatHelper.initializeToken(System.getenv("KC_LICENCE"))
         this.initializeAndResetAsTopInstance()
     }
 
@@ -49,7 +51,7 @@ class MipsInstructionsTest: Module(null, "top") {
     private fun execute(offset: Int = 0, generate: () -> ByteArray) {
         val data = generate()
         mips.store(startAddress + size, data)
-        mips.execute()
+        mips.step()
         println("%16s -> %s".format(data.hexlify(), mips.cpu.insn))
         size += data.size + offset
     }

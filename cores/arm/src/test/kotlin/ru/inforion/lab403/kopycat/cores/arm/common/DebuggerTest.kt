@@ -11,6 +11,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT
 import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT.*
 import ru.inforion.lab403.kopycat.library.types.Resource
+import ru.inforion.lab403.kopycat.loader.KopycatHelper
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
 import ru.inforion.lab403.kopycat.modules.debuggers.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
@@ -28,6 +29,7 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
         arm.cpu.pc = 0x0
         arm.cpu.status.ISETSTATE = 1
         dbg.ports.breakpoint.connect(buses.mem)
+        KopycatHelper.initializeToken(System.getenv("KC_LICENCE"))
         initializeAndResetAsTopInstance()
     }
 
@@ -85,13 +87,13 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
         prepareStrings()
     }
 
-    private fun setBreakpoint(address: Long, btyp: GDB_BPT = SOFTWARE) = dbg.bptSet(btyp, address, 2)
-    private fun deleteBreakpoint(address: Long, btyp: GDB_BPT = SOFTWARE) = dbg.bptClr(btyp, address, 2)
+    private fun setBreakpoint(address: Long, btyp: GDB_BPT = SOFTWARE) = dbg.bptSet(btyp, address)
+    private fun deleteBreakpoint(address: Long) = dbg.bptClr(address)
 
     @Test fun bptExecTest() {
         val expected = 0x6L
         setBreakpoint(expected)
-        val def = async { dbg.exec() }
+        val def = async { dbg.cont() }
         runBlocking { def.await() }
         assertPC(expected, dbg.cpu.pc)
         dbg.step()
@@ -101,7 +103,7 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
     @Test fun bptWriteTest() {
         val expected = 0x8L
         setBreakpoint(0x100, WRITE)
-        val def = async { dbg.exec() }
+        val def = async { dbg.cont() }
         runBlocking { def.await() }
         assertPC(expected, dbg.cpu.pc)
     }
@@ -109,7 +111,7 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
     @Test fun bptReadTest() {
         val expected = 0x4L
         setBreakpoint(0x200, READ)
-        val def = async { dbg.exec() }
+        val def = async { dbg.cont() }
         runBlocking { def.await() }
         assertPC(expected, dbg.cpu.pc)
     }
@@ -120,10 +122,10 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
         setBreakpoint(0x200, READ)
         setBreakpoint(0x200, READ)
         setBreakpoint(0x200, READ)
-        deleteBreakpoint(0x200, READ)
-        deleteBreakpoint(0x200, READ)
-        deleteBreakpoint(0x200, READ)
-        val def = async { dbg.exec() }
+        deleteBreakpoint(0x200)
+        deleteBreakpoint(0x200)
+        deleteBreakpoint(0x200)
+        val def = async { dbg.cont() }
         runBlocking { def.await() }
         assertPC(expected, dbg.cpu.pc)
     }

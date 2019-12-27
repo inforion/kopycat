@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.v850es.operands.v850esRegister
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by davydov_vn on 02.06.17.
+ * Created by v.davydov on 02.06.17.
  */
 class FormatIXCond(core: v850ESCore, val construct: constructor) : ADecoder<AV850ESInstruction>(core) {
 

@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by the bat on 07.07.17.
+ * Created by a.gladkikh on 07.07.17.
  */
 class Std(core: x86Core, opcode: ByteArray, prefs: Prefixes): AX86Instruction(core, Type.VOID, opcode, prefs) {
     override val mnem = "std"

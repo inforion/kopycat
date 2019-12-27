@@ -13,7 +13,7 @@ import java.util.logging.Level.SEVERE
 import java.util.logging.Level.WARNING
 
 /**
- * Created by the bat on 14.12.18.
+ * Created by a.gladkikh on 14.12.18.
  */
 class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, name) {
     companion object {

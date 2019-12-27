@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import java.util.logging.Level
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 class ARMv7COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {

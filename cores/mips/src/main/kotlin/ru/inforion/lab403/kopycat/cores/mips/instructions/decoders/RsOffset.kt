@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by ra on 03.06.2016.
+ * Created by r.aristov on 03.06.2016.
  *
  * BAL, BGEZ, BGEZAL, BGEZALL, BGEZL, BGTZ, BGTZL, BLEZ, BLEZL, BLTZ, BLTZAL, BLTZALL, BLTZL
  */

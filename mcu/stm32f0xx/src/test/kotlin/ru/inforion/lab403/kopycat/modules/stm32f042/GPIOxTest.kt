@@ -33,6 +33,7 @@ abstract class GPIOxTest(val register: RegisterType) : Module(null, "GPIOx_test_
     val gpio = GPIOx(this, "gpio", 1)
 
     val pins = object : Area(controller.ports.pin_output, 0, 0x10, "GPIO_INPUT", ACCESS.I_W) {
+        override fun fetch(ea: Long, ss: Int, size: Int): Long = TODO("not implemented... never be")
         override fun read(ea: Long, ss: Int, size: Int): Long = 0L
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             log.info("gpio send output signal [${value.hex4}]")

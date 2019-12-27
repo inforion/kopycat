@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.FPR
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by ra on 08.02.2017.
+ * Created by r.aristov on 08.02.2017.
  *
  * TRUNC.W.(S,D) fd, fs
  *

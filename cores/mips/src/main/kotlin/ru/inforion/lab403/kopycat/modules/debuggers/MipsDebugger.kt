@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import java.util.logging.Level
 
 /**
- * Created by batman on 05/06/16.
+ * Created by a.gladkikh on 05/06/16.
  */
 class MipsDebugger(parent: Module, name: String): Debugger(parent, name) {
     companion object {

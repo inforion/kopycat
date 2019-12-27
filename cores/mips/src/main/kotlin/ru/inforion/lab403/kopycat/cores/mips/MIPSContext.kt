@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.AContext
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.MipsCPU
 
 /**
- * Created by rusanov_pv on 02.03.18.
+ * Created by p.rusanov on 02.03.18.
  */
 
 class MIPSContext(cpu: MipsCPU) : AContext<MipsCPU>(cpu) {

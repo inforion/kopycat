@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ProcType
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by davydov_vn on 06.10.16.
+ * Created by v.davydov on 06.10.16.
  */
 
 abstract class MipsRegister<E: Enum<E>>(

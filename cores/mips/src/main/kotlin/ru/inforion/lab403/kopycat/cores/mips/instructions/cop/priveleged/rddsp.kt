@@ -5,7 +5,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by the bat on 19/06/17.
+ * Created by a.gladkikh on 19/06/17.
  *
  * RDDSP rd - for DSP extension
  */

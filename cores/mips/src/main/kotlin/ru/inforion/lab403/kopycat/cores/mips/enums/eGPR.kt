@@ -2,7 +2,7 @@ package ru.inforion.lab403.kopycat.cores.mips.enums
 
 
 /**
- * Created by batman on 04/06/16.
+ * Created by a.gladkikh on 04/06/16.
  */
 enum class eGPR(val id: Int) {
     ZERO(0),

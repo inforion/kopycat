@@ -11,9 +11,10 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86FPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86MMU
 import ru.inforion.lab403.kopycat.cores.x86.x86ABI
 import ru.inforion.lab403.kopycat.modules.BUS16
+import ru.inforion.lab403.kopycat.modules.BUS32
 
 /**
- * Created by davydov_vn on 07.09.16.
+ * Created by v.davydov on 07.09.16.
  */
 class x86Core constructor(parent: Module, name: String, frequency: Long, val generation: Generation, ipc: Double):
         ACore<x86Core, x86CPU, x86COP>(parent, name, frequency, ipc) {
@@ -40,10 +41,10 @@ class x86Core constructor(parent: Module, name: String, frequency: Long, val gen
     override fun abi(heap: LongRange, stack: LongRange): ABI<x86Core> = x86ABI(this, heap, stack, false)
 
     init {
-        cpu.ports.mem.connect(buses.physical)
-        mmu.ports.inp.connect(buses.physical)
+        cpu.ports.mem.connect(buses.virtual)
+        mmu.ports.inp.connect(buses.virtual)
 
-        mmu.ports.outp.connect(buses.virtual)
-        ports.mem.connect(buses.virtual)
+        mmu.ports.outp.connect(buses.physical)
+        ports.mem.connect(buses.physical)
     }
 }

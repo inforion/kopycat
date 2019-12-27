@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 08.09.16.
+ * Created by v.davydov on 08.09.16.
  */
 
 class FLBank(core: x86Core) : ARegistersBank<x86Core, FR>(core, FR.values(), bits = 32) {

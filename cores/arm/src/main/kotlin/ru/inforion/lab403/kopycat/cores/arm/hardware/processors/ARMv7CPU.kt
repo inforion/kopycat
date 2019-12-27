@@ -1,6 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.enums.GPR
 import ru.inforion.lab403.kopycat.cores.arm.enums.Mode
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
@@ -12,12 +13,17 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
+import java.util.logging.Level
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
+    companion object {
+        val log = logger(Level.FINER)
+    }
+
     override fun CurrentMode(): Mode = Mode.Thread
 
     override fun CurrentModeIsPrivileged(): Boolean = false
@@ -111,10 +117,20 @@ class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
         regs.reset()
         flags.reset()
         status.reset()
+
+        val sp = core.inl(0x0800_0000)
+        val pc = core.inl(0x0800_0004)
+
+        log.fine { "pc=${pc.hex8} sp=${sp.hex8}" }
+
+        BXWritePC(pc)
+        regs.spMain = sp
+        regs.lr = 0xFFFF_FFFF
+
         pipelineRefillRequired = false
     }
 
-    private fun fetch(where: Long): Long = core.inl(where)
+    private fun fetch(where: Long): Long = core.fetch(where, 0 ,4)
 
     private fun swapByte(data: Long): Long {
         val high = data and 0xFFFF_0000
@@ -122,7 +138,9 @@ class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
         return (high shr 16) or (low shl 16)
     }
 
-    override fun execute(): Int {
+    private var offset: Int = 0
+
+    override fun decode() {
         var data: Long
         val decoder: ADecoder<AARMInstruction>
         val offset: Long
@@ -154,11 +172,17 @@ class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
         insn.ea = pc
 
         println("[${pc.hex8}] ${insn.opcode.hex8} $insn")
-        pc += insn.size
-        pc += offset
+    }
+
+    override fun execute(): Int {
+        pc += insn.size + offset
 
         try {
             insn.execute()
+
+            if (InITBlock()) // check A7.3.3 about ITSTATE in ARMv7-M ref. manual
+                ITAdvance()
+
         } catch (error: Throwable) {
             pc = insn.ea
             throw error

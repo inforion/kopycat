@@ -170,11 +170,11 @@ class STM32F042 constructor(parent: Module, name: String, firmware: ByteArray) :
 
         tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL2)
         tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL3)
-        tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL4)
-        tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL4)
+//        tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL4)
+//        tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL4)
         tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL4)
         tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL5)
-        tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL5)
+//        tim1.ports.drq.connect(buses.drq, DMAC.CHANNEL5)
 
         // =============================================================================================================
 
@@ -188,8 +188,8 @@ class STM32F042 constructor(parent: Module, name: String, firmware: ByteArray) :
 
         tim3.ports.drq.connect(buses.drq, DMAC.CHANNEL2)
         tim3.ports.drq.connect(buses.drq, DMAC.CHANNEL3)
-        tim3.ports.drq.connect(buses.drq, DMAC.CHANNEL3)
-        tim3.ports.drq.connect(buses.drq, DMAC.CHANNEL4)
+//        tim3.ports.drq.connect(buses.drq, DMAC.CHANNEL3)
+//        tim3.ports.drq.connect(buses.drq, DMAC.CHANNEL4)
         tim3.ports.drq.connect(buses.drq, DMAC.CHANNEL4)
 
         // =============================================================================================================

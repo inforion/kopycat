@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.arith.Imul
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 29.09.16.
+ * Created by v.davydov on 29.09.16.
  */
 class ImulDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {

@@ -2,6 +2,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions
 
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.MHz
+import ru.inforion.lab403.kopycat.loader.KopycatHelper
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 
@@ -18,6 +19,7 @@ class X86InstructionsTest32: AX86InstructionTest() {
         ram0.ports.mem.connect(buses.mem, 0)
         ram1.ports.mem.connect(buses.io, 0)
         x86.cpu.defaultSize = true
+        KopycatHelper.initializeToken(System.getenv("KC_LICENCE"))
         initializeAndResetAsTopInstance()
     }
     override val mode: Long

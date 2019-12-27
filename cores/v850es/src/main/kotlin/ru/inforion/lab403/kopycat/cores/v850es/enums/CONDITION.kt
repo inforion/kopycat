@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.v850es.enums
 
 /**
- * Created by batman on 22/07/17.
+ * Created by a.gladkikh on 22/07/17.
  */
 enum class CONDITION(val bits: Int) {
     BGE(0b1110),

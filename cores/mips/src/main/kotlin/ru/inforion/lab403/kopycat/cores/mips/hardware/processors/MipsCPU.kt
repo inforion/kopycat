@@ -126,12 +126,15 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
         pc = 0xBFC00000
     }
 
-    private fun fetch(pc: Long): Long = core.inl(pc)
+    private fun fetch(pc: Long): Long = core.fetch(pc, 0 ,4)
 
-    override fun execute(): Int {
+    override fun decode() {
         val data = fetch(pc)
         insn = decoder.decode(data, pc)
         insn.ea = pc
+    }
+
+    override fun execute(): Int {
         insn.execute()
         branchCntrl.processIp(insn.size)
         return 1  // TODO: get from insn.execute()

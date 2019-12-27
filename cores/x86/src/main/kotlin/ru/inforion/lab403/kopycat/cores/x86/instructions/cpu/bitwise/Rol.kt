@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 26.09.16.
+ * Created by v.davydov on 26.09.16.
  */
 class Rol(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
@@ -23,10 +23,14 @@ class Rol(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
         // http://stackoverflow.com/questions/10395071/what-is-the-difference-between-rcr-and-ror
         val a1 = op1.value(core)
         val a2 = (op2.value(core) % op1.dtyp.bits).toInt()
-        val msb  = op1.dtyp.bits
-        val lsb = msb - a2
-        val lowPart = a1[msb..lsb]
-        val res = a1.shl(a2).insert(lowPart, a2 - 1..0)
+        val res = if (a2 > 0) {
+            val msb = op1.dtyp.msb
+            val lsb = msb - a2 + 1
+            val lowPart = a1[msb..lsb]
+            (a1 shl a2) or lowPart
+        } else {
+            a1
+        }
         val result = Variable<x86Core>(0, op1.dtyp)
         result.value(core, res)
         FlagProcessor.processRotateFlag(core, result, op2, true, res[0] == 1L)

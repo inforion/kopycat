@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.AContext
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 
 /**
- * Created by rusanov_pv on 14.12.17.
+ * Created by p.rusanov on 14.12.17.
  */
 
 class x86Context(cpu: x86CPU): AContext<x86CPU>(cpu) {

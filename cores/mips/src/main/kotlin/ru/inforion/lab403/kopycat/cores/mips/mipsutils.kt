@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.FPR
 import kotlin.reflect.KProperty
 
 /**
- * Created by ra on 11.04.2017.
+ * Created by r.aristov on 11.04.2017.
  */
 class LongOperandField(val index: Int) {
     operator fun getValue(thisRef: AMipsInstruction, property: KProperty<*>): Long = thisRef[index - 1].value(thisRef.core)

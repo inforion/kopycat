@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegisterList
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 30.01.18
+ * Created by a.gladkikh on 30.01.18
  */
 
 class STMDA(cpu: AARMCore,

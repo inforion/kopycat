@@ -15,7 +15,7 @@ import ru.inforion.lab403.kopycat.modules.PIN
 import java.util.logging.Level
 
 /**
- * Created by shiftdj on 20/02/18.
+ * Created by a.kemurdzhian on 20/02/18.
  */
 
 class TimerA(parent: Module, name: String) : Module(parent, name) {

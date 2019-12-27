@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by the bat on 26.06.18.
+ * Created by a.gladkikh on 26.06.18.
  */
 
 class FsaveRstorDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, AOperand<x86Core>) -> AX86Instruction) :

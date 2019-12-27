@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 
 /**
- * Created by shiftdj on 6/02/18.
+ * Created by a.kemurdzhian on 6/02/18.
  */
 
 class MSP430Immediate(dtyp: Datatype, value: Long, signed: Boolean) : Immediate<MSP430Core>(value, signed, dtyp, WRONGI)

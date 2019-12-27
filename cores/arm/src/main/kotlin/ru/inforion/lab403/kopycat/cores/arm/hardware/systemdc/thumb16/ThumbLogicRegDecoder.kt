@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 17.01.18.
+ * Created by a.gladkikh on 17.01.18.
  */
 
 class ThumbLogicRegDecoder(

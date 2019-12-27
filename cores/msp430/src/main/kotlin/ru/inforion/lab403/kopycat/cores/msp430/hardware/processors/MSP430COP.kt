@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 import java.util.logging.Level
 
 /**
- * Created by shiftdj on 16/02/18.
+ * Created by a.kemurdzhian on 16/02/18.
  */
 
 class MSP430COP(core: MSP430Core, name: String) : ACOP<MSP430COP, MSP430Core>(core, name) {

@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.modules.BUS16
 
 @Suppress("PropertyName", "unused")
 /**
- * Created by shiftdj on 20/02/18.
+ * Created by a.kemurdzhian on 20/02/18.
  */
 
 class PIC(parent: Module, name: String) : APIC(parent, name) {

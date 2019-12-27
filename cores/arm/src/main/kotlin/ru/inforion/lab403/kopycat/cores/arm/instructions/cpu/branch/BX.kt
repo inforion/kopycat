@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 28.01.18
+ * Created by a.gladkikh on 28.01.18
  */
 
 class BX(cpu: AARMCore,

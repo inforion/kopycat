@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by batman on 03/06/16.
+ * Created by a.gladkikh on 03/06/16.
  *
  * LL rt, offset(base)
  */

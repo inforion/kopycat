@@ -13,7 +13,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 import ru.inforion.lab403.kopycat.cores.msp430.enums.MSP430GPR as eGPR
 
 /**
- * Created by shiftdj on 5/02/18.
+ * Created by a.kemurdzhian on 5/02/18.
  */
 
 abstract class MSP430Register(

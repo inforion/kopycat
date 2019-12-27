@@ -13,7 +13,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.ARM
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.CURRENT
 
 /**
- * Created by the bat on 28.01.18
+ * Created by a.gladkikh on 28.01.18
  */
 
 class BLXi(cpu: AARMCore,

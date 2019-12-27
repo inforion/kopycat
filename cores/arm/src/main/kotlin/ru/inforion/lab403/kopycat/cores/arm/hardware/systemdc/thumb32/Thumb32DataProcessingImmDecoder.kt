@@ -31,7 +31,7 @@ class Thumb32DataProcessingImmDecoder(
         val i = data[26]
         val imm3 = data[14..12]
         val imm8 = data[7..0]
-        val imm32 = Immediate<AARMCore>(ThumbExpandImm((i shl 12) + (imm3 shl 8) + imm8))
+        val imm32 = Immediate<AARMCore>(ThumbExpandImm((i shl 11) + (imm3 shl 8) + imm8))
         if(rd.reg in 15..13 || rn.reg in 15..13) throw Unpredictable
         return constructor(core, data, cond, setFlags, rd, rn, imm32, 4)
     }

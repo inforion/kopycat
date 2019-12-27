@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 class GPRBank(core: AARMCore) : ARegistersBank<AARMCore, GPR>(core, GPR.values(), bits = 32) {

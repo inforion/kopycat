@@ -13,7 +13,7 @@ import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 28.09.16.
+ * Created by v.davydov on 28.09.16.
  */
 class Ret(core: x86Core, operand: AOperand<x86Core>, opcode: ByteArray, prefs: Prefixes, val isFar: Boolean):
         AX86Instruction(core, Type.RET, opcode, prefs, operand) {

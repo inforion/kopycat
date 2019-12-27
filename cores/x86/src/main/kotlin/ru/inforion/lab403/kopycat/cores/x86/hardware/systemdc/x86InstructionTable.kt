@@ -4,7 +4,7 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.interfaces.ITableEntry
 
 /**
- * Created by davydov_vn on 07.09.16.
+ * Created by v.davydov on 07.09.16.
  */
 
 class x86InstructionTable(

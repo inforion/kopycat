@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 21.09.16.
+ * Created by v.davydov on 21.09.16.
  */
 
 class IncDC(core: x86Core) : ADecoder<AX86Instruction>(core) {

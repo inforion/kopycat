@@ -11,7 +11,7 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
 /**
- * Created by davydov_vn on 22.09.16.
+ * Created by v.davydov on 22.09.16.
  */
 
 class FucomDC(core: x86Core) : ADecoder<AX86Instruction>(core) {

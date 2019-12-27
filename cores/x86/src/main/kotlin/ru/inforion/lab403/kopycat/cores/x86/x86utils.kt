@@ -1,20 +1,45 @@
 package ru.inforion.lab403.kopycat.cores.x86
 
+import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Far
+import ru.inforion.lab403.kopycat.cores.x86.operands.*
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.esp
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.sp
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ss
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import kotlin.math.absoluteValue
 
 /**
- * Created by batman on 12/10/16.
+ * Created by a.gladkikh on 12/10/16.
  */
 object x86utils {
+    fun bitBase(
+            core: x86Core,
+            base: AOperand<x86Core>,
+            offset: AOperand<x86Core>,
+            prefs: Prefixes
+    ): Pair<AOperand<x86Core>, Int> {
+        val a2 = offset.value(core)
+        val a1: AOperand<x86Core>
+        val bitpos: Int
+        if (base is x86Register) {
+            a1 = base
+            bitpos = (if (prefs.is16BitOperandMode) a2 % 16 else a2 % 32).toInt()
+        } else if (base is x86Displacement || base is x86Memory || base is x86Phrase) {
+            val address = base.effectiveAddress(core) // get start pointer of memory
+            val byteOffset = a2 / 8 // get byte-offset from start pointer (can be positive or negative)
+            bitpos = (a2.absoluteValue % 8).asInt  // bit offset in selected byte
+            a1 = x86Memory(Datatype.BYTE, address + byteOffset, base.ssr as x86Register) // create fake operand
+        } else {
+            throw GeneralException("First operand bust be Register, Memory or Displacement. ")
+        }
+
+        return a1 to bitpos
+    }
+
     fun isWithinCodeSegmentLimits(ea: Long): Boolean = true
 
     fun getSegmentSelector(dev: x86Core, operand: AOperand<x86Core>): Long = when (operand) {

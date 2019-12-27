@@ -11,7 +11,7 @@ import ru.inforion.lab403.kopycat.cores.v850es.operands.v850esRegister
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by user on 23.05.17.
+ * Created by r.valitov on 23.05.17.
  */
 
 class FormatII(core: v850ESCore, val construct: constructor, val isSignExt: Boolean) : ADecoder<AV850ESInstruction>(core) {

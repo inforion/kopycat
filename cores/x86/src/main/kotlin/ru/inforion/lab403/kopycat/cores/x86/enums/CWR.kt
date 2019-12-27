@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.enums
 
 /**
- * Created by davydov_vn on 09.02.18.
+ * Created by v.davydov on 09.02.18.
  */
 
 enum class CWR(val bit: Int) {

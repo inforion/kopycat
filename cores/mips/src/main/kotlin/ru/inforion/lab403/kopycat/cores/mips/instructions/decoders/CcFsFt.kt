@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by the bat on 03.06.2016.
+ * Created by a.gladkikh on 03.06.2016.
  *
  * C.cond.fmt
  */

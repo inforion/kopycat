@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.control.Lar
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 19.01.17.
+ * Created by v.davydov on 19.01.17.
  */
 
 class LarDC(core: x86Core) : ADecoder<AX86Instruction>(core) {

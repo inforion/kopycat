@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Displacement
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by davydov_vn on 06.10.16.
+ * Created by v.davydov on 06.10.16.
  */
 
 class MipsDisplacement(dtyp: Datatype, reg: Int, addr: Int) :

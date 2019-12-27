@@ -4,7 +4,7 @@ import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
 
 /**
- * Created by batman on 18/06/17.
+ * Created by a.gladkikh on 18/06/17.
  */
 enum class Config3(val pos: Int) {
     ULRI(13), // UserLocal register implemented

@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ds
 import ru.inforion.lab403.kopycat.interfaces.IMemoryStream
 
 /**
- * Created by batman on 08/10/16.
+ * Created by a.gladkikh on 08/10/16.
  */
 class x86OperandStream(stream: IMemoryStream): IMemoryStream by stream {
     private fun mem(optype: Datatype, addrype: Datatype, ssr: x86Register = ds): x86Memory = x86Memory(optype, read(addrype), ssr)

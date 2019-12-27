@@ -13,7 +13,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 01.02.18
+ * Created by a.gladkikh on 01.02.18
  */
 
 class LSLr(cpu: AARMCore,

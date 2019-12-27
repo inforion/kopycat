@@ -5,7 +5,7 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.processors.ARMv6CPU
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 class ARMv6Core constructor(parent: Module, name: String, frequency: Long, ipc: Double):

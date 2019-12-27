@@ -4,7 +4,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.v850es.enums.ExcCode
 
 /**
- * Created by user on 29.05.17.
+ * Created by r.valitov on 29.05.17.
  */
 
 abstract class v850ESHardwareException(excCode: Enum<*>, where: Long, message: String? = null):

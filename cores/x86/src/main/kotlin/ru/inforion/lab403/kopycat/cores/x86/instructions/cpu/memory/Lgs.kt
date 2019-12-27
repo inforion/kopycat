@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.gs
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by the bat on 25.10.16.
+ * Created by a.gladkikh on 25.10.16.
  */
 class Lgs(core: x86Core, opcode: ByteArray, prefs: Prefixes, op1: AOperand<x86Core>, op2: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, op1, op2) {

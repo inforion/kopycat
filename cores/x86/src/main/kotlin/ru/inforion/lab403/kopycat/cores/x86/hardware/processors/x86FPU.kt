@@ -11,7 +11,7 @@ import ru.inforion.lab403.kopycat.serializer.deserialize
 import ru.inforion.lab403.kopycat.serializer.loadValue
 
 /**
- * Created by davydov_vn on 08.09.16.
+ * Created by v.davydov on 08.09.16.
  */
 
 class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name) {

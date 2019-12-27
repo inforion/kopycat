@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.enums
 
 /**
- * Created by batman on 11/04/17.
+ * Created by a.gladkikh on 11/04/17.
  */
 enum class COND {
     F,

@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise.Bt
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 13.06.17.
+ * Created by v.davydov on 13.06.17.
  */
 class BtDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {

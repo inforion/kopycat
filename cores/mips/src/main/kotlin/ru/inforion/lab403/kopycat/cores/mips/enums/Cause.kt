@@ -4,7 +4,7 @@ import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
 
 /**
- * Created by batman on 15/06/16.
+ * Created by a.gladkikh on 15/06/16.
  */
 enum class Cause(val pos: Int) {
 

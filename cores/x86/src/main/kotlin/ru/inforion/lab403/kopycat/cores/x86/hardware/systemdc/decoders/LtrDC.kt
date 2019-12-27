@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.system.Ltr
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by the bat on 02.07.18.
+ * Created by a.gladkikh on 02.07.18.
  */
 
 class LtrDC(core: x86Core) : ADecoder<AX86Instruction>(core) {

@@ -1,6 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.processors
 
 import net.sourceforge.argparse4j.inf.ArgumentParser
+import ru.inforion.lab403.common.extensions.hex4
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.toLong
 import ru.inforion.lab403.common.extensions.variable
@@ -18,13 +19,14 @@ import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 07.09.16.
+ * Created by v.davydov on 07.09.16.
  */
 
 class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruction, x86GPR>(x86, name) {
 
     enum class Mode { R16, R32 }
 
+    var halted = false
     var defaultSize = false
     // Operand and Address size mode! Not real or protected!
     // Real or protected mode defined by cregs.vpe
@@ -61,7 +63,8 @@ class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruct
      * Write - setup only offset of virtual address within cs segment
      */
     override var pc: Long
-        get() = x86.mmu.translate(eip.value(x86), cs.reg, 1, AccessAction.LOAD)
+//        get() = x86.mmu.translate(eip.value(x86), cs.reg, 1, AccessAction.LOAD)
+        get() = eip.value(x86)
         set(value) {
             eip.value(x86, value)
 //            log.warning { "Setting up x86CPU.PC changing only offset within CS segment -> %04X:%08X = %08X"
@@ -85,9 +88,12 @@ class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruct
         insn = Nop.create(x86)
     }
 
-    override fun execute(): Int {
+    override fun decode() {
         insn = decoder.decode(regs.eip)
-        // println("$insn")
+//        log.info { "cs=${sregs.cs.hex4} eip=${regs.eip.hex8} $insn" }
+    }
+
+    override fun execute(): Int {
         regs.eip += insn.size
         insn.execute()
         return 1  // TODO: get from insn.execute()

@@ -11,7 +11,7 @@ import ru.inforion.lab403.kopycat.cores.base.field
 import java.util.logging.Level
 
 /**
- * Created by user on 13.07.17.
+ * Created by r.valitov on 13.07.17.
  */
 class TIM18(parent: Module, name: String) : Module(parent, name) {
     companion object { private val log = logger(Level.ALL) }

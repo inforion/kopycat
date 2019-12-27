@@ -11,7 +11,7 @@ import ru.inforion.lab403.kopycat.cores.msp430.instructions.AMSP430Instruction
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 
 /**
- * Created by shiftdj on 5/02/18.
+ * Created by a.kemurdzhian on 5/02/18.
  */
 
 class MSP430CPU(val msp430: MSP430Core, name: String):
@@ -34,11 +34,14 @@ class MSP430CPU(val msp430: MSP430Core, name: String):
         super.reset()
         decoder.reset()
         regs.reset()
-        regs.r0ProgramCounter = core.inw(0xFFFE)
+        regs.r0ProgramCounter = core.fetch(0xFFFE, 0, 2)
+    }
+
+    override fun decode() {
+        insn = decoder.decode(regs.r0ProgramCounter)
     }
 
     override fun execute(): Int {
-        insn = decoder.decode(regs.r0ProgramCounter)
         regs.r0ProgramCounter += insn.size
         insn.execute()
 //        println("${pc.hex8}   [${data.hex16}]   ${insn.size}   $insn")

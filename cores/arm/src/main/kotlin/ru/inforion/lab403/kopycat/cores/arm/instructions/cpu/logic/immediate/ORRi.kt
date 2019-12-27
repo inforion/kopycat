@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.ARM
 
 /**
- * Created by the bat on 17.01.18.
+ * Created by a.gladkikh on 17.01.18.
  */
 
 class ORRi(cpu: AARMCore,

@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.enums
 
 /**
- * Created by davydov_vn on 08.09.16.
+ * Created by v.davydov on 08.09.16.
  */
 
 enum class x86GPR(val id: Int, val n8: String, val n16: String, val n32: String) {

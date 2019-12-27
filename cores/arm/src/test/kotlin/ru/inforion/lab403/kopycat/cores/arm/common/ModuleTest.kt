@@ -12,6 +12,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.AreaDefinitionError
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.base.exceptions.RegisterDefinitionError
 import ru.inforion.lab403.kopycat.library.types.Resource
+import ru.inforion.lab403.kopycat.loader.KopycatHelper
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
@@ -42,6 +43,7 @@ class ModuleTest: Module(null, "Module Test") {
         arm.cpu.pc = 0x0
         arm.cpu.status.ISETSTATE = 1
         dbg.ports.breakpoint.connect(buses.mem)
+        KopycatHelper.initializeToken(System.getenv("KC_LICENCE"))
         initializeAndResetAsTopInstance()
     }
 

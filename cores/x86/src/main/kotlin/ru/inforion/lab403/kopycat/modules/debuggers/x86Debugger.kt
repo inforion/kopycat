@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
 /**
- * Created by batman on 05/06/16.
+ * Created by a.gladkikh on 05/06/16.
  */
 
 class x86Debugger(parent: Module, name: String): Debugger(parent, name) {

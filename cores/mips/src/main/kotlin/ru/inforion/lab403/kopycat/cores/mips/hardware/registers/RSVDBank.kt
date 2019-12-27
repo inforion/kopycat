@@ -5,7 +5,7 @@ import ru.inforion.lab403.kopycat.cores.mips.enums.RSVD
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by batman on 28/06/16.
+ * Created by a.gladkikh on 28/06/16.
  */
 class RSVDBank(core: MipsCore) : ARegistersBank<MipsCore, RSVD>(core, RSVD.values(), bits = 32) {
     override val name: String = "Reserved Registers Bank"

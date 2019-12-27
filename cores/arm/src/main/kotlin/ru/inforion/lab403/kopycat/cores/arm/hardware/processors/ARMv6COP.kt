@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.modules.cores.ARMv6Core
 import java.util.logging.Level
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 class ARMv6COP(val cpu: ARMv6Core, name: String) : AARMCOP(cpu, name) {

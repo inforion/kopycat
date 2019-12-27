@@ -3,11 +3,12 @@ package ru.inforion.lab403.kopycat.cores.mips.exceptions
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
 
 /**
- * Created by batman on 14/09/16.
+ * Created by a.gladkikh on 14/09/16.
  *
  * excCode - MIPS exception code
  * vAddr - is common field and may be not used
@@ -15,13 +16,13 @@ import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
 open class MipsHardwareException(excCode: ExcCode, where: Long, val vAddr: Long = -1): HardwareException(excCode, where) {
     companion object {
         private fun excCodeMiss(LorS: AccessAction): ExcCode = when (LorS) {
-            AccessAction.STORE -> ExcCode.TLBS_MISS
-            AccessAction.LOAD -> ExcCode.TLBL_MISS
+            STORE -> ExcCode.TLBS_MISS
+            LOAD, FETCH -> ExcCode.TLBL_MISS
         }
 
         private fun excCodeInv(LorS: AccessAction): ExcCode = when (LorS) {
-            AccessAction.STORE -> ExcCode.TLBS_INVALID
-            AccessAction.LOAD -> ExcCode.TLBL_INVALID
+            STORE -> ExcCode.TLBS_INVALID
+            LOAD, FETCH -> ExcCode.TLBL_INVALID
         }
     }
 

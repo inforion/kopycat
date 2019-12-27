@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 22.09.16.
+ * Created by v.davydov on 22.09.16.
  */
 
 class Push(core: x86Core, opcode: ByteArray, prefs: Prefixes, val isSSR: Boolean, vararg operands: AOperand<x86Core>):

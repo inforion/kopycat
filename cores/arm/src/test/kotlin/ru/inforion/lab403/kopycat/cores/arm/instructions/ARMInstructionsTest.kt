@@ -11,6 +11,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.loader.KopycatHelper
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import unicorn.Unicorn
@@ -36,6 +37,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         Module.log.level = Level.SEVERE
         arm.ports.mem.connect(buses.mem)
         ram.ports.mem.connect(buses.mem)
+        KopycatHelper.initializeToken(System.getenv("KC_LICENCE"))
         initializeAndResetAsTopInstance()
     }
 
@@ -49,7 +51,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
 
     private fun execute(data: ByteArray, offset: Int = 0) {
         arm.store(startAddress + insnSize, data)
-        arm.execute()
+        arm.step()
         println("%16s -> %s".format(data.hexlify(), arm.cpu.insn))
 
         unicorn.mem_write(startAddress + insnSize, data)

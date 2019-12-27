@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.dx
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 31.01.17.
+ * Created by v.davydov on 31.01.17.
  */
 
 class Idiv(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>):

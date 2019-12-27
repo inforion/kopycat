@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ds
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by batman on 07/10/16.
+ * Created by a.gladkikh on 07/10/16.
  */
 class Prefixes(
         val core: x86Core,

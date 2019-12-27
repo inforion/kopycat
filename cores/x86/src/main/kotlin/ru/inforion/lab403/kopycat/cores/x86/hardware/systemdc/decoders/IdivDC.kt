@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.arith.Idiv
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 31.01.17.
+ * Created by v.davydov on 31.01.17.
  */
 
 class IdivDC(core: x86Core) : ADecoder<AX86Instruction>(core) {

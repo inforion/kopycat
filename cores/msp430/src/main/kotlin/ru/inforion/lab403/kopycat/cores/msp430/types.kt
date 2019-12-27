@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.msp430.instructions.AMSP430Instruction
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 
 /**
- * Created by shiftdj on 6/02/18.
+ * Created by a.kemurdzhian on 6/02/18.
  */
 
 //TODO: lower case for type makes some ambiguity

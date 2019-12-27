@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 import java.util.logging.Level
 
 /**
- * Created by user on 07.07.17.
+ * Created by r.valitov on 07.07.17.
  */
 
 class v850ESCOP(core: v850ESCore, name: String) : ACOP<v850ESCOP, v850ESCore>(core, name) {

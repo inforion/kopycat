@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 fun ARMImmediate(value: Long, signed: Boolean) = Immediate<AARMCore>(value, signed, DWORD, WRONGI)

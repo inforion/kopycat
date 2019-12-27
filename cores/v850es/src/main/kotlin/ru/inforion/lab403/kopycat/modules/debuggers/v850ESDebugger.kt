@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by davydov_vn on 02.06.17.
+ * Created by v.davydov on 02.06.17.
  */
 class v850ESDebugger(parent: Module, name: String): Debugger(parent, name) {
     override fun ident() = "v850es"

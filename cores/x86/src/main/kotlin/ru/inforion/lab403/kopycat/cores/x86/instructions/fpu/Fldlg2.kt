@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 08.09.16.
+ * Created by v.davydov on 08.09.16.
  */
 
 class Fldlg2(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>):

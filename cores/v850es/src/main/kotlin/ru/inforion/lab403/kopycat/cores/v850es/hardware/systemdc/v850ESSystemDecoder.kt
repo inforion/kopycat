@@ -37,7 +37,7 @@ import kotlin.collections.Map
 import kotlin.collections.set
 
 /**
- * Created by user on 23.05.17.
+ * Created by r.valitov on 23.05.17.
  */
 
 class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
@@ -399,7 +399,7 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
             /*1,1,1,1*/    a_9_opcode,         a_9_opcode,         d_opcode,           ae_opcode
     )
 
-    fun fetch(where: Long): Long = core.inq(where)
+    fun fetch(where: Long): Long = core.fetch(where, 0, 8)
 
     fun decode(where: Long): AV850ESInstruction {
         val data = fetch(where)

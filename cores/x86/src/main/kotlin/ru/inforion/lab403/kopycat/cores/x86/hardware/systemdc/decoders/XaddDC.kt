@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory.Xadd
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by the bat on 27.06.18.
+ * Created by a.gladkikh on 27.06.18.
  */
 
 class XaddDC(dev: x86Core) : ADecoder<AX86Instruction>(dev) {

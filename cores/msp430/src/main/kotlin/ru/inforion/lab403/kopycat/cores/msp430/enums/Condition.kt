@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.msp430.enums
 
 /**
- * Created by shiftdj on 13/02/18.
+ * Created by a.kemurdzhian on 13/02/18.
  */
 
 enum class Condition(val opcode: Int, val mnem: String) {

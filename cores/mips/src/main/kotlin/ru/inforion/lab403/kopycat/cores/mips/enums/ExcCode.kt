@@ -1,7 +1,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.enums
 
 /**
- * Created by romanov_ks on 28.06.16.
+ * Created by k.romanov on 28.06.16.
  */
 
 enum class ExcCode(val id: Long) {

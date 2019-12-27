@@ -9,7 +9,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.BUS16
 
 /**
- * Created by shiftdj on 06/03/18.
+ * Created by a.kemurdzhian on 06/03/18.
  */
 
 class HardwareMultiplier(parent: Module, name: String) : Module(parent, name) {

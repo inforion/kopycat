@@ -5,7 +5,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by user on 23.05.17.
+ * Created by r.valitov on 23.05.17.
  */
 
 abstract class AV850ESInstruction(

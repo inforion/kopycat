@@ -15,7 +15,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.ARM
 
 /**
- * Created by the bat on 30.01.18
+ * Created by a.gladkikh on 30.01.18
  */
 
 class LDRL(cpu: AARMCore,

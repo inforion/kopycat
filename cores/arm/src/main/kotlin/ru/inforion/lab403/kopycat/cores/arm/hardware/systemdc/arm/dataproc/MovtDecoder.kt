@@ -14,7 +14,7 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 31.01.18
+ * Created by a.gladkikh on 31.01.18
  */
 class MovtDecoder(cpu: AARMCore) : ADecoder<AARMInstruction>(cpu) {
     override fun decode(data: Long): AARMInstruction {

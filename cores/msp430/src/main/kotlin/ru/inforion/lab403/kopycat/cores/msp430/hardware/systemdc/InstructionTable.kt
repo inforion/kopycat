@@ -3,7 +3,7 @@ package ru.inforion.lab403.kopycat.cores.msp430.hardware.systemdc
 import ru.inforion.lab403.kopycat.interfaces.ITableEntry
 
 /**
- * Created by shiftdj on 6/02/18.
+ * Created by a.kemurdzhian on 6/02/18.
  */
 
 class InstructionTable(

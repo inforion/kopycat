@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 19.01.17.
+ * Created by v.davydov on 19.01.17.
  */
 
 class Lar(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>): AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
@@ -15,7 +15,7 @@ class Lar(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
     override fun execute() {
         val ss = op2.value(core)
         // TODO: Whether we should cache take into account?
-        val desc = core.mmu.gdt(ss)
+        val desc = core.mmu.readSegmentDescriptor(ss)
         val result = if(prefs.is16BitOperandMode){
             TODO()
         } else {

@@ -6,12 +6,13 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
+import ru.inforion.lab403.kopycat.loader.KopycatHelper
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import kotlin.test.assertTrue
 
 /**
- * Created by user on 28.07.17.
+ * Created by r.valitov on 28.07.17.
  */
 class X86InstructionsTest16: AX86InstructionTest() {
     override val x86 = x86Core(this, "x86Core", 400.MHz, x86Core.Generation.Am5x86, 1.0)
@@ -22,6 +23,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         x86.ports.io.connect(buses.io)
         ram0.ports.mem.connect(buses.mem, 0)
         ram1.ports.mem.connect(buses.io, 0)
+        KopycatHelper.initializeToken(System.getenv("KC_LICENCE"))
         initializeAndResetAsTopInstance()
     }
     override val mode: Long

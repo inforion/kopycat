@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 08.02.18.
+ * Created by v.davydov on 08.02.18.
  */
 
 class Fstcw(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>):

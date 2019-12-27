@@ -13,11 +13,14 @@ import java.util.logging.Level
 import java.util.logging.Level.SEVERE
 
 /**
- * Created by user on 13.07.17.
+ * {RU}
+ * @author r.valitov
+ * @since 13.07.17
  *
  * @param parent родительский модуль, в который будет вставлен данный
  * @param name имя инстанциированного модуля (объекта)
  * @param index номер интерфейса USART
+ * {RU}
  */
 class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name) {
 
@@ -123,7 +126,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
                         intRequestReceived()
                 }
 
-                UART_SLAVE_DATA_TRASMITTED -> {
+                UART_SLAVE_DATA_TRANSMITTED -> {
                     USART_ISR.TC = 1
                     USART_ISR.TXE = 1
 

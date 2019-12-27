@@ -6,7 +6,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.FPR
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by batman on 11.04.2017.
+ * Created by a.gladkikh on 11.04.2017.
  */
 class div_d(core: MipsCore,
             data: Long,

@@ -12,15 +12,16 @@ import ru.inforion.lab403.kopycat.cores.v850es.instructions.AV850ESInstruction
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
+ * {RU}
  * Процессор ядра v850ES
  *
- * @author Валитов Р.Ш.
+ * @author r.valitov
  * @since 25.05.17
+ *
  * @property core ядро, в которое помещается процессор
  * @property name произвольное имя объекта
- *
+ * {RU}
  */
-
 class v850ESCPU(val v850es: v850ESCore, name: String): ACPU<v850ESCPU, v850ESCore, AV850ESInstruction, GPR>(v850es, name) {
 
     override fun reg(index: Int): Long = regs[index].value(v850es)
@@ -45,9 +46,11 @@ class v850ESCPU(val v850es: v850ESCore, name: String): ACPU<v850ESCPU, v850ESCor
         regs.reset()
     }
 
+    override fun decode() {
+        insn = decoder.decode(regs.pc).also { it.ea = pc }
+    }
+
     override fun execute(): Int {
-        insn = decoder.decode(regs.pc)
-        insn.ea = pc
         insn.execute()
         regs.pc += insn.size
         return 1  // TODO: get from insn.execute()

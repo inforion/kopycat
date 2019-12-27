@@ -24,7 +24,7 @@ import kotlin.collections.mapOf
 import kotlin.collections.set
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 class ARMv6CPU(core: ARMv6Core, name: String) : AARMCPU(core, name) {
@@ -156,7 +156,7 @@ class ARMv6CPU(core: ARMv6Core, name: String) : AARMCPU(core, name) {
         pipelineRefillRequired = false
     }
 
-    private fun fetch(where: Long): Long = core.inl(where)
+    private fun fetch(where: Long): Long = core.fetch(where, 0, 4)
 
     private fun swapByte(data: Long): Long {
         val high = data and 0xFFFF_0000
@@ -166,10 +166,10 @@ class ARMv6CPU(core: ARMv6Core, name: String) : AARMCPU(core, name) {
 
     private val cache = THashMap<Long, Pair<AARMInstruction, Int>>(1024*1024)
 
-    override fun execute(): Int {
-        val offset: Int
+    private var offset: Int = 0
 
-        var data = fetch(pc clr 0)  // we must allays call fetch to check breakpoints 
+    override fun decode() {
+        var data = fetch(pc clr 0)  // we must allays call fetch to check breakpoints
         val e = cache[pc]
         if (e == null) {
             val type = data[15..11]
@@ -193,7 +193,9 @@ class ARMv6CPU(core: ARMv6Core, name: String) : AARMCPU(core, name) {
         }
 
 //        log.finer { ("[${pc.hex8}] ${insn.opcode.hex8} $insn") }
+    }
 
+    override fun execute(): Int {
         pc += insn.size + offset
 
         try {

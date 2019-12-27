@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.v850es.operands.v850esRegister
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 /**
- * Created by davydov_vn on 03.06.17.
+ * Created by v.davydov on 03.06.17.
  *
  * lsb - index in opcode of least significant bit (LSB) of 16-bit displacement. If bit == -1 then LSB = 0
  */

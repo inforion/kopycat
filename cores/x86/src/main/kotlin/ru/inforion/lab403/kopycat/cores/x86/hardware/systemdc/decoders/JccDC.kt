@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 28.09.16.
+ * Created by v.davydov on 28.09.16.
  */
 class JccDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, AOperand<x86Core>) -> AX86Instruction) :
         ADecoder<AX86Instruction>(core) {

@@ -40,7 +40,7 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
     fun execute(offset: Long = 0, generator: () -> ByteArray) {
         val data = generator()
         x86.store(startAddress + size, data)
-        x86.execute()
+        x86.step()
         println("%16s -> %s".format(data.hexlify(), x86.cpu.insn))
         size += data.size + offset
         if(size < 0) size = 0

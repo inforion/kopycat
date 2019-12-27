@@ -4,7 +4,7 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.ExcCode
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 abstract class ARMHardwareException(excCode: Enum<*>, where: Long, message: String? = null):

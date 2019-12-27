@@ -15,7 +15,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ss
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 19.09.16.
+ * Created by v.davydov on 19.09.16.
  */
 
 class x86Phrase(

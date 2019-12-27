@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 /**
- * Created by the bat on 01.02.18
+ * Created by a.gladkikh on 01.02.18
  */
 
 class MOVT(cpu: AARMCore,

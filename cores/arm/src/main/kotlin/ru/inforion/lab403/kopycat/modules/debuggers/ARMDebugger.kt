@@ -12,7 +12,7 @@ import ru.inforion.lab403.kopycat.modules.cores.ARMv6Core
 import java.util.logging.Level
 
 /**
- * Created by the bat on 13.01.18.
+ * Created by a.gladkikh on 13.01.18.
  */
 
 class ARMDebugger(parent: Module, name: String, val endian: Endian): Debugger(parent, name) {
@@ -72,6 +72,8 @@ class ARMDebugger(parent: Module, name: String, val endian: Endian): Debugger(pa
             // PC
             15 -> {
                 cpu.reg(index, value)
+                // dirty hack to make possible reset exception bypassing IDA Pro
+                core.cpu.exception = null
             }
             // FPU
             in 16..24 -> {

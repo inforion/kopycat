@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by ra on 03.06.2016.
+ * Created by r.aristov on 03.06.2016.
  *
  * BC1F, BC1FL, BC1T, BC1TL, BC2F, BC2FL, BC2T, BC2TL
  */

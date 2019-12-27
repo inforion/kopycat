@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by batman on 12/10/16.
+ * Created by a.gladkikh on 12/10/16.
  */
 class LFPDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, AOperand<x86Core>, AOperand<x86Core>) -> AX86Instruction) :
         ADecoder<AX86Instruction>(core) {

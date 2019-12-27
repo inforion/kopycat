@@ -13,7 +13,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import java.util.*
 
 /**
- * Created by batman on 09/06/16.
+ * Created by a.gladkikh on 09/06/16.
  *
  * Stub for MIPS address translation
  */

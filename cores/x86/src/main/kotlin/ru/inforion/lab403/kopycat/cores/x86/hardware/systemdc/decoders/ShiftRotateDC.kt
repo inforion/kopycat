@@ -11,7 +11,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRBL.cl
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 26.09.16.
+ * Created by v.davydov on 26.09.16.
  */
 class ShiftRotateDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Array<AOperand<x86Core>>) -> AX86Instruction) :
         ADecoder<AX86Instruction>(core) {

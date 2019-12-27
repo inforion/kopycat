@@ -8,7 +8,7 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- * Created by rusanov_pv on 02.03.18.
+ * Created by p.rusanov on 02.03.18.
  */
 
 

@@ -10,7 +10,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory.Movsx
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 28.09.16.
+ * Created by v.davydov on 28.09.16.
  */
 class MovsxDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {

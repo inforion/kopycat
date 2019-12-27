@@ -7,7 +7,7 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.control.Int
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /**
- * Created by davydov_vn on 14.12.16.
+ * Created by v.davydov on 14.12.16.
  */
 
 class IntDC(core: x86Core) : ADecoder<AX86Instruction>(core) {

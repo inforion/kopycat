@@ -11,12 +11,13 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.v850es.enums.CONDITION
+import ru.inforion.lab403.kopycat.loader.KopycatHelper
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import java.nio.ByteOrder.LITTLE_ENDIAN
 
 /**
- * Created by batman on 22/07/17.
+ * Created by a.gladkikh on 22/07/17.
  */
 class V850ESInstructionsTest: Module(null, "v850esInstructionTest") {
     private val v850es = v850ESCore(this, "v850ESCore", 20.MHz)
@@ -35,6 +36,7 @@ class V850ESInstructionsTest: Module(null, "v850esInstructionTest") {
         ram0.ports.mem.connect(buses.mem)
         ram1.ports.mem.connect(buses.mem, 0xFFFF_0000)
 //        this.ports.mem.connect(buses.mem)
+        KopycatHelper.initializeToken(System.getenv("KC_LICENCE"))
         this.initializeAndResetAsTopInstance()
     }
 
@@ -44,7 +46,7 @@ class V850ESInstructionsTest: Module(null, "v850esInstructionTest") {
     private fun execute(offset: Int = 0, generate: () -> ByteArray) {
         val data = generate()
         v850es.store(startAddress + size, data)
-        v850es.execute()
+        v850es.step()
         println("%16s -> %s".format(data.hexlify(), v850es.cpu.insn))
         size += data.size + offset
     }
