@@ -13,9 +13,9 @@ This project contains CPU cores (ARMv6, ARMv7, MIPS, MSP430, v850ES, x86) and MC
 You can download JAR-files with this modules via this link https://kopy.cat/download
 
 ### Install Kopycat
-1. Download emulator core kopycat-0.3.0-RC3 (https://kopy.cat/download)
+1. Download emulator core kopycat-X.Y.Z-RCx (https://kopy.cat/download)
 2. Unzip archive in any directory
-3. Add environment variable `KOPYCAT_HOME` to this directory, e.g. `KOPYCAT_HOME=D:\kopycat-0.3.0-RC3` (optional)
+3. Add environment variable `KOPYCAT_HOME` to this directory, e.g. `KOPYCAT_HOME=D:\kopycat-X.Y.Z-RCx` (optional)
 
 ### Build current or custom modules
 1. Clone this repo to any directory
