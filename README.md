@@ -1,15 +1,15 @@
 <img src="https://kopy.cat/static/media/big_logo.169d84fb.png" width="384">
 
-Kopycat is a modular software emulator of hardware systems
+Kopycat is a multi-architecture hardware emulation solution
 
 ## Description
 
 Main features are:
 
-- Ease of creating a computer system emulator
-- The platform can be described using JSON or in the Kotlin language
-- The platform description completely coincides with the block diagram of the device
-- Supported architectures: ARM, MIPS, MSP430, v850ES, x86
+- Easy of assemble. Configure your own platform using JSON or Kotlin
+- Easy to customise. Create your own platform-module using Kotlin
+- One-to-one correspondence. Virtual platform representation is identical to block diagram
+- Multiple supported architectures: MIPS, ARM, MSP430, v850ES, x86
 
 This project contains CPU cores (ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86) and MCU (CortexM0, STM32F0xx, MSP430x44x) for Kopycat. 
 
@@ -22,40 +22,49 @@ To run Kopycat you have to install the following software:
 1. OpenJDK (version 11.0.6/7 tested)
 2. Highly recommended Python (version 2.7 and 3.6, 3.8 tested) with Jep package (version 0.3.9 tested) for embedded console in Kopycat.
     
-NOTE: prebuild OpenJDK installer available on https://adoptopenjdk.net/ 
+NOTE: prebuild OpenJDK installer is available on https://adoptopenjdk.net/ 
     
-Linux and OSX user can use package manager to install OpenJDK and Python. To install **jep** `pip` command can be used, but before **compiler** and **toolchain** have to be installed for building **jep** package. On Linux system **gcc** from `apt` and on OSX `Developer Tools` with XCode (XCode by itself is not needed, but we need a compiler). As for Windows users you may stumble upon a lot of difficulties to compile Python packages.
+Linux and OSX users can use package manager to install OpenJDK and Python. To install **jep** `pip` command can be used, but before **compiler** and **toolchain** have to be installed for building **jep** package. On Linux system **gcc** from `apt` and on OSX `Developer Tools` with XCode (XCode by itself is not needed, but we need a compiler). As for Windows users you may face a lot of difficulties while compiling Python packages.
     
 ### Installation of requirements on Windows 10
 
 1. For Windows, you should manually download OpenJDK package and setup `PATH` and `JAVA_HOME` environment variables, see https://openjdk.java.net/install/
 
-1. Download and install Python (don't forget to add Python to `PATH` during installation and select to install **pip**) from an official site: https://www.python.org/downloads/
+1. Download and install Python (don't forget to add Python to `PATH` during installation and select to install **pip**) from the official site: https://www.python.org/downloads/
 
-1. Download and install Visual Studio build tools: https://visualstudio.microsoft.com/visual-cpp-build-tools/ (**DON'T FORGET TO SELECT ALSO VERSION 14.x**)
+1. Download and install Visual Studio build tools: https://visualstudio.microsoft.com/visual-cpp-build-tools/ (**DON'T FORGET TO SELECT VERSION 14.x**)
 
 1. Fix ¯\_(ツ)_/¯ Python setuptools to work with Visual Studio compiler: https://stackoverflow.com/a/20050195/1312718
 
-1. Run Console from **x64 Native Tools Command Prompt** (installed in a main menu of Windows) and execute:
+1. Run Console from **x64 Native Tools Command Prompt** (installed in the main menu of Windows) and execute:
 
     ```shell script
     pip install jep
     ``` 
 
-### Installation of requirements on Linux
+### Installation of requirements on Linux (i.e. Debian 9)
 
 ```shell script
-sudo apt-get install gcc
-sudo apt-get install openjdk-11-jdk
-sudo apt-get install python 
+# only for debian 9
+echo 'deb http://ftp.debian.org/debian stretch-backports main' | sudo tee /etc/apt/sources.list.d/stretch-backports.list
+sudo apt update
+
+sudo apt install gcc openjdk-11-jdk curl python socat
+
+# path may differ. JAVA_HOME required to be set for jep installation
+export JAVA_HOME=/usr/lib/jvm/java-11-openjdk-amd64
+
+curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+sudo python get-pip.py
 pip install jep
 ```
 
-NOTE: OpenJDK installation reference https://dzone.com/articles/installing-openjdk-11-on-ubuntu-1804-for-real
+NOTE: OpenJDK installation reference for Ubuntu https://dzone.com/articles/installing-openjdk-11-on-ubuntu-1804-for-real
 
 ### Installation of requirements on OSX
 
 ```shell script
+brew install socat
 brew cask install adoptopenjdk
 brew install adoptopenjdk/openjdk/adoptopenjdk-openjdk11
 brew install python@3.7
@@ -64,33 +73,40 @@ pip install jep
 
 NOTE: OpenJDK installation reference https://dzone.com/articles/install-openjdk-versions-on-the-mac
 
-## Requirements to developing modules and software with Kopycat
+## Requirements for developing modules and software with Kopycat
 
-For module development and working with sources the following software required:
+For module development and working with sources the following software is required:
 
 1. IntelliJ (version >= 2020.1)
 2. Kotlin plugin (version >= 1.3.72)
 
 ## Getting started
 
-In this part of readme start of Kopycat with STM32F042 on Cortex-M0 core (ARMv6M architecture) device and virtual ARM device on ARM1176JZS core (ARMv6/v7 architecture) will be shown. For STM32F042 implemented the next peripheral modules: UART, TIMx, DMAC, GPIOx, WDG. These peripheral modules enough to run FreeRTOS. In the example firmware `freertos_uart` working with FreeRTOS shown. Virtual ARM (VirtARM) runs UBoot and Linux with kernel 2.6.x, as filesystem used ext2.
+In this part of readme start of Kopycat with STM32F042 on Cortex-M0 core (ARMv6M architecture) device and virtual ARM device on ARM1176JZS core (ARMv6/v7 architecture) will be shown. For STM32F042 the next peripheral modules are implemented: UART, TIMx, DMAC, GPIOx, WDG. These peripheral modules are enough to run FreeRTOS. In the example firmware `freertos_uart` working with FreeRTOS is shown. Virtual ARM (VirtARM) runs UBoot and Linux with kernel 2.6.x, ext2 filesystem is used.
 
-All examples shown on ARM architecture as a most popular nowadays in embedded devices. But as already mentioned for Kopycat also implemented cores: x86, MIPS, MSP430, v850ES.
+All examples are shown on ARM architecture as the most popular in embedded devices nowadays. But as it has already been mentioned x86, MIPS, MSP430, v850ES cores are also implemented for Kopycat.
 
-**NOTE**: The concept of architecture and core sometimes differs for different manufacturers. For examples ARM has complicated system of architecture and core, but for TI MSP430 core, architecture and MCU itself almost the same. So we will often name core and architecture just as core. Moreover in sources we have no architecture as apart entity. The most low-level part in Kopycat is `Core` that consists of `CPU` - actual CPU (execute instructions), `Decoder`, `COP` - coprocessor (interrupt processing), `MMU` - memory management unit.
+**NOTE**: The concept of architecture and core sometimes differs for different manufacturers. For example, ARM has complicated system of architecture and core, but for TI MSP430 core, architecture and MCU itself are almost the same. So we will often use "core" to refer to core and architecture. Moreover, in sources we have no architecture as an entity. The most low-level part in Kopycat is `Core` that consists of `CPU` - actual CPU (execute instructions), `Decoder`, `COP` - coprocessor (interrupt processing), `MMU` - memory management unit.
 
-ARM core and architectures may be confusing. At lowest level lay architecture i.e. ARMv6, ARMv7 (CPUs), ARMv6M (embedded MCUs) etc. Above architectures cores are being build, i.e. ARM1176JZS (not ARMv11!), CortexM0, CortexM3 etc. And at the top implemented MCUs, i.e. STM32F042.
+ARM core and architectures may be confusing at the lowest level lay architecture i.e. ARMv6, ARMv7 (CPUs), ARMv6M (embedded MCUs) etc. Mentioned architecture cores are being built, i.e. ARM1176JZS (not ARMv11!), CortexM0, CortexM3 etc. And at the top implemented MCUs, i.e. STM32F042.
 
 ### Run prebuild Kopycat core and module STM32F042 on Cortex-M0 core 
 
-1. Download prebuild emulator core kopycat-X.Y.AB (https://kopy.cat/download/0.3.20/kopycat-0.3.20.zip) and unzip this archive into any directory (**it's strongly recommended not to use directories with spaces or special symbols!**)
-1. Add environment variable `KOPYCAT_HOME` (recommended) to this directory, e.g. `KOPYCAT_HOME=D:\kopycat-X.Y.Z-RCx` and add to environment variable `PATH` path to `KOPYCAT_HOME/bin` 
-1. Download prebuild modules libraries for Kopycat (https://kopy.cat/download/0.3.20/library.zip) and unzip this archive into any directory (**also it's strongly recommended not to use directories with spaces or special symbols!**)
-1. Add environment variable `KOPYCAT_MODULES_LIB_PATH` to this directory
+1. Download prebuild emulator core kopycat-X.Y.AB (https://kopy.cat/download/0.3.20/kopycat-0.3.20.zip) and unzip the archive into any directory (**it is strongly recommended not to use directories with spaces or special symbols!**)
+1. Add environment variable `KOPYCAT_HOME` (recommended, used by Kopycat core to lookup default modules library) to this directory, e.g. `KOPYCAT_HOME=/opt/kopycat-X.Y.Z-RCx` and add to environment variable `PATH` path to `KOPYCAT_HOME/bin`   
+1. Download prebuild modules libraries for Kopycat (https://kopy.cat/download/0.3.20/library.zip) and:
+    - unzip this archive into any directory (**it is also strongly recommended not to use directories with spaces or special symbols!**) and add environment variable `KOPYCAT_MODULES_LIB_PATH` (only to simplify readme commands) to the directory
+    - unzip this archive into `${KOPYCAT_HOME}/modules` directory (if you setup `KOPYCAT_HOME`)
 1. Start emulation one of module: **STM32F042**
 
     ```shell script
     kopycat -y ${KOPYCAT_MODULES_LIB_PATH} -l mcu -n stm32f042_example -g 23946 -p "firmware=example:usart_poll,tty1=socat:,tty2=socat:"
+    ```
+    
+    OR if you set up `KOPYCAT_HOME` environment variable and copy modules into `${KOPYCAT_HOME}/modules` just:
+    
+    ```shell script
+    kopycat -l mcu -n stm32f042_example -g 23946 -p "firmware=example:usart_poll,tty1=socat:,tty2=socat:"
     ```
    
     - `-y` - path to a bunch of prebuild module's libraries (aka **registry**)
@@ -103,8 +119,10 @@ ARM core and architectures may be confusing. At lowest level lay architecture i.
             - **bytes** - hex string i.e. `AACCDDEE90909090`.
         - `ttyX` - virtual terminal connected to usart1 and usart2 of STM32F042.
     - `-g` - GDB server port
-    
-    NOTE: due to socat this line will work only in **nix** system with installed socat, to disable, use `tty1=null,tty2=null`. For windows system com0com can be used or any other software to create virtual COM ports. In this case you should specify directly virtual com-port name `tty1=COM1,tty2=COM2`.
+
+    **NOTES:**
+    1. If you've added `KOPYCAT_HOME` environment variable you can put prebuild modules libraries into `${KOPYCAT_HOME}/modules` without necessity to specify `-y` parameter explicitly.
+    1. Due to socat this line will work only in **nix** system with installed socat, to disable, use `tty1=null,tty2=null`. For windows system com0com can be used or any other software to create virtual COM ports. In this case you should specify directly virtual com-port name `tty1=COM1,tty2=COM2`.
     
 1. You should see the following start log:
     
