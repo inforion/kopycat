@@ -1,11 +1,34 @@
-rootProject.name = "kopycat-modules"
+rootProject.name = "kopycat"
 
-include(":cores:mips")
-include(":cores:x86")
-include(":cores:v850es")
-include(":cores:msp430")
-include(":cores:arm")
+include(":kopycat")
 
-include(":mcu:cortexm0")
-include(":mcu:stm32f0xx")
-include(":mcu:msp430x44x")
+
+
+include(":kopycat-modules:cores:mips")
+include(":kopycat-modules:cores:x86")
+include(":kopycat-modules:cores:v850es")
+include(":kopycat-modules:cores:msp430")
+include(":kopycat-modules:cores:ppc")
+include(":kopycat-modules:cores:arm")
+
+
+
+
+
+include(":kopycat-modules:mcu:cortexm0")
+include(":kopycat-modules:mcu:stm32f0xx")
+include(":kopycat-modules:mcu:elanSC520")
+include(":kopycat-modules:mcu:pic32mz")
+include(":kopycat-modules:mcu:msp430x44x")
+include(":kopycat-modules:mcu:p2020")
+include(":kopycat-modules:mcu:virtarm")
+include(":kopycat-modules:mcu:testbench")
+
+include(":kopycat-modules:misc:examples")
+
+
+
+
+
+include(":common:proposal")
+

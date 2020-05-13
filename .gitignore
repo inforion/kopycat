@@ -7,16 +7,35 @@ temp
 
 *.iml
 
-.idea/dictionaries
-.idea/compiler.xml
-.idea/gradle.xml
-.idea/encodings.xml
-.idea/workspace.xml
-.idea/libraries
-.idea/modules
-
+\.idea/jarRepositories\.xml
+\.idea/compiler\.xml
+\.idea/encodings\.xml
+\.idea/workspace\.xml
 \.idea/uiDesigner\.xml
+\.idea/modules\.xml
+\.idea/gradle\.xml
+
+\.idea/dictionaries
+\.idea/libraries
+\.idea/modules
+
+gradlew
+gradlew\.bat
+
+debuggers/kcdbg/cmake-build-win32/
+
+debuggers/kcdbg/cmake-build-debug/
+
+debuggers/kcdbg/\.idea/
+
+plugins/kcdbg/cmake-build-osx/
+
+plugins/kcdbg/cmake-build-win32/
+
+plugins/kcdbg/cmake-build-osx-c166/
+
+plugins/kcdbg/cmake-build-osx-v850es/
 
 production/
 
-\.idea/modules\.xml
+gradle-wrapper.jar

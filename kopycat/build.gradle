@@ -1,0 +1,156 @@
+import org.jetbrains.dokka.gradle.DokkaTask
+
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+    id 'application'
+    id 'idea'
+    id 'ru.inforion.lab403.gradle.versionConfig'
+    id 'ru.inforion.lab403.gradle.dokkaMultilang'
+    id "com.dorongold.task-tree" version "1.5" // taskTree to see task dependencies and call graph
+}
+
+applicationName = "kopycat"
+archivesBaseName = "kopycat"
+version = '0.3.20'
+group = 'ru.inforion.lab403'
+applicationDefaultJvmArgs = [
+        "-XX:MaxMetaspaceSize=256m",
+        "-XX:+UseParallelGC",
+        "-XX:SurvivorRatio=6",
+        "-XX:-UseGCOverheadLimit"]
+mainClassName = "ru.inforion.lab403.kopycat.KopycatStarter"
+description = "Hardware systems Kotlin emulator"
+
+ext.productionDirectoryPath = "${rootProject.projectDir}/production"
+ext.debugJvmLine = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
+
+dependencies {
+    implementation project(":common:proposal")
+
+    implementation("com.github.inforion:kotlin-extensions:+")
+    implementation("com.github.inforion:kotlin-logging:+")
+
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlin:kotlin-test-junit")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${kotlinx_version}")
+
+    implementation 'io.javalin:javalin:1.7.0'  // REST Interface
+
+    implementation 'joda-time:joda-time:2.9.9'
+
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.2")
+    implementation("net.sf.trove4j:trove4j:3.0.3")
+
+    implementation("org.slf4j:slf4j-nop:1.7.25")
+    implementation("org.pcap4j:pcap4j-core:1.7.1")
+    implementation("org.pcap4j:pcap4j-packetfactory-static:1.7.1")
+    implementation('com.github.oshi:oshi-core:3.13.0')
+    implementation 'com.fazecast:jSerialComm:1.3.11'   // UartSerialTerminal
+
+    implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'  // Library
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
+
+    implementation 'com.auth0:java-jwt:3.8.0'
+
+    testImplementation 'com.github.stefanbirkner:system-rules:1.16.1'
+
+    testImplementation("junit:junit:4.12")
+    testImplementation('org.junit.jupiter:junit-jupiter-api:5.1.0')
+    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.1.0')
+}
+
+// ---------------------------------------------------------------------------------------------------------------------
+
+logger.info("Setting application name = $applicationName")
+
+test {
+    useJUnit {
+        exclude '**/*MipsPerformanceTest.class'
+        exclude '**/*KopycatIntegrationTest.class'
+    }
+}
+
+task performanceTest(type: Test) {
+    useJUnit {
+        include '**/*MipsPerformanceTest.class'
+    }
+}
+
+task integrationTest(type: Test) {
+    useJUnit {
+        include '**/*KopycatIntegrationTest.class'
+    }
+}
+
+startScripts {
+    doLast {
+        new File(getOutputDir(), getApplicationName() + "-debug.bat").withWriter { w ->
+            w << windowsScript.text.replaceAll("set DEFAULT_JVM_OPTS=", "set DEFAULT_JVM_OPTS= $debugJvmLine ")
+        }
+        new File(getOutputDir(), getApplicationName() + "-debug").withWriter { w ->
+            w << unixScript.text.replaceAll("DEFAULT_JVM_OPTS='", "DEFAULT_JVM_OPTS='$debugJvmLine ")
+        }
+    }
+}
+
+task copyToProduction(type: Copy, dependsOn: distZip) {
+    logger.info("Copy ${distZip.outputs.files.singleFile} into ${productionDirectoryPath}")
+    from distZip.outputs.files.singleFile
+    into "${productionDirectoryPath}"
+}
+
+task unpackToProduction(type: Copy, dependsOn: copyToProduction) {
+    logger.info("Unpack ${distZip.outputs.files.singleFile} into ${productionDirectoryPath}")
+    from zipTree(distZip.outputs.files.singleFile)
+    into "${productionDirectoryPath}"
+}
+
+task dokkaRU(type: DokkaTask) {
+    outputFormat = 'html'
+    outputDirectory = "${projectDir}/doc/RU"
+    disableAutoconfiguration = true
+
+    configuration {
+        moduleName = 'kopycat'
+        jdkVersion = 8
+        includeNonPublic = false
+        skipDeprecated = false
+        skipEmptyPackages = true // Do not create index pages for empty packages
+        impliedPlatforms = ["JVM"] // See platforms section of documentation
+        noStdlibLink = false
+    }
+}
+
+task dokkaEN(type: DokkaTask) {
+    outputFormat = 'html'
+    outputDirectory = "${projectDir}/doc/EN"
+    disableAutoconfiguration = true
+
+    configuration {
+        moduleName = 'kopycat'
+        jdkVersion = 8
+        includeNonPublic = false
+        skipDeprecated = false
+        skipEmptyPackages = true // Do not create index pages for empty packages
+        impliedPlatforms = ["JVM"] // See platforms section of documentation
+        noStdlibLink = false
+    }
+}
+
+dokkaMultilang {
+    targets += "java"
+    excludes += "ru/inforion/lab403/kopycat/loader"
+
+    languages {
+        english {
+            marker = "EN"
+            task = dokkaEN
+        }
+
+        russian {
+            marker = "RU"
+            task = dokkaRU
+        }
+    }
+}

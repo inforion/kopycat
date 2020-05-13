@@ -1,0 +1,16 @@
+plugins {
+    id 'ru.inforion.lab403.gradle.kopycat'
+}
+
+group 'ru.inforion.lab403.kopycat'
+version '0.1'
+
+dependencies {
+    implementation group: 'com.google.guava', name: 'guava', version: '14.0'
+    implementation project(":common:proposal")
+}
+
+buildKopycatModule {
+    library = "examples"
+    require += ["cores:x86", "cores:arm", "mcu:stm32f0xx", "mcu:virtarm"]
+}

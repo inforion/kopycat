@@ -1,0 +1,9 @@
+/.cproject
+/.mxproject
+/.osx.project
+/.project
+/CMakeLists.txt
+/CMakeLists_template.txt
+/cmake-build-debug
+/.idea
+/*.xml

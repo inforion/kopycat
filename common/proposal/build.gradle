@@ -1,0 +1,43 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+version = '0.1.0'
+group = 'ru.inforion.lab403'
+description = "Inforion.lab403 Kotlin commons"
+
+dependencies {
+    implementation group: 'org.jooq', name: 'joou', version: '0.9.3'
+
+    implementation("com.github.inforion:kotlin-extensions:+")
+    implementation("com.github.inforion:kotlin-logging:+")
+
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+    implementation("org.jetbrains.kotlin:kotlin-reflect")
+    implementation("org.jetbrains.kotlin:kotlin-test-junit")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${kotlinx_version}")
+
+    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
+
+    implementation("org.kohsuke:wordnet-random-name:1.3")
+    implementation("net.sourceforge.argparse4j:argparse4j:0.7.0")
+    implementation("net.sf.trove4j:trove4j:3.0.3")
+    implementation("org.jblas:jblas:1.2.4")
+    testImplementation("junit:junit:4.12")
+    testRuntime("org.junit.vintage:junit-vintage-engine:5.1.1")
+
+    testImplementation("com.nhaarman:mockito-kotlin:1.5.0")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.1.1")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:5.1.1")
+
+    // Enable use of the JUnitPlatform Runner within the IDE
+    testImplementation("org.junit.platform:junit-platform-runner:1.1.1")
+
+    implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.2")
+
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
+
+    implementation 'com.github.inforion:kotlin-logging:v0.1.2'
+    implementation 'com.github.inforion:kotlin-extensions:v0.2.2'
+}

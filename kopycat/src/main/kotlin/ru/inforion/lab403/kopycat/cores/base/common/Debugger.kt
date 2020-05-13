@@ -1,0 +1,431 @@
+package ru.inforion.lab403.kopycat.cores.base.common
+
+import net.sourceforge.argparse4j.inf.ArgumentParser
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Access.*
+import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
+import ru.inforion.lab403.kopycat.cores.base.enums.Status
+import ru.inforion.lab403.kopycat.cores.base.enums.Status.NOT_EXECUTED
+import ru.inforion.lab403.kopycat.cores.base.exceptions.BreakpointException
+import ru.inforion.lab403.kopycat.cores.base.extensions.*
+import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT
+import ru.inforion.lab403.kopycat.interfaces.IDebugger
+import ru.inforion.lab403.kopycat.interfaces.IInteractive
+import ru.inforion.lab403.kopycat.modules.BUS32
+import java.util.concurrent.locks.Condition
+import java.util.concurrent.locks.ReentrantLock
+import kotlin.concurrent.thread
+import kotlin.concurrent.withLock
+
+/**
+ * {RU}
+ * Стандартный модуль отладчик
+ *
+ *
+ * @param parent родительский модуль, в который встраивается Отладчик
+ * @param name произвольное имя объекта Отладчика
+ * @property ports отображение (HashMap) доступных портов Отладчика
+ * @property breakpoints менеджер точек останова (BreakpointController)
+ * @property BRK_SPACE область перехвата обращений дебаггера
+ * @property lock мьютекс для захвата управления над процессом выполения
+ * @property stopped состояние остановки (Condition)
+ * @property isRunning флаг активности выполнения
+ * {RU}
+ **/
+open class Debugger(
+        parent: Module,
+        name: String,
+        val dbgAreaSize: Long = BUS32
+): Module(parent, name), IDebugger {
+
+    inner class Ports : ModulePorts(this) {
+        val breakpoint = Slave("breakpoint", dbgAreaSize)
+        val reader = Master("reader", dbgAreaSize)
+        val trace = Master("trace", TRACER_BUS_SIZE)
+    }
+
+    final override val ports = Ports()
+
+    private val defaultByte = 0xCCL
+
+    val breakpoints = BreakpointController()
+
+    private inline fun checkHit(ea: Long, access: Breakpoint.Access, block: (bpt: Breakpoint) -> Unit): Boolean {
+        if (isRunning) {
+            val bpt = breakpoints.lookup(ea) ?: return false
+            if (bpt.check(access)) {
+                bpt.onBreak?.invoke(ea)
+                block(bpt)  // may raise exception do not rearrange!
+            }
+        }
+        return false
+    }
+
+    private val BRK_SPACE = object : Area(ports.breakpoint, 0, dbgAreaSize - 1, "BRK_SPACE", ACCESS.R_W, true) {
+        override fun fetch(ea: Long, ss: Int, size: Int): Long = throw IllegalStateException("not implemented")
+        override fun read(ea: Long, ss: Int, size: Int): Long = throw IllegalStateException("not implemented")
+        override fun write(ea: Long, ss: Int, size: Int, value: Long) = throw IllegalStateException("not implemented")
+
+        // For fetch we should stop core before instruction execution but for read and write
+        // instruction must be executed and then core stops. Reason of this is to make possible
+        // pass breakpoint IDA Pro disassembler.
+        override fun beforeFetch(from: MasterPort, ea: Long) = checkHit(ea, EXEC) { throw BreakpointException(it) }
+        override fun beforeRead(from: MasterPort, ea: Long) = checkHit(ea, READ) { isRunning = false }
+        override fun beforeWrite(from: MasterPort, ea: Long, value: Long) = checkHit(ea, WRITE) { isRunning = false }
+    }
+
+    private val lock = ReentrantLock()
+    private val stopped: Condition = lock.newCondition()
+    private fun signalStop() = lock.withLock { stopped.signal() }
+
+    /**
+     * {RU}Ожидание перехода в останов{RU}
+     */
+    private fun waitUntilStop() {
+        synchronized(lock) {
+            while (isRunning)
+                stopped.await()
+        }
+    }
+
+    // GDB Debugger implementation
+    // Реализация GDB-отладчика
+
+    override var isRunning: Boolean = false
+
+    /**
+     * {RU}Прерывание работы и ожидание перехода в останов{RU}
+     */
+    final override fun halt() {
+        isRunning = false
+        waitUntilStop()
+    }
+
+    override fun ident() = "debugger"
+
+    /**
+     * {RU}
+     * Прочитать значения всех регистров
+     *
+     * @return список значений регистров
+     * {RU}
+     */
+    override fun registers(): List<Long> = (0 until core.cpu.count()).map { regRead(it) }
+
+    /**
+     * {RU}
+     * Чтение значения регистра
+     *
+     * @param index индекс регистра в банке регистров общего назначения
+     * @return значение регистра
+     * {RU}
+     */
+    override fun regRead(index: Int): Long = core.cpu.reg(index)
+
+    /**
+     * {RU}
+     * Запись значения регистра
+     *
+     * @param index индекс регистра в банке регистров общего назначения
+     * @param value значение для записи в регистр
+     * {RU}
+     */
+    override fun regWrite(index: Int, value: Long) = core.cpu.reg(index, value)
+
+    /**
+     * {RU}
+     * Причина останова
+     *
+     * @return код причины останова (GDB_SIGNAL.SIGTRAP)
+     * {RU}
+     */
+    final override fun exception() = core.cpu.exception
+
+    /**
+     * {RU}
+     * Действие перед выполнением инструкции процессора
+     *
+     * @param value значение для проверки
+     *
+     * @return успешность выполнения (true/false)
+     * {RU}
+     */
+    private fun preExecute(value: Int = 0): Boolean = ports.trace.preExecute(value)
+
+    /**
+     * {RU}
+     * Действие после выполнения инструкции процессора
+     *
+     * @param value значение для проверки
+     *
+     * @return успешность выполнения (true/false)
+     * {RU}
+     */
+    private fun postExecute(value: Int = 0): Boolean = ports.trace.postExecute(value)
+
+    /**
+     * {RU}Действия выполняемые отладчиком перед командой run (перед запуском процесса эмуляции){RU}
+     */
+    private fun start() = ports.trace.start(0)
+
+    /**
+     * {RU}Действия выполняемые отладчиком после команды run (после остановки процесса эмуляции){RU}
+     */
+    private fun stop() = ports.trace.stop(0)
+
+    private var steps = 0
+    private var startTime: Long = 0
+
+    /**
+     * {RU}
+     * Выполнение программного кода
+     *
+     * Именно этот метод вызывается при нажатии кнопки F9 в IDA Pro
+     * {RU}
+     */
+    final override fun cont(): Status {
+        var status: Status = NOT_EXECUTED
+        isRunning = true
+        steps = 0
+
+        startTime = System.currentTimeMillis()
+
+        if (ports.trace.isTracerOk()) {
+            log.finer { "Running with tracer..." }
+            // if tracer has errors show it in catch block
+            try {
+                start()
+                while (isRunning) {
+                    status = core.enter()
+                    if (!status.resume) {
+                        isRunning = false
+                        signalStop()
+                        break
+                    }
+
+                    status = core.decode()
+                    if (!status.resume) {
+                        isRunning = false
+                        signalStop()
+                        break
+                    }
+
+                    if (!preExecute()) {
+                        isRunning = false
+                        signalStop()
+                    }
+
+                    status = core.execute()
+                    steps += 1
+
+                    if (!status.resume) {
+                        isRunning = false
+                        signalStop()
+                    }
+
+                    if (!postExecute(status.ordinal)) {
+                        isRunning = false
+                        signalStop()
+                    }
+                }
+                stop()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                throw e
+            }
+        } else while (isRunning) {
+            status = core.step()
+            steps += 1
+            if (!status.resume) {
+                isRunning = false
+                signalStop()
+            }
+        }
+
+        val deltaTimeMiliSec = System.currentTimeMillis() - startTime
+        if (deltaTimeMiliSec > 500) {
+            val kips = steps / deltaTimeMiliSec
+            log.info { "Emulation running for %,d ms [%,d KIPS]".format(deltaTimeMiliSec, kips) }
+        }
+
+        return status
+    }
+
+    /**
+     * {RU}
+     * Выполнение одного шага программного кода (Step)
+     *
+     * Именно этот метод вызывается при нажатии кнопки F7 в IDA Pro
+     *
+     * @return успешность выполнения шага (true/false)
+     * {RU}
+     */
+    final override fun step(): Boolean {
+        return if (ports.trace.isTracerOk()) {
+            if (!core.enter().resume)
+                return false
+
+            if (!core.decode().resume)
+                return false
+
+            preExecute()
+            val status = core.execute()
+            postExecute(status.ordinal)
+            status.resume
+        } else {
+            core.step().resume
+        }
+    }
+
+    /**
+     * {RU}
+     * Чтение памяти
+     *
+     * @param address адрес блока памяти
+     * @param size количество байт для вычитывания
+     *
+     * @return массив байт из памяти (ByteArray)
+     * {RU}
+     */
+    final override fun dbgLoad(address: Long, size: Int): ByteArray = ports.reader.load(address, size) { defaultByte }
+
+    /**
+     * {RU}
+     * Запись в память массива байт
+     *
+     * @param address адрес блока памяти
+     * @param data массив байт для записи в память
+     * {RU}
+     */
+    final override fun dbgStore(address: Long, data: ByteArray): Unit = ports.reader.store(address, data)
+
+    /**
+     * {RU}
+     * Установка точки останова (Breakpoint)
+     *
+     * @param bpType тип точки останова (один из вариантов GDB_BPT.: HARDWARE/READ/WRITE/ACCESS/SOFTWARE)
+     * @param address адрес установки точки останова
+     * @param comment необязательный комментарий
+     *
+     * @return результат установки точки останова (true/false)
+     * {RU}
+     */
+    override fun bptSet(bpType: GDB_BPT, address: Long, comment: String?): Boolean {
+        log.fine { "Setup breakpoint at address=0x%08X".format(address) }
+        return when (bpType) {
+            GDB_BPT.HARDWARE -> breakpoints.add(address, EXEC)
+            GDB_BPT.READ -> breakpoints.add(address, READ)
+            GDB_BPT.WRITE -> breakpoints.add(address, WRITE)
+            GDB_BPT.ACCESS -> breakpoints.add(address, RW)
+            GDB_BPT.SOFTWARE -> breakpoints.add(address, EXEC)
+        }
+    }
+
+    /**
+     * {RU}
+     * Удаление точки останова (Breakpoint)
+     *
+     * @param address адрес установки точки останова
+     *
+     * @return результат установки точки останова (true/false)
+     * {RU}
+     */
+    override fun bptClr(address: Long): Boolean {
+        log.fine { "Clear breakpoint at address=%08X".format(address) }
+        return breakpoints.remove(address)
+    }
+
+    /**
+     * {RU}
+     * Настройка парсера аргументов командной строки.
+     * Для использования команд в консоли эмулятора.
+     *
+     * @param parent родительский парсер, к которому будут добавлены новые аргументы
+     * @param useParent необходимость использования родительского парсера
+     *
+     * @return парсер аргументов
+     * {RU}
+     */
+    override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
+            super.configure(parent, useParent)?.apply {
+                subparser("run", help = "run target")
+                subparser("halt", help = "halt target")
+                subparser("reset", help = "reset target")
+                subparser("step", help = "step target")
+                subparser("status", help = "read target status")
+                subparser("bp", help = "set a breakpoint").apply {
+                    variable<String>("-a", "--address", required = false, help = "Address to set breakpoint")
+                    flag("-c", "--clear", help = "If set breakpoint will be clear")
+                }
+            }
+
+    /**
+     * {RU}
+     * Обработка аргументов командной строки.
+     * Для использования команд в консоли эмулятора.
+     *
+     * @param context контекст интерактивной консоли
+     *
+     * @return результат обработки команд (true/false)
+     * {RU}
+     */
+    override fun process(context: IInteractive.Context): Boolean {
+        if (super.process(context))
+            return true
+
+        context.result = when (context.command()) {
+            "run" -> {
+                if (!isRunning) {
+                    thread { cont() }
+                    "Target run"
+                } else {
+                    "Target already running..."
+                }
+            }
+            "halt" -> {
+                halt()
+                "Target halted at %08X".format(core.cpu.pc)
+            }
+            "reset" -> {
+                halt()
+                core.reset()
+                "Target reset"
+            }
+            "step" -> {
+                step()
+                "Step to instruction ${core.cpu.pc.hex8}"
+            }
+            "status" -> {
+                "${core.name} is running $isRunning at %,d".format(core.clock.time())
+            }
+            "bp" -> {
+                val address = context.getString("address")
+                val isClear = context.getBoolean("clear")
+                val bpAddr: Long = address?.hexAsULong ?: core.cpu.pc
+                if (!isClear) {
+                    breakpoints.add(bpAddr, EXEC)
+                    "Breakpoint set to ${bpAddr.hex8}"
+                } else {
+                    breakpoints.remove(bpAddr)
+                    "Breakpoint cleared from ${bpAddr.hex8}"
+                }
+            }
+            else -> return false
+        }
+
+        context.pop()
+
+        return true
+    }
+
+    /**
+     * {RU}
+     * Имя команды для текущего класса в интерактивной консоли эмулятора.
+     * Для использования команд в консоли эмулятора.
+     *
+     * @return строковое имя команды
+     * {RU}
+     */
+    override fun command(): String = name
+}

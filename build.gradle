@@ -1,16 +1,45 @@
-apply plugin: 'java'
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-ext.productionDirectoryPath = "${rootProject.projectDir}/production"
-ext.jarOutputDirectoryPath = "${productionDirectoryPath}/library"
+plugins {
+    id 'org.jetbrains.kotlin.jvm' apply false
+}
 
-dependencies {
-    compile project(':cores:mips')
-    compile project(':cores:x86')
-    compile project(':cores:v850es')
-    compile project(':cores:msp430')
-    compile project(':cores:arm')
+allprojects {
+    repositories {
+        mavenCentral()
+        jcenter()
+        maven { url "https://jitpack.io" }
+    }
 
-    compile project(':mcu:cortexm0')
-    compile project(':mcu:stm32f0xx')
-    compile project(':mcu:msp430x44x')
+    ext.kotlinx_version = "1.0.1"
+}
+
+subprojects {
+    afterEvaluate {
+        tasks.each { task ->
+            if (task instanceof Test) {
+                task.jvmArgs += ["-Xms2G", "-Xmx5G", "-XX:MaxDirectMemorySize=2g"]
+
+                task.testLogging {
+                    events "passed", "skipped", "failed" //, "standardOut", "standardError"
+
+                    showExceptions true
+                    exceptionFormat "full"
+                    showCauses true
+                    showStackTraces true
+
+                    // showStandardStreams = false
+                }
+            }
+
+            if (task instanceof KotlinCompile) {
+                task.kotlinOptions {
+                    jvmTarget = "11"
+                    apiVersion = "1.3"
+                    languageVersion = "1.3"
+                }
+            }
+
+        }
+    }
 }

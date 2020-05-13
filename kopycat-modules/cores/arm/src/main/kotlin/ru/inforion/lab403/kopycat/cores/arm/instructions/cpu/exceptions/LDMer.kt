@@ -1,0 +1,59 @@
+package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.exceptions
+
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
+import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
+import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
+import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegisterList
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.like
+import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+
+
+
+// LDM (exception return), see B9.3.5
+class LDMer(cpu: AARMCore,
+            opcode: Long,
+            cond: Condition,
+            val wback: Boolean,
+            val increment: Boolean,
+            val wordhigher: Boolean,
+            val rn: ARMRegister,
+            val registers: ARMRegisterList,
+            size: Int):
+        AARMInstruction(cpu, Type.VOID, cond, opcode, rn, registers, size = size) {
+    // TODO: not correct mnem
+    override val mnem = "LDM$mcnd"
+
+    override fun execute() {
+        if (core.cpu.CurrentModeIsHyp())
+            throw ARMHardwareException.Undefined
+        else if (core.cpu.CurrentModeIsUserOrSystem() || core.cpu.CurrentInstrSet() == AARMCore.InstructionSet.THUMB_EE)
+            throw ARMHardwareException.Unpredictable
+        else {
+            val length = 4 * registers.bitCount
+            var address = if (increment) rn.value(core) else rn.value(core) - length
+            if (wordhigher) address += 4
+            // There is difference from datasheet (all registers save in common loop) -> no LoadWritePC called
+            registers.forEachIndexed { _, reg ->
+                reg.value(core, core.inl(address like Datatype.DWORD))
+                address += 4
+            }
+            val newPCValue = core.inl(address like Datatype.DWORD)
+            if (wback && registers.rbits[rn.reg] == 0L) rn.value(core,
+                    if (increment)
+                        rn.value(core) + length
+                    else
+                        rn.value(core) - length
+            )
+            if (wback && registers.rbits[rn.reg] == 1L)
+                rn.value(core, /*UNKNOWN*/ 0L)
+            core.cpu.CPSRWriteByInstr(core.cpu.sregs.spsr.value, 0b1111, true)
+            if (core.cpu.sregs.cpsr.m == 0b11010L && core.cpu.sregs.cpsr.j && core.cpu.sregs.cpsr.t)
+                throw ARMHardwareException.Unpredictable
+            else
+                core.cpu.BranchWritePC(newPCValue)
+        }
+    }
+}

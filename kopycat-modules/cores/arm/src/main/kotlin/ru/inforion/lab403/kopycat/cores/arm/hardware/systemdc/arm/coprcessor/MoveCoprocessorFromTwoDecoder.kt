@@ -1,0 +1,46 @@
+package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.coprcessor
+
+import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.find
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
+import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
+import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
+import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
+import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+
+
+
+// See A8.8.99
+class MoveCoprocessorFromTwoDecoder(
+        cpu: AARMCore,
+        val constructor: (
+                cpu: AARMCore,
+                opcode: Long,
+                cond: Condition,
+                cp: Int,
+                opc1: Int,
+                rt: ARMRegister,
+                rt2: ARMRegister,
+                crm: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
+    override fun decode(data: Long): AARMInstruction {
+        val cond = find<Condition> { it.opcode == data[31..28].asInt } ?: Condition.AL
+        val rt2 = GPRBank.Operand(data[19..16].asInt)
+        val rt = GPRBank.Operand(data[15..12].asInt)
+        val coproc = data[11..8].toInt()
+        val opc1 = data[7..4].toInt()
+        val crm = data[3..0].toInt()
+
+        if (coproc and 0b1110 == 0b1010)
+            TODO(" SEE \"Advanced SIMD and Floating-point\"")
+        val pc = core.cpu.regs.pc.reg
+        val sp = core.cpu.StackPointerSelect()
+        if (rt.reg == pc || rt2.reg == pc) throw ARMHardwareException.Unpredictable
+        if ((rt.reg == sp || rt2.reg == sp) && core.cpu.CurrentInstrSet() != AARMCore.InstructionSet.ARM)
+            throw ARMHardwareException.Unpredictable
+
+        return constructor(core, data, cond, coproc, opc1, rt, rt2, crm)
+    }
+}
