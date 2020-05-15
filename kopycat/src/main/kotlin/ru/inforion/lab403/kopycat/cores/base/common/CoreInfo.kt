@@ -162,10 +162,10 @@ class CoreInfo<C: AGenericCore>(val core: C): IResettable {
         }
     }
 
-    fun dump() {
-        printCpuState()
-        printStackTrace()
-        printTrace()
+    fun dump(cpu: Boolean = true, stack: Boolean = true, trace: Boolean = true) {
+        if (cpu) printCpuState()
+        if (stack) printStackTrace()
+        if (trace) printTrace()
     }
 
     fun saveProgramCounter() {

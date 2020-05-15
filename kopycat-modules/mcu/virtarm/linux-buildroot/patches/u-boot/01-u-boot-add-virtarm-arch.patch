@@ -1,0 +1,420 @@
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index 30e71b2..8220533 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -1126,6 +1126,14 @@ config TARGET_THUNDERX_88XX
+ 	select OF_CONTROL
+ 	select SYS_CACHE_SHIFT_7
+ 
++config TARGET_VIRTARM
++	bool "Support VirtARM emulator"
++	select CPU_ARM1176
++	select DM
++	select DM_SERIAL
++	select OF_CONTROL
++	imply CMD_DM
++
+ config ARCH_ASPEED
+ 	bool "Support Aspeed SoCs"
+ 	select OF_CONTROL
+@@ -1269,6 +1277,7 @@ source "board/birdland/bav335x/Kconfig"
+ source "board/timll/devkit3250/Kconfig"
+ source "board/toradex/colibri_pxa270/Kconfig"
+ source "board/technologic/ts4600/Kconfig"
++source "board/virtarm/Kconfig"
+ source "board/vscom/baltos/Kconfig"
+ source "board/woodburn/Kconfig"
+ source "board/work-microwave/work_92105/Kconfig"
+diff --git a/arch/arm/dts/virtarm.dts b/arch/arm/dts/virtarm.dts
+new file mode 100644
+index 0000000..7ae501b
+--- /dev/null
++++ b/arch/arm/dts/virtarm.dts
+@@ -0,0 +1,34 @@
++/dts-v1/;
++
++#include "skeleton.dtsi"
++
++/ {
++	model = "Model Testbench";
++	compatible = "testbench,testbench";
++	#address-cells = <1>;
++	#size-cells = <1>;
++
++	cpus {
++		cpu@0 {
++			compatible = "arm,arm1176jzf-s";
++		};
++	};
++
++	uart0: serial@0x80230000  {
++		compatible = "ns16550a";
++		reg = <0x80230000 0x1000>;
++		reg-shift = <2>;
++		clock-frequency = <200000000>;
++		no-loopback-test;
++		status = "disabled";
++	};
++
++	memory {
++		device_type = "memory";
++		reg = <0x90000000 0x10000000>;
++	};
++
++	chosen {
++		stdout-path = &uart0;
++	};
++};
+\ No newline at end of file
+diff --git a/board/virtarm/Kconfig b/board/virtarm/Kconfig
+new file mode 100644
+index 0000000..6c1fef6
+--- /dev/null
++++ b/board/virtarm/Kconfig
+@@ -0,0 +1,9 @@
++if TARGET_VIRTARM
++
++config SYS_BOARD
++	default "virtarm"
++
++config SYS_CONFIG_NAME
++	default "virtarm"
++
++endif
+diff --git a/board/virtarm/Makefile b/board/virtarm/Makefile
+new file mode 100644
+index 0000000..a5fe280
+--- /dev/null
++++ b/board/virtarm/Makefile
+@@ -0,0 +1,3 @@
++
++
++obj-y += board.o timer.o
+diff --git a/board/virtarm/board.c b/board/virtarm/board.c
+new file mode 100644
+index 0000000..c7ac606
+--- /dev/null
++++ b/board/virtarm/board.c
+@@ -0,0 +1,27 @@
++#include <common.h>
++#include <dm.h>
++#include <ram.h>
++#include <asm/io.h>
++#include <linux/err.h>
++#include <dm/uclass.h>
++
++#include "timer.h"
++
++DECLARE_GLOBAL_DATA_PTR;
++
++void lowlevel_init(void) {}
++
++int board_init(void)
++{
++	gd->bd->bi_boot_params = CONFIG_SYS_SDRAM_BASE + 0x100;
++
++	virtarm_timer_start(0);
++	return 0;
++}
++
++int dram_init(void)
++{
++	gd->ram_size = CONFIG_SYS_SDRAM_SIZE;
++	return 0;
++}
++
+diff --git a/board/virtarm/timer.c b/board/virtarm/timer.c
+new file mode 100644
+index 0000000..54d3edb
+--- /dev/null
++++ b/board/virtarm/timer.c
+@@ -0,0 +1,140 @@
++#include <common.h>
++#include <div64.h>
++#include "timer.h"
++
++
++__inline unsigned int virtarm_read_register (const unsigned int address)
++{
++	/* Read an integer (32 bit) value from a register */
++	return (*(volatile unsigned int *)address);
++}
++
++
++__inline void virtarm_write_register (const unsigned int value, const unsigned int address)
++{
++	/* Write an integer (32 bit) value to a register */
++	*(volatile unsigned int *)address = value;
++}
++
++/*
++ * The timer is a decrementer
++ */
++#define READ_TIMER() (virtarm_read_register (CONFIG_SYS_TIMERBASE +\
++                                               TIMERNCURRENTVALUEREGOFFSET(0)))
++
++#define TIMER_LOAD_VAL 0xFFFFFFFF
++
++DECLARE_GLOBAL_DATA_PTR;
++
++#define timestamp gd->arch.timer_reset_value
++#define lastdec gd->arch.lastinc
++
++void reset_timer_masked (void)
++{
++	lastdec = READ_TIMER ();
++	timestamp = 0;
++}
++
++/* Timer init function */
++int timer_init (void)
++{
++	reset_timer_masked ();
++	return 0;
++}
++
++/* Restart counting from 0 */
++void reset_timer (void)
++{
++	reset_timer_masked ();
++}
++
++static inline unsigned long long tick_to_time (unsigned long long tick)
++{
++	tick *= CONFIG_SYS_HZ;
++	do_div (tick, VIRTARM_AHB_CLOCK_FREQ);
++	return tick;
++}
++
++static inline unsigned long long time_to_tick (unsigned long long time)
++{
++	time *= VIRTARM_AHB_CLOCK_FREQ;
++	do_div (time, CONFIG_SYS_HZ);
++	return time;
++}
++
++static inline unsigned long long us_to_tick (unsigned long long us)
++{
++	us = us * VIRTARM_AHB_CLOCK_FREQ + 999999;
++	do_div (us, 1000000);
++	return us;
++}
++
++unsigned long long get_ticks (void)
++{
++	ulong now = READ_TIMER ();
++
++	if (lastdec >= now)
++		timestamp += (lastdec - now);
++	else
++		timestamp += (lastdec + TIMER_LOAD_VAL - now);
++
++	lastdec = now;
++
++	return timestamp;
++}
++
++ulong get_timer_masked (void)
++{
++	return tick_to_time (get_ticks ());
++}
++
++/* Return how many HZ passed since "base" */
++ulong get_timer (ulong base)
++{
++	return get_timer_masked () - base;
++}
++
++/* Delay 'usec' micro seconds */
++void __udelay (unsigned long usec)
++{
++	unsigned long long tmp;
++	unsigned long long tmo;
++
++	tmo = us_to_tick (usec);
++	tmp = get_ticks () + tmo;
++
++	while (get_ticks () < tmp) ;
++}
++
++/*
++ * This function is derived from PowerPC code (timebase clock frequency).
++ * On ARM it returns the number of timer ticks per second.
++ */
++ulong get_tbclk (void)
++{
++	ulong tbclk;
++
++	tbclk = CONFIG_SYS_HZ;
++	return tbclk;
++}
++
++void virtarm_timer_start (int timer)
++{
++	/* Make sure the timer is disabled */
++	virtarm_write_register (0, (CONFIG_SYS_TIMERBASE +
++				      TIMERNCONTROLREGOFFSET (timer)));
++
++	/* Initialise the timer to all 1's.
++	 * We do this  because we want to run
++	 * the timer in free running mode.
++	 */
++	virtarm_write_register (0xFFFFFFFF, (CONFIG_SYS_TIMERBASE +
++					       TIMERNLOADCOUNTREGOFFSET
++					       (timer)));
++
++	/* Start the timer in free running mode */
++	virtarm_write_register ((TIMERINTERRUPTMASK | TIMERENABLE),
++				  (CONFIG_SYS_TIMERBASE +
++				   TIMERNCONTROLREGOFFSET (timer)));
++
++}
+\ No newline at end of file
+diff --git a/board/virtarm/timer.h b/board/virtarm/timer.h
+new file mode 100644
+index 0000000..92f7675
+--- /dev/null
++++ b/board/virtarm/timer.h
+@@ -0,0 +1,70 @@
++#ifndef __VIRTARM_TIMER_H__
++#define __VIRTARM_TIMER_H__
++
++/*****************************************************************************/
++/* Register Offset Addresses                                                 */
++/*****************************************************************************/
++
++/* Individual definitions */
++#define TIMER1_LOAD_COUNT_REG_OFFSET        (0x00)
++#define TIMER1_CURRENT_VALUE_REG_OFFSET     (0x04)
++#define TIMER1_CONTROL_REG_OFFSET           (0x08)
++#define TIMER1_EOI_REG_OFFSET               (0x0c)
++#define TIMER1_INT_STATUS_REG_OFFSET        (0x10)
++
++#define TIMER2_LOAD_COUNT_REG_OFFSET        (0x14)
++#define TIMER2_CURRENT_VALUE_REG_OFFSET     (0x18)
++#define TIMER2_CONTROL_REG_OFFSET           (0x1c)
++#define TIMER2_EOI_REG_OFFSET               (0x20)
++#define TIMER2_INT_STATUS_REG_OFFSET        (0x24)
++
++#define TIMER3_LOAD_COUNT_REG_OFFSET        (0x28)
++#define TIMER3_CURRENT_VALUE_REG_OFFSET     (0x2c)
++#define TIMER3_CONTROL_REG_OFFSET           (0x30)
++#define TIMER3_EOI_REG_OFFSET               (0x34)
++#define TIMER3_INT_STATUS_REG_OFFSET        (0x38)
++
++#define TIMER4_LOAD_COUNT_REG_OFFSET        (0x3c)
++#define TIMER4_CURRENT_VALUE_REG_OFFSET     (0x40)
++#define TIMER4_CONTROL_REG_OFFSET           (0x44)
++#define TIMER4_EOI_REG_OFFSET               (0x48)
++#define TIMER4_INT_STATUS_REG_OFFSET        (0x4c)
++
++#define TIMERS_INT_STATUS_REG_OFFSET        (0xa0)
++#define TIMERS_EOI_REG_OFFSET               (0xa4)
++#define TIMERS_RAW_INT_STATUS_REG_OFFSET    (0xa8)
++#define TIMERS_COMP_VERSION_REG_OFFSET      (0xac)
++
++/* Macros ------------------------------------------------------------------ */
++
++/* Generic definitions 'borrowed' from U-Boot land */
++
++/* The number of timers in the hardware, numbered 0 to N-1 */
++#define TIMERNUMBEROFTIMERS                 (4)
++
++/* Register definitions for the timers */
++#define TIMERNLOADCOUNTREGOFFSET(__N)       (0x0000 + (0x14 * (__N)))
++#define TIMERNCURRENTVALUEREGOFFSET(__N)    (0x0004 + (0x14 * (__N)))
++#define TIMERNCONTROLREGOFFSET(__N)         (0x0008 + (0x14 * (__N)))
++#define TIMERNEOIREGOFFSET(__N)             (0x000c + (0x14 * (__N)))
++#define TIMERNINTERRUPTSTATUSREGOFFSET(__N) (0x0010 + (0x14 * (__N)))
++
++/* Timer N control register bit definitions */
++#define TIMERENABLE                         (0x00000001)
++#define TIMERMODE                           (0x00000002)
++#define TIMERINTERRUPTMASK                  (0x00000004)
++
++/* Register definitions for global timer registers */
++#define TIMERSINTERRUPTSTATUSREGOFFSET      (0x00a0)
++#define TIMERSEOIREGOFFSET                  (0x00a4)
++#define TIMERSRAWINTERRUPTSTATUSREGOFFSET   (0x00a8)
++
++/* Global Timer Registers bit definitions */
++#define TIMER(__N)                          (0x00000001 << (__N))
++
++/* ARM Sub-system peripherals are clocked at 200MHz */
++#define VIRTARM_AHB_CLOCK_FREQ        (200000000)
++
++void virtarm_timer_start (int timer);
++
++#endif 
+diff --git a/configs/virtarm_defconfig b/configs/virtarm_defconfig
+new file mode 100644
+index 0000000..3b74840
+--- /dev/null
++++ b/configs/virtarm_defconfig
+@@ -0,0 +1,13 @@
++CONFIG_ARM=y
++CONFIG_ARM64_SUPPORT_AARCH32=y
++CONFIG_TARGET_VIRTARM=y
++CONFIG_DEFAULT_DEVICE_TREE="virtarm"
++CONFIG_PHYS_64BIT=y
++# CONFIG_DISPLAY_CPUINFO is not set
++CONFIG_CMD_BOOTZ=y
++CONFIG_CMD_LZMADEC=y
++CONFIG_CMD_UNZIP=y
++CONFIG_DM_RESET=y
++CONFIG_SYS_NS16550=y
++CONFIG_SYSRESET=y
++# CONFIG_EFI_LOADER is not set
+diff --git a/include/configs/virtarm.h b/include/configs/virtarm.h
+new file mode 100644
+index 0000000..c3a4c2f
+--- /dev/null
++++ b/include/configs/virtarm.h
+@@ -0,0 +1,47 @@
++#ifndef __VIRTARM_CONFIG_H
++#define __VIRTARM_CONFIG_H
++
++#include <linux/sizes.h>
++
++
++/* Start at 0x00000000 without MMU and binary offsets */
++#define CONFIG_SYS_TEXT_BASE 		0x00000000
++#define CONFIG_SYS_UBOOT_BASE		CONFIG_SYS_TEXT_BASE
++
++/* SRAM at 0x20000000, 128Kb */
++#define CONFIG_SYS_INIT_RAM_ADDR	0x20000000
++#define CONFIG_SYS_INIT_RAM_SIZE	SZ_128K
++
++#define CONFIG_CMDLINE_TAG			/* enable passing of ATAGs */
++#define CONFIG_SETUP_MEMORY_TAGS
++
++#define SYS_INIT_RAM_END		(CONFIG_SYS_INIT_RAM_ADDR \
++					 + CONFIG_SYS_INIT_RAM_SIZE)
++#define CONFIG_SYS_INIT_SP_ADDR		(SYS_INIT_RAM_END \
++					 - GENERATED_GBL_DATA_SIZE)
++
++/* DRAM at 0x90000000, 512Mb */
++#define CONFIG_SYS_SDRAM_BASE 		0x90000000
++#define CONFIG_SYS_SDRAM_SIZE 		SZ_512M
++
++
++#define CONFIG_NR_DRAM_BANKS		1
++
++#define CONFIG_SYS_MAX_NAND_DEVICE	1
++
++#define CONFIG_SYS_MALLOC_LEN		SZ_1M
++
++#define CONFIG_SKIP_LOWLEVEL_INIT
++
++
++#define CONFIG_SYS_LOAD_ADDR		0x90000000
++
++#define CONFIG_ENV_SIZE			0x20000
++
++/*Timer at 0x80210000*/
++#define CONFIG_SYS_TIMERBASE   0x80210000
++
++/* A time tick is 1 millisecond (this is NOT CPU tick) */
++#define	CONFIG_SYS_HZ	1000 
++
++#endif	/* __VIRTARM_CONFIG_H */

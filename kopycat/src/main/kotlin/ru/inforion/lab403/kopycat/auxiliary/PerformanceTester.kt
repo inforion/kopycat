@@ -68,7 +68,6 @@ class PerformanceTester<T: Module>(
 
         if (stopRequest.get()) {
             log.info { "[${core.pc.hex8}] '$core' requested to stop!" }
-            stopRequest.set(false)
             return true
         }
 
@@ -171,20 +170,20 @@ class PerformanceTester<T: Module>(
      * Add callback to invoke **all times** when [tty] terminal get a byte.
      *
      * @param tty Path to device where wait for bytes
-     * @param block Callback to invoke: input received char and return boolean when to stop
+     * @param predicate Callback to invoke: input received char and return boolean when to stop
      *
      * @return self for chain access
      * {EN}
      */
-    fun whenTerminalReceive(tty: String, block: (char: Char) -> Boolean): PerformanceTester<T> {
+    fun whenTerminalReceive(tty: String, predicate: (char: Char) -> Boolean): PerformanceTester<T> {
         thread {
-            val stream = DataInputStream(tty.toFile().inputStream())
+            val stream = tty.toFile().inputStream()
 
-            while (block(stream.readChar())) {
+            do {
+                val char = stream.read().toChar()
+            } while (predicate(char))
 
-            }
-
-            stopRequest.set(true)
+            stop(false)
         }
 
         return this

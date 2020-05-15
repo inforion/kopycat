@@ -17,7 +17,6 @@ import java.util.logging.Level.FINE
 import java.util.logging.Level.FINER
 
 @Suppress("MemberVisibilityCanBePrivate", "PropertyName")
-
 class PIT(parent: Module, name: String) : Module(parent, name) {
     companion object {
         val log = logger(FINE)
@@ -239,7 +238,7 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
                             if (it.COUNT == 0) {
                                 ports.irq.request(it.id)
                                 it.COUNT = it.LATCHED
-                                log.fine { "%s counter reached latched value at %,d ns".format(name, core.clock.time(Time.ns)) }
+                                log.finest { "%s counter reached latched value at %,d ns".format(name, core.clock.time(Time.ns)) }
                             }
                         }
                 else -> TODO("Timer mode not implemented yet or not supported ${PITMODECTL.CTR_MODE}")

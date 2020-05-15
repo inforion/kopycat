@@ -158,7 +158,7 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
             else protectedMode()
         }
 
-        log.info {
+        log.finest {
             val prefs = Prefixes(core)
             val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
             val sp = x86Register.gpr(prefs.opsize, x86GPR.ESP)

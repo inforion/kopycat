@@ -10,6 +10,7 @@ class Hlt(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "hlt"
 
     override fun execute() {
+        // log.config { "Processor halt -> wait for interrupt" }
         core.cpu.halted = true
     }
 }

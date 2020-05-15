@@ -1,0 +1,15 @@
+diff --git a/drivers/serial/8250.c b/drivers/serial/8250.c
+index 524f6ab5..f575ba6b 100644
+--- a/drivers/serial/8250.c
++++ b/drivers/serial/8250.c
+@@ -1595,8 +1595,8 @@ static irqreturn_t serial8250_interrupt(int irq, void *dev_id)
+ 
+ 		if (l == i->head && pass_counter++ > PASS_LIMIT) {
+ 			/* If we hit this, we're dead. */
+-			printk(KERN_ERR "serial8250: too much work for "
+-				"irq%d\n", irq);
++			//printk(KERN_ERR "serial8250: too much work for "
++			//	"irq%d\n", irq);
+ 			break;
+ 		}
+ 	} while (l != end);

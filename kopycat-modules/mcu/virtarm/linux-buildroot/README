@@ -1,0 +1,8 @@
+Buildroot-version: 2019-02
+
+1. Copy "patches" and "configs" to buildroot root directory
+2. "make virtarm_defconfig"
+3. "make" (do not use -j flag)
+4. Wait around 30 minutes until compilation done
+5. Copy contents of "output/images" (rootfs.ext2, u-boot.bin, uImage) in "<path-to-VirtARM>/src/main/resources/binaries"
+6. You can also copy "System.map" (to "binaries") and "vmlinux" from "output/build/linux-2.6.31.12/" for debugging.

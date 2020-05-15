@@ -21,14 +21,7 @@ class VirtARMPerformanceTest {
 
     @Test
     fun linuxPerformance() {
-        val tester = PerformanceTester(-1, 20_000_000) { VirtARM(null, "top") }
-
-        tester
-                .atAddressOnce(0xAFFDDA34) {
-                    log.severe { "swapper_pg_dir+0x34 -> stop!" }
-                    tester.stop(true)
-                }
-                .stopWhenTerminalReceive(tester.top.term.socat!!.pty1, "buildroot login:")
-                .run(5, 1)
+        val tester = PerformanceTester(-1, 150_000_000) { VirtARM(null, "top") }
+        tester.stopWhenTerminalReceive(tester.top.term.socat!!.pty1, "buildroot login:").run(1, 0)
     }
 }

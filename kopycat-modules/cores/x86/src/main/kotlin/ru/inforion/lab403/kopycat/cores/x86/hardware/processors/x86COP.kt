@@ -20,12 +20,13 @@ import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import java.util.logging.Level
+import java.util.logging.Level.*
 
 
 class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name) {
 
     companion object {
-        val log = logger(Level.INFO)
+        val log = logger(CONFIG)
     }
 
     enum class GateType(val id: Int) {
@@ -117,7 +118,7 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name) {
         if (exception is x86HardwareException) {
             error = HardwareError(exception.excCode as ExcCode, exception.errorCode)
             if (exception is x86HardwareException.PageFault) {
-                log.warning { "[${core.pc.hex8}] Page fault for address 0x${exception.address.hex} code=0x${exception.errorCode.hex}" }
+                log.config { "[${core.pc.hex8}] Page fault for address 0x${exception.address.hex} code=0x${exception.errorCode.hex}" }
                 CTRLR.cr2.value(core, exception.address)
             }
             return null
@@ -148,7 +149,7 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name) {
         // TODO: Who has higher priority software or hardware interrupt in x86?
         // Currently hardware interrupt has higher priority
             interrupt != null -> {
-                log.config { "Interrupt request: ${interrupt.stringify()}" }
+                log.finest { "Interrupt request: ${interrupt.stringify()}" }
                 interrupt.pending = false
                 interrupt.inService = true
                 interrupt.vector
@@ -185,7 +186,7 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name) {
 
         val rpl = cs.cpl(core)
 
-        log.info {
+        log.finest {
             val context = "cpl=$cpl rpl=$rpl ip=${saved_cs.hex}:${saved_ip.hex} sp=${saved_ss.hex}:${saved_sp.hex} flags=${saved_eflags.hex}"
             "--> INT [0x${vector.hex}] IDTR=$idtr hdl=${idtEntry.selector.hex}:${idtEntry.base.hex} $context"
         }

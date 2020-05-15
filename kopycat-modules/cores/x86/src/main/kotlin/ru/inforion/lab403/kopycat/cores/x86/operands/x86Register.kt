@@ -327,7 +327,7 @@ abstract class x86Register(
         object cr2 : CTRLR(eCTRLR.CR2.id)
         object cr3 : CTRLR(eCTRLR.CR3.id) {
             override fun value(core: x86Core, data: Long) {
-                log.severe { "[${core.pc.hex}] CR3 register changed to ${data.hex} -> paging cache invalidated!" }
+                log.fine { "[${core.pc.hex}] CR3 register changed to ${data.hex} -> paging cache invalidated!" }
                 core.cpu.cregs.writeIntern(reg, data)
                 core.mmu.invalidatePagingCache()
             }

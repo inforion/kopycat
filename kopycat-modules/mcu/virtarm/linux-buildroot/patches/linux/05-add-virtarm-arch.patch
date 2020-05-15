@@ -1,0 +1,494 @@
+diff --git a/arch/arm/Kconfig b/arch/arm/Kconfig
+index aef63c8e..c0cddf4a 100644
+--- a/arch/arm/Kconfig
++++ b/arch/arm/Kconfig
+@@ -637,6 +637,15 @@ config ARCH_OMAP
+ 	help
+ 	  Support for TI's OMAP platform (OMAP1 and OMAP2).
+ 
++config ARCH_VIRTARM
++	bool "VirtARM"
++	select ARM_VIC
++	select HAVE_CLK
++	select CPU_V6
++	select HAS_TLS_REG
++	help
++	  Support for VirtARM emulator
++
+ endchoice
+ 
+ source "arch/arm/mach-clps711x/Kconfig"
+diff --git a/arch/arm/Makefile b/arch/arm/Makefile
+index 41edaf2a..51cf9b82 100644
+--- a/arch/arm/Makefile
++++ b/arch/arm/Makefile
+@@ -156,6 +156,7 @@ machine-$(CONFIG_ARCH_STMP378X)		:= stmp378x
+ machine-$(CONFIG_ARCH_STMP37XX)		:= stmp37xx
+ machine-$(CONFIG_ARCH_U300)		:= u300
+ machine-$(CONFIG_ARCH_VERSATILE)	:= versatile
++machine-$(CONFIG_ARCH_VIRTARM)  := virtarm
+ machine-$(CONFIG_ARCH_W90X900)		:= w90x900
+ machine-$(CONFIG_FOOTBRIDGE)		:= footbridge
+ 
+diff --git a/arch/arm/mach-virtarm/Makefile b/arch/arm/mach-virtarm/Makefile
+new file mode 100644
+index 00000000..625f0af7
+--- /dev/null
++++ b/arch/arm/mach-virtarm/Makefile
+@@ -0,0 +1,2 @@
++
++obj-y					:= virtarm.o
+diff --git a/arch/arm/mach-virtarm/Makefile.boot b/arch/arm/mach-virtarm/Makefile.boot
+new file mode 100644
+index 00000000..84c4482b
+--- /dev/null
++++ b/arch/arm/mach-virtarm/Makefile.boot
+@@ -0,0 +1,2 @@
++   zreladdr-y	:= 0x90008000
++
+diff --git a/arch/arm/mach-virtarm/include/mach/debug-macro.S b/arch/arm/mach-virtarm/include/mach/debug-macro.S
+new file mode 100644
+index 00000000..f38dcfd7
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/debug-macro.S
+@@ -0,0 +1,32 @@
++#include <linux/serial_reg.h>
++#include <mach/hardware.h>
++#include <mach/io.h>
++
++#define UART_SHIFT 2
++		
++		.macro addruart, rx
++		mrc	p15, 0, \rx, c1, c0
++		tst	\rx, #1			@ MMU enabled?
++		moveq	\rx,      #0x80000000   @ physical base
++		movne	\rx,      #0xfe000000	@ virtual base
++		orr	\rx, \rx, #0x00230000
++		.endm
++
++		.macro	senduart,rd,rx
++		str	\rd, [\rx, #UART_TX << UART_SHIFT]
++		.endm
++
++		.macro	busyuart,rd,rx
++1002:		ldr	\rd, [\rx, #UART_LSR << UART_SHIFT]
++		and	\rd, \rd, #UART_LSR_TEMT | UART_LSR_THRE
++		teq	\rd, #UART_LSR_TEMT | UART_LSR_THRE
++		bne	1002b
++		.endm
++
++		.macro	waituart,rd,rx
++#ifdef FLOW_CONTROL
++1001:		ldr	\rd, [\rx, #UART_MSR << UART_SHIFT]
++		tst	\rd, #UART_MSR_CTS
++		beq	1001b
++#endif
++		.endm
+diff --git a/arch/arm/mach-virtarm/include/mach/entry-macro.S b/arch/arm/mach-virtarm/include/mach/entry-macro.S
+new file mode 100644
+index 00000000..820bb5be
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/entry-macro.S
+@@ -0,0 +1,29 @@
++
++#include <mach/io.h>
++#include <mach/hardware.h>
++#include <mach/irqs.h>
++#include <asm/hardware/vic.h>
++
++
++#define VA_VIC0				IO_ADDRESS(VIRTARM_VIC0_BASE) 
++
++	.macro	disable_fiq
++	.endm
++
++	.macro	get_irqnr_preamble, base, tmp
++	ldr	\base, =VA_VIC0
++	.endm
++
++	.macro	arch_ret_to_user, tmp1, tmp2
++	.endm
++
++	.macro	get_irqnr_and_base, irqnr, irqstat, base, tmp
++
++	@ check the vic0
++	mov	\irqnr, #IRQ_VIC0_BASE + 31
++	ldr	\irqstat, [ \base, # VIC_IRQ_STATUS ]
++	teq	\irqstat, #0
++
++	clzne	\irqstat, \irqstat
++	subne	\irqnr, \irqnr, \irqstat
++	.endm
+\ No newline at end of file
+diff --git a/arch/arm/mach-virtarm/include/mach/hardware.h b/arch/arm/mach-virtarm/include/mach/hardware.h
+new file mode 100644
+index 00000000..8c4ada23
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/hardware.h
+@@ -0,0 +1,31 @@
++#ifndef __ASM_ARM_ARCH_HARDWARE_H
++#define __ASM_ARM_ARCH_HARDWARE_H
++
++
++#define VIRTARM_PERIPH_BASE		0x80000000
++#define VIRTARM_PERIPH_LENGTH	0x00400000
++#define VIRTARM_VIC0_BASE		0x80060000
++#define VIRTARM_TIMER_BASE		0x80210000
++#define VIRTARM_UART1_BASE		0x80230000
++#define VIRTARM_NAND_BASE		0x80240000
++
++#define TIMER_LOAD_COUNT_REG_OFFSET	    0x00
++#define TIMER_CURRENT_VALUE_REG_OFFSET	0x04
++#define TIMER_CONTROL_REG_OFFSET	    0x08
++#define TIMER_EOI_REG_OFFSET		    0x0c
++
++#define TIMERS_EOI_REG_OFFSET		    0xa4
++
++#define TIMER_ENABLE			    0x00000001
++#define TIMER_MODE			    	0x00000002
++#define TIMER_INTERRUPT_MASK		0x00000004
++
++#define NAND_ALE_MASK	0x00000001
++#define NAND_CLE_MASK	0x00000002
++
++#define VIRTARM_BASE_BAUD	    3686400	/* 3.6864 MHz */
++
++#define IO_ADDRESS(x)		(((x) & 0x00ffffff) | 0xfe000000)
++
++
++#endif /* __ASM_ARM_ARCH_HARDWARE_H */
+\ No newline at end of file
+diff --git a/arch/arm/mach-virtarm/include/mach/io.h b/arch/arm/mach-virtarm/include/mach/io.h
+new file mode 100644
+index 00000000..ec9605e3
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/io.h
+@@ -0,0 +1,19 @@
++#ifndef __ASM_ARM_ARCH_IO_H
++#define __ASM_ARM_ARCH_IO_H
++
++#define IO_SPACE_LIMIT 0xffffffff 
++
++#define __io(a)		__typesafe_io(a)
++#define __mem_pci(a)	(a)
++
++# define __arch_ioremap		virtarm_ioremap
++# define __arch_iounmap		virtarm_iounmap
++
++#ifndef __ASSEMBLER__
++
++void __iomem *virtarm_ioremap(unsigned long phys, size_t size, unsigned int type);
++void virtarm_iounmap(volatile void __iomem *addr);
++
++#endif
++
++#endif
+diff --git a/arch/arm/mach-virtarm/include/mach/irqs.h b/arch/arm/mach-virtarm/include/mach/irqs.h
+new file mode 100644
+index 00000000..e56d89f1
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/irqs.h
+@@ -0,0 +1,5 @@
++
++#define IRQ_VIC0_BASE		0
++#define IRQ_TIMER0			0
++#define IRQ_UART			1
++#define NR_IRQS				32
+\ No newline at end of file
+diff --git a/arch/arm/mach-virtarm/include/mach/memory.h b/arch/arm/mach-virtarm/include/mach/memory.h
+new file mode 100644
+index 00000000..66d2b5c0
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/memory.h
+@@ -0,0 +1,9 @@
++#ifndef __ASM_ARCH_MEMORY_H
++#define __ASM_ARCH_MEMORY_H
++
++/*
++ * Physical DRAM offset.
++ */
++#define PHYS_OFFSET	UL(0x90000000)
++
++#endif
+diff --git a/arch/arm/mach-virtarm/include/mach/system.h b/arch/arm/mach-virtarm/include/mach/system.h
+new file mode 100644
+index 00000000..7e2ec3c1
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/system.h
+@@ -0,0 +1,20 @@
++#ifndef __ASM_ARCH_SYSTEM_H
++#define __ASM_ARCH_SYSTEM_H
++
++#include <mach/io.h>
++
++static inline void arch_idle(void)
++{
++	/*
++	 * This should do all the clock switching
++	 * and wait for interrupt tricks
++	 */
++	cpu_do_idle();
++}
++
++static inline void arch_reset(int mode, const char *cmd)
++{
++	cpu_reset(0);
++}
++
++#endif /* __ASM_ARCH_SYSTEM_H */
+\ No newline at end of file
+diff --git a/arch/arm/mach-virtarm/include/mach/timex.h b/arch/arm/mach-virtarm/include/mach/timex.h
+new file mode 100644
+index 00000000..1860b632
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/timex.h
+@@ -0,0 +1,4 @@
++
++
++
++#define CLOCK_TICK_RATE		200000000 /* 200MHz */
+\ No newline at end of file
+diff --git a/arch/arm/mach-virtarm/include/mach/uncompress.h b/arch/arm/mach-virtarm/include/mach/uncompress.h
+new file mode 100644
+index 00000000..f75038af
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/uncompress.h
+@@ -0,0 +1,22 @@
++#include <linux/io.h>
++#include <linux/serial_reg.h>
++
++#include <mach/hardware.h>
++
++#define UART_SHIFT  2
++
++static inline void putc(int c)
++{
++	void __iomem *uart = (void __iomem *)(VIRTARM_UART1_BASE);
++
++	while (!(__raw_readl(uart + (UART_LSR << UART_SHIFT)) & UART_LSR_THRE))
++		barrier();
++	__raw_writel(c & 0xFF, uart + (UART_TX << UART_SHIFT));
++}
++
++static inline void flush(void)
++{
++}
++
++#define arch_decomp_setup()
++#define arch_decomp_wdog()
+diff --git a/arch/arm/mach-virtarm/include/mach/vmalloc.h b/arch/arm/mach-virtarm/include/mach/vmalloc.h
+new file mode 100644
+index 00000000..3ee7c382
+--- /dev/null
++++ b/arch/arm/mach-virtarm/include/mach/vmalloc.h
+@@ -0,0 +1,4 @@
++
++
++#define VMALLOC_END		(PAGE_OFFSET + 0x10000000)
++
+diff --git a/arch/arm/mach-virtarm/virtarm.c b/arch/arm/mach-virtarm/virtarm.c
+new file mode 100644
+index 00000000..649c0fa5
+--- /dev/null
++++ b/arch/arm/mach-virtarm/virtarm.c
+@@ -0,0 +1,191 @@
++#include <linux/init.h>
++#include <linux/device.h>
++#include <linux/sysdev.h>
++#include <linux/amba/bus.h>
++#include <linux/io.h>
++#include <linux/interrupt.h>
++#include <linux/serial_8250.h>
++#include <linux/mtd/nand.h>
++#include <linux/mtd/partitions.h>
++
++#include <mach/hardware.h>
++
++#include <asm/irq.h>
++#include <asm/tlb.h>
++#include <asm/mach-types.h>
++#include <asm/hardware/vic.h>
++
++#include <asm/mach/irq.h>
++#include <asm/mach/arch.h>
++#include <asm/mach/map.h>
++#include <asm/mach/time.h>
++#include <asm/mach/irq.h>
++
++
++/* hardware specific access to control-lines */
++static void virtarm_nand_cmd_ctrl(struct mtd_info *mtd, int cmd, unsigned int ctrl)
++{
++	struct nand_chip *this = mtd->priv;
++	unsigned long nandaddr = (unsigned long)this->IO_ADDR_W;
++
++	if (cmd == NAND_CMD_NONE)
++		return;
++
++	if (ctrl & NAND_CLE)
++		writeb(cmd, (void __iomem *)(nandaddr | NAND_CLE_MASK));
++	else
++		writeb(cmd, (void __iomem *)(nandaddr | NAND_ALE_MASK));
++}
++
++static struct mtd_partition __initdata virtarm_nand_partitions[] = {
++	{
++		.name	= "filesystem",
++		.offset	= 0,
++		.size	= MTDPART_SIZ_FULL,
++	},
++};
++
++static struct platform_nand_data virtarm_nand_platdata = {
++	.chip = {
++		.nr_partitions = ARRAY_SIZE(virtarm_nand_partitions),
++		.partitions = virtarm_nand_partitions,
++		.chip_delay = 0,
++	},
++	.ctrl = {
++		.cmd_ctrl = virtarm_nand_cmd_ctrl,
++	},
++};
++
++static struct resource virtarm_nand_resource[] = {
++	{
++		.start = VIRTARM_NAND_BASE,
++		.end   = VIRTARM_NAND_BASE + 12,
++		.flags = IORESOURCE_MEM,
++	},
++};
++
++static struct platform_device virtarm_nand = {
++	.name		= "gen_nand",
++	.num_resources	= ARRAY_SIZE(virtarm_nand_resource),
++	.resource	= virtarm_nand_resource,
++	.id		= -1,
++	.dev		= {
++		.platform_data = &virtarm_nand_platdata,
++	}
++};
++
++
++void __iomem *virtarm_ioremap(unsigned long p, size_t size, unsigned int type) {
++	if (p >= VIRTARM_PERIPH_BASE &&
++	    p < VIRTARM_PERIPH_BASE + VIRTARM_PERIPH_LENGTH)
++		return (void *)IO_ADDRESS(p);
++
++	return __arm_ioremap(p, size, type);
++}
++
++void virtarm_iounmap(volatile void __iomem *addr) {
++	unsigned long virt = (unsigned long)addr;
++
++	if (virt >= VMALLOC_START && virt < VMALLOC_END)
++		__iounmap(addr);
++}
++
++
++static struct plat_serial8250_port serial_platform_data[] = {
++	{
++		.membase	= IO_ADDRESS(VIRTARM_UART1_BASE),
++		.mapbase	= VIRTARM_UART1_BASE,
++		.irq		= IRQ_UART,
++		.uartclk	= VIRTARM_BASE_BAUD,
++		.regshift	= 2,
++		.iotype		= UPIO_MEM32,
++		.type		= PORT_16550A,
++		.flags		= UPF_BOOT_AUTOCONF | UPF_SKIP_TEST | UPF_FIXED_TYPE,
++	},
++	{},
++};
++
++static struct platform_device serial_device = {
++	.name	= "serial8250",
++	.id	= PLAT8250_DEV_PLATFORM1,
++	.dev	= {
++		.platform_data = serial_platform_data,
++	},
++};
++
++
++static struct map_desc __initdata virtarm_io_desc[] = {
++	{
++		.virtual	= (void*)IO_ADDRESS(VIRTARM_PERIPH_BASE),
++		.pfn		= __phys_to_pfn(VIRTARM_PERIPH_BASE),
++		.length		= VIRTARM_PERIPH_LENGTH,
++		.type		= MT_DEVICE,
++	},
++};
++
++void __init virtarm_map_io(void)
++{
++	iotable_init(virtarm_io_desc, ARRAY_SIZE(virtarm_io_desc));
++}
++
++
++void __init virtarm_init_irq(void)
++{
++	unsigned int i;
++
++	vic_init((void*)IO_ADDRESS(VIRTARM_VIC0_BASE), IRQ_VIC0_BASE, ~0, 0);
++}
++
++static irqreturn_t virtarm_timer_interrupt(int irq, void *dev_id)
++{
++	timer_tick();
++
++	/* Clear the interrupt. */
++	__raw_readl((void*)IO_ADDRESS(VIRTARM_TIMER_BASE) + TIMER_EOI_REG_OFFSET);
++
++	return IRQ_HANDLED;
++}
++
++
++static struct irqaction virtarm_timer_irq = {
++	.name		= "VirtARM Timer Tick",
++	.flags		= IRQF_DISABLED | IRQF_TIMER,
++	.handler	= virtarm_timer_interrupt,
++};
++
++static void __init virtarm_timer_init(void)
++{
++	unsigned long load_count = DIV_ROUND_UP(CLOCK_TICK_RATE, HZ);
++
++	__raw_writel(LATCH,  (void*)IO_ADDRESS(VIRTARM_TIMER_BASE) + TIMER_LOAD_COUNT_REG_OFFSET);
++	__raw_writel(LATCH,  (void*)IO_ADDRESS(VIRTARM_TIMER_BASE) + TIMER_CURRENT_VALUE_REG_OFFSET);
++	__raw_writel(TIMER_ENABLE | TIMER_MODE, (void*)IO_ADDRESS(VIRTARM_TIMER_BASE) + TIMER_CONTROL_REG_OFFSET);
++
++
++	/* 
++	 * Make irqs happen for the system timer
++	 */
++	setup_irq(IRQ_TIMER0, &virtarm_timer_irq);
++}
++
++struct sys_timer virtarm_sys_timer = {
++	.init	= virtarm_timer_init,
++};
++
++static struct platform_device *devices[] __initdata = {
++	&serial_device,
++	&virtarm_nand,
++};
++
++
++static void __init virtarm_init(void)
++{
++	platform_add_devices(devices, ARRAY_SIZE(devices));
++}
++
++MACHINE_START(VIRTARM, "VirtARM")
++	.map_io		= virtarm_map_io,
++	.init_irq	= virtarm_init_irq,
++	.timer		= &virtarm_sys_timer,
++	.init_machine	= virtarm_init,
++MACHINE_END
+diff --git a/arch/arm/tools/mach-types b/arch/arm/tools/mach-types
+index 33026eff..6bb6779a 100644
+--- a/arch/arm/tools/mach-types
++++ b/arch/arm/tools/mach-types
+@@ -2280,3 +2280,4 @@ htcrhodium		MACH_HTCRHODIUM		HTCRHODIUM		2292
+ htctopaz		MACH_HTCTOPAZ		HTCTOPAZ		2293
+ matrix504		MACH_MATRIX504		MATRIX504		2294
+ mrfsa			MACH_MRFSA		MRFSA			2295
++virtarm			ARCH_VIRTARM		VIRTARM 		9720

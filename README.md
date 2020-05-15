@@ -6,14 +6,14 @@ Kopycat is a multi-architecture hardware emulation solution
 
 Main features are:
 
-- Easy of assemble. Configure your own platform using JSON or Kotlin
+- Easy to assemble. Configure your own platform using JSON or Kotlin
 - Easy to customise. Create your own platform-module using Kotlin
 - One-to-one correspondence. Virtual platform representation is identical to block diagram
 - Multiple supported architectures: MIPS, ARM, MSP430, v850ES, x86
 
-This project contains CPU cores (ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86) and MCU (CortexM0, STM32F0xx, MSP430x44x) for Kopycat. 
+This project contains CPU cores: ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86, and MCUs: CortexM0, STM32F0xx, MSP430x44x. 
 
-You can download prebuild JAR-files modules via the link https://kopy.cat/download
+You can download prebuild JAR-files modules via the link: https://kopy.cat/download
 
 ## Requirements to run prebuild Kopycat
 
@@ -82,13 +82,15 @@ For module development and working with sources the following software is requir
 
 ## Getting started
 
-In this part of readme start of Kopycat with STM32F042 on Cortex-M0 core (ARMv6M architecture) device and virtual ARM device on ARM1176JZS core (ARMv6/v7 architecture) will be shown. For STM32F042 the next peripheral modules are implemented: UART, TIMx, DMAC, GPIOx, WDG. These peripheral modules are enough to run FreeRTOS. In the example firmware `freertos_uart` working with FreeRTOS is shown. Virtual ARM (VirtARM) runs UBoot and Linux with kernel 2.6.x, ext2 filesystem is used.
+In this part of readme you will see how to start Kopycat for device with STM32F042 (core: Cortex-M0; architecture: ARMv6M) and virtual ARM device (core: ARM1176JZS; architecture: ARMv6/v7). 
 
-All examples are shown on ARM architecture as the most popular in embedded devices nowadays. But as it has already been mentioned x86, MIPS, MSP430, v850ES cores are also implemented for Kopycat.
+The peripheral modules implemented for STM32F042 are UART, TIMx, DMAC, GPIOx, WDG. These peripheral modules are enough to run FreeRTOS. How to work with FreeRTOS is shown in the `freertos_uart` firmware example. 
 
-**NOTE**: The concept of architecture and core sometimes differs for different manufacturers. For example, ARM has complicated system of architecture and core, but for TI MSP430 core, architecture and MCU itself are almost the same. So we will often use "core" to refer to core and architecture. Moreover, in sources we have no architecture as an entity. The most low-level part in Kopycat is `Core` that consists of `CPU` - actual CPU (execute instructions), `Decoder`, `COP` - coprocessor (interrupt processing), `MMU` - memory management unit.
+Virtual ARM (VirtARM) runs UBoot, Linux with kernel 2.6.x, and ext2 filesystem.
 
-ARM core and architectures may be confusing at the lowest level lay architecture i.e. ARMv6, ARMv7 (CPUs), ARMv6M (embedded MCUs) etc. Mentioned architecture cores are being built, i.e. ARM1176JZS (not ARMv11!), CortexM0, CortexM3 etc. And at the top implemented MCUs, i.e. STM32F042.
+ARM architecture is used in all the examples as the most popular in embedded devices nowadays. 
+
+**NOTE**: The concept of architecture and core may differ from manufacturer to manufacturer. For example, ARM has a complicated system of architecture and core. The low-level layer is architecture, i.e. ARMv6, ARMv7 (CPUs), ARMv6M (embedded MCUs), etc. Mentioned architecture are used in cores, i.e. ARM1176JZS (not ARMv11!), CortexM0, CortexM3, etc. And then MCUs are implemented, i.e. STM32F04. For TI MSP430 core, architecture and MCU itself are almost the same. So we will often use "core" to refer to core or architecture. Moreover, there is no architecture in sources of an entity. Kopycat lowest-level is `Core` that consists of `CPU`, actual CPU, which executes instructions, `Decoder`, `COP`, coprocessor, which process interrupts, `MMU`, memory management unit.
 
 ### Run prebuild Kopycat core and module STM32F042 on Cortex-M0 core 
 
@@ -96,8 +98,11 @@ ARM core and architectures may be confusing at the lowest level lay architecture
 1. Add environment variable `KOPYCAT_HOME` (recommended, used by Kopycat core to lookup default modules library) to this directory, e.g. `KOPYCAT_HOME=/opt/kopycat-X.Y.Z-RCx` and add to environment variable `PATH` path to `KOPYCAT_HOME/bin`   
 1. Download prebuild modules libraries for Kopycat (https://kopy.cat/download/0.3.20/library.zip) and:
     - unzip this archive into any directory (**it is also strongly recommended not to use directories with spaces or special symbols!**) and add environment variable `KOPYCAT_MODULES_LIB_PATH` (only to simplify readme commands) to the directory
+    
+    OR
+    
     - unzip this archive into `${KOPYCAT_HOME}/modules` directory (if you setup `KOPYCAT_HOME`)
-1. Start emulation one of module: **STM32F042**
+1. Start emulation of one of the modules from the library, e.g. STM32F042
 
     ```shell script
     kopycat -y ${KOPYCAT_MODULES_LIB_PATH} -l mcu -n stm32f042_example -g 23946 -p "firmware=example:usart_poll,tty1=socat:,tty2=socat:"
@@ -112,9 +117,9 @@ ARM core and architectures may be confusing at the lowest level lay architecture
     - `-y` - path to a bunch of prebuild module's libraries (aka **registry**)
     - `-l` - actual library for the module (name of directory in the registry)
     - `-n` - name of module, in our case is `stm32f042_example` - name of Kotlin class inside jar
-    - `-p` - parameters for `stm32f042_example` module (class arguments). Get more information about arguments of module at current time you should see sources of module (for this module available in repository on GitHub). 
+    - `-p` - parameters for `stm32f042_example` module (class arguments). To get more information about arguments of module you should see sources of module (for this module available in repository on GitHub). 
         - `firmware` - is firmware to load into FLASH of STM32F042 (in this case simple tty echo)
-            - **example** - mean use one of binaries from `stm32f0xx.jar`: `benchmark_qsort`, `freertos_uart`, `gpiox_led`, `gpiox_registers`, `rhino_fw42k6`, `usart_dma`, `usart_poll`. Sources for each firmware published in GitHub repository in the `kopycat-modules/mcu/stm32f0xx/firmwares`.
+            - **example** - means usage of one of binaries from `stm32f0xx.jar`: `benchmark_qsort`, `freertos_uart`, `gpiox_led`, `gpiox_registers`, `rhino_fw42k6`, `usart_dma`, `usart_poll`. Sources for each firmware published in GitHub repository in the `kopycat-modules/mcu/stm32f0xx/firmwares`.
             - **file** - path to binary file i.e. *.bin from CLion.
             - **bytes** - hex string i.e. `AACCDDEE90909090`.
         - `ttyX` - virtual terminal connected to usart1 and usart2 of STM32F042.
@@ -122,7 +127,7 @@ ARM core and architectures may be confusing at the lowest level lay architecture
 
     **NOTES:**
     1. If you've added `KOPYCAT_HOME` environment variable you can put prebuild modules libraries into `${KOPYCAT_HOME}/modules` without necessity to specify `-y` parameter explicitly.
-    1. Due to socat this line will work only in **nix** system with installed socat, to disable, use `tty1=null,tty2=null`. For windows system com0com can be used or any other software to create virtual COM ports. In this case you should specify directly virtual com-port name `tty1=COM1,tty2=COM2`.
+    1. Due to socat this line will work only in **nix** system with installed socat. To disable it use `tty1=null,tty2=null`. For windows system com0com can be used or any other software to create virtual COM ports. In this case you should specify directly virtual com-port name `tty1=COM1,tty2=COM2`.
     
 1. You should see the following start log:
     
@@ -161,7 +166,7 @@ ARM core and architectures may be confusing at the lowest level lay architecture
    - /dev/ttys002 is endpoint to emulator connection to virtual COM port of USART1
    - /dev/ttys004 is endpoint to user connection to virtual COM port of USART1
     
-1. Attach to `/dev/ttys004` (name may differ) COM port using for example **putty** or **screen**
+1. Attach to `/dev/ttys004` (name may differ) COM port using, for example, **putty** or **screen**
 
     ```shell script
     screen /dev/ttys004
@@ -173,15 +178,15 @@ ARM core and architectures may be confusing at the lowest level lay architecture
     kc.start()  # run Kopycat emulation
     ```
    
-1. Now you can print something in `/dev/ttys004` and will see echo. This echo sends back by internal firmare of STM32F042. If emulation isn't running there is no echo in the console.
+1. Now you can print something in `/dev/ttys004` and will see echo. This echo is sent back by internal firmare of STM32F042. If emulation isn't running, there is no echo in the console.
 
-1. To stop emulation in Kopycat console print and press enter
+1. To stop emulation in Kopycat console print and press enter:
 
     ```python
     kc.halt()
     ```
    
-`kc` - is special proxy object to make visible all methods of Kopycat class from Java in Python interpreter using **jep** library. You can see all available methods of **kc** object in sources of `Kopycat` class.   
+`kc` - is a special proxy object to make visible all methods of Kopycat class from Java in Python interpreter using **jep** library. You can see all available methods of **kc** object in sources of `Kopycat` class.   
 
 ### Run prebuild Kopycat core and module of virtual ARM on ARM1176JZS core    
 
@@ -222,7 +227,7 @@ ARM core and architectures may be confusing at the lowest level lay architecture
    
 ### Get available prebuild Kopycat modules from registry 
    
-1. To get info of all available modules in libraries, run Kopycat using following command: 
+1. To get info of all available modules in libraries, run Kopycat using the following command: 
    
     ```shell script
     kopycat -y ${KOPYCAT_MODULES_LIB_PATH} -all
@@ -306,7 +311,7 @@ ARM core and architectures may be confusing at the lowest level lay architecture
         Module: [        UartTerminal] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/terminals/UartTerminal.class]
     ```
    
-1. To get info of only modules in libraries, that can be used as a top module run Kopycat using following command: `kopycat -top`
+1. To get info of only modules in libraries, that can be used as a top module run Kopycat using the following command: `kopycat -top`
 
     ```shell script
     Library 'PeripheralFactoryLibrary[mcu]':
@@ -321,7 +326,7 @@ ARM core and architectures may be confusing at the lowest level lay architecture
    
 ### Get help 
    
-To get full help, run Kopycat using following command `kopycat --help`:
+To get full help, run Kopycat using the following command `kopycat --help`:
 
 ```
 16:27:52 INFO   [ KopycatStarter.main            ]: Java version: 11.0.6
@@ -368,24 +373,24 @@ optional arguments:
 
 1. Import whole Kopycat project into IntelliJ
 
-    1. Create in IntelliJ new project from existing sources where you clone Kopycat repository
-    1. During creating new project specify `Import project from external model -> Gradle`
-    1. Choose import project when IntelliJ loaded sources and wait until project will be indexed
+    1. Create a new project in IntelliJ from existing sources where you have cloned Kopycat repository
+    1. When creating new project specify `Import project from external model -> Gradle`
+    1. Choose import project when IntelliJ has loaded sources and wait until project is indexed
     
-    After project has been imported you will have the next project structure:
+    After project has been imported, you will have the next project structure:
     - `buildSrc` contains Gradle plugins for build system
-    - `kopycat` contains the emulator core and library manager. Also in `src/main/kotlin/ru/inforion/lab403/kopycat/modules` placed embedded modules such as memories (RAM, ROM, NAND, etc), terminals, etc.
+    - `kopycat` contains the emulator core and library manager. Also in `src/main/kotlin/ru/inforion/lab403/kopycat/modules` embedded modules such as memories (RAM, ROM, NAND, etc), terminals, etc. are placed
     - `kopycat-modules` contains user's modules (devices)
-        - `cores` contains processor cores x86, mips, arm, etc
-        - `mcu` contains microprocessors units based on these cores (i.e. elanSC520, stm32f0xx, etc)
-        - `devices` contains devices based on mcu's
+        - `cores` contains processor cores x86, mips, arm, etc.
+        - `mcu` contains microprocessors units based on these cores (i.e. elanSC520, stm32f0xx, etc.)
+        - `devices` contains devices based on MCUs
         
     `cores`, `mcu`, `devices` in project naming convention called **library** and a bunch of libraries called **registry**. When starting Kopycat you should specify **registry** path with compiled modules using `-y` parameter. Division on libraries is just an agreement to organize modules.
 
 1. Go to the sources of examples in `kopycat-modules`: `kopycat-modules/misc/examples/src/main/kotlin/ru/inforion/lab403/examples/`
-    NOTE: As an example `virtarm`, `stm32f042_bytes` and `stm32f042_ihex` placed here
+    NOTE: As an example `virtarm`, `stm32f042_bytes` and `stm32f042_ihex` are placed here
     
-1. Create Object file in this directory using IntelliJ right-click menu for example `test`. This is will be entry point.
+1. Create an Object file in this directory using IntelliJ right-click menu, for example, `test`. This will be an entry point.
 
 1. Write the next code in it:
 
@@ -464,7 +469,7 @@ optional arguments:
     }
     ```
     
-    NOTE: This example also placed in project sources as `stm32f042_bytes`.
+    NOTE: This example is also placed in project sources as `stm32f042_bytes`.
     
 1. Run the application using green triangle near `fun main(args: Array<String>)` and you should see log:
 
@@ -485,23 +490,23 @@ optional arguments:
     using internal API: r0 = 0x00000003 r15 = 0x0000000C
     ```
       
-    NOTE: Different r15 register value is result of the convention: technically ARM CPU is at 0x00000008 (set using second dword of firmware), but the last two bits of PC is specify in which mode CPU operating (ARM, THUMB). For Kopycat this information stored in special internal variable but for the debugger we should signal that CPU in THUMB mode.
+    NOTE: Different r15 register value is the result of the convention: technically ARM CPU is at 0x00000008 (set using second dword of firmware), but the last two bits of PC specifies in which mode CPU operates (ARM, THUMB). For Kopycat this information is stored in a special internal variable, but for the debugger we should signal that CPU is in THUMB mode.
     
-    In this example also shown different method to work with emulator in the code.
+    In this example a different method to work with emulator is also shown.
 
 ### Run core from sources with an implemented module VirtARM on ARM1176JZS core
 
-Similar example for `VirtARM` with Linux shown in source `misc/examples/main/kotlin/ru/inforion/lab403/examples/virtarm.kt` 
+Similar example for `VirtARM` with Linux is shown in the source `misc/examples/main/kotlin/ru/inforion/lab403/examples/virtarm.kt` 
 
 ### Run core from sources with your own module (device) on ARMv6M core
 
-1. Do step 1-3 from previous 
+1. Do steps 1-3 from the previous abstract
 
 1. Create a module code structure
 
-    1. Create new library or choose one of existing in the `kopycat-modules`. For example in the next part we will use `mcu` library.
-    1. Inside `mcu` library create new a folder and name it with a name of your module, for example `testbench`. 
-    1. Inside `testbench` create new text file with a name `build.gradle` and write the next code into it:
+    1. Create a new library or choose one of the existing in the `kopycat-modules`. For example, in the next part we will use `mcu` library.
+    1. Inside `mcu` library create a new folder and name it after your module, for example, `testbench`. 
+    1. Inside `testbench` create a new text file with a name `build.gradle` and write the next code into it:
         
         ```groovy
         plugins {
@@ -517,22 +522,22 @@ Similar example for `VirtARM` with Linux shown in source `misc/examples/main/kot
         } 
         ```
 
-    1. In file `settings.gradle` in the project root add line:
+    1. To the file `settings.gradle` in the project root add the following line:
         ```groovy
         include(":kopycat-modules:mcu:testbench")
         ```
        
-    1. Reimport project and IntelliJ should create folder structure by itself and near `testbench` a blue square should appear. If folders structure wasn't create then make it by your self follow the next rule:
+    1. Reimport the project and IntelliJ should create a folder structure by itself and a blue square should appear near `testbench`. If the structure has not been created then make it by yourself following the next rule:
     
         ```src/main/kotlin/<GROUP>/modules/<MODULE_NAME>``` - let's name this directory `SRC_DIR`
         
-        where `<GROUP>` - group that you specified in `build.gradle` file and `<MODULE_NAME>` - your module name.
+        where `<GROUP>` - group that you specified in `build.gradle` file and `<MODULE_NAME>`, your module name.
         
-    1. Create new Kotlin class file in `SRC_DIR` (name it as you wish but follow Kotlin file naming convention, and we recommend to use module name for a main file) i.e. `Testbench`
+    1. Create a new Kotlin class file in `SRC_DIR` (name it as you wish but follow Kotlin file naming convention, and we recommend to use module name for the main file) i.e. `Testbench`
     
     NOTES: 
     - you could use this structure for future modules
-    - you could place several devices in one modules
+    - you could place several devices in one module
     
 1. Write code of your `testbench` device in `Testbench` file
 
@@ -579,7 +584,7 @@ Similar example for `VirtARM` with Linux shown in source `misc/examples/main/kot
     
 1. Instantiate testbench
     
-    1. Create somewhere in project folder structure **object** file `Starter` i.e. inside `SRC_DIR`
+    1. Create somewhere in the project folder structure **object** file `Starter`, i.e. inside `SRC_DIR`
     1. Write the following code in it:
     
         ```kotlin
@@ -637,9 +642,9 @@ Similar example for `VirtARM` with Linux shown in source `misc/examples/main/kot
         Process finished with exit code 0
         ```
         
-        Because we set `assert` function on registers values it means that all executed successfully.
+        Since we set `assert` function on registers values, it means that the execution has successfully completed.
 
-    1. To make possible connection with GDB debugger (IDA Pro or CLion) 
+    1. To make possible connection with GDB debugger (IDA Pro or CLion):
     
         - add the following line after the `arm` instantiation in `Testbench` class: 
         
@@ -654,7 +659,7 @@ Similar example for `VirtARM` with Linux shown in source `misc/examples/main/kot
             dbg.ports.reader.connect(buses.mem)
             ```
           
-        - add the following line at the end of `main` function in `Starter`:
+        - add the following line at the end of the `main` function in `Starter`:
             ```kotlin
             GDBServer(23946, true, binaryProtoEnabled = false).also { it.debuggerModule(top.debugger) }
             ``` 
@@ -663,13 +668,13 @@ Similar example for `VirtARM` with Linux shown in source `misc/examples/main/kot
 
 1. Use Kopycat library manager
 
-    This case may required for dynamic loading modules from library.  
+    This case may be required for dynamic loading modules from library.  
 
-    1. Add run configuration as show in screenshot below:
+    1. Add run configuration as show in the screenshot below:
     
         IMG1
     
-    1. Start `kopycat-testbench` configuration and after successful start you will see the next log:
+    1. Start `kopycat-testbench` configuration and after successful start you will see the following log:
 
         ```log
         19:59:08 INFO   [ KopycatStarter.main            ]: Java version: 11.0.6
@@ -692,4 +697,4 @@ Similar example for `VirtARM` with Linux shown in source `misc/examples/main/kot
         Python > 
         ```
        
-        NOTE: In this case we didn't add any data into RAM and didn't set PC. You could do it inside `Testbench` 
+        NOTE: In this case we have not added any data into RAM and have not set PC. You could do it inside `Testbench` 
