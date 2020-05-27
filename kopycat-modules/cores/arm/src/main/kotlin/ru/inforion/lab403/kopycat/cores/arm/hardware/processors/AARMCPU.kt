@@ -1,3 +1,28 @@
+/*
+ *
+ * This file is part of Kopycat emulator software.
+ *
+ * Copyright (C) 2020 INFORION, LLC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * Non-free licenses may also be purchased from INFORION, LLC, 
+ * for users who do not want their programs protected by the GPL. 
+ * Contact us for details kopycat@inforion.ru
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import ru.inforion.lab403.common.extensions.get
@@ -14,6 +39,7 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MCR
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MRC
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
@@ -646,4 +672,34 @@ abstract class AARMCPU(
     val vmsa = VMSABank()
     val ver = VERBank() // Virtualization Extensions Registers
     val ser = SERBank() // Security Extensions Registers
+
+
+
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+        val savedBanking = banking.map { it.serialize(ctxt) }
+
+        return mapOf(
+                "regs" to regs.serialize(ctxt),
+                "banking" to savedBanking,
+                "sregs" to sregs.serialize(ctxt),
+                "spr" to spr.serialize(ctxt),
+                "vmsa" to vmsa.serialize(ctxt),
+                "ver" to ver.serialize(ctxt),
+                "ser" to ser.serialize(ctxt)
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        (snapshot["banking"] as ArrayList<Map<String, Any>>).forEachIndexed { i, data ->
+            banking[i].deserialize(ctxt, data)
+        }
+
+        regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
+        sregs.deserialize(ctxt, snapshot["sregs"] as Map<String, String>)
+        spr.deserialize(ctxt, snapshot["spr"] as Map<String, String>)
+        vmsa.deserialize(ctxt, snapshot["vmsa"] as Map<String, String>)
+        ver.deserialize(ctxt, snapshot["ver"] as Map<String, String>)
+        ser.deserialize(ctxt, snapshot["ser"] as Map<String, String>)
+    }
 }

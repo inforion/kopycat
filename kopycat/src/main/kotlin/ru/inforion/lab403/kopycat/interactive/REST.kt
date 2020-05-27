@@ -1,10 +1,39 @@
+/*
+ *
+ * This file is part of Kopycat emulator software.
+ *
+ * Copyright (C) 2020 INFORION, LLC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * Non-free licenses may also be purchased from INFORION, LLC, 
+ * for users who do not want their programs protected by the GPL. 
+ * Contact us for details kopycat@inforion.ru
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
 package ru.inforion.lab403.kopycat.interactive
 
 import io.javalin.Javalin
 import org.reflections.Reflections
+import org.reflections.scanners.SubTypesScanner
+import org.reflections.scanners.TypeAnnotationsScanner
+import org.reflections.util.ClasspathHelper
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
+import ru.inforion.lab403.kopycat.annotations.RESTExtension
 import ru.inforion.lab403.kopycat.consoles.AConsole
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
@@ -30,6 +59,24 @@ class REST(val port: Int, private val console: AConsole, val kopycat: Kopycat) {
     private fun calcMd5(bytes: ByteArray): String {
         val digest = MessageDigest.getInstance("MD5")
         return digest.digest(bytes).hexlify()
+    }
+
+    private var reflection: Reflections? = null
+
+    private fun loadOrGetReflections(): Reflections {
+        if (reflection == null) {
+            val helper = ClasspathHelper.forJavaClassPath()
+            val subtypeScanner = SubTypesScanner(false)
+            val annotationsScanner = TypeAnnotationsScanner()
+            // may be very long in debug, set breakpoint after this line
+            reflection = Reflections(helper, subtypeScanner, annotationsScanner)
+        }
+        return reflection!!
+    }
+
+    private fun reloadReflections(): Reflections {
+        reflection = null
+        return loadOrGetReflections()
     }
 
     private fun Javalin.initializeKopycatREST() {
@@ -291,14 +338,21 @@ class REST(val port: Int, private val console: AConsole, val kopycat: Kopycat) {
 
             get("/start_interpr") { TODO() }
 
+            get("/reload_extensions") {
+                try {
+                    reloadReflections()
+                } catch (ex: Exception) {
+                    it.json(Response(-1, "Can't load reflection: ${ex.message}"))
+                }
+            }
+
             get("/extension") {
-                data class ExecuteResponse(val status: Int, val message: String?)
                 val objectName = it.queryParam("class")
                 val methodName = it.queryParam("method")
                 try {
-                    val obj = Reflections()
-                            .getSubTypesOf(REST::class.java)
-                            .first { clazz -> clazz.name.split(".").last() == objectName }
+                    val obj = loadOrGetReflections()
+                            .getTypesAnnotatedWith(RESTExtension::class.java)
+                            .first { cls -> cls.name.substringAfterLast(".") == objectName }
                     val objInstance = obj
                             .constructors
                             .first()
@@ -307,9 +361,9 @@ class REST(val port: Int, private val console: AConsole, val kopycat: Kopycat) {
                             .declaredMethods
                             .first { method -> method.name == methodName }
                             .invoke(objInstance, it) as String?
-                    it.json(ExecuteResponse(if(result == null) 0 else -1, result))
+                    it.json(Response(if (result == null) 0 else -1, result))
                 } catch (ex: Exception) {
-                    it.json(ExecuteResponse(-1, "Error found method"))
+                    it.json(Response(-1, "Error found method: ${ex.message}"))
                 }
             }
 

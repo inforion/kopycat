@@ -1,3 +1,28 @@
+/*
+ *
+ * This file is part of Kopycat emulator software.
+ *
+ * Copyright (C) 2020 INFORION, LLC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * Non-free licenses may also be purchased from INFORION, LLC, 
+ * for users who do not want their programs protected by the GPL. 
+ * Contact us for details kopycat@inforion.ru
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
 @file:Suppress("NOTHING_TO_INLINE")
 
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
@@ -412,11 +437,11 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
     }
 
 
-    interface FirstLevelTLBEntry {
-        fun getRecord(mva: Long, is_write: Boolean): TLBRecord
+    abstract class FirstLevelTLBEntry(val l1desc: Long) : ISerializable{
+        abstract fun getRecord(mva: Long, is_write: Boolean): TLBRecord
     }
 
-    inner class Fault: FirstLevelTLBEntry {
+    inner class Fault(l1desc: Long): FirstLevelTLBEntry(l1desc) {
         override fun getRecord(mva: Long, is_write: Boolean): TLBRecord {
             val taketohypmode = false
             val IA = 0L // 40 bits
@@ -431,9 +456,14 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                     taketohypmode, stage2, ipavalid, LDFSRformat, s2fs1walk)
             throw IllegalStateException("Unreachable code")
         }
+
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> = mapOf()
+
+        @Suppress("UNCHECKED_CAST")
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) = Unit
     }
 
-    inner class Page(val l1desc: Long): FirstLevelTLBEntry {
+    inner class Page(l1desc: Long): FirstLevelTLBEntry(l1desc) {
         val l2descs = Array<TLBRecord?>(256) { null }
 
         val domain = l1desc[8..5].toInt()
@@ -524,9 +554,25 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             desc.addrdesc.paddress.updateAddress(mva)
             return desc
         }
+
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+            val tlb = l2descs.map { it?.serialize(ctxt) }
+
+            return ctxt.storeValues(
+                    "l2descs" to tlb
+            )
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+            (snapshot["l2descs"] as ArrayList<Map<String, Any>?>).forEachIndexed { i, recordSnapshot ->
+                l2descs[i] = if (recordSnapshot == null) null else TLBRecord().apply { deserialize(ctxt, recordSnapshot) }
+            }
+        }
+
     }
 
-    inner class Section(val l1desc: Long, mva: Long): FirstLevelTLBEntry {
+    inner class Section(l1desc: Long, mva: Long): FirstLevelTLBEntry(l1desc) {
         val texcb = ((l1desc[14..12] shl 2) or (l1desc[3] shl 1) or l1desc[2]).toInt()
         val S = l1desc[16].toBool()
         val ap = ((l1desc[15] shl 2) or l1desc[11..10]).toInt()
@@ -582,6 +628,18 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             entry.addrdesc.paddress.updateAddress(mva)
             return entry
         }
+
+
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+            return ctxt.storeValues(
+                    "entry" to entry.serialize(ctxt)
+            )
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+            entry.deserialize(ctxt, snapshot["entry"] as Map<String, Any>)
+        }
     }
 
     private val tlb_fast = Array<FirstLevelTLBEntry?>(4096) { null } // 2^12
@@ -617,7 +675,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
             when (l1desc[1..0].toInt()) {
                 0b00 -> { // Fault, Reserved
-                    Fault()
+                    Fault(l1desc)
                 }
                 0b01 -> { // Large page or Small page
                     Page(l1desc)
@@ -627,6 +685,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                 }
             }
         }
+        tlb_fast[ind.toInt()] = entry
         return entry.getRecord(mva, is_write)
     }
 
@@ -640,10 +699,6 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
         if (acore.cpu.haveSecurityExt)
             throw NotImplementedError("Security ext isn't implemented")
-
-        if (ea == 0xFFFF_0000L) {
-            println ()
-        }
 
         val tlbrecordS1: TLBRecord
         try {
@@ -805,7 +860,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                         )
 
                 )
-                val l2descaddr2 = if (!acore.cpu.haveVirtExt /*|| IsSecure()*/) {
+                val l2descaddr2 = if (!acore.cpu.haveVirtExt || acore.cpu.IsSecure()) {
                     // if only 1 stage of translation
                      l2descaddr
                 }
@@ -1095,24 +1150,56 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
     override fun translate(ea: Long, ss: Int, size: Int, LorS: AccessAction): Long  = TranslateAddressVFast(ea, ss, size, LorS) //TranslateAddressV(ea, ss, size, LorS)
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        TODO("Broken")
-//        val tlbstored = tlb.map { it?.serialize(ctxt) }
+    /*
+    snapshot = mapOf(
+        "tlb_fast" to mapOf(
+            null
 
-//        return super.serialize(ctxt) + ctxt.storeValues(
-//                "privEnabled" to privEnabled,
-//                "tlb" to tlbstored
-//        )
+            or
+
+            "l1desc" to l1desc: Long
+            "entry" to entry.serialize()
+        )
+    )
+    */
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+        val tlbstored = tlb_fast.map {
+            if (it == null)
+                null
+            else
+                ctxt.storeValues(
+                        "l1desc" to it.l1desc,
+                        "entry" to it.serialize(ctxt)
+                )
+        }
+
+        return super.serialize(ctxt) + ctxt.storeValues(
+                "privEnabled" to privEnabled,
+                "tlb_fast" to tlbstored
+        )
     }
+
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         privEnabled = loadValue(snapshot, "privEnabled")
-        TODO("Broken")
 
-        (snapshot["tlb"] as ArrayList<Map<String, Any>?>).forEachIndexed { index, recordSnapshot ->
-//            if (recordSnapshot != null)
-//                tlb[index] = TLBRecord().apply { deserialize(ctxt, recordSnapshot) }
+        (snapshot["tlb_fast"] as ArrayList<Map<String, Any>?>).forEachIndexed { i, recordSnapshot ->
+            tlb_fast[i] = if (recordSnapshot == null) null else {
+                val l1desc = recordSnapshot["l1desc"] as Long
+                val entry = recordSnapshot["entry"] as Map<String, Any>
+                when(l1desc[1..0].toInt()) {
+                    0b00 -> { // Fault, Reserved
+                        Fault(l1desc)
+                    }
+                    0b01 -> { // Large page or Small page
+                        Page(l1desc).apply { deserialize(ctxt, entry) }
+                    }
+                    else -> { // Section or Supersection
+                        Section(l1desc, 0L).apply { deserialize(ctxt, entry) }
+                    }
+                }
+            }
         }
         super.deserialize(ctxt, snapshot)
     }

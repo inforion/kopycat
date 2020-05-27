@@ -1,13 +1,40 @@
+/*
+ *
+ * This file is part of Kopycat emulator software.
+ *
+ * Copyright (C) 2020 INFORION, LLC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * Non-free licenses may also be purchased from INFORION, LLC, 
+ * for users who do not want their programs protected by the GPL. 
+ * Contact us for details kopycat@inforion.ru
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
 package ru.inforion.lab403.kopycat.modules.virtarm
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.modules.*
+import ru.inforion.lab403.kopycat.serializer.loadValue
 import java.util.logging.Level
 
 
@@ -67,6 +94,25 @@ class NS16550(parent: Module, name: String) : Module(parent, name) {
                 }
             }
         }
+
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+            return super.serialize(ctxt) + ctxt.storeValues(
+                    "dll" to dll,
+                    "bytesOut" to bytesOut,
+                    "bytesIn" to bytesIn
+            )
+        }
+
+        @Suppress("UNCHECKED_CAST")
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+            super.deserialize(ctxt, snapshot)
+            dll = loadValue(snapshot, "dll")
+
+            bytesOut.clear()
+            bytesIn.clear()
+            bytesOut.addAll((snapshot["bytesOut"] as ArrayList<String>).map { it[0] })
+            bytesIn.addAll((snapshot["bytesIn"] as ArrayList<String>).map { it[0] })
+        }
     }
     // Receive Buffer Register (DWORD, R)
     // Reset value: 0x0
@@ -113,6 +159,19 @@ class NS16550(parent: Module, name: String) : Module(parent, name) {
                 ier = value
             }
         }
+
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+            return super.serialize(ctxt) + ctxt.storeValues(
+                    "ier" to ier,
+                    "dlh" to dlh
+            )
+        }
+
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+            super.deserialize(ctxt, snapshot)
+            ier = loadValue(snapshot, "ier")
+            dlh = loadValue(snapshot, "dlh")
+        }
     }
 
     // Interrupt Enable Register (DWORD, R/W)
@@ -139,6 +198,19 @@ class NS16550(parent: Module, name: String) : Module(parent, name) {
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             NS16550.log.info { "Write to FCR: ${value.hex8}" }
             fcr = value
+        }
+
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+            return super.serialize(ctxt) + ctxt.storeValues(
+                    "iir" to iir,
+                    "fcr" to fcr
+            )
+        }
+
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+            super.deserialize(ctxt, snapshot)
+            iir = loadValue(snapshot, "iir")
+            fcr = loadValue(snapshot, "fcr")
         }
     }
 
@@ -233,28 +305,16 @@ class NS16550(parent: Module, name: String) : Module(parent, name) {
             readable = false,
             level = Level.SEVERE
     ) {
-        val buffer = mutableListOf<Char>()
-
-
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             when (ss) {
                 UART_SLAVE_DATA_RECEIVED -> {
                     val x = readData().toChar()
 
-                    // loopback
-//                    writeData(x.toInt())
-
                     when (x) {
                         '\r' -> {
-                            //writeData('\n'.toInt())
-//                            buffer.add('\n')
-//                            log.severe { "Not implemented write to serial: \"${buffer.joinToString { "" }}\"" }
-//                            RBR.bytesIn.addAll(buffer)
-//                            buffer.clear()
                             RBR.bytesIn.add('\n')
                         }
-//                        0xFF.toChar() -> buffer.removeAt(buffer.size - 1)
-                        else -> RBR.bytesIn.add(x) //buffer.add(x)
+                        else -> RBR.bytesIn.add(x)
                     }
 
                     if (IER.ier and 0x1L != 0L) {

@@ -1,9 +1,35 @@
+/*
+ *
+ * This file is part of Kopycat emulator software.
+ *
+ * Copyright (C) 2020 INFORION, LLC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * Non-free licenses may also be purchased from INFORION, LLC, 
+ * for users who do not want their programs protected by the GPL. 
+ * Contact us for details kopycat@inforion.ru
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.ARegisterBankNG
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Component
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
@@ -14,6 +40,9 @@ import java.util.logging.Level
 
 
 class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
+
+    var waitingForInterrupt = false
+
     // TODO: enum for cp0-cp15
     inner class COP(parent: Component, val ind: Int) : Component(parent, "cop$ind") {
 
@@ -115,6 +144,8 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                 }
                 2 -> { // See Figure B3-29
                     assert_value(crm, 0, "crm")
+                    if (access == AccessAction.STORE)
+                        (core as AARMv6Core).mmu.tlbInvalidate()
                     when (opc2) {
                         0 -> { // TTBR0, Translation Table Base Register 0, RW
                             return operate_register(core.cpu.vmsa.ttbr0, value, access, "TTBR0")
@@ -165,6 +196,7 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                                     assert_access(access, AccessAction.STORE, "Wait For Interrupt, CP15WFI")
                                     /* TODO: Wait For Interrupt, CP15WFI */
                                     core.cpu.halted = true
+                                    waitingForInterrupt = true
                                 }
                                 else -> TODO("Not implemented: $opc2")
                             }
@@ -286,7 +318,6 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                     }
                 }
                 12 -> {
-                    assert_value(opc1, 0, "opc1")
                     when (crm) {
                         0 -> {
                             when(opc2) {
@@ -300,7 +331,6 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                     }
                 }
                 13 -> {
-                    assert_value(opc1, 0, "opc1")
                     when (crm) {
                         0 -> {
                             when(opc2) {
@@ -345,7 +375,22 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
     }
 
     override fun processInterrupts() {
-        val interrupt = pending(!core.cpu.sregs.cpsr.i)
-        if (interrupt != null) core.cpu.TakePhysicalIRQException()
+        val interrupt = pending(!core.cpu.sregs.cpsr.i || waitingForInterrupt)
+        if (interrupt != null) {
+            waitingForInterrupt = false
+            core.cpu.TakePhysicalIRQException()
+        }
+    }
+
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+        return super.serialize(ctxt) + ctxt.storeValues(
+                "waitingForInterrupt" to waitingForInterrupt
+        )
+    }
+
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        super.deserialize(ctxt, snapshot)
+
+        waitingForInterrupt = snapshot["waitingForInterrupt"] as Boolean
     }
 }

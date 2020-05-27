@@ -15,6 +15,13 @@ This project contains CPU cores: ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86
 
 You can download prebuild JAR-files modules via the link: https://kopy.cat/download
 
+## Videos
+
+- [How to install and run Linux Buildroot guest on Debian 9 host](https://youtu.be/lM2AWJG_ck4)
+- [How to use snapshot for quick start of guest system](https://youtu.be/Q4rXs9GF8BQ)
+- [Developing firmware for STM32 in CLion using Kopycat](https://youtu.be/GN-uI5s1_iU)
+- [Run from IntelliJ Linux Buildroot guest and make rm -rf /](https://youtu.be/KYMhrf2QzEg)
+
 ## Requirements to run prebuild Kopycat
 
 To run Kopycat you have to install the following software:
@@ -96,7 +103,7 @@ ARM architecture is used in all the examples as the most popular in embedded dev
 
 1. Download prebuild emulator core kopycat-X.Y.AB (https://kopy.cat/download/0.3.20/kopycat-0.3.20.zip) and unzip the archive into any directory (**it is strongly recommended not to use directories with spaces or special symbols!**)
 1. Add environment variable `KOPYCAT_HOME` (recommended, used by Kopycat core to lookup default modules library) to this directory, e.g. `KOPYCAT_HOME=/opt/kopycat-X.Y.Z-RCx` and add to environment variable `PATH` path to `KOPYCAT_HOME/bin`   
-1. Download prebuild modules libraries for Kopycat (https://kopy.cat/download/0.3.20/library.zip) and:
+1. Download prebuild modules libraries for Kopycat (https://kopy.cat/download/0.3.20/modules.zip) and:
     - unzip this archive into any directory (**it is also strongly recommended not to use directories with spaces or special symbols!**) and add environment variable `KOPYCAT_MODULES_LIB_PATH` (only to simplify readme commands) to the directory
     
     OR
@@ -132,13 +139,13 @@ ARM architecture is used in all the examples as the most popular in embedded dev
 1. You should see the following start log:
     
     ```log
-    bat@Kernel production % kopycat-0.3.20/bin/kopycat -l mcu -n stm32f042_example -g 23946 -p "firmware=example:usart_poll,tty1=socat:,tty2=socat:" -y library
+    bat@Kernel % kopycat -l mcu -n stm32f042_example -g 23946 -p "firmware=example:usart_poll,tty1=socat:,tty2=socat:"
     INFORION_LOGGING_PRINT: null
     INFORION_LOGGING_CONF_PATH: null
     15:43:40 INFO   [ KopycatStarter.main            ]: Java version: 11.0.6
     15:43:40 INFO   [ KopycatStarter.main            ]: Working Directory: <WORKING_DIR>
     15:43:40 INFO   [ KopycatStarter.main            ]: Build version information: kopycat-0.3.20-6e48fed1-2020.510-Regular
-    15:43:40 INFO   [LibraryRegistry.create          ]: Library configuration line: ,mcu:library/mcu,cores:library/cores,devices:library/devices
+    15:43:40 INFO   [LibraryRegistry.create          ]: Library configuration line: ,mcu:modules/mcu,cores:modules/cores,devices:modules/devices
     15:43:43 INFO   [ KopycatStarter.main            ]: GDB_SERVER(port=23946,alive=true) was created
     15:43:43 INFO   [eFactoryLibrary.instantiate     ]: stm32f042_example(null, top, firmware=example:usart_poll, tty1=socat:, tty2=socat:)
     15:43:43 INFO   [ ANetworkThread.run             ]: GDB_SERVER thread started on GDB_SERVER [127.0.0.1:23946]
@@ -680,7 +687,7 @@ Similar example for `VirtARM` with Linux is shown in the source `misc/examples/m
         19:59:08 INFO   [ KopycatStarter.main            ]: Java version: 11.0.6
         19:59:08 INFO   [ KopycatStarter.main            ]: Working Directory: ...
         19:59:08 INFO   [ KopycatStarter.main            ]: Build version information: kopycat-0.3.20-a3078491-2020.417-Regular
-        19:59:08 INFO   [LibraryRegistry.create          ]: Library configuration line: ,mcu:production/library/mcu,cores:production/library/cores,devices:production/library/devices
+        19:59:08 INFO   [LibraryRegistry.create          ]: Library configuration line: ,mcu:production/modules/mcu,cores:production/modules/cores,devices:production/modules/devices
         19:59:10 INFO   [ KopycatStarter.main            ]: GDB_SERVER(port=23946,alive=true) was created
         19:59:10 INFO   [eFactoryLibrary.instantiate     ]: Testbench(null, top)
         19:59:10 INFO   [ ANetworkThread.run             ]: GDB_SERVER thread started on GDB_SERVER [192.168.69.254:23946]

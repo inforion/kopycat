@@ -94,6 +94,21 @@ startScripts {
     }
 }
 
+task sourcesJar(type: Jar, dependsOn: classes) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+distributions {
+    main {
+        contents {
+            from(sourcesJar) {
+                into "lib"
+            }
+        }
+    }
+}
+
 task copyToProduction(type: Copy, dependsOn: distZip) {
     logger.info("Copy ${distZip.outputs.files.singleFile} into ${productionDirectoryPath}")
     from distZip.outputs.files.singleFile
