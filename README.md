@@ -101,9 +101,9 @@ ARM architecture is used in all the examples as the most popular in embedded dev
 
 ### Run prebuild Kopycat core and module STM32F042 on Cortex-M0 core 
 
-1. Download prebuild emulator core kopycat-X.Y.AB (https://kopy.cat/download/0.3.20/kopycat-0.3.20.zip) and unzip the archive into any directory (**it is strongly recommended not to use directories with spaces or special symbols!**)
+1. Download prebuild emulator core `kopycat-X.Y.AB` from [latest release](https://github.com/inforion/kopycat/releases/latest) and unzip the archive into any directory (**it is strongly recommended not to use directories with spaces or special symbols!**)
 1. Add environment variable `KOPYCAT_HOME` (recommended, used by Kopycat core to lookup default modules library) to this directory, e.g. `KOPYCAT_HOME=/opt/kopycat-X.Y.Z-RCx` and add to environment variable `PATH` path to `KOPYCAT_HOME/bin`   
-1. Download prebuild modules libraries for Kopycat (https://kopy.cat/download/0.3.20/modules.zip) and:
+1. Download prebuild modules libraries for Kopycat `modules-X.Y.AB` from [latest release](https://github.com/inforion/kopycat/releases/latest) and:
     - unzip this archive into any directory (**it is also strongly recommended not to use directories with spaces or special symbols!**) and add environment variable `KOPYCAT_MODULES_LIB_PATH` (only to simplify readme commands) to the directory
     
     OR
