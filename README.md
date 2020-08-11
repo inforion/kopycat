@@ -1,4 +1,4 @@
-<img src="https://kopy.cat/static/media/big_logo.169d84fb.png" width="384">
+<img src="https://kopycat.ru/static/media/big_logo.169d84fb.png" width="384">
 
 Kopycat is a multi-architecture hardware emulation solution
 
