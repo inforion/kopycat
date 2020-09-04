@@ -14,7 +14,7 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin")
     implementation group: 'org.jetbrains.dokka', name: 'dokka-gradle-plugin', version: '0.10.0'
     implementation group: 'org.eclipse.jgit', name: 'org.eclipse.jgit', version: '+'
-    implementation("com.github.inforion:kotlin-extensions:+")
+    implementation("com.github.inforion:kotlin-extensions:v0.2.2")
     implementation("com.auth0:java-jwt:3.8.0")
     implementation('com.github.oshi:oshi-core:3.13.0')
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.2")

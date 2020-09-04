@@ -27,8 +27,8 @@ ext.debugJvmLine = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,addres
 dependencies {
     implementation project(":common:proposal")
 
-    implementation("com.github.inforion:kotlin-extensions:+")
-    implementation("com.github.inforion:kotlin-logging:+")
+    implementation("com.github.inforion:kotlin-extensions:v0.2.2")
+    implementation("com.github.inforion:kotlin-logging:v0.1.2")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlin:kotlin-reflect")

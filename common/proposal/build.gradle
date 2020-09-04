@@ -9,8 +9,8 @@ description = "Inforion.lab403 Kotlin commons"
 dependencies {
     implementation group: 'org.jooq', name: 'joou', version: '0.9.3'
 
-    implementation("com.github.inforion:kotlin-extensions:+")
-    implementation("com.github.inforion:kotlin-logging:+")
+    implementation("com.github.inforion:kotlin-extensions:v0.2.2")
+    implementation("com.github.inforion:kotlin-logging:v0.1.2")
 
     implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
     implementation("org.jetbrains.kotlin:kotlin-reflect")
