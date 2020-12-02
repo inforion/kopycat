@@ -30,8 +30,9 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
-import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore.*
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore.Stage
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.enums.ExcCode
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
@@ -39,19 +40,20 @@ import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.*
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.*
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ss
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.serializer.loadValue
-import java.util.logging.Level
-import java.util.logging.Level.*
+import ru.inforion.lab403.kopycat.serializer.storeValues
+import java.util.logging.Level.CONFIG
 
 
 class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name) {
 
     companion object {
-        val log = logger(CONFIG)
+        @Transient val log = logger(CONFIG)
     }
 
     enum class GateType(val id: Int) {
@@ -242,7 +244,7 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name) {
 
     /* =============================== Overridden methods =============================== */
 
-    override fun serialize(ctxt: GenericSerializer) = ctxt.storeValues(
+    override fun serialize(ctxt: GenericSerializer) = storeValues(
             "idtrBase" to idtr.base,
             "idtrLimit" to idtr.limit,
             "tssr" to tssr,

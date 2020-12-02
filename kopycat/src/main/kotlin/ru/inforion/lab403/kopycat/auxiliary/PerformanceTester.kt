@@ -25,21 +25,17 @@
  */
 package ru.inforion.lab403.kopycat.auxiliary
 
-import ru.inforion.lab403.common.extensions.convertToString
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.toFile
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.toFile
+import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
-import java.io.DataInputStream
-import java.io.File
-import java.lang.IllegalStateException
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.logging.Level.FINER
 import kotlin.concurrent.thread
 import kotlin.system.measureTimeMillis
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 /**
  * {EN}
@@ -47,9 +43,8 @@ import kotlin.test.assertTrue
  *
  *
  * @param exitPoint address when Kopycat should exit
- * @param passCount how much times should [exitPoint] be reached before stop
  * @param maxExecute maximum execute instructions
- * @param top creator of top module
+ * @param makeTop creator of top module
  * {EN}
  */
 class PerformanceTester<T: Module>(
@@ -59,12 +54,13 @@ class PerformanceTester<T: Module>(
         makeTop: () -> T
 ) {
     companion object {
-        private val log = logger()
+        @Transient private val log = logger(FINER)
     }
 
     data class Stats(val elapsed: Long = 0, val executed: Long = 0)
 
-    val kopycat = Kopycat.open(false, makeTop).apply {
+    val kopycat = Kopycat(null).apply {
+        open(makeTop(), false, null)
         if (connectionInfo) printModulesConnectionsInfo()
     }
 
@@ -87,12 +83,12 @@ class PerformanceTester<T: Module>(
         }
 
         if (core.pc == exitPoint) {
-            log.info { "[${core.pc.hex8}] '$core' reached exit point 0x${exitPoint.hex8}" }
+            log.finer { "[${core.pc.hex8}] '$core' reached exit point 0x${exitPoint.hex8}" }
             return true
         }
 
         if (stopRequest.get()) {
-            log.info { "[${core.pc.hex8}] '$core' requested to stop!" }
+            log.finer { "[${core.pc.hex8}] '$core' requested to stop!" }
             return true
         }
 
@@ -103,9 +99,7 @@ class PerformanceTester<T: Module>(
         failed = false
         stopRequest.set(false)
 
-        log.info { "================================================================================" }
-        log.info(message)
-        log.info { "================================================================================" }
+        log.fine { message }
 
         passed = 0
         kopycat.reset()
@@ -247,13 +241,13 @@ class PerformanceTester<T: Module>(
      * @return self for chain access
      * {EN}
      */
-    fun run(count: Int, warm: Int = 5): PerformanceTester<T> {
+    fun run(count: Int, warm: Int = 5) {
         assert(count > 0) { "Count must be > 0" }
 
         // Warming
 
-        log.info { "Warming up Java!" }
-        repeat(warm) { execute("Starting new warming loop $it") }
+        log.finer { "Warming up Java!" }
+        repeat(warm) { execute("Warming loop $it") }
 
         // Actual testing
 
@@ -264,22 +258,18 @@ class PerformanceTester<T: Module>(
         var stats = Stats()
 
         repeat(count) {
-            stats = execute("Starting new performance test loop $it")
+            stats = execute("Performance test loop $it")
             minElapsed = minOf(stats.elapsed, minElapsed)
             maxElapsed = maxOf(stats.elapsed, maxElapsed)
             totalElapsed += stats.elapsed
         }
 
-        val meanElapsed = totalElapsed / count
-        val minIPS = 1000 * stats.executed / maxElapsed
-        val maxIPS = 1000 * stats.executed / minElapsed
-        val meanIPS = 1000 * stats.executed / meanElapsed
+        val avgElapsed = totalElapsed / count
+        val minKIPS = stats.executed / maxElapsed
+        val maxKIPS = stats.executed / minElapsed
+        val avgKIPS = stats.executed / avgElapsed
 
-        log.info { "count=$count exec=${stats.executed} " +
-                "time: min=$minElapsed max=$maxElapsed mean=$meanElapsed " +
-                "IPS: min=$minIPS max=$maxIPS mean=$meanIPS " +
-                "total=$totalElapsed ms" }
-
-        return this
+        log.info { "(min/avg/max) count=%2d exec=%,12d  KIPS: %,5d/%,5d/%,5d  time (ms): %,7d/%,7d/%,7d  total=%,d".format(
+                count, stats.executed, minKIPS, avgKIPS, maxKIPS, minElapsed, avgElapsed, maxElapsed, totalElapsed) }
     }
 }

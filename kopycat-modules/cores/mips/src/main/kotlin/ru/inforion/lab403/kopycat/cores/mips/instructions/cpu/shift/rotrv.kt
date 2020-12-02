@@ -27,7 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtRsInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -38,9 +38,9 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class rotrv(core: MipsCore,
             data: Long,
-            rd: GPR,
-            rt: GPR,
-            rs: GPR) : RdRtRsInsn(core, data, Type.VOID, rd, rt, rs) {
+            rd: MipsRegister,
+            rt: MipsRegister,
+            rs: MipsRegister) : RdRtRsInsn(core, data, Type.VOID, rd, rt, rs) {
 
     override val mnem = "rotrv"
 

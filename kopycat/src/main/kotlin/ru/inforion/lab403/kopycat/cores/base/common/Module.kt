@@ -28,25 +28,27 @@ package ru.inforion.lab403.kopycat.cores.base.common
 import gnu.trove.set.hash.THashSet
 import net.sourceforge.argparse4j.inf.ArgumentParser
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.CONFIG
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.logging.logger.Logger
+import ru.inforion.lab403.common.proposal.byteBuffer
+import ru.inforion.lab403.common.proposal.toSerializable
+import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.enums.*
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
-import ru.inforion.lab403.kopycat.cores.base.exceptions.AreaDefinitionError
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
-import ru.inforion.lab403.kopycat.cores.base.exceptions.RegisterDefinitionError
 import ru.inforion.lab403.kopycat.interfaces.*
 import ru.inforion.lab403.kopycat.serializer.deserialize
+import ru.inforion.lab403.kopycat.serializer.loadHex
 import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import ru.inforion.lab403.kopycat.settings
 import java.io.InputStream
-import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.*
 import java.util.logging.Level
-import java.util.logging.Level.*
-import java.util.logging.Logger
 
 /**
  * {RU}
@@ -103,7 +105,7 @@ open class Module(
 
     companion object {
         val RESERVED_NAMES = arrayOf("ports", "buses")
-        val log = logger(INFO)
+        @Transient val log = logger(CONFIG)
     }
 
     val isCorePresent get() = ::core.isInitialized
@@ -127,6 +129,14 @@ open class Module(
     @Suppress("LeakingThis")
     open val ports = ModulePorts(this)
 
+    // it's very experimental
+    inline fun <T> reconnect(action: () -> T): T {
+        log.finest { "Reconnect port and buses..." }
+        val result = action()
+        (root as Module).initializePortsAndBuses()
+        return result
+    }
+
     /**
      * {EN}
      * In normal usage (when Core and other key components present) [initializeAndResetAsTopInstance] must be used
@@ -139,7 +149,7 @@ open class Module(
      *
      * Method is open to make possible use it in test when module has no core.
      *
-     * @return initialization result (true/false)
+     * @return true if any warnings occurred (true/false)
      * {EN}
      *
      * {RU}
@@ -164,19 +174,18 @@ open class Module(
      *
      * Метод сделан открытым, чтобы можно было использовать его в тестах при отсутствии ядра.
      *
-     * @return результат инициализации (true/false)
+     * @return возникли или нет предупреждения по подключению шин (true/false)
      * {RU}
      **/
-    fun initializePortsAndBuses() {
+    fun initializePortsAndBuses(): Boolean {
         // WARNING: Don't touch -> order is significant for bus initializations
         val modules = getComponentsByClass<Module>().also { it.add(this) }
 
-        with(modules) {
-            if (any { it.ports.hasWarnings(false) })
-                log.warning { "ATTENTION: Some ports has warning use printModulesPortsWarnings to see it..." }
-
+        return with(modules) {
+            val hasWarnings = any { it.ports.hasWarnings(false) }
             forEach { it.buses.resolveSlaves() }
             forEach { it.buses.resolveProxies() }
+            hasWarnings
         }
     }
 
@@ -202,26 +211,26 @@ open class Module(
             log.severe { "Core not found in $this!" }
             return false
         }
-        log.info { "Setup core to $lCore for $this" }
+        log.config { "Setup core to $lCore for $this" }
         core = lCore
 
         val lDebugger = findComponentByClass<AGenericDebugger>()
         if (lDebugger != null) {
-            log.info { "Setup debugger to $lDebugger for $this" }
+            log.config { "Setup debugger to $lDebugger for $this" }
             debugger = lDebugger
         } else log.warning { "Debugger wasn't found in $this..." }
 
         val lComponentTracer = findComponentByClass<ComponentTracer<AGenericCore>>()
 
         if (lComponentTracer != null) {
-            log.info { "Setup tracer to $lComponentTracer for $this" }
+            log.config { "Setup tracer to $lComponentTracer for $this" }
             tracer = lComponentTracer
         } else {
             //search for any tracer if component tracer was not found
             val lTracer = findComponentByClass<AGenericTracer>()
 
             if (lTracer != null) {
-                log.info { "Setup tracer to $lTracer for $this" }
+                log.config { "Setup tracer to $lTracer for $this" }
                 tracer = lTracer
             } else log.warning { "Tracer wasn't found in $this..." }
         }
@@ -231,8 +240,10 @@ open class Module(
             return false
         }
 
-        log.info { "Initializing ports and buses..." }
-        initializePortsAndBuses()
+        log.config { "Initializing ports and buses..." }
+        if (initializePortsAndBuses()) {
+            log.warning { "ATTENTION: Some ports has warning use printModulesPortsWarnings to see it..." }
+        }
 
         val modules = getAllComponents().size
 
@@ -243,14 +254,14 @@ open class Module(
         // Reset should be called after initialize
         reset()
 
-        log.info { "Module $this is successfully initialized and reset as a top cell!" }
+        log.config { "Module $this is successfully initialized and reset as a top cell!" }
 
         return true
     }
 
     /**
      * {EN}
-     * Callback called when any port [port] of module connected to bus [bus] with specified offset [offset]
+     * Callback called when any port [port] of module connected to bus [bus] with [offset]
      *
      * @param port connected port
      * @param bus target bus
@@ -258,6 +269,17 @@ open class Module(
      * {EN}
      */
     open fun onPortConnected(port: APort, bus: Bus, offset: Long) = Unit
+
+    /**
+     * {EN}
+     * Callback called when any port [port] of module disconnected from bus [bus] with [offset]
+     *
+     * @param port connected port
+     * @param bus target bus
+     * @param offset connection offset
+     * {EN}
+     */
+    open fun onPortDisconnect(port: APort, bus: Bus, offset: Long) = Unit
 
     /**
      * {RU}
@@ -284,6 +306,8 @@ open class Module(
 
     protected val registers = ArrayList<Register>()
     protected val areas = ArrayList<Area>()
+
+    class AreaDefinitionError(message: String) : Exception(message)
 
     /**
      * {RU}
@@ -314,7 +338,7 @@ open class Module(
      * @property size size of address space in bytes
      * {EN}
      */
-    abstract inner class Area(
+    abstract inner class Area constructor(
             val port: SlavePort,
             val start: Long,
             val end: Long,
@@ -328,6 +352,29 @@ open class Module(
 
         constructor(port: SlavePort, name: String, access: ACCESS = ACCESS.R_W, verbose: Boolean = false) :
                 this(port, 0, port.size - 1, name, access, verbose)
+
+        /**
+         * {EN}
+         * Function executes before area removed from port
+         * {EN}
+         */
+        open fun beforeRemove() = Unit
+
+        /**
+         * {EN}
+         * Remove area from the [port] but not completely disconnect it
+         *
+         * NOTE: [Module.initializePortsAndBuses] must be called before action takes effect for module
+         * {EN}
+         */
+        @ExperimentalWarning(message = "remove() method may not work correctly")
+        fun remove() {
+            beforeRemove()
+            areas.remove(this)
+            port.remove(this)
+        }
+
+        fun range() = LongRange(start, end)
 
         /**
          * {RU}
@@ -346,14 +393,11 @@ open class Module(
          * @return map of object properties
          * {EN}
          */
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return ctxt.storeValues(
-                    "name" to name,
-                    "start" to start.hex8,
-                    "end" to end.hex8,
-                    "access" to access
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
+                "name" to name,
+                "start" to start.hex8,
+                "end" to end.hex8,
+                "access" to access)
 
         /**
          * {RU}
@@ -371,7 +415,7 @@ open class Module(
          * {EN}
          */
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            val pAddrStart = (snapshot["start"] as String).hexAsULong
+            val pAddrStart = loadHex(snapshot, "start", -1)
             check(pAddrStart == start) { "start: %08X != %08X".format(start, pAddrStart) }
         }
 
@@ -445,24 +489,21 @@ open class Module(
 
         fun contains(ea: Long) = ea in start..end
 
-        init {
-            if (start >= port.size) {
-                @Suppress("LeakingThis")
-                throw AreaDefinitionError(this, "Area start >= port size [${start.hex8} >= ${port.size.hex8}]")
-            }
+        private inline fun errorIf(condition: Boolean, message: () -> String) {
+            if (condition) throw AreaDefinitionError(message())
+        }
 
-            if (end >= port.size) {
-                @Suppress("LeakingThis")
-                throw AreaDefinitionError(this, "Area end >= port size [${end.hex8} >= ${port.size.hex8}]")
-            }
+        init {
+            errorIf(start > end) { "$this -> area start > Area end: [${start.hex8} > ${end.hex8}]" }
+            errorIf(start >= port.size) { "$this -> area start >= port size [${start.hex8} >= ${port.size.hex8}]" }
+            errorIf(end >= port.size) { "$this -> area end >= port size [${end.hex8} >= ${port.size.hex8}]" }
 
             @Suppress("LeakingThis")
             port.add(this)
 
-            @Suppress("LeakingThis")
-            if(areas.any { it.name == this.name })
-                throw AreaDefinitionError(this, "Can't create area $this because name ${this.name} " +
-                        "already exists at module ${this@Module.fullname()}")
+            errorIf(areas.any { it.name == name }) {
+                "$this -> can't create area $this because name ${name} already exists at module ${this@Module.fullname()}"
+            }
 
             areas.add(this)
         }
@@ -559,7 +600,7 @@ open class Module(
     ): Area(port, start, end, name, access, verbose) {
         override fun stringify(): String = dump(16, 1, '#', '-')
 
-        private val content: ByteBuffer = ByteBuffer.allocateDirect(size.asInt).apply { order(endian) }
+        private val content = byteBuffer(size.asInt, endian, settings.directedMemory).toSerializable()
 
         private val pageSize = 0x2000
         private val pageCount = size / pageSize + ((size % pageSize) and 1)
@@ -779,7 +820,7 @@ open class Module(
          */
         fun write(ea: Long, stream: InputStream) {
             val offset = (ea - start).toInt()
-            val count = stream.readInto(content, offset)
+            val count = stream.readInto(content.obj, offset)
             val endEa = ea + count - 1
             (ea until endEa step pageSize.asLong).forEach {
                 val pageOffset = (it - start).toInt()
@@ -828,7 +869,7 @@ open class Module(
                     .joinToString("\n")
         }
 
-        private val snapshotName = "${fullname()}_$name.bin"
+        val snapshotName = "${fullname()}_$name.bin"
 
         /**
          * {RU}
@@ -847,11 +888,8 @@ open class Module(
          * @return map of object properties
          * {EN}
          */
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return mapOf(
-                    "snapshotFilename" to snapshotName
-            ) + ctxt.storeBinary(snapshotName, content)
-        }
+        override fun serialize(ctxt: GenericSerializer) =
+                storeValues(snapshotName to ctxt.storeBinary(snapshotName, content.obj))
 
         /**
          * {RU}
@@ -870,7 +908,7 @@ open class Module(
          */
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            if (!ctxt.loadBinary(snapshot, snapshotName, content))
+            if (!ctxt.loadBinary(snapshot, snapshotName, content.obj))
                 log.warning { "Can't load $snapshotName -> perhaps snapshot has old version!" }
         }
 
@@ -892,7 +930,7 @@ open class Module(
         override fun restore(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             if (access == ACCESS.R_W) {
                 if (dirtyPages.isNotEmpty()) {
-                    ctxt.restoreBinary(snapshot, snapshotName, content, dirtyPages, pageSize)
+                    ctxt.restoreBinary(snapshot, snapshotName, content.obj, dirtyPages, pageSize)
                     dirtyPages.clear()
                 }
             }
@@ -992,6 +1030,8 @@ open class Module(
         override fun command(): String? = port.name
     }
 
+    class RegisterDefinitionError(message: String) : Exception(message)
+
     /**
      * {RU}
      * Аппаратный регистр для описание периферийных устройств и модулей.
@@ -1010,7 +1050,7 @@ open class Module(
      * @property name имя регистра
      * {RU}
      */
-    open inner class Register(
+    open inner class Register constructor(
             val port: SlavePort,
             val address: Long,
             val datatype: Datatype,
@@ -1018,11 +1058,9 @@ open class Module(
             val default: Long = 0,
             val writable: Boolean = true,
             val readable: Boolean = true,
-            val level: Level = FINER) : IFetchReadWrite, IValuable, ICoreUnit {
-
+            val level: Level = Level.FINE
+    ) : IFetchReadWrite, IValuable, ICoreUnit {
         val module = this@Module
-
-        protected val log = module.logger()
 
         final override var data: Long = default
 
@@ -1056,13 +1094,11 @@ open class Module(
          * @return отображение сохраняемых свойств объекта
          * {RU}
          */
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return mapOf(
-                    "pName" to port.name,
-                    "pAddr" to address.hex8,
-                    "data" to data.hex16
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> = mapOf(
+                "pName" to port.name,
+                "pAddr" to address.hex8,
+                "data" to data.hex16
+        )
 
         /**
          * {RU}
@@ -1083,9 +1119,9 @@ open class Module(
             data = (snapshot["data"] as String).hexAsULong
         }
 
-        fun Logger.read(level: Level) = this.log(level) { "[%08X] RD <- %s".format(core.cpu.pc, stringify()) }
+        fun Logger.read(level: Level) = log(level) { "[%08X] RD <- %s".format(core.cpu.pc, stringify()) }
 
-        fun Logger.write(level: Level) = this.log(level) { "[%08X] WR -> %s".format(core.cpu.pc, stringify()) }
+        fun Logger.write(level: Level) = log(level) { "[%08X] WR -> %s".format(core.cpu.pc, stringify()) }
 
         final override fun fetch(ea: Long, ss: Int, size: Int) =
                 throw IllegalAccessException("Register may not be executed")
@@ -1150,19 +1186,21 @@ open class Module(
          */
         override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = writable
 
+        private inline fun errorIf(condition: Boolean, message: () -> String) {
+            if (condition) throw RegisterDefinitionError(message())
+        }
+
         init {
-            if (address >= port.size) {
-                @Suppress("LeakingThis")
-                throw RegisterDefinitionError(this, "Register address >= port size [${address.hex} >= ${port.size.hex}]")
+            errorIf(address >= port.size) {
+                "$this -> register address >= port size [${address.hex} >= ${port.size.hex}]"
             }
 
             @Suppress("LeakingThis")
             port.add(this)
 
-            @Suppress("LeakingThis")
-            if(registers.any { it.name == this.name })
-                throw RegisterDefinitionError(this, "Can't create register $this because " +
-                        "name ${this.name} already exists at module ${this@Module.fullname()}")
+            errorIf(registers.any { it.name == this.name }) {
+                "$this -> can't create register because name '${this.name}' already exists at module ${this@Module.fullname()}"
+            }
 
             @Suppress("LeakingThis")
             registers.add(this)
@@ -1197,7 +1235,7 @@ open class Module(
             val default: Long = 0,
             private val writable: Boolean = true,
             private val readable: Boolean = true,
-            val level: Level = FINE
+            val level: Level = Level.FINE
     ) : IReadWrite, IValuable, ICoreUnit {
 
         private inner class Cell(address: Long, name: String) : Register(port, address, BYTE, name) {
@@ -1342,12 +1380,10 @@ open class Module(
      * @return отображение сохраняемых свойств объекта
      * {RU}
      **/
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return super.serialize(ctxt) + ctxt.storeValues( // mapOf(
-                "areas" to areas.map { it.serialize(ctxt) },
-                "registers" to registers.map { it.serialize(ctxt) }
-        )
-    }
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+            "areas" to areas.map { it.serialize(ctxt) },
+            "registers" to registers.map { it.serialize(ctxt) }
+    )
 
     /**
      * {RU}
@@ -1441,15 +1477,6 @@ open class Module(
 
         return false
     }
-
-    /**
-     * {RU}
-     * Строковое представление объекта
-     *
-     * @return строковое представление объекта
-     * {RU}
-     */
-    override fun stringify(): String = name
 
     /**
      * {RU}Базовый метод отключения периферийных устройств{RU}

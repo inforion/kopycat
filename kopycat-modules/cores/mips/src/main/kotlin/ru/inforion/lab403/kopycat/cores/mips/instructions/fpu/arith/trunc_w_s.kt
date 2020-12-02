@@ -28,7 +28,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.arith
 import ru.inforion.lab403.common.extensions.ieee754
 import ru.inforion.lab403.common.extensions.toULong
 import ru.inforion.lab403.kopycat.cores.mips.instructions.FdFsInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.FPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -39,8 +39,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class trunc_w_s(core: MipsCore,
                 data: Long,
-                fd: FPR,
-                fs: FPR) : FdFsInsn(core, data, Type.VOID, fd, fs) {
+                fd: MipsRegister,
+                fs: MipsRegister) : FdFsInsn(core, data, Type.VOID, fd, fs) {
 
     override val mnem = "trunc.w.s"
 

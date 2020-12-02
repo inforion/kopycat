@@ -25,4 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.library.builders.api
 
-data class ModuleParameterInfo(val index: Int, val name: String, val default: Any?, val type: String)
+data class ModuleParameterInfo constructor(
+        val index: Int,
+        val name: String,
+        val type: String,
+        val optional: Boolean,
+        val default: Any? = Unit
+)

@@ -44,7 +44,7 @@ import java.util.logging.Level.*
 class BOOT(parent: Module, name: String) : Module(parent, name) {
 
     companion object {
-        val log = logger(FINER)
+        @Transient val log = logger(FINER)
     }
 
     inner class Ports : ModulePorts(this) {

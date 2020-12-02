@@ -34,6 +34,8 @@ import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 class FLBank(core: v850ESCore) : ARegistersBank<v850ESCore, Flags>(core, Flags.values(), bits = 32) {
     override val name: String = "Flags Register"
 
+    var value by valueOf(v850esRegister.CTRLR.PSW)
+
     var z by bitOf(v850esRegister.CTRLR.PSW, Flags.Z.bit)
     var s by bitOf(v850esRegister.CTRLR.PSW, Flags.S.bit)
     var ov by bitOf(v850esRegister.CTRLR.PSW, Flags.OV.bit)

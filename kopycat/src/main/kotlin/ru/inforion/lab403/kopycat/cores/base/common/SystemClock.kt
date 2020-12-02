@@ -35,6 +35,7 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level
 
 /**
@@ -49,7 +50,7 @@ import java.util.logging.Level
 class SystemClock constructor(val core: AGenericCore, val frequency: Long, override val name: String) : ICoreUnit {
 
     companion object {
-        val log = logger(Level.WARNING)
+        @Transient val log = logger(Level.WARNING)
     }
 
     /**
@@ -186,7 +187,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
             triggered = 0
         }
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> = ctxt.storeValues(
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
                 "name" to name,
                 "enabled" to enabled,
                 "period" to period,
@@ -265,8 +266,10 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
 
     fun time(unit: Time = Time.us): Long = (totalCycles * unit.divider / frequency).asLong
 
+    fun timeToCycles(value: Long, unit: Time = Time.us) = value.toDouble() * frequency / unit.divider
+
     fun time(value: Long, unit: Time = Time.us) {
-        totalCycles = value.toDouble() * frequency / unit.divider
+        totalCycles = timeToCycles(value, unit)
     }
 
     override fun reset() {
@@ -274,9 +277,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
         totalCycles = 0.0
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> = ctxt.storeValues(
-            "totalCycles" to totalCycles
-    )
+    override fun serialize(ctxt: GenericSerializer) = storeValues("totalCycles" to totalCycles)
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {

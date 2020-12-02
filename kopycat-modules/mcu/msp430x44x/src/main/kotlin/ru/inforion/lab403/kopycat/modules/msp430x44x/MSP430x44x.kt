@@ -25,25 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.modules.msp430x44x
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.MHz
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.modules.BUS16
-import ru.inforion.lab403.kopycat.modules.BUS32
-import ru.inforion.lab403.kopycat.modules.NAND_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
-import ru.inforion.lab403.kopycat.modules.debuggers.MSP430Debugger
+import ru.inforion.lab403.kopycat.modules.cores.MSP430Debugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
-import ru.inforion.lab403.kopycat.serializer.Serializer
-
 
 
 // : ADebuggableMSP430(freq = 16.MHz, debugger = MSP430Debugger())
 class MSP430x44x(parent: Module?, name: String): Module(parent, name) {
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS32)
-        val irq = Bus("irq", BUS32)
+        val mem = Bus("mem", BUS16)
+        val irq = Bus("irq", BUS16)
     }
 
     override val buses = Buses()
@@ -61,7 +57,7 @@ class MSP430x44x(parent: Module?, name: String): Module(parent, name) {
 
     val ram = RAM(this,"RAM", 0x800)
     val ivt = RAM(this,"IVT", 0x20)
-    val rom = RAM(this,"ROM", 0x10000)
+//    val rom = RAM(this,"ROM", 0x10000)
 
     val ic = PIC(this, "PIC")
     val watchdog = Watchdog(this, "Watchdog")
@@ -76,7 +72,7 @@ class MSP430x44x(parent: Module?, name: String): Module(parent, name) {
 
         ram.ports.mem.connect(buses.mem, 0x0000_0200)
         ivt.ports.mem.connect(buses.mem, 0x0000_FFE0)
-        rom.ports.mem.connect(buses.mem, 0x0001_0000)
+//        rom.ports.mem.connect(buses.mem, 0x0001_0000)
 
         ic.ports.mem.connect(buses.mem)
         watchdog.ports.mem.connect(buses.mem)

@@ -38,7 +38,7 @@ import java.util.logging.Level
 
 class v850ESCOP(core: v850ESCore, name: String) : ACOP<v850ESCOP, v850ESCore>(core, name) {
     companion object {
-        val log = logger(Level.INFO)
+        @Transient val log = logger(Level.INFO)
     }
 
     override fun handleException(exception: GeneralException?): GeneralException? {

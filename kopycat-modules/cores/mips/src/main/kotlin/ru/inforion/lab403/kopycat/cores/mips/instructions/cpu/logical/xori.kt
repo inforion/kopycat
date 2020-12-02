@@ -26,8 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.logical
 
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRsImmInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -42,8 +42,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class xori(
         core: MipsCore,
         data: Long,
-        rt: GPR,
-        rs: GPR,
+        rt: MipsRegister,
+        rs: MipsRegister,
         imm: MipsImmediate) : RtRsImmInsn(core, data, Type.VOID, rt, rs, imm)  {
 
 //    override val isSigned = true

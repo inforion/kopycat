@@ -28,20 +28,17 @@ package ru.inforion.lab403.kopycat.cores.arm.common
 import org.junit.Assert
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS.R_W
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
-import ru.inforion.lab403.kopycat.cores.base.exceptions.AreaDefinitionError
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
-import ru.inforion.lab403.kopycat.cores.base.exceptions.RegisterDefinitionError
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
-import ru.inforion.lab403.kopycat.modules.debuggers.ARMDebugger
+import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 
 class ModuleTest: Module(null, "Module Test") {

@@ -27,33 +27,45 @@ package ru.inforion.lab403.kopycat.examples
 
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.convertToString
+import ru.inforion.lab403.common.extensions.times
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.OFF
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.times
 import ru.inforion.lab403.kopycat.auxiliary.PerformanceTester
-import ru.inforion.lab403.kopycat.modules.stm32f042.LED
-import ru.inforion.lab403.kopycat.modules.stm32f042.USARTx
+import ru.inforion.lab403.kopycat.cores.base.common.ComponentTracer
+import ru.inforion.lab403.kopycat.modules.cores.ARMv6MCore
+import ru.inforion.lab403.kopycat.modules.examples.stm32f042_example
+import ru.inforion.lab403.kopycat.modules.terminals.UartTerminal
 import java.io.File
-import java.util.logging.Level.*
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 
 internal class stm32f042Tests {
     companion object {
-        val log = logger(FINE)
+        @Transient val log = logger(FINE)
     }
 
     init {
         log.info { "Working Directory: ${System.getProperty("user.dir")}" }
 
-        LED.log.level = INFO
-        USARTx.log.level = INFO
+        UartTerminal.log.level = OFF
     }
 
     @Test
     fun gpiox_led_test() {
         PerformanceTester(0x0800_11B4, 100_000_000) {
             stm32f042_example(null, "top", "example:gpiox_led")
+        }.run(2, 1)
+    }
+
+    @Test
+    fun gpiox_led_test_tracer() {
+        PerformanceTester(0x0800_11B4, 100_000_000) {
+            stm32f042_example(null, "top", "example:gpiox_led").also {
+                val trc = ComponentTracer<ARMv6MCore>(it.stm32f042, "trc")
+                it.stm32f042.buses.connect(trc.ports.trace, it.stm32f042.dbg.ports.trace)
+            }
         }.run(2, 1)
     }
 
@@ -97,7 +109,7 @@ internal class stm32f042Tests {
             it.sendStringIntoUART1(testStringPoll * 5)
         }.atAddressAlways(0x0800_1CF8) {
             log.info { "main -> Enter" }
-        }.run(5, 1)
+        }.apply { run(5, 1) }
 
         checkSocatOutput(tester.top.term1.socat!!.pty1, testStringPoll)
         checkSocatOutput(tester.top.term2.socat!!.pty1, testStringPoll)
@@ -118,7 +130,7 @@ internal class stm32f042Tests {
             log.severe { "Enter -> HAL_DMA_IRQHandler" }
         }.atAddressAlways(0x0800_07C6) {
             log.severe { "Exit -> HAL_DMA_IRQHandler" }
-        }.run(1, 0)
+        }.apply { run(1, 0) }
 
         // in this test not echo just output to uart2
         checkSocatOutput(tester.top.term2.socat!!.pty1, testStringDMA)

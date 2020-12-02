@@ -44,7 +44,7 @@ import java.util.logging.Level.FINER
 @Suppress("MemberVisibilityCanBePrivate", "PropertyName")
 class PIT(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        val log = logger(FINE)
+        @Transient val log = logger(FINE)
 
         const val INTERRUPT_COUNT = 3
 

@@ -29,8 +29,8 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.STORE
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -39,7 +39,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class sh(core: MipsCore,
          data: Long,
-         rt: GPR,
+         rt: MipsRegister,
          off: MipsDisplacement) : RtOffsetInsn(core, data, Type.VOID, rt, off) {
 
 //    override val store = true

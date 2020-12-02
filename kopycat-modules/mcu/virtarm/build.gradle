@@ -5,10 +5,6 @@ plugins {
 group 'ru.inforion.lab403.kopycat'
 version '0.1'
 
-dependencies {
-    implementation project(":common:proposal")
-}
-
 buildKopycatModule {
     library = "mcu"
     require += "cores:arm"

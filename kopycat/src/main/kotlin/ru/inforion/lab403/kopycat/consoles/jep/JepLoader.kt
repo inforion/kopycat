@@ -25,15 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.consoles.jep
 
+import ru.inforion.lab403.common.extensions.toFile
 import ru.inforion.lab403.common.extensions.walk
+import ru.inforion.lab403.common.extensions.DynamicClassLoader
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.DynamicClassLoader
-import ru.inforion.lab403.common.proposal.toFile
 import java.io.File
-import java.lang.RuntimeException
 
 object JepLoader {
-    private val log = logger()
+    @Transient val log = logger()
 
     private fun findFileInPath(folder: File, description: String, depth: Int = 0, predicate: (File) -> Boolean): File {
         val files = walk(folder, depth = depth).filter { it.isFile }.filter(predicate)

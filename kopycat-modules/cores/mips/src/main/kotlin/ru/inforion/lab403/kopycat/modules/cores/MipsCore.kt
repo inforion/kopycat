@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
-import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
@@ -50,7 +49,7 @@ import ru.inforion.lab403.kopycat.modules.BUS32
  * @param EIC_option2 опция обработки прерываний 2 (см. MIPS)
  * @param EIC_option3 опция обработки прерываний 3 (см. MIPS)
  * @param dspExtension поддержка инструкций dsp
- * @param countRateFactor скоростью счета таумера регистра Count относительно циклов ядра (количество циклов умножается
+ * @param countRateFactor скоростью счета таймера регистра Count относительно циклов ядра (количество циклов умножается
  *                        на заданное в этой переменной значении и добавляется к счетчик). То есть значение в регистре
  *                        Count будет равно количество_циклов_ядра * [countRate]
  * @param countCompareSupported внутренний таймер архитектуры MIPS построенный на регистрах Count/Compare
@@ -78,8 +77,16 @@ class MipsCore constructor(
         val EIC_option1: Boolean = false,
         val EIC_option2: Boolean = false,
         val EIC_option3: Boolean = false,
-        val dspExtension: Boolean = false
+        val dspExtension: Boolean = false,
+        val useMMU: Boolean = true
 ) : ACore<MipsCore, MipsCPU, ACOP0>(parent, name, frequency * multiplier, ipc) {
+
+    /**
+     * {EN}For simplifying instantiating from json{EN}
+     */
+    constructor(parent: Module, name: String, frequency: Long, ipc: Double, PRId: Long, PABITS: Int) :
+            this(parent, name, frequency, ipc, 1, PRId, PABITS)
+
     private val VASIZE = BUS32  // always 32 bit
     private val PASIZE = 1L shl PABITS
 
@@ -94,7 +101,7 @@ class MipsCore constructor(
 
     override val mmu = MipsMMU(this, "mmu", PASIZE)
 
-    override fun abi(heap: LongRange, stack: LongRange): ABI<MipsCore> = MIPSABI(this, heap, stack, false)
+    override fun abi() = MIPSABI(this, false)
 
     inner class Buses : ModuleBuses(this) {
         val physical = Bus("physical", PASIZE)
@@ -109,10 +116,17 @@ class MipsCore constructor(
     override val ports = Ports()
 
     init {
-        cpu.ports.mem.connect(buses.virtual)
-        mmu.ports.inp.connect(buses.virtual)
+        // ToCheck: bad but working solution
+        if (useMMU) {
+            cpu.ports.mem.connect(buses.virtual)
+            mmu.ports.inp.connect(buses.virtual)
 
-        mmu.ports.outp.connect(buses.physical)
-        ports.mem.connect(buses.physical)
+            mmu.ports.outp.connect(buses.physical)
+            ports.mem.connect(buses.physical)
+        }
+        else {
+            cpu.ports.mem.connect(buses.virtual)
+            ports.mem.connect(buses.virtual)
+        }
     }
 }

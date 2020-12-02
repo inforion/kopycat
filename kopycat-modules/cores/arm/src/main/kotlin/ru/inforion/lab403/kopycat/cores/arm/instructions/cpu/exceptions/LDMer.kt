@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.exceptions
 
-import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -57,24 +56,27 @@ class LDMer(cpu: AARMCore,
         else if (core.cpu.CurrentModeIsUserOrSystem() || core.cpu.CurrentInstrSet() == AARMCore.InstructionSet.THUMB_EE)
             throw ARMHardwareException.Unpredictable
         else {
-            val length = 4 * registers.bitCount
+            val length = 4 * registers.count
             var address = if (increment) rn.value(core) else rn.value(core) - length
             if (wordhigher) address += 4
+
             // There is difference from datasheet (all registers save in common loop) -> no LoadWritePC called
+
             registers.forEachIndexed { _, reg ->
                 reg.value(core, core.inl(address like Datatype.DWORD))
                 address += 4
             }
+
             val newPCValue = core.inl(address like Datatype.DWORD)
-            if (wback && registers.rbits[rn.reg] == 0L) rn.value(core,
-                    if (increment)
-                        rn.value(core) + length
-                    else
-                        rn.value(core) - length
-            )
-            if (wback && registers.rbits[rn.reg] == 1L)
-                rn.value(core, /*UNKNOWN*/ 0L)
+
+            val hasRn = rn in registers
+            val value = rn.value(core) + if (increment) length else -length
+
+            if (wback && !hasRn) rn.value(core, value)
+            if (wback && hasRn) rn.value(core, /*UNKNOWN*/ 0L)
+
             core.cpu.CPSRWriteByInstr(core.cpu.sregs.spsr.value, 0b1111, true)
+
             if (core.cpu.sregs.cpsr.m == 0b11010L && core.cpu.sregs.cpsr.j && core.cpu.sregs.cpsr.t)
                 throw ARMHardwareException.Unpredictable
             else

@@ -31,7 +31,6 @@ import org.eclipse.jgit.internal.storage.file.FileRepository
 import org.eclipse.jgit.lib.Repository
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import ru.inforion.lab403.gradle.common.doFirstTyped
 import java.io.File
 
 

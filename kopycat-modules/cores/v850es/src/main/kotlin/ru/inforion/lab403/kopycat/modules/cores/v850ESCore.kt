@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
-import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
@@ -61,9 +60,6 @@ class v850ESCore(parent: Module, name: String, frequency: Long):
     override val cop = v850ESCOP(this, "cop")
     override val mmu = null
     override val fpu = null
-
-    override fun abi(heap: LongRange, stack: LongRange): ABI<v850ESCore> =
-            throw NotImplementedError("Operating system not supported")
 
     init {
         cpu.ports.mem.connect(buses.mem)

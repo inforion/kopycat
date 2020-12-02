@@ -25,31 +25,28 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
+import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.modules.BUS32
+import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 
 /**
  * {RU}
  * Абстрактный класс CPU.
- *
- *
- * @param name произвольное имя объекта Процессора
- * @property core ядро, к которому привязан Процессор
- * @property pc счётчик команд
- * @property insn последняя успешно выполненная инструкция
- * @property exception последнее исключение
  * {RU}
  */
 abstract class ACPU<
         U: ACPU<U, R, I, E>,  // Recursive generic resolution
         R: ACore<R, U, *>,
         I: AInstruction<R>,
-        E: Enum<E>>(core: R, name: String) : Module(core, name) {
+        E: Enum<E>>(core: R, name: String, val busSize: Long = BUS32) : Module(core, name) {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Master("mem")
+        val mem = Master("mem", busSize)
     }
 
     override val ports = Ports()
@@ -70,6 +67,17 @@ abstract class ACPU<
     abstract fun count(): Int
 
     /**
+     * {RU}Прочитать все регистры CPU{RU}
+     */
+    fun registers() = List(count()) { reg(it) }
+
+    /**
+     * {RU}Метод возвращает текущее значение регистра флагов{RU}
+     */
+    @ExperimentalWarning
+    open fun flags(): Long = throw NotImplementedError("The flags are not implemented")
+
+    /**
      * {RU}Счётчик команд{RU}
      *
      * {EN}
@@ -87,6 +95,8 @@ abstract class ACPU<
 
     abstract fun execute(): Int
 
+    val hasInstruction get() = ::insn.isInitialized
+
     /**
      * {RU}Последняя успешно выполненная инструкция{RU}
      *
@@ -94,9 +104,8 @@ abstract class ACPU<
      */
     lateinit var insn: I
 
-    var callOccurred: Boolean = false
-
-    var exception: GeneralException? = null
+    var callOccurred = false
+        internal set
 
     /**
      * {EN}
@@ -106,9 +115,41 @@ abstract class ACPU<
      * {EN}
      */
     var halted = false
+        internal set
+
+    /**
+     * {EN}
+     * Last exception of CPU. This exception may be processed by COP or may be not in either case it will not be null.
+     * Exception reset before each successful CPU step.
+     * {EN}
+     */
+    var exception: GeneralException? = null
+        internal set
+
+    /**
+     * {EN}
+     * If this variable is true then CPU got exception that wasn't processed by COP and CPU won't run anymore
+     * {EN}
+     */
+    var fault = false
+        internal set
+
+    fun resetFault() {
+        log.warning { "Hardware exception was cleared!" }
+        exception = null
+        fault = false
+    }
+
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+            "halted" to halted,
+            "faulty" to fault,
+            "callOccurred" to callOccurred)
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        halted = loadValue(snapshot, "halted")
+        fault = loadValue(snapshot, "faulty")
+        callOccurred = loadValue(snapshot, "callOccurred")
         exception = null
     }
 }

@@ -30,6 +30,7 @@ import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.common.extensions.hex2
 import ru.inforion.lab403.common.extensions.toLong
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.lazyTransient
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ATerminal
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -39,10 +40,9 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.*
+import java.io.Serializable
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
-import java.util.logging.Level
-import java.util.logging.Level.*
 import kotlin.concurrent.thread
 
 /**
@@ -65,6 +65,10 @@ open class UartTerminal(
         val receiveBufferSize: Int = 1024,
         val transmitBufferSize: Int = 1024
 ) : ATerminal(parent, name) {
+
+    companion object {
+        @Transient val log = logger()
+    }
 
     inner class Ports : ModulePorts(this) {
         /**
@@ -94,7 +98,7 @@ open class UartTerminal(
      */
     private fun dataTransmittedRequest() = ports.term_m.write(UART_SLAVE_BUS_REQUEST, UART_SLAVE_DATA_TRANSMITTED, 1, 1)
 
-    private class LoggingBuffer(val name: String, val postfix: String) {
+    private class LoggingBuffer(val name: String, val postfix: String): Serializable {
         private var buffer = StringBuffer()
 
         fun message(string: String) = log.info { "UART[$name] $postfix: $string" }
@@ -165,6 +169,12 @@ open class UartTerminal(
         }
     }
 
+    override fun initialize(): Boolean {
+        if (!super.initialize()) return false
+        if (!tx.isAlive) tx.start()
+        return true
+    }
+
     override fun reset() {
         super.reset()
         rxBuffer.clear()
@@ -176,7 +186,7 @@ open class UartTerminal(
         uartTerminalEnabled = false
         terminalReceiveEnabled = false
         terminalTransmitEnabled = false
-        log.warning { "Waiting for UART $tx thread stop..." }
+        log.config { "Waiting for UART $tx thread stop..." }
         tx.join()
     }
 
@@ -185,18 +195,22 @@ open class UartTerminal(
     private val rxBuffer = getBlockingQueue(receiveBufferSize)
     private val txBuffer = getBlockingQueue(transmitBufferSize)
 
-    private val tx = thread(name="$this") {
-        try {
-            while (uartTerminalEnabled and terminalTransmitEnabled) {
-                val byte = txBuffer.poll(1000, TimeUnit.MILLISECONDS)
-                if (byte != null) {
-                    onByteTransmitReady(byte)
-                    dataTransmittedRequest()
+    // thread start in initialize() section, this required to workaround binary serialization issue
+    private val tx by lazyTransient {
+        log.config { "Create transmitter UART terminal thread: '$this'" }
+        thread(start = false, name = "$this") {
+            runCatching {
+                while (uartTerminalEnabled and terminalTransmitEnabled) {
+                    val byte = txBuffer.poll(1000, TimeUnit.MILLISECONDS)
+                    if (byte != null) {
+                        onByteTransmitReady(byte)
+                        dataTransmittedRequest()
+                    }
                 }
+                log.finer { "$this finished main loop" }
+            }.onFailure {
+                log.severe { it.stackTraceToString() }
             }
-            log.finer { "$this finished main loop" }
-        } catch (exc: Throwable) {
-            exc.printStackTrace()
         }
     }
 
@@ -247,7 +261,7 @@ open class UartTerminal(
      * @param byte байт данных полученный от оконечного устройства
      * {RU}
      */
-    fun addByteToReceiveBuffer(byte: Byte) {
+    fun write(byte: Byte) {
         rxBuffer.put(byte)
         dataReceivedRequest()
     }
@@ -261,8 +275,22 @@ open class UartTerminal(
      * @param string String to add to transmit buffer
      * {EN}
      */
-    fun addStringToReceiveBuffer(string: String) {
+    fun write(string: String) {
         string.forEach { rxBuffer.put(it.asByte) }
+        dataReceivedRequest()
+    }
+
+    /**
+     * {EN}
+     * Function to transmit to UART an array of bytes
+     *
+     * @since 0.3.3
+     *
+     * @param bytes Byte array to add to transmit buffer
+     * {EN}
+     */
+    fun write(bytes: ByteArray) {
+        bytes.forEach { rxBuffer.put(it) }
         dataReceivedRequest()
     }
 }

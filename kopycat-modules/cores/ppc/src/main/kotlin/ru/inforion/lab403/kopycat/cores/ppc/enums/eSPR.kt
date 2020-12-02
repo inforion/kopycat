@@ -25,9 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.enums
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.cores.ppc.operands.SPR
 

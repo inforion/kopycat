@@ -58,8 +58,8 @@ class CORTEXM0(parent: Module, name: String) : Module(parent, name) {
         val sp = core.inl(0x0000_0000)
         val pc = core.inl(0x0000_0004)
         log.info { "Setup CORTEX-M0 core PC=0x${pc.hex8} MSP=0x${sp.hex8}" }
-        arm.cpu.BXWritePC(pc)
-        arm.cpu.regs.spMain.value = sp
+        arm.cpu.BXWritePC(pc, false)
+        arm.cpu.regs.sp.value = sp
     }
 
     init {

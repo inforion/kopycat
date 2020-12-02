@@ -25,9 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.modules.common
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
@@ -49,7 +48,7 @@ import java.util.logging.Level
 class Hub(parent: Module, name: String, vararg val outs: Pair<String, Long>) : Module(parent, name) {
 
     companion object {
-        val log = logger(Level.CONFIG)
+        @Transient val log = logger(Level.CONFIG)
     }
 
     inner class Ports : ModulePorts(this) {

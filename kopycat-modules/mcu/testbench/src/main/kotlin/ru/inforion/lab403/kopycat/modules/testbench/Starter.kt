@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.testbench
 
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
 
 object Starter {

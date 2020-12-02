@@ -40,10 +40,6 @@ const val jarTaskIdentifier = "jar"
 const val implementation = "implementation"
 const val testImplementation = "testImplementation"
 
-const val kotlinLoggingDependency = "com.github.inforion:kotlin-logging:+"
-const val kotlinExtensionsDependency = "com.github.inforion:kotlin-extensions:+"
-const val kotlinStdlibDependency = "org.jetbrains.kotlin:kotlin-stdlib-jdk8"
-
 const val jitpackURL = "https://jitpack.io"
 
 const val packageKotlinToken = "package"

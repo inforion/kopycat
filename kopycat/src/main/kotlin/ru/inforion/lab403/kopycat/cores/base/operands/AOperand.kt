@@ -27,9 +27,11 @@ package ru.inforion.lab403.kopycat.cores.base.operands
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
+import java.io.Serializable
 
 @Suppress("NOTHING_TO_INLINE")
 abstract class AOperand<in T: AGenericCore>(
@@ -37,9 +39,9 @@ abstract class AOperand<in T: AGenericCore>(
         access: Access,
         controls: Controls,
         var num: Int,
-        val dtyp: Datatype) {
+        val dtyp: Datatype): Serializable {
     companion object {
-        val log = logger()
+        @Transient val log = logger()
     }
 
     enum class Type(val id: Int) {
@@ -74,7 +76,6 @@ abstract class AOperand<in T: AGenericCore>(
     open val ssr: ARegister<T> get() = throw NotImplementedError("abstract operand has no ssr!")
 
     abstract override fun hashCode(): Int
-    abstract override operator fun equals(other: Any?): Boolean
     abstract override fun toString(): String
 
     /**

@@ -55,7 +55,7 @@ class cache(core: MipsCore,
     override val mnem = "cache"
 
     override fun execute() {
-        val spramConfigEnabled = core.cop.regs.ECC[28] == 1L
+        val spramConfigEnabled = core.cop.regs.ErrCtl.value[28] == 1L
 
         if (spramConfigEnabled) {
             val opId = imm.value(core)
@@ -64,31 +64,31 @@ class cache(core: MipsCore,
             when (opId.asInt) {
                 Index_Invalidate_I -> {
                     log.severe { "[${core.pc.hex8}] Index_Invalidate_I not implemented!" }
-                    core.cop.regs.TagLo0 = 0
+                    core.cop.regs.TagLo0.value = 0
                 }
                 Index_Writeback_Inv_D -> {
                     log.severe { "[${core.pc.hex8}] Index_Writeback_Inv_D not implemented!" }
-                    core.cop.regs.TagLo2 = 0
+                    core.cop.regs.TagLo2.value = 0
                 }
 
                 Index_Load_Tag_I -> {
-                    log.severe { "[${core.pc.hex8}] Index_Load_Tag_I not implemented TagLo0=${core.cop.regs.TagLo0.hex8}!" }
-                    core.cop.regs.TagLo0 = 0
+                    log.severe { "[${core.pc.hex8}] Index_Load_Tag_I not implemented TagLo0=${core.cop.regs.TagLo0.value.hex8}!" }
+                    core.cop.regs.TagLo0.value = 0
                 }
 
                 Index_Load_Tag_D -> {
-                    log.severe { "[${core.pc.hex8}] Index_Load_Tag_D not implemented TagLo2=${core.cop.regs.TagLo2.hex8}!" }
-                    core.cop.regs.TagLo2 = 0
+                    log.severe { "[${core.pc.hex8}] Index_Load_Tag_D not implemented TagLo2=${core.cop.regs.TagLo2.value.hex8}!" }
+                    core.cop.regs.TagLo2.value = 0
                 }
 
                 Index_Store_Tag_I -> {
-                    log.severe { "[${core.pc.hex8}] Index_Store_Tag_I not implemented TagLo0=${core.cop.regs.TagLo0.hex8}!" }
-                    core.cop.regs.TagLo0 = 0
+                    log.severe { "[${core.pc.hex8}] Index_Store_Tag_I not implemented TagLo0=${core.cop.regs.TagLo0.value.hex8}!" }
+                    core.cop.regs.TagLo0.value = 0
                 }
 
                 Index_Store_Tag_D -> {
-                    log.severe { "[${core.pc.hex8}] Index_Store_Tag_D not implemented TagLo2=${core.cop.regs.TagLo2.hex8}!" }
-                    core.cop.regs.TagLo2 = 0
+                    log.severe { "[${core.pc.hex8}] Index_Store_Tag_D not implemented TagLo2=${core.cop.regs.TagLo2.value.hex8}!" }
+                    core.cop.regs.TagLo2.value = 0
                 }
             }
         }

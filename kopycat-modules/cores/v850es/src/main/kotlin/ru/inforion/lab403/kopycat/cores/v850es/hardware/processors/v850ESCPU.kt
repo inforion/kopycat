@@ -50,6 +50,7 @@ class v850ESCPU(val v850es: v850ESCore, name: String): ACPU<v850ESCPU, v850ESCor
     override fun reg(index: Int): Long = regs[index].value(v850es)
     override fun reg(index: Int, value: Long) = regs[index].value(v850es, value)
     override fun count() = regs.count()
+    override fun flags() = flags.value
 
     override var pc: Long
         get() = regs.pc

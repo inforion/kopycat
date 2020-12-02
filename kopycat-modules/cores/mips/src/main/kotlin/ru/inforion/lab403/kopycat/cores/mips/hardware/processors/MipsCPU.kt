@@ -29,26 +29,25 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.mips.enums.eGPR
+import ru.inforion.lab403.kopycat.cores.mips.enums.GPR
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.GPRBank
+import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.HWRBank
 import ru.inforion.lab403.kopycat.cores.mips.hardware.systemdc.MipsSystemDecoder
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
-class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsInstruction, eGPR>(mips, name) {
+class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsInstruction, GPR>(mips, name) {
 
     inner class BranchController: ICoreUnit {
         override val name: String = "Branch Controller"
 
         private var delayedJumpInsnRemain = 0
 
-        @PublishedApi
-        internal var delayedJumpAddress = WRONGL
+        var delayedJumpAddress = WRONGL
             private set
 
-        @PublishedApi
-        internal var hasDelayedJump = false
+        var hasDelayedJump = false
             private set
 
         val isDelaySlot get() = hasDelayedJump && delayedJumpInsnRemain == 0
@@ -96,21 +95,15 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
             return pc
         }
 
-        override fun stringify(): String {
-            return ("\tController {\n" +
-                    "\t\tIs waiting for jump? = %s\n" +
-                    "\t\tInstructions remain  = %d\n" +
-                    "\t\tDelayed jump address = %08X\n" +
-                    "\t}").format(hasDelayedJump, delayedJumpInsnRemain, delayedJumpAddress)
-        }
+        override fun stringify() =
+                "Is waiting for jump? = $hasDelayedJump\n" +
+                "Instructions remain  = $delayedJumpInsnRemain\n" +
+                "Delayed jump address = 0x${delayedJumpAddress.hex8}"
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return mapOf(
-                    "delayedJumpAddress" to delayedJumpAddress.hex8,
-                    "delayedJumpInsnRemain" to delayedJumpInsnRemain.hex8,
-                    "hasDelayedJump" to hasDelayedJump.toString()
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = mapOf(
+                "delayedJumpAddress" to delayedJumpAddress.hex8,
+                "delayedJumpInsnRemain" to delayedJumpInsnRemain.hex8,
+                "hasDelayedJump" to hasDelayedJump.toString())
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             delayedJumpAddress = (snapshot["delayedJumpAddress"] as String).hexAsULong
@@ -119,18 +112,21 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
         }
     }
 
-    override fun reg(index: Int): Long = regs[index].value(mips)
-    override fun reg(index: Int, value: Long) = regs[index].value(mips, value)
-    override fun count() = regs.count()
+    override fun reg(index: Int): Long = regs.read(index)
+    override fun reg(index: Int, value: Long) = regs.write(index, value)
+    override fun count() = regs.count
+    override fun flags(): Long = 0
 
     val bigEndianCPU = 0
 
     val decoder = MipsSystemDecoder(mips)
     val branchCntrl = BranchController()
 
-    val regs = GPRBank(mips)
+    val regs = GPRBank()
 
-    val sgprs = Array(mips.countOfShadowGPR) { GPRBank(mips) }
+    val hwrs = HWRBank(mips)
+
+    val sgprs = Array(mips.countOfShadowGPR) { GPRBank() }
 
     var hi: Long = 0
         get() = field and 0xFFFFFFFF
@@ -171,16 +167,11 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
         return 1  // TODO: get from insn.execute()
     }
 
-    override fun stringify(): String {
-        return arrayOf(
-                "CentralProcessingUnit {\n",
-                "%s\n".format(branchCntrl.stringify()),
-                "\tpc        = %08X\n".format(pc),
-                "\tstatus    = %08X\n".format(status),
-                "\thi:lo     = %08X:%08X\n".format(hi, lo),
-                "%s\n".format(regs.stringify()),
-                "}"
-        ).joinToString("")
+    override fun stringify() = buildString {
+        appendLine("MIPS CPU:")
+        appendLine(branchCntrl.stringify())
+        appendLine("pc = 0x${pc.hex8} status = 0x${status.hex8} hi:lo = 0x${hi.hex8}:${lo.hex8}")
+        append(regs.stringify())
     }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
@@ -191,8 +182,7 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
                 "pc" to pc.hex8,
                 "llbit" to llbit.toString(),
                 "regs" to regs.serialize(ctxt),
-                "branchCntrl" to branchCntrl.serialize(ctxt),
-                "pc" to pc.hex8)
+                "branchCntrl" to branchCntrl.serialize(ctxt))
     }
 
     @Suppress("UNCHECKED_CAST")

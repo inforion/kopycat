@@ -26,45 +26,76 @@
 package ru.inforion.lab403.kopycat.cores.arm.operands
 
 import ru.inforion.lab403.common.extensions.WRONGI
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
-class ARMRegisterList(val cpu: AARMCore, val opcode: Long, val rbits: Long):
-        AOperand<AARMCore>(Type.CUSTOM, Access.ANY, Controls.VOID, WRONGI, Datatype.DWORD),
+class ARMRegisterList constructor(regs: List<ARMRegister>):
+        AOperand<AARMCore>(Type.CUSTOM, Access.ANY, Controls.VOID, WRONGI, DWORD),
         Iterable<ARMRegister> {
 
-    private val regs = (0..15)
-            .filter { rbits[it] == 1L }
-            .map { GPRBank.Operand(it) }
-            .toTypedArray()
+    private val regs = regs.associateBy { it.desc.id }
 
     override fun equals(other: Any?): Boolean =
-            other is ARMImmediateCarry &&
+            other is ARMRegisterList &&
                     other.type == Type.CUSTOM &&
-                    other.dtyp == dtyp &&
-                    other.opcode == opcode
+                    other.regs == regs
 
     override fun hashCode(): Int {
         var result = type.hashCode()
-        result += 31 * result + opcode.hashCode()
-        result += 31 * result + dtyp.ordinal
-        result += 31 * result + specflags.hashCode()
+        result += 31 * result + regs.hashCode()
         return result
     }
 
-    val bitCount: Int = regs.size
-    val lowestSetBit: Int = regs.minBy { it.reg }!!.reg
+    val count = regs.size
+    val lowest = regs.minBy { it.desc.id }!!
+    val highest = regs.maxBy { it.desc.id }!!
 
-    override operator fun iterator() = regs.iterator()
+    operator fun get(index: Int) = regs[index]
 
-    override fun toString(): String = "{${regs.joinToString()}}"
+    override operator fun iterator() = regs.values.iterator()
+
+    operator fun contains(value: ARMRegister) = value.desc.id in regs
+
+    override fun toString() = "{${joinToString()}}"
 
     override fun value(core: AARMCore): Long =
             throw UnsupportedOperationException("Can't read value of registers list operand")
 
     override fun value(core: AARMCore, data: Long): Unit =
             throw UnsupportedOperationException("Can't write value to registers list operand")
+
+    fun load(core: AARMCore, start: Long) {
+        var address = start
+
+        forEach {
+            val value = core.inl(address like DWORD)
+
+            if (it.isProgramCounter(core)) {
+                core.cpu.LoadWritePC(value)
+            } else {
+                it.value(core, value)
+            }
+
+            address += 4
+        }
+    }
+
+    fun store(core: AARMCore, start: Long, rn: ARMRegister, wback: Boolean) {
+        var address = start
+
+        forEach {
+            if (it == rn && wback && it != lowest) {
+                throw ARMHardwareException.Unknown
+            }
+
+            core.outl(address like DWORD, it.value(core))
+            address += 4
+        }
+    }
+
+    fun hasProgramCounter(core: AARMCore) = core.cpu.regs.pc.id in regs
+    fun hasStackPointer(core: AARMCore) = core.cpu.regs.sp.id in regs
 }

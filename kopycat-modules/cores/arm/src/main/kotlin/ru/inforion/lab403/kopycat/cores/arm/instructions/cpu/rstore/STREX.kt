@@ -25,16 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rstore
 
-import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
-import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 // See A8.8.212

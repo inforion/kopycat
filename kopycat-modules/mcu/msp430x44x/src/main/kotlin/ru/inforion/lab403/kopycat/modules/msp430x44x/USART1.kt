@@ -45,7 +45,7 @@ import java.util.logging.Level
 
 class USART1(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        private val log = logger(Level.FINE)
+        @Transient private val log = logger(Level.FINE)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -64,7 +64,7 @@ class USART1(parent: Module, name: String) : Module(parent, name) {
 
             if (!txBuffer.isEmpty()) {// && (txBuffer.last() == '\n')) {
                 //txBuffer.deleteCharAt(txBuffer.lastIndex)
-                log.info("UART: $txBuffer")
+                log.info { "UART: $txBuffer" }
                 txBuffer.setLength(0)
             }
 

@@ -25,40 +25,22 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.operands
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.rotr32
+import ru.inforion.lab403.common.extensions.toBool
 import ru.inforion.lab403.kopycat.cores.arm.enums.ShiftType
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
-import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Type.CUSTOM
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
+class ARMRegisterShift constructor(val rs: ARMRegister, val rm: ARMRegister, val shift: ShiftType) : AARMShift() {
 
-class ARMRegisterShift(cpu: AARMCore, opcode: Long) : AARMShift(cpu, opcode) {
-
-    val rs = GPRBank.Operand(opcode[11..8].asInt)
-    val rm = GPRBank.Operand(opcode[3..0].asInt)
-    private val shiftType = find<ShiftType> { it.id == opcode[6..5] }
-
-    override fun toString(): String = "$rm, $shiftType $rs"
-
-    override fun equals(other: Any?): Boolean =
-            other is ARMRegisterShift &&
-                    other.type == CUSTOM &&
-                    other.dtyp == dtyp &&
-                    other.opcode == opcode
-
-    override fun hashCode(): Int {
-        var result = type.hashCode()
-        result += 31 * result + opcode.hashCode()
-        result += 31 * result + dtyp.ordinal
-        result += 31 * result + specflags.hashCode()
-        return result
-    }
+    override fun toString(): String = "$rm, $shift $rs"
 
     override fun value(core: AARMCore): Long {
         val shifter = (rs.value(core) and 0xFF).asInt
 
-        return when (shiftType) {
+        return when (shift) {
             ShiftType.LSL -> when {
                 shifter <= 0 -> rm.value(core)
                 shifter < 32 -> rm.value(core) shl shifter
@@ -85,30 +67,30 @@ class ARMRegisterShift(cpu: AARMCore, opcode: Long) : AARMShift(cpu, opcode) {
         }
     }
 
-    override fun carry(): Boolean{
-        val shifter = (rs.value(cpu) and 0xFF).asInt
-        return when (shiftType) {
+    override fun carry(core: AARMCore): Boolean{
+        val shifter = (rs.value(core) and 0xFF).asInt
+        return when (shift) {
             ShiftType.LSL -> when {
-                shifter <= 0 -> cpu.cpu.flags.c
-                shifter < 32 -> rm.value(cpu)[32 - shifter].toBool()
-                shifter == 32 -> rm.value(cpu)[0].toBool()
+                shifter <= 0 -> core.cpu.flags.c
+                shifter < 32 -> rm.value(core)[32 - shifter].toBool()
+                shifter == 32 -> rm.value(core)[0].toBool()
                 else -> false
             }
             ShiftType.LSR -> when {
-                shifter <= 0 -> cpu.cpu.flags.c
-                shifter < 32 -> rm.value(cpu)[shifter - 1].toBool()
-                shifter == 32 -> rm.value(cpu)[31].toBool()
+                shifter <= 0 -> core.cpu.flags.c
+                shifter < 32 -> rm.value(core)[shifter - 1].toBool()
+                shifter == 32 -> rm.value(core)[31].toBool()
                 else -> false
             }
             ShiftType.ASR -> when {
-                shifter <= 0L -> cpu.cpu.flags.c
-                shifter < 32L -> rm.value(cpu)[shifter - 1].toBool()
-                else -> rm.value(cpu)[31].toBool()
+                shifter <= 0L -> core.cpu.flags.c
+                shifter < 32L -> rm.value(core)[shifter - 1].toBool()
+                else -> rm.value(core)[31].toBool()
             }
             ShiftType.ROR -> when {
-                shifter <= 0L -> cpu.cpu.flags.c
-                (shifter and 0b11111) == 0 -> rm.value(cpu)[31].toBool()
-                (shifter and 0b11111) > 0 -> rm.value(cpu)[(shifter and 0b11111) - 1].toBool()
+                shifter <= 0L -> core.cpu.flags.c
+                (shifter and 0b11111) == 0 -> rm.value(core)[31].toBool()
+                (shifter and 0b11111) > 0 -> rm.value(core)[(shifter and 0b11111) - 1].toBool()
                 else -> throw IllegalStateException("Unexpected shifter value!")
             }
             else -> throw IllegalStateException("Unexpected shift type!")

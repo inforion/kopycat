@@ -5,10 +5,6 @@ plugins {
 group 'ru.inforion.lab403.kopycat'
 version '0.1'
 
-dependencies {
-    implementation 'joda-time:joda-time:2.9.9'
-}
-
 buildKopycatModule {
     library = "mcu"
     require += "cores:x86"

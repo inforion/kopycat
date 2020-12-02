@@ -27,11 +27,10 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.x86.enums.Flags
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
-import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86COP
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register

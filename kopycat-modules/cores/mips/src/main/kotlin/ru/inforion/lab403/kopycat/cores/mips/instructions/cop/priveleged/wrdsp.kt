@@ -28,7 +28,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 import ru.inforion.lab403.common.extensions.WRONGL
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.VOID
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -37,7 +37,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class wrdsp(core: MipsCore,
             data: Long = WRONGL,
-            rd: GPR) : RdInsn(core, data, VOID, rd) {
+            rd: MipsRegister
+) : RdInsn(core, data, VOID, rd) {
 
     override val mnem = "wrdsp"
 

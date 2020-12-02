@@ -28,27 +28,23 @@ package ru.inforion.lab403.kopycat.cores.base.common
 import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.hex8
-import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
-import kotlin.collections.HashSet
-import kotlin.collections.Set
-import kotlin.collections.any
-import kotlin.collections.map
-import kotlin.collections.mapTo
-import kotlin.collections.set
+import ru.inforion.lab403.kopycat.Kopycat
+import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
-import ru.inforion.lab403.kopycat.cores.base.common.BusCache.*
+import ru.inforion.lab403.kopycat.cores.base.common.BusCache.Entry
 import ru.inforion.lab403.kopycat.cores.base.common.Module.Companion.RESERVED_NAMES
 import ru.inforion.lab403.kopycat.cores.base.common.Module.Companion.log
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses.Bus
-import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.*
+import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.EXCEPTION
+import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.LOGGING
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.ConnectionError
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
-import ru.inforion.lab403.kopycat.cores.base.exceptions.PortDefinitionError
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
 import ru.inforion.lab403.kopycat.modules.BUS32
+import java.io.Serializable
+import kotlin.collections.set
 
 /**
  * {EN}
@@ -138,7 +134,9 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
     /**
      * {EN}Port to bus connection (there is also similar class for bus to port connection in [ModuleBuses]){EN}
      */
-    data class Connection(val bus: Bus, val offset: Long)
+    data class Connection(val bus: Bus, val offset: Long): Serializable
+
+    class PortDefinitionError(message: String) : Exception(message)
 
     @Suppress("LeakingThis")
     /**
@@ -152,7 +150,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
      * @param type тип порта ([Master], [Slave], [Proxy], [Translator])
      * {RU}
      */
-    abstract inner class APort(val name: String, val size: Long, val type: Type) {
+    abstract inner class APort(val name: String, val size: Long, val type: Type): Serializable {
         val module = this@ModulePorts.module
 
         internal val outerConnections = mutableListOf<Connection>()
@@ -201,8 +199,10 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
          * {RU}
          */
         open fun connect(bus: Bus, offset: Long = 0) {
-            if (bus.module == module)
-                throw ConnectionError("Can't connect bus $bus to port $this because bus is inner!")
+            ConnectionError.on(bus.module == module) {
+                "\nCan't connect port $this to bus $bus because these bus and port belong to the same module '$module'" +
+                "\nSuch a connection is only possible if port is Proxy port but $this is '$type'"
+            }
             connectOuter(bus, offset)
         }
 
@@ -211,12 +211,23 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
         fun connect(bus: Bus, vararg offsets: Long) = offsets.forEach { connect(bus, it) }
 
         /**
+         * {EN}
+         * Disconnects this port from [bus] at any connected offset
+         *
+         * @param bus bus from which disconnect port
+         * {EN}
+         */
+        open fun disconnect(bus: Bus) {
+            outerConnections.filter { it.bus == bus }.forEach { disconnectOuter(it) }
+        }
+
+        /**
          * {RU}
          * Свойство возвращает, подключен или нет порт к шине с внешней стороны
-         * (обычное и единственно-возможное подлючение для всех портов, кроме [Proxy])
+         * (обычное и единственно-возможное подключение для всех портов, кроме [Proxy])
          *
          * Именно с помощью этого свойства должно проверяться наличие подключения у всех типов портов кроме [Proxy],
-         * порт типа [Proxy] имеет еще одно подлючение с внутренней стороны модуля, оно проверяется с помощью
+         * порт типа [Proxy] имеет еще одно подключение с внутренней стороны модуля, оно проверяется с помощью
          * свойства [Proxy.hasInnerConnection]
          * {RU}
          */
@@ -240,11 +251,14 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
         }
 
         protected fun connectOuter(bus: Bus, offset: Long = 0) {
-            if (outerConnections.find { it.bus == bus && it.offset == offset } != null)
-                throw ConnectionError("Port $this already has the same connection to $bus offset=${offset.hex}!")
+            val connection = outerConnections.find { it.bus == bus && it.offset == offset }
+            ConnectionError.on(connection != null) {
+                "Port $this already has the same connection to $bus offset=${offset.hex}!"
+            }
 
-            if (offset + size > bus.size)
-                throw ConnectionError("Port $this with size=0x${size.hex} offset=0x${offset.hex} extent bus $bus size=0x${bus.size.hex}!")
+            ConnectionError.on(offset + size > bus.size) {
+                "Port $this with size=0x${size.hex} offset=0x${offset.hex} extent bus $bus size=0x${bus.size.hex}!"
+            }
 
             // connect and validate
             bus.onPortConnected(this, offset, ModuleBuses.ConnectionType.OUTER)
@@ -252,14 +266,26 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
             outerConnections.add(Connection(bus, offset))
         }
 
-        init {
-            if (size <= 0)
-                throw PortDefinitionError(this, "Wrong bus size $size > 0")
-            if (name in RESERVED_NAMES)
-                throw PortDefinitionError(this, "Bad port name: $name")
-            if (name in this@ModulePorts.keys)
-                throw PortDefinitionError(this, "Port name $name is duplicated in module $module")
+        /**
+         * {EN}
+         * Removes specified port-bus connection also call [Bus.onPortDisconnect] method
+         *
+         * @param connection connection to remove
+         * {EN}
+         */
+        protected fun disconnectOuter(connection: Connection) {
+            outerConnections.remove(connection)
+            connection.bus.onPortDisconnect(this, connection.offset)
+        }
 
+        private inline fun errorIf(condition: Boolean, message: () -> String) {
+            if (condition) throw PortDefinitionError(message())
+        }
+
+        init {
+            errorIf(size <= 0) { "$this -> wrong bus size $size > 0" }
+            errorIf(name in RESERVED_NAMES) { "$this -> bad port name: $name" }
+            errorIf(name in this@ModulePorts.keys) { "$this -> port name $name is duplicated in module $module" }
             this@ModulePorts[name] = this@APort
         }
     }
@@ -375,6 +401,13 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
          *
          * @param register регистр, который должен быть добавлен
          * {RU}
+         *
+         * {EN}
+         * Adds register [Module.Register] to this port. After that register can be accessed using port.
+         *
+         * NOTE: [Module.initializePortsAndBuses] must be called before action takes effect for module
+         *   (automatically performed in [Module.initializeAndResetAsTopInstance] or [Kopycat.open])
+         * {EN}
          */
         fun add(register: Module.Register): Boolean = registers.add(register)
 
@@ -385,8 +418,25 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
          *
          * @param area область памяти, которая должна быть добавлена
          * {RU}
+         *
+         * {EN}
+         * Adds area [Module.Area] to this port. After that area can be accessed using port.
+         *
+         * NOTE: [Module.initializePortsAndBuses] must be called before action takes effect for module
+         *   (automatically performed in [Module.initializeAndResetAsTopInstance] or [Kopycat.open])
+         * {EN}
          */
         fun add(area: Module.Area): Boolean = areas.add(area)
+
+        /**
+         * {EN}
+         * Remove area [Module.Area] from this port
+         *
+         * NOTE: [Module.initializePortsAndBuses] must be called before action takes effect for module
+         * {EN}
+         */
+        @ExperimentalWarning("remove() method may not work correctly")
+        fun remove(area: Module.Area): Boolean = areas.remove(area)
     }
 
     /**
@@ -407,16 +457,23 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
             private set
 
         override fun connect(bus: Bus, offset: Long) {
-            if (offset != 0L)
-                throw ConnectionError("Error in connection $bus to $this, proxy port connection offset should be 0")
-
-            if (bus.size != size)
-                throw ConnectionError("Size of inner bus $bus and port $this must be the same! [${bus.size.hex8} != ${size.hex8}]")
+            // TODO: May be these checks should be in connectInner?
+            ConnectionError.on(offset != 0L) { "Error in connection $bus to $this, proxy port connection offset should be 0" }
+            ConnectionError.on(bus.size != size) { "Size of inner bus $bus and port $this must be the same! [${bus.size.hex8} != ${size.hex8}]" }
 
             if (bus.module == module) {
                 connectInner(bus)
             } else {
                 connectOuter(bus)
+            }
+        }
+
+        override fun disconnect(bus: Bus) {
+            if (bus == innerBus) {
+                innerBus = null
+                bus.onPortDisconnect(this, 0)
+            } else {
+                super.disconnect(bus)
             }
         }
 

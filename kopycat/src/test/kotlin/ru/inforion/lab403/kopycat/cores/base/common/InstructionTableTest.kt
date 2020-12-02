@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import ru.inforion.lab403.kopycat.device.TestCPU
-import java.util.logging.Level.WARNING
+import ru.inforion.lab403.kopycat.modules.cores.device.hardware.TestCPU
 
 class InstructionTableTest(parent: Module, name: String): Debugger(parent, name) {
     inline val cpu get() = core.cpu as TestCPU

@@ -40,7 +40,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class sdc1(
         core: MipsCore,
         data: Long,
-        ct: MipsRegister<*>,
+        ct: MipsRegister,
         off: MipsDisplacement
 ) : FtOffsetInsn(core, data, Type.VOID, ct, off) {
 

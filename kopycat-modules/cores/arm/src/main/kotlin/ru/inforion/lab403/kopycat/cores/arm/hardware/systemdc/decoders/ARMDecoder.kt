@@ -34,7 +34,12 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.UN
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.ExceptionDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.branch.ArmBranchDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.branch.ArmBranchWithLinkDecoder
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.coprcessor.MoveCoprocessorDecoder
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.coprcessor.MoveCoprocessorFromTwoDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.dataproc.*
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.exceptions.LoadMultipleExceptionReturnDecoder
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.exceptions.SubstractExceptionReturn
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.exceptions.SupervisorCallDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.extraloadstore.*
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.hints.HintsDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.hints.MSRImmDecoder
@@ -42,14 +47,12 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.loadstore.*
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.media.BitFieldExtractDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.media.BitFieldOppDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.media.UnsignedSumAbsDiffDecoder
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.coprcessor.MoveCoprocessorDecoder
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.coprcessor.MoveCoprocessorFromTwoDecoder
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.exceptions.LoadMultipleExceptionReturnDecoder
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.exceptions.SubstractExceptionReturn
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.miscellaneous.CLZDecoder
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.miscellaneous.GetRmDecoder
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.miscellaneous.MRSRegDecoder
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.miscellaneous.MSRRegSLDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.multiply.*
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.packing.*
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.exceptions.SupervisorCallDecoder
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.miscellaneous.*
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.unconditional.ClearExclusiveDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.unconditional.CpsDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.unconditional.PldDecoder
@@ -60,17 +63,18 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.arithm.register.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.arithm.registerShiftedRegister.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.branch.BLXr
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.branch.BX
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MCR
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MCRR
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MRC
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.exceptions.SVC
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.hint.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.hmultiply.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.logic.immediate.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.logic.register.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.logic.registerShiftedRegister.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.media.*
-import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MCR
-import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MCRR
-import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MRC
-import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.misc.MRS
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.misc.CLZ
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.misc.MRS
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.misc.MSRsl
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.multiply.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.reversal.*
@@ -83,9 +87,8 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.saturating.USAT16
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.shift.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special.PKH
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.LDM
-import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.STM
-import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.exceptions.SVC
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.LDMur
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.STM
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.STMur
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unconditional.CPS
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unconditional.PLD
@@ -95,7 +98,10 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special.MSR as MSRA
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.MSR as MSRSystem
 
 class ARMDecoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
-    companion object { private val log = logger() }
+    companion object {
+        @Transient private val log = logger()
+    }
+
     private val undefined = ExceptionDecoder.Undefined(cpu)
     private val unpredictable = ExceptionDecoder.Unpredictable(cpu)
 

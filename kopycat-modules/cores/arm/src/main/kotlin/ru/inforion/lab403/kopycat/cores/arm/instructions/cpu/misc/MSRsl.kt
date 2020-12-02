@@ -29,10 +29,7 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
-import ru.inforion.lab403.kopycat.cores.arm.operands.ARMVariable
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 // TODO: collapse with MSR

@@ -42,6 +42,6 @@ class Code19bit(
 
     override fun decode(data: Long): AMipsInstruction {
         val code = data[24..6]
-        return construct(core, data, MipsImmediate(code))
+        return construct(core, data, imm(code))
     }
 }

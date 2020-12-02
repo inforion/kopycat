@@ -35,6 +35,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 class FLBank(core : MSP430Core) : ARegistersBank<MSP430Core, Flags>(core, Flags.values(), bits = 16) {
     override val name: String = "Flags Register"
 
+    var value by valueOf(MSP430Register.GPR.r2)
+
     var c by bitOf(MSP430Register.GPR.r2, Flags.C.bit)
     var z by bitOf(MSP430Register.GPR.r2, Flags.Z.bit)
     var n by bitOf(MSP430Register.GPR.r2, Flags.N.bit)
@@ -44,6 +46,4 @@ class FLBank(core : MSP430Core) : ARegistersBank<MSP430Core, Flags>(core, Flags.
     var scg0 by bitOf(MSP430Register.GPR.r2, Flags.SCG0.bit)
     var scg1 by bitOf(MSP430Register.GPR.r2, Flags.SCG1.bit)
     var v by bitOf(MSP430Register.GPR.r2, Flags.V.bit)
-
-
 }

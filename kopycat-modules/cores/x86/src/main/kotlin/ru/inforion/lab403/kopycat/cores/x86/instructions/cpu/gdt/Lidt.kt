@@ -28,7 +28,6 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.gdt
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86COP
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core

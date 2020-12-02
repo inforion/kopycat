@@ -28,13 +28,12 @@ package ru.inforion.lab403.kopycat.modules.stm32f042
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_BUS_SIZE
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.UART_MASTER_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.UART_SLAVE_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.cortexm0.CORTEXM0
 import ru.inforion.lab403.kopycat.modules.cortexm0.NVIC
-import ru.inforion.lab403.kopycat.modules.debuggers.ARMDebugger
+import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import java.io.File
 import java.io.InputStream
@@ -58,8 +57,6 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
 
         val gpiob_in = Proxy("gpiob_in", GPIOx.PIN_COUNT)
         val gpiob_out = Proxy("gpiob_out", GPIOx.PIN_COUNT)
-
-        val trace = Proxy("trace", TRACER_BUS_SIZE)
     }
 
     override val ports = Ports()
@@ -107,7 +104,7 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
     private val iwdg = IWDG(this, "iwdg")
     private val flash = FLASH(this, "flash")
 
-    private val dbg = ARMDebugger(this, "dbg")
+    val dbg = ARMDebugger(this, "dbg")
 
     private fun sysInit() {
         cortex.ports.mem.connect(buses.mem)
@@ -263,7 +260,6 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
     }
 
     private fun dbgInit() {
-        buses.connect(ports.trace, dbg.ports.trace)
         dbg.ports.breakpoint.connect(buses.mem)
         dbg.ports.reader.connect(buses.mem)
     }

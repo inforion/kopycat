@@ -54,7 +54,10 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    companion object { val log = logger(Level.FINE) }
+    companion object {
+        @Transient val log = logger(Level.FINE)
+    }
+
     override val name: String = "MSP430 System Decoder"
     private val cache = THashMap<Long, AMSP430Instruction>(1024*1024)
 

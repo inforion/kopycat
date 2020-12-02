@@ -32,7 +32,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.cores.E500v2
-import ru.inforion.lab403.kopycat.modules.debuggers.PPCDebugger
+import ru.inforion.lab403.kopycat.modules.cores.PPCDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
 import java.nio.ByteOrder

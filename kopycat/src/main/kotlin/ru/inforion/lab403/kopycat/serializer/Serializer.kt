@@ -25,17 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.serializer
 
-import com.fasterxml.jackson.core.JsonParser
-import com.fasterxml.jackson.databind.SerializationFeature
-import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.base.common.Component
+import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import java.io.DataInputStream
 import java.io.File
 import java.io.FileOutputStream
+import java.lang.Exception
 import java.nio.ByteBuffer
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -46,11 +43,51 @@ import java.util.zip.ZipOutputStream
 import kotlin.system.measureTimeMillis
 
 
-
 class Serializer<T: ISerializable>(val target: T, val suppressWarnings: Boolean) {
 
     companion object {
-        val log = logger()
+        @Transient val log = logger()
+
+        const val stateJsonPath = "state.json"
+        const val metaJsonPath = "meta.json"
+        const val waitingObjectsRetries = 50
+
+        private fun Any.classname() = javaClass.simpleName
+
+        private fun <T> ByteBuffer.safeByteBufferAction(action: (ByteBuffer) -> T): T {
+            val position = position()
+            val limit = limit()
+
+            val result = action(this)
+
+            position(position)
+            limit(limit)
+
+            return result
+        }
+
+        private fun ZipOutputStream.writeJsonEntry(filename: String, json: String) {
+            putNextEntry(ZipEntry(filename))
+            write(json.toByteArray())
+        }
+
+        private fun ZipOutputStream.writeBinaryEntry(filename: String, data: ByteBuffer) {
+            putNextEntry(ZipEntry(filename))
+            data.safeByteBufferAction { writeFrom(it) }
+        }
+
+        private fun ZipFile.readBinaryEntry(filename: String, output: ByteBuffer): Boolean {
+            val entry = getEntry(filename) ?: return false
+            getInputStream(entry).use { stream -> stream.readInto(output) }
+            return true
+        }
+
+        private fun ZipFile.readJsonEntry(filename: String): String {
+            val entry = getEntry(filename)
+            return getInputStream(entry).use { it.readBytes().toString(Charsets.UTF_8) }
+        }
+
+        private fun ZipFile.isFileExists(filename: String) = getEntry(filename) != null
 
         fun createTemporaryFileFromSnapshot(data: ByteArray): File {
             val formatter = DateTimeFormatter.ofPattern("dd_MM_yyyy_HH_mm_ss")
@@ -61,14 +98,12 @@ class Serializer<T: ISerializable>(val target: T, val suppressWarnings: Boolean)
             }
         }
 
-        fun getPluginFromSnapshot(path: String): Pair<String, String> {
-            val comp = Component(null, "dummy")
-            Serializer(comp, false).deserialize(path)
-            return Pair(comp.snapshotPlugin, comp.snapshotLibrary)
+        fun getMetaInfo(path: String): MetaInfo? = ZipFile(path).use {
+            if (it.isFileExists(metaJsonPath)) it.readJsonEntry(metaJsonPath)
+                    .runCatching { parseJson<MetaInfo>() }
+                    .onFailure { log.warning { "Can't get MetaInfo of '$path' -> $it" } }
+                    .getOrNull() else null
         }
-
-        fun getPluginFromSnapshot(data: ByteArray) =
-                getPluginFromSnapshot(createTemporaryFileFromSnapshot(data).absolutePath)
     }
 
     // java by default generate date format that can be only read on non-windows system.... have fun
@@ -78,15 +113,60 @@ class Serializer<T: ISerializable>(val target: T, val suppressWarnings: Boolean)
     private var json: String? = null
     private var snapshot: Map<String, Any>? = null
 
-    private val mapper = jacksonObjectMapper().apply {
-        configure(JsonParser.Feature.ALLOW_COMMENTS, true)
-        configure(SerializationFeature.INDENT_OUTPUT, true)
+    private val jsonMapper = jsonParser()
+
+    private val serializedObjects = mutableMapOf<Any, String>()
+    private val deserializedObjects = mutableMapOf<String, Any>()
+    private val prefixes = mutableListOf("root")
+    private val prefix: String
+        get() = prefixes.joinToString(".")
+
+    fun <T> withPrefix(pref: String, block: () -> T): T {
+        prefixes.add(pref)
+        try {
+            val result = block()
+            prefixes.removeLast()
+            return result
+        }
+        catch (ex: Exception) {
+            prefixes.removeLast()
+            throw ex
+        }
     }
 
-    fun serialize(path: String): Boolean {
-        log.fine { "================================================================================================" }
-        log.fine { "============================= ${target.javaClass.simpleName} serialization started =============================" }
-        log.fine { "================================================================================================" }
+    fun isSerialized(obj: Any) = obj in serializedObjects
+
+    fun getSerializedPrefix(obj: Any) = serializedObjects[obj]
+    fun getDeserializedObject(pref: String) = deserializedObjects[pref]
+
+    fun addSerializedObject(obj: Any) {
+        serializedObjects[obj] = prefix
+    }
+
+    fun addDeserializedObject(obj: Any) {
+        deserializedObjects[prefix] = obj
+    }
+
+    private val waitingObjects = mutableListOf<() -> Unit>()
+
+    fun waitingObject(block: () -> Unit) = waitingObjects.add(block)
+
+    private fun processWaitingObjects() {
+        repeat(waitingObjectsRetries) {
+            val copy = waitingObjects.toMutableList()
+            waitingObjects.clear()
+
+            copy.forEach { func -> func() }
+
+            if (waitingObjects.isEmpty())
+                return
+        }
+
+        throw GeneralException("Can't serialize objects: $waitingObjects")
+    }
+
+    fun serialize(path: String, comment: String? = null, entry: Long = 0): Boolean {
+        log.finest { "${target.classname()} serialization started" }
         val time = measureTimeMillis {
             // subtle closing required
             File(path).parentFile.mkdirs()
@@ -94,35 +174,55 @@ class Serializer<T: ISerializable>(val target: T, val suppressWarnings: Boolean)
                 zipOut = it
                 try {
                     snapshot = target.serialize(this)
+                    processWaitingObjects()
                 } catch (error: NotSerializableObjectException) {
                     log.warning { "Can't serialize object due to ${error.message}" }
                     return false
                 }
-                json = mapper.writeValueAsString(snapshot)
-                it.putNextEntry(ZipEntry("state.json"))
-                it.write(json!!.toByteArray())
+
+                json = snapshot!!.writeJson(jsonMapper).apply {
+                    it.writeJsonEntry(stateJsonPath, this)
+                }
+
+                // TODO: Добавить возможность добавления произвольных данных
+                MetaInfo(entry, comment).writeJson(jsonMapper).apply {
+                    it.writeJsonEntry(metaJsonPath, this)
+                }
             }
+
+            // {RU}
+            // Когда делается serialize в переменную snapshot собираются данные и они сохраняются в том формате как
+            // их туда добавляли (то есть Int, Long, Enum и т.п.), а когда делается deserialize эта переменная
+            // перетирается загруженной с помощью mapper'a, там все String. Поэтому если потом сделать restore,
+            // то для него будут объекты другие (int, long, enum), а для deserialize - все String.
+            // Чтобы в snapshot всегда хранились String в value необходимо сделать mapper.readValue(). Тогда
+            // десериализация для deserialize и restore будет одинакова.
+            // {RU}
+            //
+            // re-read snapshot to make snapshot identical for restore and deserialize
+            // if we don't re-read it then in snapshot after serialize remains cached value that
+            // differ from deserialized values
+            snapshot = json!!.parseJson(jsonMapper)
+
+            // Set ZIP-file to made restore possible of binary files
+            zipFile = ZipFile(path)
         }
-        log.fine { "==================== ${target.javaClass.simpleName} was serialized for $time ms ==================== " }
+        log.fine { "${target.classname()} was serialized for $time ms" }
         return true
     }
 
     fun deserialize(path: String): Serializer<T> {
-        log.fine { "================================================================================================" }
-        log.fine { "============================= ${target.javaClass.simpleName} deserialization started =============================" }
-        log.fine { "================================================================================================" }
+        log.finest { "${target.classname()} deserialization started" }
         val time = measureTimeMillis {
             zipFile = ZipFile(path)
             zipFile!!.let { zip ->
-                val entry = zip.getEntry("state.json")
-                zip.getInputStream(entry).use { stream ->
-                    json = stream.readBytes().toString(Charsets.UTF_8)
-                    snapshot = mapper.readValue<HashMap<String, Any>>(json!!)
-                    target.deserialize(this, snapshot!!)
-                }
+                json = zip.readJsonEntry(stateJsonPath)
+                snapshot = json!!.parseJson(jsonMapper)
+                target.deserialize(this, snapshot!!)
+                processWaitingObjects()
             }
         }
-        log.fine { "==================== ${target.javaClass.simpleName} was deserialized for $time ms ==================== " }
+        log.fine { "${target.classname()} was deserialized for $time ms" }
 
         return this
     }
@@ -130,54 +230,38 @@ class Serializer<T: ISerializable>(val target: T, val suppressWarnings: Boolean)
     fun deserialize(data: ByteArray) = deserialize(createTemporaryFileFromSnapshot(data).absolutePath)
 
     fun restore(): Serializer<T> {
-        log.fine { "================================================================================================" }
-        log.fine { "============================= ${target.javaClass.simpleName} restoration started =============================" }
-        log.fine { "================================================================================================" }
+        log.finest { "${target.classname()} restoration started" }
         val time = measureTimeMillis {
             if (json == null) {
                 if (zipFile != null) {
                     zipFile!!.let { zip ->
-                        val entry = zip.getEntry("state.json")
-                        zip.getInputStream(entry).use { stream ->
-                            json = stream.readBytes().toString(Charsets.UTF_8)
-                            snapshot = mapper.readValue<HashMap<String, Any>>(json!!)
-                            log.info { "Snapshot loaded from zip" }
-                        }
+                        json = zip.readJsonEntry(stateJsonPath)
+                        snapshot = json!!.parseJson(jsonMapper)
+                        log.info { "Snapshot loaded from zip" }
                     }
-                }
-                else
-                    log.severe { "Restore failed. No last deserialized state." }
+                } else log.severe { "Restore failed. No last deserialized state." }
             }
-            target.restore(this, snapshot!!["components"] as Map<String, Any>)
+            target.restore(this, snapshot!!)
+            processWaitingObjects()
         }
-        log.fine { "==================== ${target.javaClass.simpleName} was restored for $time ms ==================== " }
+        log.fine { "${target.classname()} was restored for $time ms" }
         return this
     }
 
-    fun isBinaryExists(name: String): Boolean = zipFile!!.getEntry(name) != null
-
-    fun storeBinaries(vararg values: Pair<String, ByteBuffer>): Map<String, Any> =
-            values.fold(emptyMap()) { acc, (name, buffer) ->
-                acc + storeBinary(name, buffer)
-            }
+    fun isBinaryExists(name: String) = zipFile!!.isFileExists(name)
 
     fun storeBinary(name: String, output: ByteBuffer): Map<String, Any> {
-        zipOut!!.let { zip ->
-            val zipEntry = ZipEntry(name)
-            zip.putNextEntry(zipEntry)
-            safeByteBufferAction(output) {
-                zip.writeFrom(output)
-            }
-        }
-        return storeByteBufferData(name, output)
+        zipOut!!.writeBinaryEntry(name, output)
+        return storeByteBuffer(output, false)
     }
 
     fun loadBinary(snapshot: Map<String, Any?>, name: String, output: ByteBuffer): Boolean {
-        zipFile!!.let { zip ->
-            val entry = zip.getEntry(name) ?: return false
-            zip.getInputStream(entry).use { stream -> stream.readInto(output) }
-            restoreByteBufferData(snapshot, name, output)
-            return true
+        zipFile!!.let {
+            if (it.readBinaryEntry(name, output)) {
+                loadByteBuffer(snapshot, name, output, false)
+                return true
+            }
+            return false
         }
     }
 
@@ -215,42 +299,7 @@ class Serializer<T: ISerializable>(val target: T, val suppressWarnings: Boolean)
                     // System.arraycopy(cachedData, 0, byteArray, page, pageSize)
                 }
             }
-            restoreByteBufferData(snapshot, name, output)
+            loadByteBuffer(snapshot, name, output, false)
         }
-    }
-
-    fun storeValues(vararg values: Pair<String, Any>) = values.associate { (name, value) ->
-        name to when (value) {
-            is Float -> value.ieee754()
-            is Double -> value.ieee754()
-            else -> value
-        }
-    }
-
-    fun loadHex(snapshot: Map<String, Any?>, key: String, default: Long) =
-            loadValue(snapshot, key, default.hex8).hexAsULong
-
-    fun <T> safeByteBufferAction(buffer: ByteBuffer, action: () -> T): T {
-        val position = buffer.position()
-        val limit = buffer.limit()
-
-        val result = run(action)
-
-        buffer.position(position)
-        buffer.limit(limit)
-
-        return result
-    }
-
-    fun storeByteBufferData(id: String, buffer: ByteBuffer) = storeValues(
-            "${id}_buffer_pos" to buffer.position(),
-            "${id}_buffer_lim" to buffer.limit()
-    )
-
-    fun restoreByteBufferData(snapshot: Map<String, Any?>, id: String, buffer: ByteBuffer) {
-        val position: Int = loadValue(snapshot, "${id}_buffer_pos", 0)
-        val limit: Int = loadValue(snapshot, "${id}_buffer_lim", 0)
-        buffer.position(position)
-        buffer.limit(limit)
     }
 }

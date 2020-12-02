@@ -33,7 +33,7 @@ import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_proxy
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.cores.x86Core.Generation
-import ru.inforion.lab403.kopycat.modules.cores.x86Core.Generation.*
+import ru.inforion.lab403.kopycat.modules.cores.x86Core.Generation.Am5x86
 
 
 class AMDElanSC520(

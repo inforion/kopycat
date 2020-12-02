@@ -136,7 +136,7 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
 
     fun getFreeTlbIndex(): Int {
         if (currentTlbIndex == tlbEntries) {
-            currentTlbIndex = mips.cop.regs.Wired.asInt
+            currentTlbIndex = mips.cop.regs.Wired.value.asInt
         }
         return currentTlbIndex++
     }
@@ -165,7 +165,7 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
         val v: Int
         val d: Int
 
-        val entryHiASID = mips.cop.regs.EntryHi[7..0].toInt()
+        val entryHiASID = mips.cop.regs.EntryHi.value[7..0].toInt()
 
         for (i in 0 until TLB.size) {
             val invMask = TLB[i].Mask.inv()
@@ -259,7 +259,7 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
 
         when (context.command()) {
             "clear_mmu" -> {
-                (0 until TLB.size).forEach { index -> TLB[index] = TLBEntry() }
+                TLB.indices.forEach { index -> TLB[index] = TLBEntry() }
                 invalidateCache()
                 context.result = "MMU cleared"
                 context.pop()

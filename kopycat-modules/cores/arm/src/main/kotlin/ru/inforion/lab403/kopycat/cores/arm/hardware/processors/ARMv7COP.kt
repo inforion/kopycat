@@ -35,7 +35,7 @@ import java.util.logging.Level
 
 class ARMv7COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
     companion object {
-        val log = logger(Level.INFO)
+        @Transient val log = logger(Level.INFO)
     }
 
     override fun handleException(exception: GeneralException?): GeneralException? {

@@ -28,9 +28,7 @@ package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rstore
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
-import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 // See A8.8.214

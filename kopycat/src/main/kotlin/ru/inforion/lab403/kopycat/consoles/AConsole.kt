@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.consoles
 
+import org.jline.reader.Completer
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.toSerializable
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
@@ -33,7 +35,7 @@ import kotlin.system.measureNanoTime
 
 abstract class AConsole(name: String): Thread(name) {
     companion object {
-        val log = logger(Level.INFO)
+        @Transient val log = logger(Level.INFO)
     }
 
     enum class RequestType { EVAL, EXECUTE }
@@ -108,9 +110,10 @@ abstract class AConsole(name: String): Thread(name) {
                             }
                         }
                     } catch (error: Exception) {
-                        log.severe { "Unexpected exception occurred during command execution..." }
-                        error.printStackTrace()
-                        qOutput.put(Result(-1, error.message))
+                        // TODO: Make configurable print stack trace
+                        // log.severe { "Unexpected exception occurred during command execution..." }
+                        // error.printStackTrace()
+                        qOutput.put(Result(-1, error.toString()))
                     }
                 }
             }
@@ -118,6 +121,8 @@ abstract class AConsole(name: String): Thread(name) {
 
         isFinished = true
     }
+
+    open val completer: Completer? = null
 
     init {
         start()

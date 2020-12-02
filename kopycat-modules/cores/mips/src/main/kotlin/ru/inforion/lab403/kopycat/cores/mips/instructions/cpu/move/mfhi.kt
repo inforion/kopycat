@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.move
 
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -36,7 +36,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class mfhi(
         core: MipsCore,
         data: Long,
-        rd: GPR) : RdInsn(core, data, Type.VOID, rd) {
+        rd: MipsRegister) : RdInsn(core, data, Type.VOID, rd) {
 
     override val mnem = "mfhi"
 

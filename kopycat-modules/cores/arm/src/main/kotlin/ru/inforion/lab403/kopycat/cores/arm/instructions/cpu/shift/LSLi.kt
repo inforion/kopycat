@@ -33,6 +33,7 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMVariable
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
@@ -57,7 +58,7 @@ class LSLi(cpu: AARMCore,
     override fun execute() {
         val (res, carry) = Shift_C(rm.value(core), 32, SRType_LSL, shiftN, core.cpu.flags.c.asInt)
         result.value(core, res)
-        if (rd.reg == core.cpu.regs.pc.reg)
+        if (rd.isProgramCounter(core))
             core.cpu.ALUWritePC(result.value(core))
         else {
             rd.value(core, result)

@@ -43,7 +43,7 @@ import java.util.logging.Level
 
 class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(parent, name) {
     companion object {
-        val log = logger(Level.FINE)
+        @Transient val log = logger(Level.FINE)
     }
 
     constructor(parent: Module, name: String, resource: Resource) :

@@ -33,10 +33,8 @@ import ru.inforion.lab403.kopycat.cores.arm.SRType.SRType_LSL
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 class ThumbLogicRegDecoder(
@@ -54,9 +52,9 @@ class ThumbLogicRegDecoder(
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
     override fun decode(data: Long): AARMInstruction {
         val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rn = GPRBank.Operand(data[2..0].asInt)
-        val rd = GPRBank.Operand(data[2..0].asInt)
-        val rm = GPRBank.Operand(data[5..3].asInt)
+        val rn = gpr(data[2..0].asInt)
+        val rd = gpr(data[2..0].asInt)
+        val rm = gpr(data[5..3].asInt)
         val setFlags = !core.cpu.InITBlock()
         return constructor(core, data, cond, setFlags, rd, rn, rm, SRType_LSL, 0, 2)
     }

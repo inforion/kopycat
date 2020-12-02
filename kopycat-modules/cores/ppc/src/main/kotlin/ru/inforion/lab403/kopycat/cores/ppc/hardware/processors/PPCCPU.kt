@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.processors
 
+import ru.inforion.lab403.common.extensions.sure
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
@@ -68,7 +69,7 @@ class PPCCPU(val ppc: PPCCore, name: String, vararg systems: eSystem):
 
     private val decoder = PPCSystemDecoder(ppc, *systems)
 
-    fun spr(id: Int) : SPR = sprMap[id] ?: throw GeneralException("Unknown SPR: $id")
+    fun spr(id: Int) : SPR = sprMap[id].sure { "Unknown SPR: $id" }
     fun sprSwap(id: Int) : SPR = spr(SPR.swap(id))
 
     override fun reset() {

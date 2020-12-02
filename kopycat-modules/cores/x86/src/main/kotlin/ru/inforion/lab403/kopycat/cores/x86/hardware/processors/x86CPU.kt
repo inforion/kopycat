@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.processors
 
 import net.sourceforge.argparse4j.inf.ArgumentParser
-import ru.inforion.lab403.common.extensions.hex4
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.toLong
 import ru.inforion.lab403.common.extensions.variable
@@ -44,7 +43,6 @@ import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-
 class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruction, x86GPR>(x86, name) {
 
     enum class Mode { R16, R32 }
@@ -54,16 +52,13 @@ class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruct
     // Real or protected mode defined by cregs.vpe
     val mode: Mode get() = if (cregs.vpe && defaultSize) Mode.R32 else Mode.R16
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return mapOf(
-                "regs" to regs.serialize(ctxt),
-                "sregs" to sregs.serialize(ctxt),
-                "flags" to flags.serialize(ctxt),
-                "dregs" to dregs.serialize(ctxt),
-                "cregs" to cregs.serialize(ctxt),
-                "pc" to pc.hex8
-        )
-    }
+    override fun serialize(ctxt: GenericSerializer) = mapOf(
+            "regs" to regs.serialize(ctxt),
+            "sregs" to sregs.serialize(ctxt),
+            "flags" to flags.serialize(ctxt),
+            "dregs" to dregs.serialize(ctxt),
+            "cregs" to cregs.serialize(ctxt),
+            "pc" to pc.hex8)
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -78,6 +73,7 @@ class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruct
     override fun reg(index: Int): Long = regs[index].value(x86)
     override fun reg(index: Int, value: Long) = regs[index].value(x86, value)
     override fun count() = regs.count()
+    override fun flags() = flags.eflags
 
     /**
      * Stub for debugging purpose of x86CPU core
@@ -121,13 +117,11 @@ class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruct
         return 1  // TODO: get from insn.execute()
     }
 
-    override fun stringify(): String {
+    override fun stringify() = buildString {
         val where = x86.mmu.translate(eip.value(x86), cs.reg, 1, AccessAction.LOAD)
-        return arrayOf(
-                "$name PC = %08X".format(where),
-                "%s".format(regs.stringify()),
-                "%s".format(sregs.stringify())
-        ).joinToString("")
+        appendLine("x86 CPU: PC = 0x${where.hex8}")
+        appendLine(regs.stringify())
+        append(sregs.stringify())
     }
 
     override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =

@@ -25,16 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unconditional
 
-import ru.inforion.lab403.common.extensions.clr
-import ru.inforion.lab403.common.extensions.insert
-import ru.inforion.lab403.common.extensions.set
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
-import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
-
 
 
 // See A8.8.126

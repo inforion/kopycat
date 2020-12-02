@@ -41,6 +41,6 @@ class Index(
 ) : ADecoder(core) {
     override fun decode(data: Long): AMipsInstruction {
         val offset = (data[25..0] shl 2).toInt()
-        return construct(core, data, MipsNear(offset))
+        return construct(core, data, near(offset))
     }
 }

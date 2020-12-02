@@ -32,6 +32,7 @@ import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpr
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegisterList
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
@@ -52,19 +53,22 @@ class POP(cpu: AARMCore,
 
         // Выравниваем стэк до вызова LoadWritePC(), иначе не заработают прерывания
         if(registers.contains(rn)) throw Unknown
-        else rn.value(core, rn.value(core) + 4 * registers.bitCount)
+        else rn.value(core, rn.value(core) + 4 * registers.count)
 
         // There is difference from datasheet (all registers save in common loop) -> no LoadWritePC called
         registers.forEachIndexed { _, reg ->
-            if(reg.reg != core.cpu.regs.pc.reg){
+            if (reg.isProgramCounter(core)) {
+                if (unalignedAllowed) {
+                    if (address[1..0] == 0L)
+                        core.cpu.LoadWritePC(core.inl(address like Datatype.DWORD))
+                    else
+                        throw Unpredictable
+                } else {
+                    core.cpu.LoadWritePC(core.inl(address like Datatype.DWORD))
+                }
+            } else {
                 reg.value(core, core.inl(address like Datatype.DWORD))
                 address += 4
-            } else {
-                if(unalignedAllowed)
-                    if (address[1..0] == 0L) core.cpu.LoadWritePC(core.inl(address like Datatype.DWORD))
-                    else throw Unpredictable
-                else
-                    core.cpu.LoadWritePC(core.inl(address like Datatype.DWORD))
             }
         }
     }

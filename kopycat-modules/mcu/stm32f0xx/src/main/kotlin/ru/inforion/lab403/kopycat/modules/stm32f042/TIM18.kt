@@ -37,7 +37,10 @@ import java.util.logging.Level
 
 
 class TIM18(parent: Module, name: String) : Module(parent, name) {
-    companion object { private val log = logger(Level.ALL) }
+    companion object {
+        @Transient private val log = logger(Level.ALL)
+    }
+
     inner class Ports : ModulePorts(this) {
         val mem = Slave("mem")
         val irq = Master("irq")

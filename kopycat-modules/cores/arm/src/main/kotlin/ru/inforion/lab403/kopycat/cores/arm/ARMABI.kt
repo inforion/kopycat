@@ -25,49 +25,71 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm
 
-import ru.inforion.lab403.common.extensions.UNDEF
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
-import ru.inforion.lab403.kopycat.cores.arm.enums.GPR as eGPR
+import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ABIBase
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
-import ru.inforion.lab403.kopycat.cores.base.abstracts.AContext
-import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
-import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-class ARMABI(cpu: AARMCore, heap: LongRange, stack: LongRange, bigEndian: Boolean):
-        ABI<AARMCore>(cpu, heap, stack, bigEndian) {
+class ARMABI(core: AARMCore, bigEndian: Boolean): ABI<AARMCore>(core, 32, bigEndian) {
 
-    override fun gpr(index: Int): ARegister<AARMCore> = GPRBank.Operand(index)
-    override fun createCpuContext(): AContext<*> = ARMContext(core.cpu)
-    override val ssr = UNDEF
-    override val sp = GPRBank.Operand(eGPR.SPMain.id) // TODO: refactor
-    override val ra = GPRBank.Operand(eGPR.LR.id)
-    override val v0 = GPRBank.Operand(eGPR.R0.id)
-    override val argl = listOf(
-            GPRBank.Operand(eGPR.R0.id),
-            GPRBank.Operand(eGPR.R1.id),
-            GPRBank.Operand(eGPR.R2.id),
-            GPRBank.Operand(eGPR.R3.id))
+    @DontAutoSerialize
+    override val regArguments = listOf(
+            core.cpu.regs.r0.id,
+            core.cpu.regs.r1.id,
+            core.cpu.regs.r2.id,
+            core.cpu.regs.r3.id)
 
-    override fun getArgs(n: Int, type: ArgType): Array<Long>{
-        var res = argl.map { it.value(core) }
-        val args = Array(n){ type }
+    override val minimumStackAlignment: Int = 4
 
-        if (n > argl.size) {
-            val ss = stackStream(where = argl.last().value(core))
-            res.dropLast(1)
-            res += args[argl.size until args.size].map {  // !!!!!!!!!!!!!!!!!!!!!  Не все аргументы !!!!!!!!!!!!!!1
-                when (it) {
-                    ArgType.Pointer -> ss.read(types.pointer)
-                    ArgType.Word -> ss.read(types.word)
-                    ArgType.Half -> ss.read(types.half)
-                    ArgType.Byte -> ss.read(types.half)  // x86 can't push byte but others ...
-                }
+    override val gprDatatype = Datatype.values().first { it.bits == this.core.cpu.regs.bits }
+    override val sizetDatatype = Datatype.DWORD
+    override fun register(index: Int) = core.cpu.regs[index].toOperand()
+    override val registerCount = core.cpu.count()
+
+    override fun createContext() = ARMContext(this)
+
+    override val pc get() = core.cpu.regs.pc.toOperand()
+    override val sp get() = core.cpu.regs.sp.toOperand()
+    override val ra get() = core.cpu.regs.lr.toOperand()
+    override val rv get() = core.cpu.regs.r0.toOperand()
+
+    // 0 - int
+    // 2,3 - long
+    //
+    var argOffset = 0
+
+    // 0 -(+1)> 1 -(/2)> 0 -(*2)> 0
+    // 1 -(+1)> 2 -(/2)> 1 -(*2)> 2
+    // 2 -(+1)> 3 -(/2)> 1 -(*2)> 2
+    // 3 -(+1)> 4 -(/2)> 2 -(*2)> 4 [stack]
+    fun alignedLongIndex(index: Int) = (((index + 1) / 2) * 2)
+
+    override fun getArg(index: Int, type: Datatype, alignment: Int, instance: ABIBase): Long {
+        val realIndex = index + argOffset
+        val alignedIndex = if (type.bits > bits) alignedLongIndex(realIndex) else realIndex
+        return if (alignedIndex < regArguments.size) {
+            if (type.bits > bits) {
+
+                argOffset++
+                if (index == 1)
+                    argOffset++
+
+                val low = instance.readRegister(regArguments[alignedIndex])
+                val high = instance.readRegister(regArguments[alignedIndex + 1])
+                (high shl 32) or low
             }
+            else
+                instance.readRegister(regArguments[alignedIndex]) like type
         }
+        else
+            instance.readStack(stackArgsOffset + (realIndex - regArguments.size) * alignment, type)
+    }
 
-        return res.toTypedArray()
+    override fun getArgs(args: Iterable<Datatype>, instance: ABIBase): Array<Long> {
+        argOffset = 0
+        return super.getArgs(args, instance)
     }
 }

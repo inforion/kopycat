@@ -19,9 +19,6 @@ temp
 \.idea/libraries
 \.idea/modules
 
-gradlew
-gradlew\.bat
-
 debuggers/kcdbg/cmake-build-win32/
 
 debuggers/kcdbg/cmake-build-debug/
@@ -38,4 +35,17 @@ plugins/kcdbg/cmake-build-osx-v850es/
 
 production/
 
-gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.jar
+*.til
+
+*.nam
+
+*.id2
+
+*.id1
+
+*.id0
+
+*.log
+
+*.kate-swp

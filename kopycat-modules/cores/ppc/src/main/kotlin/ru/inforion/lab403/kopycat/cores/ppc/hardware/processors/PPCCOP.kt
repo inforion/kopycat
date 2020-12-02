@@ -29,17 +29,15 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
-import ru.inforion.lab403.kopycat.cores.ppc.enums.eIrq
-import ru.inforion.lab403.kopycat.cores.ppc.exceptions.IPPCExceptionHolder
 import ru.inforion.lab403.kopycat.cores.ppc.exceptions.PPCHardwareException
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 import java.util.logging.Level
 
 
-
 class PPCCOP(core: PPCCore, name: String) : ACOP<PPCCOP, PPCCore>(core, name) {
-    companion object { val log = logger(Level.INFO) }
+    companion object {
+        @Transient val log = logger(Level.INFO)
+    }
 
     override fun processInterrupts() {
         //TODO("not implemented")

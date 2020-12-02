@@ -27,8 +27,8 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.trap
 
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsRtCodeInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -43,8 +43,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class teq(core: MipsCore,
           data: Long,
-          rs: GPR,
-          rt: GPR,
+          rs: MipsRegister,
+          rt: MipsRegister,
           code: MipsImmediate) : RsRtCodeInsn(core, data, Type.VOID, rs, rt, code) {
 
     override val mnem = "teq"

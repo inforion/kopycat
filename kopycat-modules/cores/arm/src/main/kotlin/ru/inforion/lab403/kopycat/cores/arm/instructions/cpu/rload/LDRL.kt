@@ -34,6 +34,7 @@ import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unkn
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
@@ -56,7 +57,7 @@ class LDRL(cpu: AARMCore,
         val base = Align(core.cpu.pc, 4)
         val address = base + if (add) imm32.zext else -imm32.zext
         val data = core.inl(address like Datatype.DWORD)
-        if (rt.reg == core.cpu.regs.pc.reg) { // PC
+        if (rt.isProgramCounter(core)) { // PC
             if (address[1..0] == 0b00L) core.cpu.LoadWritePC(data)
             else throw Unpredictable
         } else if (core.cpu.UnalignedSupport() || address[1..0] == 0b00L) {

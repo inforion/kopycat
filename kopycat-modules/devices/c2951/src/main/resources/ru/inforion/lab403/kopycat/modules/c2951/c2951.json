@@ -1,0 +1,64 @@
+{
+  "top": true,
+
+  // Plugin name should be the same as file name (or full path from library start)
+  "plugin": "c2951-json",
+
+  // Directory where plugin places
+  "library": "devices",
+
+  // Plugin parameters (constructor parameters if jar-plugin version)
+  "params": [
+
+  ],
+
+  // Plugin outer ports
+  "ports": [
+
+  ],
+
+  // Plugin internal buses
+  "buses": [
+    { "name": "mem", "size": "BUS32" }
+  ],
+
+  // Plugin internal components
+  "modules": [
+    {
+      "name": "ppcCore",
+      "plugin": "E500v2",
+      "library": "cores",
+      "params": {
+        "frequency": 50000000
+      }
+    },
+
+    {
+      "name": "ram",
+      "plugin": "RAM",
+      "library": "memory",
+      "params": {
+        "size": "0x1000000",
+        "data:Resource": "binaries/M29W128GL70N6.bin.gz"
+      }
+    },
+
+    {
+      "name": "dbg",
+      "plugin": "PPCDebugger",
+      "library": "cores",
+      "actions": [
+
+      ]
+    }
+
+  ],
+
+  // Plugin connection between components
+  "connections": [
+    [ "ppcCore.ports.mem", "buses.mem" ],
+    [ "dbg.ports.breakpoint", "buses.mem" ],
+    [ "dbg.ports.reader", "buses.mem" ],
+    [ "ram.ports.mem", "buses.mem", "0xFF000000" ]
+  ]
+}

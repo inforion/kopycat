@@ -36,7 +36,9 @@ import java.util.logging.Level
 
 
 class MSP430COP(core: MSP430Core, name: String) : ACOP<MSP430COP, MSP430Core>(core, name) {
-    companion object { val log = logger(Level.INFO) }
+    companion object {
+        @Transient val log = logger(Level.INFO)
+    }
 
     override fun handleException(exception: GeneralException?): GeneralException? {
         // TODO("not implemented")

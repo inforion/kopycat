@@ -33,16 +33,18 @@ import ru.inforion.lab403.kopycat.cores.msp430.hardware.registers.FLBank
 import ru.inforion.lab403.kopycat.cores.msp430.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.msp430.hardware.systemdc.MSP430SystemDecoder
 import ru.inforion.lab403.kopycat.cores.msp430.instructions.AMSP430Instruction
+import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 
 
 
 class MSP430CPU(val msp430: MSP430Core, name: String):
-        ACPU<MSP430CPU, MSP430Core, AMSP430Instruction, MSP430GPR>(msp430, name) {
+        ACPU<MSP430CPU, MSP430Core, AMSP430Instruction, MSP430GPR>(msp430, name, BUS16) {
 
     override fun reg(index: Int): Long = regs[index].value(msp430)
     override fun reg(index: Int, value: Long) = regs[index].value(msp430, value)
     override fun count() = regs.count()
+    override fun flags() = flags.value
 
     override var pc : Long
         get() = regs.r0ProgramCounter

@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.consoles.jep
 
-import ru.inforion.lab403.common.proposal.DynamicClassLoader
+import ru.inforion.lab403.common.extensions.DynamicClassLoader
 
 class JepInterpreter(redirectOutputStreams: Boolean) {
     private val configCls = DynamicClassLoader.loadClass("jep.JepConfig")

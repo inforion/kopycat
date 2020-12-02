@@ -3,6 +3,7 @@ import org.jetbrains.dokka.gradle.DokkaTask
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'application'
+    id 'maven-publish'
     id 'idea'
     id 'ru.inforion.lab403.gradle.versionConfig'
     id 'ru.inforion.lab403.gradle.dokkaMultilang'
@@ -11,7 +12,7 @@ plugins {
 
 applicationName = "kopycat"
 archivesBaseName = "kopycat"
-version = '0.3.20'
+version = '0.3.30'
 group = 'ru.inforion.lab403'
 applicationDefaultJvmArgs = [
         "-XX:MaxMetaspaceSize=256m",
@@ -26,38 +27,30 @@ ext.debugJvmLine = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,addres
 
 dependencies {
     implementation project(":common:proposal")
+//    implementation project(":common:elfloader")
 
-    implementation("com.github.inforion:kotlin-extensions:v0.2.2")
-    implementation("com.github.inforion:kotlin-logging:v0.1.2")
+    implementation group: 'org.jetbrains.kotlin', name: 'kotlin-script-util'
+    runtime group: 'org.jetbrains.kotlin', name: 'kotlin-scripting-compiler-embeddable'
+    runtime group: 'org.jetbrains.kotlin', name: 'kotlin-compiler-embeddable'
 
-    implementation("org.jetbrains.kotlin:kotlin-stdlib-jdk8")
-    implementation("org.jetbrains.kotlin:kotlin-reflect")
-    implementation("org.jetbrains.kotlin:kotlin-test-junit")
-    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:${kotlinx_version}")
+    implementation group: 'io.javalin', name: 'javalin', version: '3.11.0'
 
-    implementation 'io.javalin:javalin:1.7.0'  // REST Interface
+    implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.30'
 
-    implementation 'joda-time:joda-time:2.9.9'
-
-    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.2")
-    implementation("net.sf.trove4j:trove4j:3.0.3")
-
-    implementation("org.slf4j:slf4j-nop:1.7.25")
-    implementation("org.pcap4j:pcap4j-core:1.7.1")
-    implementation("org.pcap4j:pcap4j-packetfactory-static:1.7.1")
-    implementation('com.github.oshi:oshi-core:3.13.0')
-    implementation 'com.fazecast:jSerialComm:1.3.11'   // UartSerialTerminal
+    implementation group: 'org.pcap4j', name: 'pcap4j-core', version: '1.8.2'
+    implementation group: 'org.pcap4j', name: 'pcap4j-packetfactory-static', version: '1.8.2'
+    implementation group: 'com.github.oshi', name: 'oshi-core', version: '5.2.4'
+    implementation group: 'com.fazecast', name: 'jSerialComm', version: '2.6.2'  // UartSerialTerminal
 
     implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'  // Library
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
+    implementation group: 'org.jline', name: 'jline', version: '3.15.0'
 
     implementation 'com.auth0:java-jwt:3.8.0'
 
-    testImplementation 'com.github.stefanbirkner:system-rules:1.16.1'
+    implementation group: 'gnu.getopt', name: 'java-getopt', version: '1.0.13'
 
-    testImplementation("junit:junit:4.12")
-    testImplementation('org.junit.jupiter:junit-jupiter-api:5.1.0')
-    testRuntimeOnly('org.junit.jupiter:junit-jupiter-engine:5.1.0')
+    testImplementation group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.19.0'
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

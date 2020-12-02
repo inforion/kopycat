@@ -64,7 +64,7 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     companion object {
-        val log = logger()
+        @Transient val log = logger()
     }
 
     private class Prefix : ITableEntry {

@@ -34,23 +34,19 @@ import ru.inforion.lab403.kopycat.library.builders.api.ModuleParameterInfo
 import java.io.File
 
 class XmlModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFactoryBuilder(path) {
-    override fun plugins(): Set<String> = emptySet()
+    override val plugins = emptySet<String>()
 
-    override fun load(): Boolean = false
+    override fun load() = false
 
-    override fun factory(pluginName: String, registry: ModuleLibraryRegistry): List<IModuleFactory> {
-        return listOf(object : IModuleFactory {
-            override val canBeTop: Boolean
-                get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
+    override fun factory(name: String, registry: ModuleLibraryRegistry): List<IModuleFactory> = listOf(
+            object : IModuleFactory {
+                override val canBeTop get() = TODO("not implemented")
 
-            override val parameters: List<ModuleParameterInfo>
-                get() = TODO("not implemented") //To change initializer of created properties use File | Settings | File Templates.
+                override val parameters get() = TODO("not implemented")
 
-            override fun create(parent: Component?, name: String, vararg parameters: Any?): Module {
-                TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+                override fun create(parent: Component?, name: String, parameters: Map<String, Any?>): Module {
+                    TODO("not implemented")
+                }
             }
-        })
-    }
-
-    override fun getFilePath(): String = TODO("This case is unexpected.")
+    )
 }

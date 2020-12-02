@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.loadstore
 
 import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.find
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.DecodeImmShift
 import ru.inforion.lab403.kopycat.cores.arm.SRType
@@ -34,10 +33,9 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 class LoadStoreRegDecoder(
@@ -57,10 +55,10 @@ class LoadStoreRegDecoder(
                 shiftN: Int,
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
     override fun decode(data: Long): AARMInstruction {
-        val cond = find<Condition> { it.opcode == data[31..28].asInt } ?: Condition.AL
-        val rt = GPRBank.Operand(data[15..12].asInt)
-        val rn = GPRBank.Operand(data[19..16].asInt)
-        val rm = GPRBank.Operand(data[3..0].asInt)
+        val cond = cond(data)
+        val rt = gpr(data[15..12].asInt)
+        val rn = gpr(data[19..16].asInt)
+        val rm = gpr(data[3..0].asInt)
         val imm5 = data[11..7]
         val type = data[6..5]
 
@@ -69,11 +67,9 @@ class LoadStoreRegDecoder(
         val wback = data[24] == 0L || data[21] == 1L
         val (shiftT, shiftN) = DecodeImmShift(type, imm5)
 
-        val pc = core.cpu.regs.pc.reg
-
-        if ((checkRt && rt.reg == pc) || rm.reg == pc) throw Unpredictable
-        if (wback && (rn.reg == pc || rn.reg == rt.reg)) throw Unpredictable
-        if (core.cpu.ArchVersion() < 6 && wback && rm.reg == rn.reg) throw Unpredictable
+        if ((checkRt && rt.isProgramCounter(core)) || rm.isProgramCounter(core)) throw Unpredictable
+        if (wback && (rn.isProgramCounter(core) || rn.desc == rt.desc)) throw Unpredictable
+        if (core.cpu.ArchVersion() < 6 && wback && rm.desc == rn.desc) throw Unpredictable
 
         return constructor(core, data, cond, index, add, wback, rt, rn, rm, shiftT, shiftN.asInt, 4)
     }

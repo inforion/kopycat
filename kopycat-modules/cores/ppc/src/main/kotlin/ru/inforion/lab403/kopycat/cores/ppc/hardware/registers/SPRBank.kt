@@ -28,21 +28,14 @@ package ru.inforion.lab403.kopycat.cores.ppc.hardware.registers
 import ru.inforion.lab403.common.extensions.bitMask
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.hexAsULong
+import ru.inforion.lab403.common.extensions.sure
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eSystem
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-import kotlin.collections.Map
-import kotlin.collections.contains
-import kotlin.collections.forEach
-import kotlin.collections.map
-import kotlin.collections.mutableMapOf
-import kotlin.collections.putAll
 import kotlin.collections.set
-import kotlin.collections.toMap
-
 
 
 class SPRBank(val core: PPCCore, vararg systems: eSystem) : ICoreUnit/*, Iterable<Long>*/ {
@@ -61,7 +54,7 @@ class SPRBank(val core: PPCCore, vararg systems: eSystem) : ICoreUnit/*, Iterabl
         }
     }
 
-    fun readIntern(index: Int): Long = data[index] ?: throw GeneralException("Unknown SPR: $index")
+    fun readIntern(index: Int): Long = data[index].sure { "Unknown SPR: $index" }
 
     fun writeIntern(index: Int, value: Long) {
         if (index !in data)

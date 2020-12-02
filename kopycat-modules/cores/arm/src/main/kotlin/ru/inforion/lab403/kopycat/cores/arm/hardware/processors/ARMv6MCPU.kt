@@ -23,6 +23,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("FunctionName")
+
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import gnu.trove.map.hash.THashMap
@@ -31,9 +33,8 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.arm.enums.GPR
 import ru.inforion.lab403.kopycat.cores.arm.enums.Mode
-import ru.inforion.lab403.kopycat.cores.arm.enums.ProcessorMode
+import ru.inforion.lab403.kopycat.cores.arm.enums.StackPointer
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.Thumb16Decoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.Thumb32Decoder
@@ -43,15 +44,12 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
 import ru.inforion.lab403.kopycat.modules.cores.ARMv6MCore
 import java.util.logging.Level
-import kotlin.collections.Map
-import kotlin.collections.mapOf
 import kotlin.collections.set
 
 
-
- class ARMv6MCPU(core: ARMv6MCore, name: String) : AARMCPU(core, name) {
+class ARMv6MCPU(core: ARMv6MCore, name: String) : AARMCPU(core, name) {
     companion object {
-        val log = logger(Level.FINER)
+        @Transient val log = logger(Level.FINER)
     }
 
     override fun CurrentMode(): Mode = CurrentMode
@@ -59,25 +57,23 @@ import kotlin.collections.set
     override fun CurrentModeIsPrivileged(): Boolean = (CurrentMode == Mode.Handler || !spr.control.npriv)
 
     override fun StackPointerSelect() =
-            if (arm.cpu.spr.control.spsel) {
-                when (CurrentMode) {
-                    Mode.Thread -> GPR.SPProcess.id
-                    Mode.Handler -> GPR.SPMain.id
-                }
-            } else GPR.SPMain.id
+            if (arm.cpu.spr.control.spsel) when (CurrentMode) {
+                Mode.Thread -> StackPointer.Process
+                Mode.Handler -> StackPointer.Main
+            } else StackPointer.Main
 
     override fun ALUWritePC(address: Long) = BranchWritePC(address)
 
     override fun LoadWritePC(address: Long) = BXWritePC(address)
 
-    override fun BranchWritePC(address: Long) = BranchTo(address clr 0)
+    override fun BranchWritePC(address: Long, refill: Boolean) = BranchTo(address clr 0, refill)
 
-    override fun BXWritePC(address: Long) {
+    override fun BXWritePC(address: Long, refill: Boolean) {
         if (CurrentMode == Mode.Handler && address[31..28] == 0xFL) {
             ExceptionReturn(address)
         } else {
             sregs.epsr.t = address[0] == 1L
-            BranchTo(address clr 0)
+            BranchTo(address clr 0, refill)
         }
     }
 
@@ -94,23 +90,24 @@ import kotlin.collections.set
 
     fun ExceptionReturn(excReturn: Long) {
         if (CurrentMode != Mode.Handler) throw GeneralException("ExceptionReturn() function call in Thread mode")
-        if (excReturn[27..4] != 0xFF_FFFFL) throw Unpredictable
+        if (excReturn[27..4] != 0xFF_FFFFL)
+            throw Unpredictable
 
         val framePtr: Long
 
         when (excReturn[3..0]) {
             0b0001L -> {
-                framePtr = regs.spMain.value
+                framePtr = regs.sp.main
                 CurrentMode = Mode.Handler
                 spr.control.spsel = false
             }
             0b1001L -> {
-                framePtr = regs.spMain.value
+                framePtr = regs.sp.main
                 CurrentMode = Mode.Thread
                 spr.control.spsel = false
             }
             0b1101L -> {
-                framePtr = regs.spProcess.value
+                framePtr = regs.sp.process
                 CurrentMode = Mode.Thread
                 spr.control.spsel = true
             }
@@ -137,11 +134,10 @@ import kotlin.collections.set
         val psr = core.inl(framePtr + 0x1C)
 
 //        if(pc[0] == 1L) throw Unpredictable
-        BranchTo(pc)
+        BranchTo(pc, true)
 
         when (excReturn[3..0]) {
-            0b0001L, 0b1001L -> regs.spMain.value = (regs.spMain.value + 0x20).insert(psr[9], 2)
-            0b1101L -> regs.spProcess.value = (regs.spProcess.value + 0x20).insert(psr[9], 2)
+            0b0001L, 0b1001L, 0b1101L -> regs.sp.value = (regs.sp.value + 0x20).insert(psr[9], 2)
             else -> throw Unpredictable
         }
 
@@ -156,6 +152,8 @@ import kotlin.collections.set
 
     private val thumb16 = Thumb16Decoder(core)
     private val thumb32 = Thumb32Decoder(core)
+
+    override fun flags() = sregs.apsr.value
 
     override fun reset() {
         super.reset()

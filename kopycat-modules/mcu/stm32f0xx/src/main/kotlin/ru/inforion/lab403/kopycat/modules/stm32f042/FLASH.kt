@@ -34,7 +34,7 @@ import java.util.logging.Level
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class FLASH(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        val log = logger(Level.WARNING)
+        @Transient val log = logger(Level.WARNING)
     }
 
     private enum class RegisterType(val offset: Long) {

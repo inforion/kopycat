@@ -25,4 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.interfaces
 
-interface ITableEntry
+import java.io.Serializable
+
+interface ITableEntry: Serializable

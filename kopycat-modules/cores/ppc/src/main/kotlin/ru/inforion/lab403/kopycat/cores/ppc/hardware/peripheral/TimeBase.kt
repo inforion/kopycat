@@ -25,7 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.peripheral
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.toBool
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
@@ -36,7 +37,6 @@ import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 import ru.inforion.lab403.kopycat.modules.cores.PPCCoreEmbedded
-
 
 
 class TimeBase(parent: Module, name: String, freq: Long) : Module(parent, name) {

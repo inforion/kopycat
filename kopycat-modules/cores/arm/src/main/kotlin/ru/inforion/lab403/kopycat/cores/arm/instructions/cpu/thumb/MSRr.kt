@@ -56,10 +56,10 @@ class MSRr(cpu: AARMCore,
                 if(core.cpu.CurrentModeIsPrivileged()) {
                     when(SYSm[2..0]) {
                         0b000L -> {
-                            core.cpu.regs.spMain.value = rn.value(core)[31..2] shl 2
+                            core.cpu.regs.sp.main = rn.value(core)[31..2] shl 2
                         }
                         0b001L -> {
-                            core.cpu.regs.spProcess.value = rn.value(core)[31..2] shl 2
+                            core.cpu.regs.sp.process = rn.value(core)[31..2] shl 2
                         }
                         else -> {
                             throw Unpredictable

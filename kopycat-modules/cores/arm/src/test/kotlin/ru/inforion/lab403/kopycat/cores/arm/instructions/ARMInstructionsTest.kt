@@ -30,8 +30,6 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.proposal.Shell
-import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -59,7 +57,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
     private val startAddress: Long = 0
 
     init {
-        log.level = Level.SEVERE
+//        log.level = Level.SEVERE
         arm.ports.mem.connect(buses.mem)
         ram.ports.mem.connect(buses.mem, 0x0000_0000)
         boot.ports.mem.connect(buses.mem, 0x0800_0000)
@@ -114,7 +112,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         arm.cpu.regs.r10.value = r10
         arm.cpu.regs.r11.value = r11
         arm.cpu.regs.r12.value = r12
-        arm.cpu.regs.spMain.value = r13
+        arm.cpu.regs.sp.value = r13
         arm.cpu.regs.lr.value = r14
 
         unicorn.reg_write(UC_ARM_REG_R0, r0)
@@ -184,7 +182,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         assertRegister(10, unicorn.regRead(UC_ARM_REG_R10), arm.cpu.regs.r10.value)
         assertRegister(11, unicorn.regRead(UC_ARM_REG_R11), arm.cpu.regs.r11.value)
         assertRegister(12, unicorn.regRead(UC_ARM_REG_R12), arm.cpu.regs.r12.value)
-        assertRegister(13, unicorn.regRead(UC_ARM_REG_R13), arm.cpu.regs.spMain.value)
+        assertRegister(13, unicorn.regRead(UC_ARM_REG_R13), arm.cpu.regs.sp.value)
         assertRegister(14, unicorn.regRead(UC_ARM_REG_R14), arm.cpu.regs.lr.value)
     }
 

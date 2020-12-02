@@ -39,7 +39,7 @@ import java.util.logging.Level
 
 class RCC(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        val log = logger(Level.WARNING)
+        @Transient val log = logger(Level.WARNING)
 
         private enum class RegisterType(val offset: Long) {
             RCC_CR          (0x00),

@@ -44,7 +44,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class FtOffset(
         core: MipsCore,
-        val construct: (MipsCore, Long, MipsRegister<*>, MipsDisplacement) -> AMipsInstruction,
+        val construct: (MipsCore, Long, MipsRegister, MipsDisplacement) -> AMipsInstruction,
         val dtyp: Datatype,
         val store: AccessAction,
         val type: ProcType
@@ -55,7 +55,7 @@ class FtOffset(
         val offset = signext(data[15..0], n = 16)
         val base = data[25..21].toInt()
         return construct(core, data,
-                MipsRegister.any(type, Designation.General, rt, 0),
-                MipsDisplacement(dtyp, base, offset))
+                any(type, Designation.General, rt, 0),
+                displ(dtyp, base, offset))
     }
 }

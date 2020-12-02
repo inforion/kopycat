@@ -38,7 +38,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class ldc2(
         core: MipsCore,
         data: Long,
-        ct: MipsRegister<*>,
+        ct: MipsRegister,
         off: MipsDisplacement) : FtOffsetInsn(core, data, Type.VOID, ct, off) {
 
 //    override val store = false

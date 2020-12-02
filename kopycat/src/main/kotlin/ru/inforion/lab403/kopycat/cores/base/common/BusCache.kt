@@ -28,6 +28,8 @@ package ru.inforion.lab403.kopycat.cores.base.common
 import gnu.trove.map.hash.THashMap
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.sumByLong
+import ru.inforion.lab403.common.extensions.sure
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericDebugger
 import ru.inforion.lab403.kopycat.cores.base.Bus
@@ -40,6 +42,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
 import ru.inforion.lab403.kopycat.interfaces.IReadWrite
 import ru.inforion.lab403.kopycat.settings
+import java.io.Serializable
 import java.util.logging.Level
 
 /**
@@ -57,9 +60,9 @@ import java.util.logging.Level
  * {EN}
  */
 @Suppress("NOTHING_TO_INLINE")
-internal class BusCache(private val myBus: Bus) {
+internal class BusCache(private val myBus: Bus): Serializable {
     companion object {
-        val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
 
         /**
          * {RU}
@@ -144,6 +147,14 @@ internal class BusCache(private val myBus: Bus) {
             }
         }
 
+        private fun copyTranslators(dst: BusCache, src: BusCache) {
+            if (src != dst) {
+                val copingTranslators = src.myBus.translators.filter { it !in dst.myBus.translators }
+                dst.myBus.translators.addAll(copingTranslators)
+            }
+        }
+
+
         /**
          * {RU}
          * Функция выполняет рекурсивный спуск для заданной шины и кеша примитивов шины
@@ -166,6 +177,7 @@ internal class BusCache(private val myBus: Bus) {
             if (buses.add(bus)) {
                 copyAreas(newCache, bus.cache)
                 copyRegs(newCache, bus.cache)
+                copyTranslators(newCache, bus.cache)
                 bus.proxies.forEach { cacheProxyPortPrimitives(newCache, it.port, buses) }
             }
         }
@@ -188,7 +200,7 @@ internal class BusCache(private val myBus: Bus) {
          * {EN}
          */
         private fun cacheProxyPortPrimitives(newCache: BusCache, proxy: ProxyPort, buses: HashSet<Bus>) {
-            val innerBus = proxy.innerBus ?: throw IllegalArgumentException("Port $proxy has no inner bus!")
+            val innerBus = proxy.innerBus.sure { "Port $proxy has no inner bus!" }
 
             cacheBusPrimitives(newCache, innerBus, buses)
 
@@ -211,7 +223,7 @@ internal class BusCache(private val myBus: Bus) {
      * @property offset offset from primitive start
      * {EN}
      */
-    class Entry(var rw: IFetchReadWrite?, var offset: Long, var module: Module?) {
+    class Entry(var rw: IFetchReadWrite?, var offset: Long, var module: Module?): Serializable {
         fun fetch(ss: Int, size: Int): Long = rw!!.fetch(offset, ss, size)
         fun read(ss: Int, size: Int): Long = rw!!.read(offset, ss, size)
         fun write(ss: Int, size: Int, value: Long) = rw!!.write(offset, ss, size, value)
@@ -238,7 +250,7 @@ internal class BusCache(private val myBus: Bus) {
      * @property endAddress  end address of area relative to the current bus
      * {EN}
      */
-    private data class BusCachedArea(val area: Module.Area, val portOffset: Long) {
+    private data class BusCachedArea(val area: Module.Area, val portOffset: Long): Serializable {
         val startAddress = area.start + portOffset
         val endAddress = area.end + portOffset
 
@@ -262,7 +274,7 @@ internal class BusCache(private val myBus: Bus) {
      * @property address register address relative current bus
      * {EN}
      */
-    private data class BusCachedRegister(val register: Module.Register, val portOffset: Long) {
+    private data class BusCachedRegister(val register: Module.Register, val portOffset: Long): Serializable {
         val address = register.address + portOffset
 
         override fun toString(): String = "${address.hex8} -> $register"
@@ -383,7 +395,6 @@ internal class BusCache(private val myBus: Bus) {
         return result
     }
 
-
     private inline fun findArea(source: MasterPort, ea: Long, LorS: AccessAction, value: Long): Entry? {
         var result: Entry? = null
 
@@ -393,11 +404,11 @@ internal class BusCache(private val myBus: Bus) {
                 if (ea >= it.startAddress) {
                     val relativeAddress = ea - it.portOffset
                     if (beforeAction(source, relativeAddress, it.area, LorS, value)) {
-                        if (result != null)
-                            throw MemoryAccessError(-1, ea, LorS,
-                                    "More then one area in address ${ea.hex8}" +
-                                    "\n1'st: ${result.rw} offset=${result.offset.hex8}" +
-                                    "\n2'nd: ${it.area} offset=${relativeAddress.hex8}\n")
+                        check(result == null) {
+                            "More then one area in address ${ea.hex8}" +
+                                    "\n1'st: ${result!!.rw} offset=${result!!.offset.hex8}" +
+                                    "\n2'nd: ${it.area} offset=${relativeAddress.hex8}\n"
+                        }
                         with (entry) {
                             rw = it.area
                             offset = relativeAddress

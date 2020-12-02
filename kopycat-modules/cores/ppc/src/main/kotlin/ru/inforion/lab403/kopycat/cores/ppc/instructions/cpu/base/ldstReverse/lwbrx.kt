@@ -26,12 +26,10 @@
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.ldstReverse
 
 import ru.inforion.lab403.common.extensions.swap32
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eUISA
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
 
 
 //Load word byte-reverse indexed

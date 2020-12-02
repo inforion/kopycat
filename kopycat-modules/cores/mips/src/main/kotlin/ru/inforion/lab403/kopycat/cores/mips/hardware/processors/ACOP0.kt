@@ -25,68 +25,66 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
-import ru.inforion.lab403.kopycat.cores.mips.enums.Cause
 import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
-import ru.inforion.lab403.kopycat.cores.mips.enums.IntCtl
-import ru.inforion.lab403.kopycat.cores.mips.enums.Status
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException.*
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.CPRBank
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.RSVDBank
-import ru.inforion.lab403.kopycat.cores.mips.operands.CPR
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import ru.inforion.lab403.kopycat.serializer.loadValue
 import java.util.logging.Level
 
 
 abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core, name) {
-    companion object { val log = logger(Level.INFO) }
+    companion object {
+        @Transient val log = logger(Level.INFO)
+    }
 
-    val cntrls = RSVDBank(core)
+    val cntrls = RSVDBank()
     val regs = CPRBank(core)
 
-    override fun createException(name: String, where: Long, vAddr: Long, action: AccessAction): HardwareException {
-        return when (name) {
-            "TLBInvalid" -> TLBInvalid(action, where, vAddr)
-            "TLBMiss" -> TLBMiss(action, where, vAddr)
-            "TLBModified" -> TLBModified(where, vAddr)
-            else -> throw IllegalArgumentException("Exception $name not implemented here!")
-        }
+    override fun createException(name: String, where: Long, vAddr: Long, action: AccessAction) = when (name) {
+        "TLBInvalid" -> TLBInvalid(action, where, vAddr)
+        "TLBMiss" -> TLBMiss(action, where, vAddr)
+        "TLBModified" -> TLBModified(where, vAddr)
+        else -> throw IllegalArgumentException("Exception $name not implemented here!")
     }
 
     fun setCountCompareTimerBits(oldCnt: Long, newCnt: Long) {
-        if (regs.Compare in oldCnt until newCnt) {
+        if (regs.Compare.value in oldCnt until newCnt) {
             if (core.ArchitectureRevision > 1) {
-                val IPTI = regs.IntCtl[IntCtl.IPTI.range].asInt
+                val IPTI = regs.IntCtl.IPTI.asInt
                 if (IPTI >= 2) {
-                    insertIPBits(1L shl IPTI)
-                    regs.Cause = regs.Cause set Cause.TI.pos
+                    regs.Cause.IP7_0 = regs.Cause.IP7_0 or (1L shl IPTI)
+                    regs.Cause.TI = true
                 }
             } else {
-                regs.Cause = regs.Cause set Cause.IP7.pos
+                regs.Cause.IP7 = true
             }
         }
     }
 
     fun clearCountCompareTimerBits() {
         if (core.ArchitectureRevision > 1) {
-            core.cop.regs.Cause = core.cop.regs.Cause clr Cause.TI.pos
-            val IPTI = core.cop.regs.IntCtl[IntCtl.IPTI.range].asInt
-            if (IPTI >= 2)
-                core.cop.regs.Cause = core.cop.regs.Cause clr (IPTI + Cause.IP0.pos)
+            regs.Cause.TI = false
+            val IPTI = regs.IntCtl.IPTI.asInt
+            if (IPTI >= 2) {
+                regs.Cause.IP7_0 = regs.Cause.IP7_0 and (1L shl IPTI).inv()
+            }
         } else {
-            core.cop.regs.Cause = core.cop.regs.Cause clr Cause.IP7.pos
+            regs.Cause.IP7 = false
         }
     }
 
     // Because instructionPerCycle is float and may be < 1.0 then Count register won't be grow
-    private var countCompareCycles = 0.0 // TODO: Add serialization
+    private var countCompareCycles = 0.0
     private val countCompareInc = core.countRateFactor * core.ipc
 
     override fun processInterrupts() {
@@ -122,10 +120,10 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
             val decimal = countCompareCycles.asInt
             countCompareCycles -= decimal
 
-            val oldCnt = regs.Count
+            val oldCnt = regs.Count.value
             val newCnt = oldCnt + decimal
 
-            regs.Count = newCnt
+            regs.Count.value = newCnt
 
             // Due to countCompareCycles >= 1 -> oldCnt != newCnt
             if (core.countCompareSupported)
@@ -133,48 +131,48 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
         }
     }
 
-    protected fun setExcCode(code: ExcCode) {
-        regs.Cause = insertField(regs.Cause, code.id, Cause.EXC_H.pos..Cause.EXC_L.pos)
-    }
-
-    protected fun insertIPBits(bits: Long) {
-        regs.Cause = regs.Cause or regs.Cause.insert(bits, Cause.IP7.pos..Cause.IP0.pos)
-    }
-
-    protected fun setIPValue(value: Long) {
-        regs.Cause = regs.Cause.insert(value, Cause.IP7.pos..Cause.IP2.pos)
-    }
-
     /* =============================== Interrupt support mechanism =============================== */
 
-    fun VIntPriorityEncoder(): Int {
+    protected fun VIntPriorityEncoder(): Int {
         // See Table 6.3 Relative Interrupt Priority for Vectored Interrupt Mode
-        if (regs.Cause[Cause.IP7.pos] and regs.Status[Status.IM7.pos] == 1L) {  // Hardware interrupt 5
-            regs.Cause = clearBit(regs.Cause, Cause.IP7.pos)
+        if (regs.Cause.IP7 && !regs.Status.IM7) {  // Hardware interrupt 5
+            regs.Cause.IP7 = false
             return 7 // 0x1000
-        } else if (regs.Cause[Cause.IP6.pos] and regs.Status[Status.IM6.pos] == 1L) {  // Hardware interrupt 4
-            regs.Cause = clearBit(regs.Cause, Cause.IP6.pos)
+        } else if (regs.Cause.IP6 && !regs.Status.IM6) {  // Hardware interrupt 4
+            regs.Cause.IP6 = false
             return 6 // 0x0E00
-        } else if (regs.Cause[Cause.IP5.pos] and regs.Status[Status.IM5.pos] == 1L) {  // Hardware interrupt 3
-            regs.Cause = clearBit(regs.Cause, Cause.IP5.pos)
+        } else if (regs.Cause.IP5 && !regs.Status.IM5) {  // Hardware interrupt 3
+            regs.Cause.IP5 = false
             return 5 // 0x0C00
-        } else if (regs.Cause[Cause.IP4.pos] and regs.Status[Status.IM4.pos] == 1L) {  // Hardware interrupt 2
-            regs.Cause = clearBit(regs.Cause, Cause.IP4.pos)
+        } else if (regs.Cause.IP4 && !regs.Status.IM4) {  // Hardware interrupt 2
+            regs.Cause.IP4 = false
             return 4 // 0x0A00
-        } else if (regs.Cause[Cause.IP3.pos] and regs.Status[Status.IM3.pos] == 1L) {  // Hardware interrupt 1
-            regs.Cause = clearBit(regs.Cause, Cause.IP3.pos)
+        } else if (regs.Cause.IP3 && !regs.Status.IM3) {  // Hardware interrupt 1
+            regs.Cause.IP3 = false
             return 3 // 0x0800
-        } else if (regs.Cause[Cause.IP2.pos] and regs.Status[Status.IM2.pos] == 1L) {  // Hardware interrupt 0
-            regs.Cause = clearBit(regs.Cause, Cause.IP2.pos)
+        } else if (regs.Cause.IP2 && !regs.Status.IM2) {  // Hardware interrupt 0
+            regs.Cause.IP2 = false
             return 2 // 0x0600
-        } else if (regs.Cause[Cause.IP1.pos] and regs.Status[Status.IM1.pos] == 1L) {  // Software interrupt 1
-            regs.Cause = clearBit(regs.Cause, Cause.IP1.pos)
+        } else if (regs.Cause.IP1 && !regs.Status.IM1) {  // Software interrupt 1
+            regs.Cause.IP1 = false
             return 1 // 0x0400
-        } else if (regs.Cause[Cause.IP0.pos] and regs.Status[Status.IM0.pos] == 1L) {  // Software interrupt 0
-            regs.Cause = clearBit(regs.Cause, Cause.IP0.pos)
+        } else if (regs.Cause.IP0 && !regs.Status.IM0) {  // Software interrupt 0
+            regs.Cause.IP0 = false
             return 0 // 0x0200
         }
-        throw GeneralException("Wrong IP7:IP0 value: %02X".format(regs.Cause[Cause.IP7.pos..Cause.IP0.pos]))
+        throw GeneralException("Wrong IP7:IP0 value: %02X".format(regs.Cause.IP7_0))
+    }
+
+    protected fun ShadowSetEncoder(vecNum: Int) = when (vecNum) {
+        0 -> regs.SRSMap.SSV0
+        1 -> regs.SRSMap.SSV1
+        2 -> regs.SRSMap.SSV2
+        3 -> regs.SRSMap.SSV3
+        4 -> regs.SRSMap.SSV4
+        5 -> regs.SRSMap.SSV5
+        6 -> regs.SRSMap.SSV6
+        7 -> regs.SRSMap.SSV7
+        else -> throw GeneralException("Wrong vecNum = $vecNum value for shadow set!")
     }
 
     protected fun isTlbRefill(exception: HardwareException): Boolean = exception is MipsHardwareException.TLBMiss
@@ -185,38 +183,20 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
 
     override fun reset() {
         super.reset()
-
-        val upperRandomBound = (core.mmu.tlbEntries - 1).toLong()
-
         regs.reset()
-        regs.PRId = core.PRId
-
-        // registers are read-only using internal methods!
-
-        regs.writeIntern(CPR.Random.reg, upperRandomBound)
-
-        regs.writeIntern(CPR.Config0.reg, core.Config0Preset)
-        regs.writeIntern(CPR.Config1.reg, core.Config1Preset)
-        regs.writeIntern(CPR.Config2.reg, core.Config2Preset)
-        regs.writeIntern(CPR.Config3.reg, core.Config3Preset)
-
-        regs.writeIntern(CPR.IntCtl.reg, core.IntCtlPreset)
     }
 
-    override fun stringify(): String {
-        return arrayOf(
-                "%s {\n".format(name),
-                "%s\n".format(regs.stringify()),
-                "%s\n".format(cntrls.stringify()),
-                "}"
-        ).joinToString("")
+    override fun stringify() = buildString {
+        appendLine("COP0:")
+        append(regs.stringify())
     }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
         return mapOf(
                 "name" to name,
                 "regs" to regs.serialize(ctxt),
-                "cntrls" to cntrls.serialize(ctxt)
+                "cntrls" to cntrls.serialize(ctxt),
+                "countCompareCycles" to countCompareCycles
         )
     }
 
@@ -228,5 +208,6 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
         }
         regs.deserialize(ctxt, snapshot["regs"] as Map<String, Any>)
         cntrls.deserialize(ctxt, snapshot["cntrls"] as Map<String, Any>)
+        countCompareCycles = loadValue(snapshot, "countCompareCycles")
     }
 }

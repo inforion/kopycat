@@ -39,7 +39,7 @@ import java.util.logging.Level
 @Suppress("PrivatePropertyName", "PropertyName")
 class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name) {
     companion object {
-        private val log = logger(Level.INFO)
+        @Transient private val log = logger(Level.INFO)
         private enum class LockState { INIT, FIRST_WR, SECOND_WR, THIRD_WR, LOCKED }
         const val PIN_COUNT = 16
     }
@@ -117,7 +117,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
 
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             val filteredValue = checkLockedBits(data, value, isTwoBitsPerPin = true) {
-                log.warning("[$name] Software try to change mode of locked gpio$index at pin $it")
+                log.warning { "[$name] Software try to change mode of locked gpio$index at pin $it" }
             }
             super.write(ea, ss, size, filteredValue)
         }
@@ -127,7 +127,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
 
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             val filteredValue = checkLockedBits(data, value, isTwoBitsPerPin = false) {
-                log.warning("[$name] Software try to change output mode of locked gpio$index at pin $it")
+                log.warning { "[$name] Software try to change output mode of locked gpio$index at pin $it" }
             }
             super.write(ea, ss, size, filteredValue)
         }
@@ -137,7 +137,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
 
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             val filteredValue = checkLockedBits(data, value, isTwoBitsPerPin = true) {
-                log.warning("[$name] Software try to change speed mode of locked gpio$index at pin $it")
+                log.warning {"[$name] Software try to change speed mode of locked gpio$index at pin $it" }
             }
             super.write(ea, ss, size, filteredValue)
         }
@@ -147,7 +147,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
 
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             val filteredValue = checkLockedBits(data, value, isTwoBitsPerPin = true) {
-                log.warning("[$name] Software try to change speed mode of locked gpio$index at pin $it")
+                log.warning { "[$name] Software try to change speed mode of locked gpio$index at pin $it" }
             }
             super.write(ea, ss, size, filteredValue)
         }
@@ -249,7 +249,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
 
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             val filteredValue = checkLockedBits(data, value, isTwoBitsPerPin = true) {
-                log.warning("[$name] Software try to change speed mode of locked gpio$index at pin $it")
+                log.warning { "[$name] Software try to change speed mode of locked gpio$index at pin $it" }
             }
             super.write(ea, ss, size, filteredValue)
         }
@@ -259,7 +259,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
 
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
             val filteredValue = checkLockedBits(data, value, isTwoBitsPerPin = true) {
-                log.warning("[$name] Software try to change speed mode of locked gpio$index at pin $it")
+                log.warning { "[$name] Software try to change speed mode of locked gpio$index at pin $it" }
             }
             super.write(ea, ss, size, filteredValue)
         }

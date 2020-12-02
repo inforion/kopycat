@@ -27,10 +27,12 @@ package ru.inforion.lab403.kopycat.cores.base.abstracts
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
+import java.io.Serializable
 import java.util.*
 import java.util.logging.Level
 import kotlin.reflect.KProperty
@@ -57,12 +59,13 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
         bits: Int
 ) : ICoreUnit, Iterable<Long> {
     companion object {
-        val log = logger(Level.INFO)
+        @Transient val log = logger(Level.INFO)
     }
 
     @PublishedApi
     internal val regs = Array<ARegister<T>?>(defs.size) { null }
 
+    @Deprecated("Will be removed 0.3.40")
     inline operator fun get(index: Int): ARegister<T> = regs[index]!!
 
     /**
@@ -72,7 +75,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * @property register регистр, с которым производится взаимодействие
      * {RU}
      */
-    protected inner class valueOf<R: ARegister<T>>(val register: R) {
+    protected inner class valueOf<R: ARegister<T>>(val register: R): Serializable {
         operator fun getValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>) = register.value(core)
         operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: Long) = register.value(core, value)
 
@@ -89,7 +92,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * @property bit индекс бита регистра
      * {RU}
      */
-    protected inner class bitOf<R: ARegister<T>>(val register: R, val bit: Int) {
+    protected inner class bitOf<R: ARegister<T>>(val register: R, val bit: Int): Serializable {
         operator fun getValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>) = register.bit(core, bit) == 1
         operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: Boolean) = register.bit(core, bit, value.asInt)
     }
@@ -104,7 +107,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * @constructor создает последовательность бит регистра сложной конфигурации
      * {RU}
      */
-    protected inner class fieldOf<R: ARegister<T>>(val register: R, vararg rp: Pair<IntRange, IntRange>) {
+    protected inner class fieldOf<R: ARegister<T>>(val register: R, vararg rp: Pair<IntRange, IntRange>): Serializable {
         /**
          * {RU}
          * @property register регистр, с которым производится взаимодействие
@@ -113,17 +116,17 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
          * {RU}
          */
         constructor(register: R, msb: Int, lsb: Int): this(register, msb..lsb to msb-lsb..0)
-        val list = rp.asList()
+        val list = rp.map { (src, dst) -> src.toSerializable() to dst.toSerializable() }
 
         operator fun getValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>): Long {
             var answer = 0L
-            for((src, dst) in list)
-                answer = answer.insert(register.bits(core, src), dst)
+            list.forEach { (src, dst) ->
+                answer = answer.insert(register.bits(core, src.first..src.last), dst.first..dst.last)
+            }
             return answer
         }
         operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: Long) {
-            for((src, dst) in list)
-                register.bits(core, src, value[dst])
+            list.forEach { (src, dst) -> register.bits(core, src.first..src.last, value[dst.first..dst.last]) }
         }
     }
 

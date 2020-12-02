@@ -31,8 +31,6 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.UN
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.operands.ARMImmediate
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
@@ -51,9 +49,9 @@ object ThumbLoadStoreImmDecoder{
                      imm: Immediate<AARMCore>,
                      size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
         override fun decode(data: Long): AARMInstruction {
-            val rt = GPRBank.Operand(data[2..0].asInt)
-            val rn = GPRBank.Operand(data[5..3].asInt)
-            val imm = ARMImmediate(data[10..6] shl 2, true)
+            val rt = gpr(data[2..0].asInt)
+            val rn = gpr(data[5..3].asInt)
+            val imm = imm(data[10..6] shl 2, true)
             return constructor(core, data, UN, true, true, false, rn, rt, imm, 2)
         }
     }
@@ -70,9 +68,9 @@ object ThumbLoadStoreImmDecoder{
                      imm: Immediate<AARMCore>,
                      size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
         override fun decode(data: Long): AARMInstruction {
-            val rt = GPRBank.Operand(data[10..8].asInt)
-            val rn = GPRBank.Operand(13)
-            val imm = ARMImmediate(data[7..0] shl 2, true)
+            val rt = gpr(data[10..8].asInt)
+            val rn = gpr(13)
+            val imm = imm(data[7..0] shl 2, true)
             return constructor(core, data, UN, true, true, false, rn, rt, imm, 2)
         }
     }

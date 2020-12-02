@@ -36,7 +36,9 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
-import ru.inforion.lab403.kopycat.modules.*
+import ru.inforion.lab403.kopycat.modules.PCI_CONF
+import ru.inforion.lab403.kopycat.modules.PCI_REQUEST_SPACE_SIZE
+import ru.inforion.lab403.kopycat.modules.PCI_SPACES_COUNT
 import java.util.logging.Level
 
 @Suppress("unused", "PropertyName", "ClassName")
@@ -64,7 +66,7 @@ abstract class PCITarget(
 ) : Module(parent, name) {
 
     companion object {
-        private val log = logger(Level.FINE)
+        @Transient private val log = logger(Level.FINE)
     }
 
     inner class Ports : ModulePorts(this) {

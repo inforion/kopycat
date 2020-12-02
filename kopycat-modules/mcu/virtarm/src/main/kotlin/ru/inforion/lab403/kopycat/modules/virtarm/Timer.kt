@@ -37,11 +37,12 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.extensions.pending
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.modules.PIN
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level
 
 class Timer(parent: Module, name: String, private val divider: Long) : Module(parent, name) {
     companion object {
-        private val log = logger(Level.FINE)
+        @Transient private val log = logger(Level.FINE)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -71,11 +72,9 @@ class Timer(parent: Module, name: String, private val divider: Long) : Module(pa
 
     private val timer = Timer()
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return super.serialize(ctxt) + ctxt.storeValues(
-                "timer" to timer.serialize(ctxt)
-        )
-    }
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+            "timer" to timer.serialize(ctxt)
+    )
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {

@@ -25,14 +25,16 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.getInt
+import ru.inforion.lab403.common.extensions.putInt
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessType
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.IMemoryStream
-import java.nio.ByteOrder.*
+import java.nio.ByteOrder.LITTLE_ENDIAN
 
 /**
  * {RU}

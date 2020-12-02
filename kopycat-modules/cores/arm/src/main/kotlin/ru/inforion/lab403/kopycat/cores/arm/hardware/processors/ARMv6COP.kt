@@ -25,18 +25,16 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.ARegisterBankNG
+import ru.inforion.lab403.kopycat.cores.base.CpuRegister
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Component
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
-import java.util.logging.Level
-
+import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 
 
 class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
@@ -49,14 +47,18 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
         inline fun assert_value(a: Int, b: Int, msg: String) {
             if (a != b) throw GeneralException("Forbidden combination for $msg: $a != $b")
         }
+
         inline fun assert_access(a: AccessAction, b: AccessAction, msg: String) {
             if (a != b) throw GeneralException("${a.name} access denied for group \"$msg\"")
         }
 
-        inline fun operate_register(reg: ARegisterBankNG.Register,
-                                    value: Long?,
-                                    access: AccessAction,
-                                    logName: String? = null): Long? {
+        inline fun operate_register(
+                reg: CpuRegister,
+                value: Long?,
+                access: AccessAction,
+                logName: String? = null
+        ): Long? {
+
             when (access) {
                 AccessAction.LOAD -> {
 //                    if (logName != null)
@@ -116,7 +118,7 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                                         }
                                         AccessAction.STORE -> {
                                             // Get rid of deprecated (fixed) values
-                                            val maskedValue = (value!! and reg.mask) or reg.defaultValue
+                                            val maskedValue = (value!! and reg.mask) or reg.default
 
 //                                            log.info { "Write to SCTLR: ${reg.value.hex8} -> ${maskedValue.hex8}" }
 
@@ -382,15 +384,11 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
         }
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return super.serialize(ctxt) + ctxt.storeValues(
-                "waitingForInterrupt" to waitingForInterrupt
-        )
-    }
+    override fun serialize(ctxt: GenericSerializer) =
+            super.serialize(ctxt) + storeValues("waitingForInterrupt" to waitingForInterrupt)
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
-
-        waitingForInterrupt = snapshot["waitingForInterrupt"] as Boolean
+        waitingForInterrupt = loadValue(snapshot, "waitingForInterrupt")
     }
 }

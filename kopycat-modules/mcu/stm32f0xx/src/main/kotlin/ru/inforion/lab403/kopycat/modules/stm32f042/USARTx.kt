@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -34,6 +35,8 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.*
+import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level
 import java.util.logging.Level.*
 
@@ -48,10 +51,8 @@ import java.util.logging.Level.*
 class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name) {
 
     companion object {
-        val log = logger(INFO)
-
+        @Transient val log = logger(INFO)
         const val CORE_FREQ = 8_000_000
-
     }
 
     enum class RegisterType(val offset: Long) {
@@ -213,13 +214,17 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
                 TE = 0
                 transmitEnabled = false
                 receiveEnabled = false
-//              TODO for version 0.3.3 https://youtrack.lab403.inforion.ru/issue/KC-1575
+//              TODO for version 0.3.30 https://youtrack.lab403.inforion.ru/issue/KC-1575
                 log.severe { "USART disable not implemented, see https://youtrack.lab403.inforion.ru/issue/KC-1575" }
             }
         }
     }
-    private val USART_CR2   = object : RegisterBase(RegisterType.USART_CR2) {}
-    private val USART_CR3   = object : RegisterBase(RegisterType.USART_CR3, level = WARNING) {
+
+    private val USART_CR2   = object : RegisterBase(RegisterType.USART_CR2) {
+
+    }
+
+    private val USART_CR3   = object : RegisterBase(RegisterType.USART_CR3) {
         var WUFIE by bit(22)
         var WUS by field(21..20)
         var SCARCNT by field(19..17)
@@ -305,5 +310,19 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
             USART_ISR.TXE = 0
             writeData(TDR)
         }
+    }
+
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+            "usartEnabled" to usartEnabled,
+            "transmitEnabled" to transmitEnabled,
+            "receiveEnabled" to receiveEnabled,
+            "baudRate" to baudRate)
+
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        super.deserialize(ctxt, snapshot)
+        usartEnabled = loadValue(snapshot, "usartEnabled")
+        transmitEnabled = loadValue(snapshot, "transmitEnabled")
+        receiveEnabled = loadValue(snapshot, "receiveEnabled")
+        baudRate = loadValue(snapshot, "baudRate")
     }
 }

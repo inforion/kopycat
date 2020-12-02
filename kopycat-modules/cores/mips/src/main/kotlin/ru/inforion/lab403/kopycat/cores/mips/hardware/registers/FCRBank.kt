@@ -25,11 +25,20 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.hardware.registers
 
-import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
-import ru.inforion.lab403.kopycat.cores.mips.enums.eFCR
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 
-class FCRBank(core: MipsCore) : ARegistersBank<MipsCore, eFCR>(core, eFCR.values(), bits = 32) {
-    override val name: String = "FPU Control Registers"
+class FCRBank : ARegistersBankNG<MipsCore>("FPU Control Registers", 32, 32) {
+    val fir = Register("fir", 0)
+
+    inner class FCCR : Register("fccr", 25) {
+        var fcc0 by bitOf(23)
+    }
+
+    val fccr = FCCR()
+
+    val fexr = Register("fexr", 26)
+    val fenr = Register("fenr", 28)
+    val fcsr = Register("fcsr", 31)
 }

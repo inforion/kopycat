@@ -111,7 +111,7 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
 
         const val IO_HOLE_PRIORITY = MAPPING_HIGHEST_PRIO
 
-        val log = logger(FINER)
+        @Transient val log = logger(FINER)
     }
 
     inner class Ports : ModulePorts(this) {

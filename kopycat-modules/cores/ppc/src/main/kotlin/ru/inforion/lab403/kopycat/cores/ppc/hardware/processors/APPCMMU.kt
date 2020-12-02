@@ -298,8 +298,9 @@ abstract class APPCMMU(parent: Module, name: String, tlbs: Int = 4, tlbsize: Int
         val AS = if (instFetch) ppccore.cpu.msrBits.IS else ppccore.cpu.msrBits.DS
         val PID = processID()
 
-        val entry = cacheRead(ea, AS, PID) ?: throw
-        if (instFetch)
+        if (cache.isEmpty()) return ea
+
+        val entry = cacheRead(ea, AS, PID) ?: throw if (instFetch)
             ppccore.exceptionHolder.tlbInstructionException(ppccore.pc, ea, AS.asLong)
         else
             ppccore.exceptionHolder.tlbDataException(ppccore.pc - 4, LorS == AccessAction.STORE, ea, AS.asLong)

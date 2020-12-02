@@ -30,6 +30,7 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
 import ru.inforion.lab403.kopycat.interfaces.ITableEntry
+import java.io.Serializable
 import java.util.logging.Level
 
 class Table(
@@ -38,10 +39,10 @@ class Table(
         decoders: Array<Pair<String, ITableEntry?>>) : Stub(name) {
 
     companion object {
-        private val log = logger(Level.INFO)
+        @Transient private val log = logger(Level.INFO)
     }
 
-    data class Entry(val ord: Int, val pattern: String, val mask: Mask, val table: ITableEntry?)
+    data class Entry(val ord: Int, val pattern: String, val mask: Mask, val table: ITableEntry?): Serializable
 
     constructor(name: String) : this(name, emptyArray(), emptyArray())
 

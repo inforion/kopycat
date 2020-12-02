@@ -37,7 +37,7 @@ import kotlin.reflect.full.declaredMemberProperties
 
 open class Blob(val size: Int, val order: ByteOrder) {
     companion object {
-        val log = logger()
+        @Transient val log = logger()
     }
 
     private val data = ByteArray(size)

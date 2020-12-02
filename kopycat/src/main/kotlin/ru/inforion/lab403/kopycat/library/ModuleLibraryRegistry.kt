@@ -25,84 +25,115 @@
  */
 package ru.inforion.lab403.kopycat.library
 
-import org.reflections.Reflections
-import org.reflections.scanners.SubTypesScanner
 import org.reflections.util.ClasspathHelper
-import ru.inforion.lab403.common.extensions.walk
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.logging.CONFIG
+import ru.inforion.lab403.common.proposal.subtypesScan
 import ru.inforion.lab403.kopycat.cores.base.common.Module
+import ru.inforion.lab403.kopycat.library.builders.JsonModuleFactoryBuilder
+import ru.inforion.lab403.kopycat.library.builders.text.PluginConfig
 import ru.inforion.lab403.kopycat.library.exceptions.LibraryNotFoundError
 import ru.inforion.lab403.kopycat.library.types.LibraryInfo
 import ru.inforion.lab403.kopycat.settings
 import java.io.File
-import java.nio.file.Files
-import java.nio.file.Paths
+import java.io.InputStream
 import java.util.logging.Level
 
 
-class ModuleLibraryRegistry constructor(vararg libraries: ModuleFactoryLibrary) {
-
+class ModuleLibraryRegistry constructor(
+        val regCfgLine: String?,
+        val libCfgLine: String?,
+        vararg libraries: ModuleFactoryLibrary
+) {
     companion object {
-        val log = logger(Level.INFO)
+        @Transient
+        val log = logger(CONFIG)
 
-        private fun getSystemLibraries(internalClassDirectory: String): Array<ModuleFactoryLibrary> {
-            val helper = ClasspathHelper.forPackage(internalClassDirectory)
-            val reflections = Reflections(helper, SubTypesScanner())
-            val types = reflections.getSubTypesOf(Module::class.java)
-            val packages = types
-                    .filter { it.name.startsWith("$internalClassDirectory.") }
-                    .map { it.name
-                            .removePrefix("$internalClassDirectory.")
-                            .substringBefore(".")
-                    }.toSet()
-            return packages.map {
-                ModuleFactoryLibrary.loadInternal(it, "$internalClassDirectory.$it")
+        private val systemJarOrClassPath = this::class.java.location
+
+        private fun getLibraryNameFromClasspath(cls: Class<*>, prefix: String) =
+                cls.name.removePrefix("$prefix.").substringBefore(".")
+
+        private fun loadSystemLibraries(internalClassDirectory: String): Array<ModuleFactoryLibrary> {
+            val packages = subtypesScan<Module>(internalClassDirectory)
+                    .filter {
+                        // we should not load in system loader any classes that not in .../main or kopycat-X.Y.AB.jar
+                        it.name.startsWith("$internalClassDirectory.") && (
+                                it.location == systemJarOrClassPath ||
+                                        it.location.endsWith(settings.systemModulesMainPath) ||
+                                        it.location.endsWith(settings.systemModulesTestPath))
+                    }.map {
+                        getLibraryNameFromClasspath(it, internalClassDirectory)
+                    }.distinct()
+
+            return packages.map { lib ->
+                ModuleFactoryLibrary.loadInternal(lib, "$internalClassDirectory.$lib")
             }.toTypedArray()
         }
 
-        private fun getUserLibraries(paths: Map<String, String>): Array<ModuleFactoryLibrary> =
-                paths.map { ModuleFactoryLibrary.loadPlugins(it.key, Paths.get(it.value).toString()) }.toTypedArray()
+        private fun loadUserLibraries(paths: Map<String, String>) = paths.map { (lib, where) ->
+            if (where.isDirectory())
+                ModuleFactoryLibrary.loadPlugins(lib, where)
+            else
+                ModuleFactoryLibrary.loadInternal(lib, where)
+        }.toTypedArray()
 
-        private fun parsePluginsConfigLine(line: String): Map<String, String> = line
-                .split(settings.librariesSeparator)
-                .filter { it.isNotBlank() }
+        private fun parseFilesystemRegistry(dir: String) = dir
+                .listdir { it.isDirectory }
+                .map { it.path.substringAfterLast(File.separator) to it.path }
+                .distinct()
+
+        private fun <T>Class<out T>.isModuleClasspath(dir: String) =
+                name.startsWith("$dir.") && location != systemJarOrClassPath
+
+        private fun parseClasspathRegistry(dir: String) = subtypesScan<Module>(dir)
+                .filter { cls ->
+                    cls.isModuleClasspath(dir).also { log.finest { "Found class: $cls -> module: $it" } }
+                }.map {
+                    val name = getLibraryNameFromClasspath(it, dir)
+                    name to "$dir.$name"
+                }.distinct()
+
+        /**
+         * {EN}
+         * Enumerate specified plugins path and return string in format lib1:path/to/lib1,lib2:path/to/lib2
+         *
+         * Registry can be filesystem path or classpath in Java, i.e.
+         *   options 1: path/to/registry
+         *   options 2: path.to.registry
+         *
+         * @param line registries string separated by comma, e.g.: path/to/registry1,path.to.registry2
+         * {EN}
+         *
+         * {RU}
+         * Обходит заданный путь и создает строку для загрузки библиотек в формате lib1:path/to/lib1,lib2:path/to/lib2
+         *
+         * Реестр может быть как путем в файловой системе, так и путем в пакетах Java, то есть
+         *   вариант 1: path/to/registry
+         *   вариант 2: path.to.registry
+         *
+         * @param line строка с реестрами заданными через запятую, например: path/to/registry1,path.to.registry2
+         * {RU}
+         */
+        private fun parseRegistriesLine(line: String) = line
+                .splitBy(settings.registriesSeparator)
+                .distinct()
+                .mapNotNull { where ->
+                    when {
+                        where.isDirectory() -> parseFilesystemRegistry(where)
+                        ClasspathHelper.forPackage(where).isNotEmpty() -> parseClasspathRegistry(where)
+                        else -> null
+                    }
+                }.flatten().toMap()
+
+        private fun parseLibrariesLine(line: String) = line
+                .splitBy(settings.librariesSeparator)
                 .map {
                     val name = it.substringBefore(settings.libraryPathSeparator)
                     val value = it.substringAfter(settings.libraryPathSeparator)
                     name to value
                 }.toMap()
-
-        private fun parseRegistriesConfigLine(line: String): List<String> = line
-                .split(",")
-                .filter { it.isNotBlank() }
-
-        /**
-         * {EN}Enumerate specified plugins path and return string in format lib1:path/to/lib1,lib2:path/to/lib2{EN}
-         *
-         * {RU}Обходит заданный путь и создает строку для загрузки библиотек в формате lib1:path/to/lib1,lib2:path/to/lib2{RU}
-         */
-        private fun makePluginsConfigLine(line: String?): String {
-            if (line == null)
-                return ""
-
-            val dirs = parseRegistriesConfigLine(line)
-
-            return dirs.mapNotNull { path ->
-                val dir = File(path)
-                if (dir.isDirectory) dir else {
-                    log.severe { "Directory '$dir' doesn't exist!" }
-                    null
-                }
-            }.joinToString(separator = ",") { dir ->
-                walk(dir, 0)
-                        .filter { Files.isDirectory(it.toPath()) }
-                        .toSet()
-                        .joinToString(separator = ",") {
-                            val libname = it.path.substringAfterLast(File.separator)
-                            "$libname:${it.path}"
-                        }
-            }
-        }
 
         /**
          * {EN}Loading module library registry from specified comma-separated plugins path and system class path{EN}
@@ -118,24 +149,45 @@ class ModuleLibraryRegistry constructor(vararg libraries: ModuleFactoryLibrary) 
                 libCfgLine: String? = null,
                 system: String? = settings.internalModulesClasspath
         ): ModuleLibraryRegistry {
-            val config = (libCfgLine ?: "") + "," + makePluginsConfigLine(regCfgLine)
-            log.info { "Library configuration line: $config" }
-            val paths = parsePluginsConfigLine(config)
-            val userLibraries = getUserLibraries(paths)
-            val libraries = if (system == null) userLibraries else userLibraries + getSystemLibraries(system)
-            return ModuleLibraryRegistry(*libraries).load()
+            // parse registries and libraries lines specified by user and append to it
+            // build-in registry path to load only module that placed outside(!) main jar file
+            val registries = if (regCfgLine != null) "$regCfgLine,${settings.internalModulesClasspath}" else settings.internalModulesClasspath
+
+            val specifiedRegistriesPaths = parseRegistriesLine(registries)
+            val specifiedLibrariesPaths = if (libCfgLine != null) parseLibrariesLine(libCfgLine) else emptyMap()
+
+            // mix it all up together
+            val paths = specifiedRegistriesPaths + specifiedLibrariesPaths
+
+            log.config { "Loading user libraries: $paths" }
+
+            // load libraries outside main jar
+            val externalLibraries = loadUserLibraries(paths)
+            // load internal system libraries
+            val systemLibraries = if (system != null) loadSystemLibraries(system) else emptyArray()
+
+            val libraries = externalLibraries + systemLibraries
+            return ModuleLibraryRegistry(regCfgLine, libCfgLine, *libraries).load()
         }
     }
 
     private val libraries = libraries.associateBy { it.name }
 
-    operator fun get(name: String) = libraries[name] ?: throw LibraryNotFoundError(name)
+    operator fun get(name: String): ModuleFactoryLibrary {
+        val library = libraries[name]
+        if (library == null) {
+            val modules = getAvailableAllModules()
+            log.severe { modules.joinToString("\n") }
+            throw LibraryNotFoundError(name)
+        }
+        return library
+    }
 
     /**
      * {EN}Get registry top modules only{EN}
      */
     fun getAvailableTopModules() = libraries
-            .map { (name, lib) -> LibraryInfo(name, lib, lib.getAvailableTopModules(this)) }
+            .map { (name, lib) -> LibraryInfo(name, lib, lib.getAvailableTopModules()) }
             .filter { it.modules.isNotEmpty() }
 
     /**
@@ -153,4 +205,19 @@ class ModuleLibraryRegistry constructor(vararg libraries: ModuleFactoryLibrary) 
         }
         return this
     }
+
+    /**
+     * {EN}Load module with [name] from specified json in [stream] and parameters [parameters]{EN}
+     */
+    fun json(parent: Module?, stream: InputStream, name: String, vararg parameters: Any?) =
+            JsonModuleFactoryBuilder.JsonModule(null, this, parent, name, stream.parseJson(), *parameters)
+
+    /**
+     * {EN}Load module with [name] from specified json with path [path] and parameters [parameters]{EN}
+     */
+    fun json(parent: Module?, path: String, name: String, vararg parameters: Any?) =
+            json(parent, path.toFile().inputStream(), name, *parameters)
+
+    fun json(parent: Module?, name: String, config: PluginConfig, vararg parameters: Any?) =
+            JsonModuleFactoryBuilder.JsonModule(null, this, parent, name, config, *parameters)
 }

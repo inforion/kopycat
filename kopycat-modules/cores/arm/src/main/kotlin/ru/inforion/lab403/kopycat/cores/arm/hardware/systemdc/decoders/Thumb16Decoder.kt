@@ -53,7 +53,9 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.shift.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special.ADR
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special.IT
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special.SETEND
-import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.*
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.BKPT
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.LDM
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.STM
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.thumb.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unpacking.SXTB
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unpacking.SXTH
@@ -62,7 +64,9 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unpacking.UXTH
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 class Thumb16Decoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
-    companion object { private val log = logger() }
+    companion object {
+        @Transient private val log = logger()
+    }
 
     private val undefined = ExceptionDecoder.Undefined(cpu)
     private val lsli   = ThumbShiftImmDecoder(core, LSL, ::LSLi)

@@ -28,8 +28,7 @@ package ru.inforion.lab403.kopycat.cores.base.operands
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.asLong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
-import ru.inforion.lab403.kopycat.device.ATest
-import ru.inforion.lab403.kopycat.device.TestCore
+import ru.inforion.lab403.kopycat.modules.cores.device.ATest
 
 class MemoryTest: ATest() {
     private fun error(value: Long, expected: Long, actual: Long, test: String): String =

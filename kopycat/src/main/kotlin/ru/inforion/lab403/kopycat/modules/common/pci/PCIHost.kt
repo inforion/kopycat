@@ -43,7 +43,7 @@ import java.util.logging.Level.FINER
 
 open class PCIHost(parent: Module, name: String): Module(parent, name) {
     companion object {
-        val log = logger(FINER)
+        @Transient val log = logger(FINER)
 
         const val INTERRUPT_COUNT = 4
     }

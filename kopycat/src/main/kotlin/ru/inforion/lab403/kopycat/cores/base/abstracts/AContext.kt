@@ -25,44 +25,73 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
-import ru.inforion.lab403.kopycat.cores.base.AGenericCPU
-import ru.inforion.lab403.kopycat.interfaces.ISerializable
+import ru.inforion.lab403.kopycat.cores.base.AGenericCore
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 
 
+ 
+abstract class AContext<T: AGenericCore>(val abi: ABI<T>): ABIBase(abi.bits, abi.bigEndian, abi.types) {
 
-abstract class AContext<out T: AGenericCPU>(protected val cpu: T): ISerializable {
-    /**
-     * Program counter value abstraction
-     */
-    abstract var vpc: Long
+    private val registers = Array(abi.registerCount) { 0L }
 
-    /**
-     * Stack pointer value abstraction
-     */
-    abstract var vsp: Long
+    override var stackPointerValue: Long
+        get() = readRegister(abi.sp.reg)
+        set(value) = writeRegister(abi.sp.reg, value)
+    override val returnValue: Long
+        get() = readRegister(abi.rv.reg)
+    override var programCounterValue: Long
+        get() = readRegister(abi.pc.reg)
+        set(value) = writeRegister(abi.pc.reg, value)
+    override var returnAddressValue: Long
+        get() = readRegister(abi.ra.reg)
+        set(value) = writeRegister(abi.ra.reg, value)
 
-    /**
-     * Return address value abstraction
-     */
-    abstract var vra: Long
+    override fun setReturnValue(value: Long, type: Datatype, instance: ABIBase) =
+            abi.setReturnValue(value, type, instance)
 
-    /**
-     * Return value abstraction
-     */
-    abstract var vRetValue: Long
+    override val gprDatatype get() = abi.gprDatatype
 
-    /**
-     * Load data from context to cpu
-     */
-    abstract fun load()
+    override val sizetDatatype get() = abi.sizetDatatype
 
-    /**
-     * Save data from cpu to context
-     */
-    abstract fun save()
+    override val regArguments get() = abi.regArguments
+    override val minimumStackAlignment get() = abi.minimumStackAlignment
 
-    /**
-     * Set registers
-     */
-    abstract fun setRegisters(map: Map<String, Long>)
+    override fun readRegister(index: Int) = registers[index]
+
+    override fun writeRegister(index: Int, value: Long) { registers[index] = value }
+
+    override fun readStack(offset: Long, type: Datatype) =
+            abi.readStack(offset, type)
+
+    override fun writeStack(offset: Long, type: Datatype, value: Long) =
+            abi.writeStack(offset, type, value)
+
+
+    override fun getArg(index: Int, type: Datatype, alignment: Int, instance: ABIBase) =
+            abi.getArg(index, type, alignment, instance)
+
+    override fun getArgs(args: Iterable<Datatype>, instance: ABIBase) = abi.getArgs(args, instance)
+
+    override fun setArg(index: Int, type: Datatype, value: Long, push: Boolean, alignment: Int, instance: ABIBase) =
+            abi.setArg(index, type, value, push, alignment, instance)
+
+    override fun setArgs(args: Iterable<Pair<Datatype, Long>>, push: Boolean, instance: ABIBase) =
+            abi.setArgs(args, push, instance)
+
+    override fun setArgs(args: Array<Long>, push: Boolean, instance: ABIBase) = abi.setArgs(args, push, instance)
+
+
+    open fun save() = registers.indices.forEach { i -> registers[i] = abi.readRegister(i) }
+
+    open fun load() = registers.forEachIndexed { i, it -> abi.writeRegister(i, it) }
+
+
+    open fun store(address: Long) = registers.forEachIndexed { i, it ->
+        abi.writeMemory(address + i * abi.gprDatatype.bytes, it, abi.gprDatatype)
+    }
+
+    open fun restore(address: Long) = registers.indices.forEach { i ->
+        abi.readMemory(address + i * abi.gprDatatype.bytes, abi.gprDatatype)
+    }
+
 }

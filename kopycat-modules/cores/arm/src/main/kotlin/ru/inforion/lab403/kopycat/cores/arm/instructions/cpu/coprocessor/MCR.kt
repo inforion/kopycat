@@ -28,10 +28,7 @@ package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
-import ru.inforion.lab403.kopycat.cores.arm.operands.ARMVariable
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
 
 // See A8.8.98
 class MCR(cpu: AARMCore,

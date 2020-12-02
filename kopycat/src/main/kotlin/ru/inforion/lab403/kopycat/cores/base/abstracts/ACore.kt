@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.cores.base.abstracts
 import net.sourceforge.argparse4j.inf.ArgumentParser
 import ru.inforion.lab403.common.extensions.Time
 import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
 import ru.inforion.lab403.kopycat.cores.base.common.CoreInfo
@@ -39,7 +40,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.*
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
 import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.serializer.loadEnum
-import kotlin.collections.HashMap
+import ru.inforion.lab403.kopycat.serializer.storeValues
 
 /**
  * {RU}
@@ -141,7 +142,7 @@ abstract class ACore<
      *
      * {EN}Optional (throw NotImplementedError if absent) for operating system supports{EN}
      */
-    abstract fun abi(heap: LongRange, stack: LongRange): ABI<R>
+    open fun abi(): ABI<R> = throw NotImplementedError("Operating system not supported")
 
     val info = CoreInfo(this)
 
@@ -156,8 +157,14 @@ abstract class ACore<
     /**
      * {EN}Make pretty text view with maximum information about occurred exception{EN}
      */
-    private fun explain(exception: Throwable, comment: String) =
+    private fun explain(exception: Throwable?, comment: String) =
             "$this $exception pc=0x${cpu.pc.hex} time=${clock.time(Time.ns)} ns -> $comment"
+
+    private inline fun processBlock(block: () -> Unit): Status {
+        cpu.exception = null
+        block()
+        return CORE_EXECUTED
+    }
 
     /**
      * {EN}
@@ -169,7 +176,7 @@ abstract class ACore<
      */
     private fun processUnhandledException(): Status {
         log.severe { explain(cpu.exception!!,
-                "unhandled exception left in core! If debugger support you may reset exception by setting PC") }
+                "CPU in faulty state! If debugger support you may reset exception by setting PC") }
         return UNBEARABLE_EXCEPTION
     }
 
@@ -188,20 +195,23 @@ abstract class ACore<
             info.trace(true)
 
         cpu.exception = exception
+        cpu.fault = true
+
         when (exception) {
             is BreakpointException -> {
                 log.config { explain(exception, "stop at breakpoint hit") }
-                cpu.exception = null
+                cpu.fault = false
                 return BREAKPOINT_EXCEPTION
             }
 
             is HardwareException -> {
                 // Если исключение обработано, возвращается null
                 // If exception is handled then null is returned
-                cpu.exception = cop.handleException(cpu.exception)
+                val exc = cop.handleException(exception)
 
-                if (cpu.exception == null) {
-                    log.finest { explain(exception, "handled by coprocessor") }
+                if (exc == null) {
+                    log.finest { explain(exc, "handled by coprocessor") }
+                    cpu.fault = false
                     return INTERNAL_EXCEPTION
                 }
 
@@ -230,6 +240,7 @@ abstract class ACore<
         log.severe { explain(throwable, "Core halted!") }
         throwable.printStackTrace()
         cpu.exception = exception
+        cpu.fault = true
         return unbearableExceptionAndTrace()
     }
 
@@ -241,11 +252,10 @@ abstract class ACore<
      * @return [Status] - return monitor status
      * {EN}
      */
-    private inline fun monitor(block: () -> Unit) = if (cpu.exception != null) {
+    private inline fun monitor(block: () -> Unit) = if (cpu.fault) {
         processUnhandledException()
     } else try {
-        block()
-        CORE_EXECUTED
+        processBlock(block)
     } catch (exception: GeneralException) {
         processGeneralException(exception)
     } catch (exception: Throwable) {
@@ -337,8 +347,7 @@ abstract class ACore<
         info.reset()
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> =
-            super.serialize(ctxt) + ctxt.storeValues("stage" to stage)
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues("stage" to stage)
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
@@ -350,6 +359,14 @@ abstract class ACore<
         val snapshotValues = snapshot["components"] as Map<String, Any>
         snapshotValues.forEach { (cName, cData) -> components[cName]?.restore(ctxt, cData as HashMap<String, Any>) }
         stage = loadEnum(snapshot, "stage")
+    }
+
+    override fun stringify() = buildString {
+        appendLine("${this@ACore::class.simpleName}:")
+        appendLine(cpu.stringify())
+        appendLine(cop.stringify())
+        mmu?.let { appendLine(it.stringify()) }
+        fpu?.let { append(it.stringify()) }
     }
 
     /**
@@ -401,11 +418,34 @@ abstract class ACore<
     final override fun read(ea: Long, ss: Int, size: Int): Long = cpu.ports.mem.read(ea, ss, size)
     final override fun write(ea: Long, ss: Int, size: Int, value: Long): Unit = cpu.ports.mem.write(ea, ss, size, value)
 
+    /**
+     * {EN}
+     * Last exception of CPU. This exception may be processed by COP or may be not in either case it will not be null.
+     * Exception reset before each successful CPU step.
+     * {EN}
+     */
     fun exception() = cpu.exception
 
+    /**
+     * {RU}Задать значение регистра общего назначения по его индексу{RU}
+     */
     fun reg(index: Int): Long = cpu.reg(index)
 
+    /**
+     * {RU}Получить общее количество регистров общего назначения{RU}
+     */
     fun reg(index: Int, value: Long): Unit = cpu.reg(index, value)
+
+    /**
+     * {RU}Прочитать все регистры CPU{RU}
+     */
+    fun registers() = cpu.registers()
+
+    /**
+     * {RU}Прочитать значения флагов CPU{RU}
+     */
+    @ExperimentalWarning
+    fun flags() = cpu.flags()
 
     var pc: Long
         get() = cpu.pc

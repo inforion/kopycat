@@ -28,7 +28,10 @@ package ru.inforion.lab403.kopycat.library.builders.api
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
 
 interface IModuleFactoryBuilder {
-    fun preload(): Boolean = true
+    /**
+     * {EN}Method should do preload of current factory builder{EN}
+     */
+    fun preload() = true
 
     /**
      * {EN}This function should perform a check whether or not plugin can be loaded{EN}
@@ -37,9 +40,33 @@ interface IModuleFactoryBuilder {
      */
     fun load(): Boolean
 
-    fun factory(pluginName: String, registry: ModuleLibraryRegistry): List<IModuleFactory>
+    /**
+     * {EN}
+     * Returns list of available factories for this builder.
+     * Methods returns list because module may have several constructors.
+     * Also [name] parameters required for cases when builder contains several factories i.e. jar-files.
+     *
+     * @param name module name to get available constructors/factories
+     * @param registry registry to use to look up specified module
+     * {EN}
+     *
+     * {RU}
+     * Возвращает список доступных "конструкторов" для модуля.
+     *
+     * Данные метод отдает список, так как это необходимо, если есть перегруженные конструкторы у исходного класса.
+     *
+     * @param name имя модуля для получение его "конструкторов"
+     * @param registry реестр, из которого необходимо получить "конструкторы"
+     * {RU}
+     */
+    fun factory(name: String, registry: ModuleLibraryRegistry): List<IModuleFactory>
 
-    fun plugins(): Set<String>
+    /**
+     * {EN}
+     * Returns list of available module's plugins found during loading
+     * {EN}
+     */
+    val plugins: Set<String>
 
     override fun toString(): String
 }

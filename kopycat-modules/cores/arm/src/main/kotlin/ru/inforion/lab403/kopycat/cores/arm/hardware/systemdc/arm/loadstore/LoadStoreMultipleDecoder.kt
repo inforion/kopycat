@@ -32,9 +32,9 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegisterList
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
@@ -51,11 +51,11 @@ class LoadStoreMultipleDecoder(
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
     override fun decode(data: Long): AARMInstruction {
         val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rn = GPRBank.Operand(data[19..16].asInt)
+        val rn = gpr(data[19..16].asInt)
         val wback = data[21] == 1L
-        val registers = ARMRegisterList(core, data, data[15..0])
-        if (rn.reg == 15 || registers.bitCount < 1) throw ARMHardwareException.Unpredictable
-        if(isLoad && wback && registers.rbits[rn.reg] == 1L && core.cpu.ArchVersion() >= 7) throw ARMHardwareException.Unpredictable
+        val registers = list(data[15..0])
+        if (rn.isProgramCounter(core) || registers.count < 1) throw ARMHardwareException.Unpredictable
+        if (isLoad && wback && rn in registers && core.cpu.ArchVersion() >= 7) throw ARMHardwareException.Unpredictable
         return constructor(core, data, cond, wback, rn, registers, 4)
     }
 }

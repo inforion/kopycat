@@ -27,8 +27,8 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
 import ru.inforion.lab403.common.extensions.toULong
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtSaInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -42,8 +42,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class sra(core: MipsCore,
           data: Long,
-          rd: GPR,
-          rs: GPR,
+          rd: MipsRegister,
+          rs: MipsRegister,
           sa: MipsImmediate) : RdRtSaInsn(core, data, Type.VOID, rd, rs, sa) {
 
     override val mnem = "sra"

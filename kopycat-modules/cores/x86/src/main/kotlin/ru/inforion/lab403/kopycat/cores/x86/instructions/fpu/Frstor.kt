@@ -52,7 +52,7 @@ class Frstor(core: x86Core, opcode: ByteArray, prefs: Prefixes, val src: AOperan
         core.fpu.fwr.FPUDataPointer = core.inl(address + 20)
 //      FPUDataPointer Selector = core.read_word(address + 24)
 
-        (0 until x86FPU.FPU_STACK_SIZE).forEach {
+        repeat(x86FPU.FPU_STACK_SIZE) {
             core.fpu[it] = core.inl(address + 28 + 10 * it)
         }
 

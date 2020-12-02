@@ -82,10 +82,10 @@ interface IWritable {
      */
     fun store(ea: Long, data: ByteArray, ss: Int = 0, onError: HardwareErrorHandler? = null) {
         if (onError == null) {
-            for (k in 0 until data.size)
+            for (k in data.indices)
                 write(ea + k, ss, 1, data[k].asULong)
         } else {
-            for (k in 0 until data.size) {
+            for (k in data.indices) {
                 try {
                     write(ea + k, ss, 1, data[k].asULong)
                 } catch (error: HardwareException) {

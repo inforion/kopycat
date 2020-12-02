@@ -32,6 +32,7 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
@@ -57,7 +58,7 @@ class LDRi(cpu: AARMCore,
         val address = if (index) offsetAddress else rn.value(core)
         val data = core.inl(address like Datatype.DWORD)
         if (wback) rn.value(core, offsetAddress)
-        if (rt.reg == core.cpu.regs.pc.reg) {
+        if (rt.isProgramCounter(core)) {
             if (address[1..0] == 0b00L) {
                 core.cpu.LoadWritePC(data)
             } else {

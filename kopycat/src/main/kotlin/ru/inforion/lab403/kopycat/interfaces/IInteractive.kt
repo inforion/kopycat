@@ -36,7 +36,7 @@ import java.util.logging.Level
 
 interface IInteractive {
     companion object {
-        val log = logger(Level.CONFIG)
+        @Transient val log = logger(Level.CONFIG)
     }
 
     class Context(val options: Namespace) {

@@ -37,7 +37,7 @@ import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT
 import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT.*
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
-import ru.inforion.lab403.kopycat.modules.debuggers.ARMDebugger
+import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 
 class DebuggerTest: Module(null, "ARM Debugger Test") {
@@ -81,7 +81,7 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
         arm.cpu.regs.r10.value = r10
         arm.cpu.regs.r11.value = r11
         arm.cpu.regs.r12.value = r12
-        arm.cpu.regs.spMain.value = r13
+        arm.cpu.regs.sp.value = r13
         arm.cpu.regs.lr.value = r14
     }
 
