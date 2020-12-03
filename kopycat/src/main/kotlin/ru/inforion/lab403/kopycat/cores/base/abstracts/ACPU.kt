@@ -147,9 +147,9 @@ abstract class ACPU<
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        halted = loadValue(snapshot, "halted")
-        fault = loadValue(snapshot, "faulty")
-        callOccurred = loadValue(snapshot, "callOccurred")
+        halted = loadValue(snapshot, "halted") { false }
+        fault = loadValue(snapshot, "faulty")  { false }
+        callOccurred = loadValue(snapshot, "callOccurred") { false }
         exception = null
     }
 }

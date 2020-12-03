@@ -18,7 +18,14 @@ subprojects {
 
         afterEvaluate {
             tasks.findAll { it instanceof Test }.each { task ->
-                task.jvmArgs += ["-Xms2G", "-Xmx5G", "-XX:MaxDirectMemorySize=2g"]
+                task.jvmArgs += [
+                        "-server",
+                        "-Xms2G",
+                        "-Xmx5G",
+                        "-XX:MaxDirectMemorySize=2g",
+                        "-XX:+UseParallelGC",
+                        "-XX:SurvivorRatio=6",
+                        "-XX:-UseGCOverheadLimit"]
 
                 task.testLogging {
                     events "passed", "skipped", "failed" //, "standardOut", "standardError"

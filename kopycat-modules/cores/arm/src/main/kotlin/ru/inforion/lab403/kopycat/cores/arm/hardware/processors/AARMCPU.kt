@@ -40,6 +40,7 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
+import ru.inforion.lab403.kopycat.serializer.loadValue
 
 
 abstract class AARMCPU(
@@ -740,15 +741,14 @@ abstract class AARMCPU(
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
 
-        (snapshot["banking"] as ArrayList<Map<String, Any>>).forEachIndexed { i, data ->
-            banking[i].deserialize(ctxt, data)
-        }
+        loadValue(snapshot, "banking") { emptyList<Map<String, Any>>() }
+                .forEachIndexed { i, data -> banking[i].deserialize(ctxt, data) }
 
-        regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
-        sregs.deserialize(ctxt, snapshot["sregs"] as Map<String, String>)
-        spr.deserialize(ctxt, snapshot["spr"] as Map<String, String>)
-        vmsa.deserialize(ctxt, snapshot["vmsa"] as Map<String, String>)
-        ver.deserialize(ctxt, snapshot["ver"] as Map<String, String>)
-        ser.deserialize(ctxt, snapshot["ser"] as Map<String, String>)
+        regs.deserialize(ctxt, loadValue(snapshot, "regs") { emptyMap<String, String>() })
+        sregs.deserialize(ctxt, loadValue(snapshot, "sregs") { emptyMap<String, String>() })
+        spr.deserialize(ctxt, loadValue(snapshot, "spr") { emptyMap<String, String>() })
+        vmsa.deserialize(ctxt, loadValue(snapshot, "vmsa") { emptyMap<String, String>() })
+        ver.deserialize(ctxt, loadValue(snapshot, "ver") { emptyMap<String, String>() })
+        ser.deserialize(ctxt, loadValue(snapshot, "ser") { emptyMap<String, String>() })
     }
 }

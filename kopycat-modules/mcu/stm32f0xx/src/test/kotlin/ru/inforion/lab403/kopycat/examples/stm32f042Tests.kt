@@ -52,6 +52,8 @@ internal class stm32f042Tests {
         UartTerminal.log.level = OFF
     }
 
+    // TODO: https://youtrack.lab403.inforion.ru/issue/KC-1857
+
     @Test
     fun gpiox_led_test() {
         PerformanceTester(0x0800_11B4, 100_000_000) {

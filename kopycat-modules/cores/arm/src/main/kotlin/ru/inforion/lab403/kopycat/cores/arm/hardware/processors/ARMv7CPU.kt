@@ -137,16 +137,4 @@ class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
 
         return 1  // TODO: get from insn.execute()
     }
-
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return mapOf(
-                "regs" to regs.serialize(ctxt),
-                "pc" to pc.hex8
-        )
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
-    }
 }

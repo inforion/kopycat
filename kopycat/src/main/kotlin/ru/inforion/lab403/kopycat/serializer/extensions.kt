@@ -131,7 +131,6 @@ inline fun <T, V>Array<T>.restore(ctxt: GenericSerializer, snapshot: Any?, trans
  *
  * @param snapshot снимок состояния, из которого будет загружена переменная
  * @param key ключ, по которому будет браться переменная из снимка состояния
- * @param default значение по умолчанию (необязательный параметр)
  * @return [T] декодированная переменная из снимка или значение по умолчанию
  * {RU}
  *
@@ -147,17 +146,13 @@ inline fun <T, V>Array<T>.restore(ctxt: GenericSerializer, snapshot: Any?, trans
  *
  * @param snapshot image of current state
  * @param key the key by which the variable from the snapshot will be taken
- * @param default default value (optional)
  * @return [T] decoded variable from snapshot or default value
  * {EN}
  */
-inline fun <reified T> loadValue(snapshot: Map<String, Any?>, key: String, default: T? = null): T {
+inline fun <reified T> loadValue(snapshot: Map<String, Any?>, key: String): T {
     val value = snapshot[key]
-    if (value == null) {
-        log.warning { "Can't load field: '$key' -> using default value = $default" }
-        require(default != null) { "Can't load field: '$key' -> no default value" }
-        return default
-    }
+
+    require(value != null) { "Can't load field: '$key' -> no default value" }
 
     // check if can decode as IEEE754 value
     if (T::class == Float::class && value is Int)
@@ -206,6 +201,29 @@ inline fun <reified T> loadValue(snapshot: Map<String, Any?>, key: String, defau
 }
 
 /**
+ * {EN}
+ * Default null value not used for optimization purpose (because can't inline nullable)
+ *
+ * @see [loadValue]
+ *
+ * @param snapshot image of current state
+ * @param key the key by which the variable from the snapshot will be taken
+ * @param default default value (optional)
+ *
+ * @return [T] decoded variable from snapshot or default value
+ * {EN}
+ */
+inline fun <reified T> loadValue(snapshot: Map<String, Any?>, key: String, default: () -> T): T {
+    if (key !in snapshot) {
+        val defaultValue = default()
+        log.warning { "Can't load field: '$key' -> using default value = $defaultValue" }
+        return default()
+    }
+
+    return loadValue(snapshot, key)
+}
+
+/**
  * {RU}
  * Этот метод служит для загрузки [Enum] значения из снимка состояния
  *
@@ -225,13 +243,16 @@ inline fun <reified T> loadValue(snapshot: Map<String, Any?>, key: String, defau
  * {EN}
  */
 inline fun <reified T: Enum<T>>loadEnum(snapshot: Map<String, Any?>, key: String, default: T? = null): T {
-    val value = loadValue(snapshot, key, default?.toString())
+    val value = loadValue(snapshot, key) {
+        require(default != null) { "Can't load field: '$key' -> no default value" }
+        default.toString()
+    }
     return enumValueOf(value)
 }
 
 
 fun loadHex(snapshot: Map<String, Any?>, key: String, default: Long) =
-        loadValue(snapshot, key, default.hex8).hexAsULong
+        loadValue(snapshot, key) { default.hex8 }.hexAsULong
 
 
 fun storeValues(vararg values: Pair<String, Any>) = values.associate { (name, value) ->

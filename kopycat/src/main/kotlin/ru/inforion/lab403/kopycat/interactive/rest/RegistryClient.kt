@@ -27,14 +27,17 @@ package ru.inforion.lab403.kopycat.interactive.rest
 
 import ru.inforion.lab403.common.extensions.Krest
 import ru.inforion.lab403.kopycat.library.builders.text.PluginConfig
+import ru.inforion.lab403.kopycat.library.types.FactoryInfo
 
 
 class RegistryClient(host: String, port: Int, retries: Int = 10) {
     private val client = Krest(host, port, "registry", retries = retries)
 
-    fun getAvailableTopModules() = client.get<Map<String, List<String>>>("getAvailableTopModules")
+    fun getAvailableTopModules(): Map<String, Map<String, List<FactoryInfo>>> =
+            client.get("getAvailableTopModules")
 
-    fun getAvailableAllModules() = client.get<Map<String, List<String>>>("getAvailableAllModules")
+    fun getAvailableAllModules(): Map<String, Map<String, List<FactoryInfo>>> =
+            client.get("getAvailableAllModules")
 
     inner class Module {
         val endpoint = "module"

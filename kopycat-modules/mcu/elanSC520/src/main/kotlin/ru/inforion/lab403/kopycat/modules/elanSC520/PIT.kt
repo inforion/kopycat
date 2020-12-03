@@ -152,12 +152,12 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             super.deserialize(ctxt, snapshot)
-            LATCHED = loadValue(snapshot, "LATCHED", 0)
-            COUNT = loadValue(snapshot, "COUNT", 0)
-            CTR_RW_LATCH = loadValue(snapshot, "CTR_RW_LATCH", 0)
-            no = loadValue(snapshot, "no", 0)
+            LATCHED = loadValue(snapshot, "LATCHED") { 0 }
+            COUNT = loadValue(snapshot, "COUNT") { 0 }
+            CTR_RW_LATCH = loadValue(snapshot, "CTR_RW_LATCH") { 0 }
+            no = loadValue(snapshot, "no") { 0 }
             READBACK = loadEnum(snapshot, "READBACK", Status)
-            READBACK_LATCHED = loadValue(snapshot, "READBACK_LATCHED", 0)
+            READBACK_LATCHED = loadValue(snapshot, "READBACK_LATCHED") { 0 }
         }
     }
 

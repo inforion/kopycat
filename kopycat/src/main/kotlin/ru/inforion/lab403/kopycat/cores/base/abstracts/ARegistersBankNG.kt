@@ -172,7 +172,7 @@ abstract class ARegistersBankNG<T: AGenericCore>(
         if (info == null) {
             log.warning { "Register $it not found in snapshot and it will be reset..." }
             it.reset()
-            return
+            return@forEach
         }
 
         @Suppress("UNCHECKED_CAST")

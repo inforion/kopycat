@@ -650,7 +650,7 @@ class NAND constructor(
     @Suppress("UNCHECKED_CAST")
     private fun restoreCommon(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         loadByteBuffer(snapshot, "devId", devId)
-        canBeDual = loadValue(snapshot, "canBeDual", false)
+        canBeDual = loadValue(snapshot, "canBeDual") { false }
         status.deserialize(ctxt, snapshot["status"] as Map<String, Any>)
         address.deserialize(ctxt, snapshot["address"] as Map<String, Any>)
         state = loadEnum(snapshot, "state")

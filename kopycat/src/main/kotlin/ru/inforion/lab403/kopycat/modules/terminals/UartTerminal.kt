@@ -31,6 +31,7 @@ import ru.inforion.lab403.common.extensions.hex2
 import ru.inforion.lab403.common.extensions.toLong
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.proposal.lazyTransient
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ATerminal
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -40,6 +41,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.*
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.io.Serializable
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -119,8 +121,8 @@ open class UartTerminal(
     }
 
     private val REG_UART_DATA = object : Register(ports.term_s, UART_MASTER_BUS_DATA, BYTE, "REG_UART_DATA") {
-        private var logBufferTx = LoggingBuffer(name, "send")
-        private var logBufferRx = LoggingBuffer(name, "recv")
+        private val logBufferTx = LoggingBuffer(name, "send")
+        private val logBufferRx = LoggingBuffer(name, "recv")
 
         override fun beforeRead(from: MasterPort, ea: Long): Boolean = terminalReceiveEnabled && !rxUnderflow
         override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = terminalTransmitEnabled && !txOverflow
@@ -292,5 +294,19 @@ open class UartTerminal(
     fun write(bytes: ByteArray) {
         bytes.forEach { rxBuffer.put(it) }
         dataReceivedRequest()
+    }
+
+    private fun LinkedBlockingQueue<Byte>.read() = takeWhile { isNotEmpty() }.toByteArray()
+    private fun LinkedBlockingQueue<Byte>.write(bytes: ByteArray) = bytes.forEach { put(it) }
+
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+        require(rxBuffer.isEmpty()) { "Can't serialize UartTerminal if any data not flushed!" }
+        require(txBuffer.isEmpty()) { "Can't serialize UartTerminal if any data not flushed!" }
+        return emptyMap()
+    }
+
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        rxBuffer.clear()
+        txBuffer.clear()
     }
 }

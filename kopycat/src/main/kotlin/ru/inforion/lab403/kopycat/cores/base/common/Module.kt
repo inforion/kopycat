@@ -1108,15 +1108,15 @@ open class Module(
          * {RU}
          */
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            val pNameSnapshot: String = loadValue(snapshot, "pName", port.name)
-            val pAddrSnapshot = (snapshot["pAddr"] as String).hexAsULong
+            val pNameSnapshot = loadValue<String>(snapshot, "pName") { port.name }
+            val pAddrSnapshot = loadValue<String>(snapshot, "pAddr").hexAsULong
 
             check(pNameSnapshot == port.name) {
                 "port: ${port.name} != $pNameSnapshot. " +
                         "Try to update snapshot or check registers order in source code, it should be same with snapshot."
             }
             check(pAddrSnapshot == address) { "pAddr: %08X != %08X".format(address, pAddrSnapshot) }
-            data = (snapshot["data"] as String).hexAsULong
+            data = loadValue<String>(snapshot, "data").hexAsULong
         }
 
         fun Logger.read(level: Level) = log(level) { "[%08X] RD <- %s".format(core.cpu.pc, stringify()) }
