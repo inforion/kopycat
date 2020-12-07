@@ -53,24 +53,21 @@ import kotlin.reflect.jvm.javaField
 
 fun <T : ISerializable?> Sequence<T>.deserialize(ctxt: GenericSerializer, snapshot: Any?) {
     val map = snapshot as ArrayList<Map<String, Any>>
-    if (map.count() != count())
-        throw IllegalStateException("Snapshot size != required size (${map.count()} != ${count()})")
+    check(map.count() == count()) { "Snapshot size != required size (${map.count()} != ${count()})" }
     forEachIndexed { i, v -> v?.deserialize(ctxt, map[i]) }
 }
 
 fun <T : ISerializable?> Array<T>.deserialize(ctxt: GenericSerializer, snapshot: Any?) {
     if (snapshot != null) {
         val map = snapshot as ArrayList<Map<String, Any>>
-        if (map.count() != count())
-            throw IllegalStateException("Snapshot size != required size (${map.count()} != ${count()})")
+        check(map.count() == count()) { "Snapshot size != required size (${map.count()} != ${count()})" }
         forEachIndexed { i, v -> v?.deserialize(ctxt, map[i]) }
     } else log.severe { "No snapshot data for object ${this.javaClass.name} -> won't be deserialized!" }
 }
 
 fun <T : ISerializable?> ArrayList<T>.deserialize(ctxt: GenericSerializer, snapshot: Any?) {
     val map = snapshot as ArrayList<Map<String, Any>>
-    if (map.count() != count())
-        throw IllegalStateException("Snapshot size != required size (${map.count()} != ${count()})")
+    check(map.count() == count()) { "Snapshot size != required size (${map.count()} != ${count()})" }
     forEachIndexed { i, v -> v?.deserialize(ctxt, map[i]) }
 }
 
@@ -92,30 +89,29 @@ fun <T : ISerializable?> ArrayList<T>.restore(ctxt: GenericSerializer, snapshot:
 // =========================================== SIMPLE TYPES ============================================================
 
 @Suppress("NOTHING_TO_INLINE")
-inline fun <V>Array<*>.checkSnapshotAs(snapshot: Any?): ArrayList<V>? {
-    if (snapshot != null) {
-        snapshot as ArrayList<V>
-        if (snapshot.count() != count())
-            throw IllegalStateException("Snapshot size != required size (${snapshot.count()} != ${count()})")
-        return snapshot
-    } else {
-        log.severe { "No snapshot data for object ${this.javaClass.name} -> won't be deserialized!" }
-        return null
-    }
+inline fun <V> Array<*>.checkSnapshotAs(snapshot: Any?): ArrayList<V>? = if (snapshot != null) {
+    snapshot as ArrayList<V>
+    check(snapshot.count() == count()) { "Snapshot size != required size (${snapshot.count()} != ${count()})" }
+    snapshot
+} else {
+    log.severe { "No snapshot data for object ${this.javaClass.name} -> won't be deserialized!" }
+    null
 }
 
 @Suppress("UNUSED_PARAMETER")
-fun <T>Array<T>.deserialize(ctxt: GenericSerializer, snapshot: Any?) {
+fun <T> Array<T>.deserialize(ctxt: GenericSerializer, snapshot: Any?) {
     checkSnapshotAs<T>(snapshot)?.forEachIndexed { i, v -> this[i] = v }
 }
 
 @Suppress("UNUSED_PARAMETER")
-inline fun <T, V>Array<T>.deserialize(ctxt: GenericSerializer, snapshot: Any?, transform: (V) -> T) {
+inline fun <T, V> Array<T>.deserialize(ctxt: GenericSerializer, snapshot: Any?, transform: (V) -> T) {
     checkSnapshotAs<V>(snapshot)?.forEachIndexed { i, v -> this[i] = transform(v) }
 }
 
-fun <T>Array<T>.restore(ctxt: GenericSerializer, snapshot: Any?) = deserialize(ctxt, snapshot)
-inline fun <T, V>Array<T>.restore(ctxt: GenericSerializer, snapshot: Any?, transform: (V) -> T) = deserialize(ctxt, snapshot, transform)
+fun <T> Array<T>.restore(ctxt: GenericSerializer, snapshot: Any?) = deserialize(ctxt, snapshot)
+
+inline fun <T, V> Array<T>.restore(ctxt: GenericSerializer, snapshot: Any?, transform: (V) -> T) =
+        deserialize(ctxt, snapshot, transform)
 
 
 /**
@@ -242,7 +238,7 @@ inline fun <reified T> loadValue(snapshot: Map<String, Any?>, key: String, defau
  * @return [T] decoded enum value from snapshot or default value
  * {EN}
  */
-inline fun <reified T: Enum<T>>loadEnum(snapshot: Map<String, Any?>, key: String, default: T? = null): T {
+inline fun <reified T : Enum<T>> loadEnum(snapshot: Map<String, Any?>, key: String, default: T? = null): T {
     val value = loadValue(snapshot, key) {
         require(default != null) { "Can't load field: '$key' -> no default value" }
         default.toString()
@@ -316,7 +312,6 @@ inline val <T : Any> KClass<T>.serializableMemberProperties: List<KProperty1<T, 
                 || this.allSuperclasses.find { sc -> sc.java == it.javaField?.declaringClass } != null // is declared in this class
         !toSkip
     }
-
 
 
 fun serializePrimitive(ctxt: GenericSerializer, value: Any?): Any? = when (value) {
@@ -402,58 +397,55 @@ fun deserializePrimitive(ctxt: GenericSerializer, value: Any?, cls: Class<*>): A
 }
 
 // For collections
-// TODO: as classes?
-fun serializeItem(ctxt: GenericSerializer, value: Any?, name: String): Map<String, Any?> {
-    return if (value != null && ctxt.isSerialized(value))
-        mapOf("alias" to ctxt.getSerializedPrefix(value))
-    else when (value) {
-        is IOnlyAlias -> {
-            val alias = mutableMapOf<String, Any?>()
-            ctxt.waitingObject {
-               alias.putAll(serializeItem(ctxt, value, name))
-            }
-            alias
-        }
-        is IConstructorSerializable -> {
-            val ctor = ctxt.withPrefix(name) {
-                value.serializeConstructor(ctxt)
-            }
-            if (ctor == null) {
-
+fun serializeItem(ctxt: GenericSerializer, value: Any?, name: String): Map<String, Any?> =
+        if (value != null && ctxt.isSerialized(value)) {
+            mapOf("alias" to ctxt.getSerializedPrefix(value))
+        } else when (value) {
+            is IOnlyAlias -> {
                 val alias = mutableMapOf<String, Any?>()
                 ctxt.waitingObject {
                     alias.putAll(serializeItem(ctxt, value, name))
                 }
                 alias
-            } else {
+            }
+            is IConstructorSerializable -> {
+                val ctor = ctxt.withPrefix(name) {
+                    value.serializeConstructor(ctxt)
+                }
+                if (ctor == null) {
+
+                    val alias = mutableMapOf<String, Any?>()
+                    ctxt.waitingObject {
+                        alias.putAll(serializeItem(ctxt, value, name))
+                    }
+                    alias
+                } else {
+                    ctxt.withPrefix(name) {
+                        mapOf(
+                                "snapshot" to value.serialize(ctxt),
+                                "class" to value::class.java.name,
+                                "ctor" to ctor
+                        )
+                    }
+                }
+            }
+            is ISerializable -> throw IllegalArgumentException("Can't serialize class ${value::class.simpleName} in $name without constructor (make it IConstructorSerializable)")
+            else -> {
+                val cls = when {
+                    value == null -> "null"
+                    value::class.javaPrimitiveType != null -> value::class.javaPrimitiveType!!.name
+                    else -> value::class.java.name
+                }
                 ctxt.withPrefix(name) {
                     mapOf(
-                            "snapshot" to value.serialize(ctxt),
-                            "class" to value::class.java.name,
-                            "ctor" to ctor
+                            "value" to serializePrimitive(ctxt, value),
+                            "class" to cls
                     )
                 }
             }
         }
-        is ISerializable -> throw IllegalArgumentException("Can't serialize class ${value::class.simpleName} in $name without constructor (make it IConstructorSerializable)")
-        else -> {
-            val cls = when {
-                value == null -> "null"
-                value::class.javaPrimitiveType != null -> value::class.javaPrimitiveType!!.name
-                else -> value::class.java.name
-            }
-            ctxt.withPrefix(name) {
-                mapOf(
-                        "value" to serializePrimitive(ctxt, value),
-                        "class" to cls
-                )
-            }
-        }
-    }
-}
 
-// TODO: ugly, as class, merge?
-val primitiveTypes = listOf(
+private val primitiveTypes = listOf(
         Float::class,
         Double::class,
         Byte::class,
@@ -479,41 +471,41 @@ fun deserializeConstructor(ctxt: GenericSerializer, ctors: Array<Constructor<*>>
                 deserializeItem(ctxt, it.first as Map<String, Any>, it.second.name!!)
             }.toTypedArray()
             return ctor.newInstance(*arguments)
+        } catch (ex: IllegalArgumentException) {
+
+        } catch (ex: ClassCastException) {
+
         }
-        catch (ex: IllegalArgumentException) { }
-        catch (ex: ClassCastException) {}
     }
+
     throw IllegalStateException("Can't find appropriate constructor")
 }
 
-fun deserializeItem(ctxt: GenericSerializer, value: Map<String, Any>, name: String): Any? {
-    return when {
-        "alias" in value -> {
-            val key = value["alias"] as String
-            ctxt.getDeserializedObject(key)
-                    ?: throw CantSerializeException(key)
-        }
-        "snapshot" in value -> {
-            val snapshot = value["snapshot"] as Map<String, Any>
-            val className = value["class"] as String
-            val ctor = value["ctor"] as ArrayList<Any>
-
-            val cls = ClassSearcher.find(className).sure { "Class $className not found" }
-            ctxt.withPrefix(name) {
-                val result = deserializeConstructor(ctxt, cls.constructors, ctor)
-                (result as ISerializable).apply { deserialize(ctxt, snapshot) }
-            }
-        }
-        "value" in value -> {
-            val className = value["class"] as String
-            val cls = primitiveType(className) ?: ClassSearcher.find(className).sure { "Class $className not found" }
-
-            ctxt.withPrefix(name) {
-                deserializePrimitive(ctxt, value["value"], cls)
-            }
-        }
-        else -> throw IllegalArgumentException("Unknown structure")
+fun deserializeItem(ctxt: GenericSerializer, value: Map<String, Any>, name: String): Any? = when {
+    "alias" in value -> {
+        val key = value["alias"] as String
+        ctxt.getDeserializedObject(key) ?: throw CantSerializeException(key)
     }
+    "snapshot" in value -> {
+        val snapshot = value["snapshot"] as Map<String, Any>
+        val className = value["class"] as String
+        val ctor = value["ctor"] as ArrayList<Any>
+
+        val cls = ClassSearcher.find(className).sure { "Class $className not found" }
+        ctxt.withPrefix(name) {
+            val result = deserializeConstructor(ctxt, cls.constructors, ctor)
+            (result as ISerializable).apply { deserialize(ctxt, snapshot) }
+        }
+    }
+    "value" in value -> {
+        val className = value["class"] as String
+        val cls = primitiveType(className) ?: ClassSearcher.find(className).sure { "Class $className not found" }
+
+        ctxt.withPrefix(name) {
+            deserializePrimitive(ctxt, value["value"], cls)
+        }
+    }
+    else -> throw IllegalArgumentException("Unknown structure")
 }
 
 
@@ -554,8 +546,10 @@ val nonDeserializableContainers = arrayOf(
 
 fun <R, T> deserializeSpecialProperty(ctxt: GenericSerializer, snapshot: Any, receiver: R, item: KProperty1<R, T>) {
     val value = item.getWithAccess(receiver)
+
     if (nonDeserializableContainers.any { it.isInstance(value) })
         return
+
     try {
         when (value) {
             is Array<*> -> {
@@ -579,8 +573,7 @@ fun <R, T> deserializeSpecialProperty(ctxt: GenericSerializer, snapshot: Any, re
             is ReentrantLock -> if (value.isLocked) throw IllegalStateException("ReentrantLock is locked")
             else -> throw IllegalArgumentException("Can't deserialize property ${item.name} of type ${item.returnType}")
         }
-    }
-    catch (ex: CantSerializeException) {
+    } catch (ex: CantSerializeException) {
         ctxt.waitingObject {
             deserializeSpecialProperty(ctxt, snapshot, receiver, item)
         }
@@ -591,18 +584,16 @@ fun <R, T> serializeProperty(
         ctxt: GenericSerializer,
         receiver: R,
         item: KProperty1<R, T>,
-        variableAllowed: Boolean): Any? {
-
-    return when {
-        item.isSubtypeOf(ISerializable::class) -> {
-            (item.getWithAccess(receiver) as ISerializable?)?.serialize(ctxt)
-        }
-        variableAllowed && item.isVariable &&
-                primitiveTypes.any { item.isSubtypeOf(it) } -> {
-            serializePrimitiveProperty(ctxt, receiver, item)
-        }
-        else -> serializeSpecialProperty(ctxt, receiver, item)
+        variableAllowed: Boolean
+): Any? = when {
+    item.isSubtypeOf(ISerializable::class) -> {
+        (item.getWithAccess(receiver) as ISerializable?)?.serialize(ctxt)
     }
+    variableAllowed && item.isVariable &&
+            primitiveTypes.any { item.isSubtypeOf(it) } -> {
+        serializePrimitiveProperty(ctxt, receiver, item)
+    }
+    else -> serializeSpecialProperty(ctxt, receiver, item)
 }
 
 fun <R, T> deserializeProperty(
@@ -629,7 +620,7 @@ fun <R, T> deserializeProperty(
     }
 }
 
-inline fun <T: Any, R: Any>serializeObject(ctxt: GenericSerializer, receiver: T, cls: KClass<R>): Map<String, Any?> {
+inline fun <T : Any, R : Any> serializeObject(ctxt: GenericSerializer, receiver: T, cls: KClass<R>): Map<String, Any?> {
     ctxt.addSerializedObject(receiver)
     val result = cls.serializableMemberProperties.map {
         val result = ctxt.withPrefix(it.name) {
@@ -637,17 +628,19 @@ inline fun <T: Any, R: Any>serializeObject(ctxt: GenericSerializer, receiver: T,
             if (delegate != null) {
                 if (delegate is ISerializable) {
                     delegate.serialize(ctxt)
-                } else
+                } else {
                     serializeProperty(ctxt, receiver, it as KProperty1<T, *>, false)
-            } else
+                }
+            } else {
                 serializeProperty(ctxt, receiver, it as KProperty1<T, *>, true)
+            }
         }
         it.name to result
     }.toTypedArray()
     return storeValues(*(result as Array<Pair<String, Any>>))
 }
 
-inline fun <T : Any, R : Any>deserializeObject(
+inline fun <T : Any, R : Any> deserializeObject(
         ctxt: GenericSerializer,
         snapshot: Map<String, Any>,
         receiver: T,
@@ -660,8 +653,9 @@ inline fun <T : Any, R : Any>deserializeObject(
             if (delegate != null) {
                 if (delegate is ISerializable) {
                     delegate.deserialize(ctxt, snapshot[it.name] as Map<String, Any>)
-                } else
+                } else {
                     deserializeProperty(ctxt, concreteSnapshot, receiver, it as KProperty1<T, *>, false)
+                }
             } else deserializeProperty(ctxt, concreteSnapshot, receiver, it as KProperty1<T, *>, true)
         }
     }
@@ -674,11 +668,10 @@ inline fun <reified T : Any> T.serializeRecursive(ctxt: GenericSerializer): Map<
             if (it.starProjectedType != IAutoSerializable::class.starProjectedType) {
                 result += serializeObject(ctxt, this, it)
                 true
-            }
-            else
+            } else {
                 false
-        }
-        else if (it.isSubclassOf(ISerializable::class)) {
+            }
+        } else if (it.isSubclassOf(ISerializable::class)) {
             if (it.starProjectedType != ISerializable::class.starProjectedType) {
                 val mt = MethodType.methodType(Map::class.java, ctxt::class.java)
                 val ctor = MethodHandles.Lookup::class.java.getDeclaredConstructor(Class::class.java)
@@ -687,16 +680,15 @@ inline fun <reified T : Any> T.serializeRecursive(ctxt: GenericSerializer): Map<
                     result += ctor.newInstance(it.java)
                             .findSpecial(it.java, "serialize", mt, it.java)
                             .invoke(this, ctxt) as Map<String, Any>
+                } catch (ex: IllegalAccessException) {
+
                 }
-                catch (ex: IllegalAccessException) { }
             }
             false
-        }
-        else throw IllegalArgumentException("Non-serializable class: $it")
+        } else throw IllegalArgumentException("Non-serializable class: $it")
     }
     return result
 }
-
 
 
 inline fun <reified T : Any> T.deserializeRecursive(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -705,15 +697,13 @@ inline fun <reified T : Any> T.deserializeRecursive(ctxt: GenericSerializer, sna
             if (it.starProjectedType != IAutoSerializable::class.starProjectedType) {
                 deserializeObject(ctxt, snapshot, this, it)
                 true
-            }
-            else
+            } else {
                 false
-        }
-        else if (it.isSubclassOf(ISerializable::class)) {
+            }
+        } else if (it.isSubclassOf(ISerializable::class)) {
             if (it.starProjectedType != ISerializable::class.starProjectedType) {
-                // Void, Unit and "java void" all are different types?????
-                // Fuck you, JAVA!!!
-                val baseFunc = it.java.methods.first { method ->  method.name == "deserialize" }
+                // Void, Unit and "java void" all are different types!?!?
+                val baseFunc = it.java.methods.first { method -> method.name == "deserialize" }
                 val mt = MethodType.methodType(baseFunc.returnType, baseFunc.parameterTypes[0], baseFunc.parameterTypes[1])
 
                 val ctor = MethodHandles.Lookup::class.java.getDeclaredConstructor(Class::class.java)
@@ -722,11 +712,11 @@ inline fun <reified T : Any> T.deserializeRecursive(ctxt: GenericSerializer, sna
                     ctor.newInstance(it.java)
                             .findSpecial(it.java, "deserialize", mt, it.java)
                             .invoke(this, ctxt, snapshot)
+                } catch (ex: IllegalAccessException) {
+
                 }
-                catch (ex: IllegalAccessException) { }
             }
             false
-        }
-        else throw IllegalArgumentException("Non-serializable class: $it")
+        } else throw IllegalArgumentException("Non-serializable class: $it")
     }
 }

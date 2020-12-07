@@ -49,3 +49,5 @@ production/
 *.log
 
 *.kate-swp
+
+*.idb

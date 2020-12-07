@@ -82,7 +82,8 @@ fun <T>KCallable<T>.stringify() = buildString {
 
 fun <T: Any> KClass<T>.new(vararg args: Any?) = constructors.first().call(args)
 
-fun <T: Any> KClass<T>.new(vararg args: Any?, predicate: (KFunction<T>) -> Boolean) = constructors.first(predicate).call(args)
+fun <T: Any> KClass<T>.new(vararg args: Any?, predicate: (KFunction<T>) -> Boolean) =
+        constructors.first(predicate).call(args)
 
 inline fun <reified T> subtypesScan(classpath: String): Set<Class<out T>> {
     val urls = ClasspathHelper.forPackage(classpath)
@@ -96,9 +97,11 @@ inline fun <R, T, D> KProperty1<R, T>.withAccess(block: () -> D): D {
 }
 
 inline fun <R, T> KProperty1<R, T>.getWithAccess(receiver: R): T = withAccess { get(receiver) }
+
 inline fun <R, T> KProperty1<R, T>.setWithAccess(receiver: R, value: T) = withAccess {
     (this as KMutableProperty1<R, T>).set(receiver, value)
 }
+
 inline fun <R, T> KProperty1<*, T>.getDelegateWithAccess(receiver: R) = (this as KProperty1<R, T>).withAccess {
     getDelegate(receiver)
 }
@@ -106,7 +109,6 @@ inline fun <R, T> KProperty1<*, T>.getDelegateWithAccess(receiver: R) = (this as
 inline val <R, T>KProperty1<R, T>.isVariable: Boolean get() = this is KMutableProperty<*>
 
 inline fun <R, T> KProperty1<R, T>.isSubtypeOf(kc: KClass<*>): Boolean = returnType.withNullability(false).isSubtypeOf(kc.starProjectedType)
-
 
 fun Class<*>.findFieldRecursive(name: String): Field? {
     if (this == Any::class.java)
@@ -133,6 +135,7 @@ fun Class<*>.findFieldRecursive(name: String): Field? {
         return null
     }
 }
+
 inline fun <reified T : Any> T.forEachClass(block: (KClass<*>) -> Boolean) {
     val queue = LinkedList<KClass<*>>()
     queue.offer(this::class)

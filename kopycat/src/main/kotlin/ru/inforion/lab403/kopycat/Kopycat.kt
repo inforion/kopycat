@@ -420,6 +420,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
         return true
     }
 
+    @Deprecated("Method returns incorrect information about state and will be removed in 0.3.40")
     fun state() = when {
         !isGdbServerPresented && !isTopModulePresented -> STATE.DISABLED
         isGdbServerPresented && isTopModulePresented -> if (gdb.clientProcessing) STATE.WORKING else STATE.AWAIT
