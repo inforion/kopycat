@@ -19,6 +19,8 @@ temp
 \.idea/libraries
 \.idea/modules
 
+kopycat/doc/
+
 debuggers/kcdbg/cmake-build-win32/
 
 debuggers/kcdbg/cmake-build-debug/
@@ -36,18 +38,16 @@ plugins/kcdbg/cmake-build-osx-v850es/
 production/
 
 !gradle/wrapper/gradle-wrapper.jar
+
 *.til
-
 *.nam
-
 *.id2
-
 *.id1
-
 *.id0
+*.idb
 
 *.log
 
 *.kate-swp
 
-*.idb
+

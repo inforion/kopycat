@@ -1,5 +1,3 @@
-import org.jetbrains.dokka.gradle.DokkaTask
-
 plugins {
     id 'org.jetbrains.kotlin.jvm'
     id 'application'
@@ -10,11 +8,17 @@ plugins {
     id "com.dorongold.task-tree" version "1.5" // taskTree to see task dependencies and call graph
 }
 
+// Imports should be placed after plugins because IntelliJ will not see them otherwise
+import org.jetbrains.dokka.gradle.DokkaTask
+
 applicationName = "kopycat"
 archivesBaseName = "kopycat"
 version = '0.3.30'
 group = 'ru.inforion.lab403'
 applicationDefaultJvmArgs = [
+        "-server",
+        "-Xms1G",
+        "-Xmx8G",
         "-XX:MaxMetaspaceSize=256m",
         "-XX:+UseParallelGC",
         "-XX:SurvivorRatio=6",
@@ -25,32 +29,49 @@ description = "Hardware systems Kotlin emulator"
 ext.productionDirectoryPath = "${rootProject.projectDir}/production"
 ext.debugJvmLine = "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 
+// ---------------------------------------------------------------------------------------------------------------------
+
 dependencies {
     implementation project(":common:proposal")
-//    implementation project(":common:elfloader")
+    implementation project(":common:elfloader")
 
+    // Embedded Kotlin console
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-script-util'
     runtime group: 'org.jetbrains.kotlin', name: 'kotlin-scripting-compiler-embeddable'
     runtime group: 'org.jetbrains.kotlin', name: 'kotlin-compiler-embeddable'
 
-    implementation group: 'io.javalin', name: 'javalin', version: '3.11.0'
-
+    // Third-party logging mute out
     implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.30'
 
-    implementation group: 'org.pcap4j', name: 'pcap4j-core', version: '1.8.2'
-    implementation group: 'org.pcap4j', name: 'pcap4j-packetfactory-static', version: '1.8.2'
-    implementation group: 'com.github.oshi', name: 'oshi-core', version: '5.2.4'
-    implementation group: 'com.fazecast', name: 'jSerialComm', version: '2.6.2'  // UartSerialTerminal
+    // REST server interface
+    implementation group: 'io.javalin', name: 'javalin', version: '3.11.0'
 
-    implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'  // Library
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
+    // Required for kotlin-compiler-embeddable or kotlin-scripting-compiler-embeddable
+    implementation group: 'net.java.dev.jna', name: 'jna', version: '5.6.0'
+
+    // UartSerialTerminal
+    implementation group: 'com.fazecast', name: 'jSerialComm', version: '2.6.2'
+
+    // Module libraries and registry runtime-loader
+    implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'
+
+    // Interactive console
     implementation group: 'org.jline', name: 'jline', version: '3.15.0'
 
-    implementation 'com.auth0:java-jwt:3.8.0'
-
+    // Required to be here for VEOS idk why so, but if this line is put only in VEOS build.gradle Kopycat crashes in RT
     implementation group: 'gnu.getopt', name: 'java-getopt', version: '1.0.13'
 
     testImplementation group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.19.0'
+
+//    TODO: possible not required libraries, these lines will be removed after time-testing...
+      // for ETHERNET modules, moved to according build.gradle
+//    implementation group: 'org.pcap4j', name: 'pcap4j-core', version: '1.8.2'
+//    implementation group: 'org.pcap4j', name: 'pcap4j-packetfactory-static', version: '1.8.2'
+      // License verification
+//    implementation group: 'com.github.oshi', name: 'oshi-core', version: '5.2.4'
+//    implementation 'com.auth0:java-jwt:3.8.0'
+      // idk
+//    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -81,6 +102,7 @@ startScripts {
         new File(getOutputDir(), getApplicationName() + "-debug.bat").withWriter { w ->
             w << windowsScript.text.replaceAll("set DEFAULT_JVM_OPTS=", "set DEFAULT_JVM_OPTS= $debugJvmLine ")
         }
+
         new File(getOutputDir(), getApplicationName() + "-debug").withWriter { w ->
             w << unixScript.text.replaceAll("DEFAULT_JVM_OPTS='", "DEFAULT_JVM_OPTS='$debugJvmLine ")
         }
@@ -121,7 +143,7 @@ task dokkaRU(type: DokkaTask) {
 
     configuration {
         moduleName = 'kopycat'
-        jdkVersion = 8
+        jdkVersion = 8  // fails with 11
         includeNonPublic = false
         skipDeprecated = false
         skipEmptyPackages = true // Do not create index pages for empty packages
@@ -137,7 +159,7 @@ task dokkaEN(type: DokkaTask) {
 
     configuration {
         moduleName = 'kopycat'
-        jdkVersion = 8
+        jdkVersion = 8  // fails with 11
         includeNonPublic = false
         skipDeprecated = false
         skipEmptyPackages = true // Do not create index pages for empty packages
