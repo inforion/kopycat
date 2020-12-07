@@ -120,6 +120,14 @@ distributions {
             from(sourcesJar) {
                 into "lib"
             }
+
+            from("distrib/scripts") {
+                into "scripts"
+            }
+
+            from("distrib/bin") {
+                into "bin"
+            }
         }
     }
 }
