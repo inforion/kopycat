@@ -8,8 +8,8 @@ version '0.1'
 
 dependencies {
     implementation project(":common:elfloader")
-
     implementation group: 'gnu.getopt', name: 'java-getopt', version: '1.0.13'
+    testImplementation group: 'com.github.inforion', name: 'swarm', version: '0.2.0'
 }
 
 buildKopycatModule {

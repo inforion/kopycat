@@ -25,15 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems
 
-import ru.inforion.lab403.common.logging.FINER
-import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import java.io.OutputStream
 
-open class StreamFile(@property: DontAutoSerialize @field:Transient val stream: OutputStream) : IRandomAccessFile {
-    companion object {
-        val log = logger(FINER)
+open class StreamFile() : IRandomAccessFile {
+
+    @DontAutoSerialize
+    @Transient
+    protected lateinit var stream: OutputStream
+
+    constructor(stream: OutputStream) : this() {
+        this.stream = stream
     }
 
     override fun readable() = false

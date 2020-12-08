@@ -62,6 +62,7 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
 
     // TODO: Override?
     // TODO: REMOVE!!!!
+    // Do not forget that args[0] = executable
     override fun loadArguments(args: Array<String>) {
         check(os.currentProcess.contextInitialized) { "Context wasn't initialized" }
 

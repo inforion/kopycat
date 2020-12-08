@@ -25,11 +25,19 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems
 
+import java.io.Externalizable
+import java.io.ObjectInput
+import java.io.ObjectOutput
 import java.io.PrintStream
 
 
- 
-class StandardStreamFile(val stdio: STDIO) : StreamFile(stdio.toStream()) {
+class StandardStreamFile() : StreamFile(), Externalizable {
+    lateinit var stdio: STDIO
+
+    constructor(stdio: STDIO) : this() {
+        this.stdio = stdio
+        stream = stdio.toStream()
+    }
 
     companion object {
         val stdin get() = StandardStreamFile(STDIO.IN)
@@ -45,6 +53,15 @@ class StandardStreamFile(val stdio: STDIO) : StreamFile(stdio.toStream()) {
             OUT -> System.out
             ERR -> System.err
         }
+    }
+
+    override fun writeExternal(out: ObjectOutput) {
+        out.writeObject(stdio)
+    }
+
+    override fun readExternal(`in`: ObjectInput) {
+        stdio = `in`.readObject() as STDIO
+        stream = stdio.toStream()
     }
 }
 

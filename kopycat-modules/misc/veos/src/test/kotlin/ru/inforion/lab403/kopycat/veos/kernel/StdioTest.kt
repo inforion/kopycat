@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.veos.kernel
 
 import org.junit.Test
+import ru.inforion.lab403.common.extensions.div
 import ru.inforion.lab403.common.extensions.getResourceUrl
 import ru.inforion.lab403.common.extensions.times
 import ru.inforion.lab403.common.logging.FINE
@@ -56,7 +57,9 @@ internal class StdioTest {
     }
 
     fun runTest(executable: String) {
-        val root = getResourceUrl(executable).toURI().resolve(".").path
+        val extension = executable.split('.').last()
+        val pathToExecutable = "stdio" / extension / executable
+        val root = getResourceUrl(pathToExecutable).toURI().resolve(".").path
 
         val top = ARMApplication(
                 null,
