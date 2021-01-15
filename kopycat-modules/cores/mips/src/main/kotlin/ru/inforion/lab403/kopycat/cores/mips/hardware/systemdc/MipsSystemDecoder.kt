@@ -71,10 +71,11 @@ import ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.memory.sdc1
 import ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.memory.swc1
 import ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.move.*
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import java.io.Serializable
 import kotlin.collections.set
 
 
-class MipsSystemDecoder(core: MipsCore) {
+class MipsSystemDecoder(core: MipsCore): Serializable {
 
 //    private val dev = dev
 

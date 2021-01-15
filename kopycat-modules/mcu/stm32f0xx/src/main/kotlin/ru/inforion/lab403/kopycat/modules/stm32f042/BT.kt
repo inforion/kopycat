@@ -41,7 +41,7 @@ import java.util.logging.Level
 class BT(parent: Module, name: String) : Module(parent, name) {
 
     companion object {
-        private val log = logger(Level.ALL)
+        @Transient private val log = logger(Level.ALL)
 
         private class Buffer(capacity: Int) {
             private val buffer: ByteArray = ByteArray(capacity) { 0 }
@@ -137,7 +137,7 @@ class BT(parent: Module, name: String) : Module(parent, name) {
         private fun dataReceived() {
             usartWrite {
                 while (!btTermRxUnderflow()) {
-                    bluetoothProxy.addByteToReceiveBuffer(btTermRead())
+                    bluetoothProxy.write(btTermRead())
                 }
             }
         }
@@ -224,9 +224,9 @@ class BT(parent: Module, name: String) : Module(parent, name) {
         private fun respond(msg: String) {
             usartWrite {
                 msg.toByteArray().forEach { byte ->
-                    this.addByteToReceiveBuffer(byte)
+                    this.write(byte)
                 }
-                this.addByteToReceiveBuffer('\r'.toByte())
+                this.write('\r'.toByte())
             }
         }
     }

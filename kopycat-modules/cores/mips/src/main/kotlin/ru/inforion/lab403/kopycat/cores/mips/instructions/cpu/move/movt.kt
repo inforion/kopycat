@@ -27,8 +27,8 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.move
 
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsCcInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -37,8 +37,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class movt(core: MipsCore,
            data: Long,
-           rd: GPR,
-           rs: GPR,
+           rd: MipsRegister,
+           rs: MipsRegister,
            cc: MipsImmediate) : RdRsCcInsn(core, data, Type.VOID, rd, rs, cc) {
 
     override val mnem = "movt"

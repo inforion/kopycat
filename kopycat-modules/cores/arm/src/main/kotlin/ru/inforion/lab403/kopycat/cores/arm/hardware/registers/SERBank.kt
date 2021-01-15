@@ -25,22 +25,22 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.registers
 
-import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
+class SERBank : ARegistersBankNG<AARMCore>("Security Extension Registers", 6, 32) {
 
+    val isr = Register("isr", 0)
+    val mvbar = Register("mvbar", 1)
 
-class SERBank : ARegisterBankNG(32) {
-    override val name: String = "Security Extension Registers"
-
-    class Operand(reg: Int, access: Access = Access.ANY) : ARegister<AARMCore>(reg, access) {
-        override fun toString(): String = "SER[$reg]" // TODO: replace it
-        override fun value(core: AARMCore, data: Long) = core.cpu.ser.write(reg, data)
-        override fun value(core: AARMCore): Long = core.cpu.ser.read(reg)
+    inner class NSACR : Register("nsacr", 2) {
+        var rfr by bitOf(19)
     }
 
-    inner class SCR : Register() {
+    val nsacr = NSACR()
+
+    inner class SCR : Register("scr", 3) {
         var ns by bitOf(0)
         var irq by bitOf(1)
         var fiq by bitOf(2)
@@ -53,18 +53,8 @@ class SERBank : ARegisterBankNG(32) {
         var sif by bitOf(9)
     }
 
-    inner class NSACR : Register() {
-        var rfr by bitOf(19)
-    }
-
-    val isr = Register()
-    val mvbar = Register()
-    val nsacr = NSACR()
     val scr = SCR()
-    val sder = Register()
-    val vbar = Register()
 
-    init {
-        initialize()
-    }
+    val sder = Register("sder", 4)
+    val vbar = Register("vbar", 5)
 }

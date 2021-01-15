@@ -39,6 +39,8 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
 import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.serializer.deserialize
+import ru.inforion.lab403.kopycat.serializer.loadHex
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.nio.ByteOrder
 import java.util.logging.Level
 
@@ -48,7 +50,7 @@ import java.util.logging.Level
  */
 class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name) {
     companion object {
-        val log = logger(Level.FINE)
+        @Transient val log = logger(Level.FINE)
         val INVALID_GDT_ENTRY = SegmentDescriptor(-1)
     }
 
@@ -420,19 +422,17 @@ US RW P - Description
         invalidatePagingCache()
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return mapOf(
-                "MMUgdtrBase" to gdtr.base.hex16,
-                "MMUgdtrLimit" to gdtr.limit.hex16,
-                "Ldtr" to ldtr.hex16,
-                "cache" to cache.map { it.data.hex16 },
-                "protectedModeEnabled" to protectedModeEnabled)
-    }
+    override fun serialize(ctxt: GenericSerializer) = storeValues(
+            "MMUgdtrBase" to gdtr.base.hex16,
+            "MMUgdtrLimit" to gdtr.limit.hex16,
+            "Ldtr" to ldtr.hex16,
+            "cache" to cache.map { it.data.hex16 },
+            "protectedModeEnabled" to protectedModeEnabled)
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        gdtr.base = ctxt.loadHex(snapshot, "MMUgdtrBase", 0)
-        gdtr.limit = ctxt.loadHex(snapshot, "MMUgdtrLimit", 0)
-        ldtr = ctxt.loadHex(snapshot, "Ldtr", 0)
+        gdtr.base = loadHex(snapshot, "MMUgdtrBase", 0)
+        gdtr.limit = loadHex(snapshot, "MMUgdtrLimit", 0)
+        ldtr = loadHex(snapshot, "Ldtr", 0)
         cache.deserialize<SegmentDescriptor, String>(ctxt, snapshot["cache"]) { SegmentDescriptor(it.hexAsULong) }
         protectedModeEnabled.deserialize<Boolean, Any>(ctxt, snapshot["protectedModeEnabled"]) { it as Boolean }
     }

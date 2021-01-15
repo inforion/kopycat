@@ -30,6 +30,4 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.Near
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
-
-
-class MipsNear(offset: Int) : Near<MipsCore>(offset, Datatype.DWORD, WRONGI)
+class MipsNear constructor(offset: Int) : Near<MipsCore>(offset, Datatype.DWORD, WRONGI)

@@ -33,7 +33,6 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
@@ -48,7 +47,7 @@ object ThumbCmpDecoder {
                         imm32: Immediate<AARMCore>,
                         size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
         override fun decode(data: Long): AARMInstruction {
-            val rn = GPRBank.Operand(data[10..8].asInt)
+            val rn = gpr(data[10..8].asInt)
             val imm32 = Immediate<AARMCore>(data[7..0])
             return constructor(core, data, Condition.AL, rn, imm32, 2)
         }
@@ -66,8 +65,8 @@ object ThumbCmpDecoder {
                         shiftN: Int,
                         size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
         override fun decode(data: Long): AARMInstruction {
-            val rn = GPRBank.Operand(data[2..0].asInt)
-            val rm = GPRBank.Operand(data[5..3].asInt)
+            val rn = gpr(data[2..0].asInt)
+            val rm = gpr(data[5..3].asInt)
             return constructor(core, data, Condition.AL, false, rn, rn, rm, SRType_LSL, 0, 2)
         }
     }
@@ -86,8 +85,8 @@ object ThumbCmpDecoder {
         override fun decode(data: Long): AARMInstruction {
             val m = data[6..3].asInt
             val n = ((data[7] shl 3) + data[2..0]).asInt
-            val rn = GPRBank.Operand(n)
-            val rm = GPRBank.Operand(m)
+            val rn = gpr(n)
+            val rm = gpr(m)
             if(n < 8 && m < 8) throw Unpredictable
             if(n == 15 || m == 15) throw Unpredictable
             return constructor(core, data, Condition.AL, false, rn, rn, rm, SRType_LSL, 0, 2)

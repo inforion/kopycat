@@ -27,10 +27,12 @@ package ru.inforion.lab403.kopycat.cores.base.abstracts
 
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.cores.base.AGenericCOP
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level.FINER
 
 /**
@@ -63,7 +65,7 @@ abstract class AInterrupt(
         var enabled: Boolean = false) : ICoreUnit {
 
     companion object {
-        val log = logger(FINER)
+        @Transient val log = logger(FINER)
     }
 
     override fun hashCode(): Int {
@@ -169,7 +171,7 @@ abstract class AInterrupt(
      * @return отображение сохраняемых свойств объекта
      * {RU}
      */
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> = ctxt.storeValues(
+    override fun serialize(ctxt: GenericSerializer) = storeValues(
             "irq" to irq,
             "name" to name,
             "nmi" to nmi,

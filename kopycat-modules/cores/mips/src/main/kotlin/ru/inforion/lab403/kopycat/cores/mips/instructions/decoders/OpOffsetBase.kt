@@ -47,9 +47,7 @@ class OpOffsetBase(
         val imm = data[20..16]
         val base = data[25..21].toInt()
         val offset = signext(data[15..0], n = 16)
-        return construct(core, data,
-                MipsImmediate(imm),
-                MipsDisplacement(DWORD, base, offset))
+        return construct(core, data, imm(imm), displ(DWORD, base, offset))
         // what to do with it?
     }
 }

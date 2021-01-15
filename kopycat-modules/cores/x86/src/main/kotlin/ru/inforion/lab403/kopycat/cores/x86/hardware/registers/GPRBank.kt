@@ -66,6 +66,8 @@ class GPRBank(core: x86Core) : ARegistersBank<x86Core, x86GPR>(core, x86GPR.valu
     var eip by valueOf(x86Register.GPRDW.eip)
     var ip by valueOf(x86Register.GPRW.ip)
 
+    var none by valueOf(x86Register.none)
+
     override fun reset() {
         super.reset()
         eip = 0xFFF0

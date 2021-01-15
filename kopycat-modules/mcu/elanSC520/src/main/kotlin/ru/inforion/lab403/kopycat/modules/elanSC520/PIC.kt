@@ -48,7 +48,7 @@ import kotlin.collections.set
 @Suppress("unused", "MemberVisibilityCanBePrivate", "PropertyName")
 class PIC(parent: Module, name: String) : APIC(parent, name) {
     companion object {
-        val log = logger(FINE)
+        @Transient val log = logger(FINE)
 
         const val SLCT_ICW1_BIT = 4
         const val IS_OCW3_BIT = 3

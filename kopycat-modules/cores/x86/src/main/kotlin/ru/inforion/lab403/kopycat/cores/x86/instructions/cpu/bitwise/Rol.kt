@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor

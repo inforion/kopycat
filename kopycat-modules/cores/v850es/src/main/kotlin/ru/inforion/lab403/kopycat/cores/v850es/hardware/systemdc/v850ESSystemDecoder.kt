@@ -58,13 +58,13 @@ import ru.inforion.lab403.kopycat.cores.v850es.instructions.cpu.store.*
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 import java.util.logging.Level
-import kotlin.collections.Map
 import kotlin.collections.set
 
 
-
 class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
-    companion object { val log = logger(Level.FINE) }
+    companion object {
+        @Transient val log = logger(Level.FINE)
+    }
     override val name: String = "v850ES System Decoder"
     private val cache = THashMap<Long, AV850ESInstruction>(1024*1024)
 

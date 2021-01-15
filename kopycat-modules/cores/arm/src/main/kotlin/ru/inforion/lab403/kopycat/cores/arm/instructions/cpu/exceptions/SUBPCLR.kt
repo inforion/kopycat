@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.exceptions
 
+import ru.inforion.lab403.common.extensions.WRONGI
 import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.toInt
@@ -37,11 +38,10 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMImmediate
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMVariable
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 // See B9.3.20
@@ -74,7 +74,7 @@ class SUBPCLR(cpu: AARMCore,
         else -> throw GeneralException("Unknown opcode: ${opc.hex}")
     }
 
-    val result = ARMVariable(Datatype.DWORD)
+    val result = ARMVariable(DWORD)
 
     override fun execute() {
         if (core.cpu.CurrentModeIsHyp())
@@ -83,7 +83,7 @@ class SUBPCLR(cpu: AARMCore,
             throw ARMHardwareException.Unpredictable
         else {
             val operand2 = if (registerForm)
-                ARMImmediate(Shift(rm.value(core), 32, shiftT, shiftN, core.cpu.flags.c.asInt), false)
+                ARMImmediate(Shift(rm.value(core), 32, shiftT, shiftN, core.cpu.flags.c.asInt), false, DWORD, WRONGI)
             else
                 imm32
             when (opc) {

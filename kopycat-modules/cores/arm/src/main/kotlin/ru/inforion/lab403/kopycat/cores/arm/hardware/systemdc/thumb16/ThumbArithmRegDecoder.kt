@@ -30,7 +30,6 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.SRType.SRType_LSL
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
@@ -49,9 +48,9 @@ class ThumbArithmRegDecoder(cpu: AARMCore,
                                     shiftT: SRType,
                                     size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
     override fun decode(data: Long): AARMInstruction {
-        val rd = GPRBank.Operand(data[2..0].asInt)
-        val rn = GPRBank.Operand(data[5..3].asInt)
-        val rm = GPRBank.Operand(data[8..6].asInt)
+        val rd = gpr(data[2..0].asInt)
+        val rn = gpr(data[5..3].asInt)
+        val rm = gpr(data[8..6].asInt)
         val setFlag = !core.cpu.InITBlock()
         return constructor(core, data, Condition.AL, setFlag, rd, rn, rm, 0, SRType_LSL, 2)
     }

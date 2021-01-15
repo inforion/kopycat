@@ -87,38 +87,38 @@ class MipsInstructionsTest: Module(null, "top") {
                                 t5: Long = 0, t6: Long = 0, t7: Long = 0, s0: Long = 0, s1: Long = 0, s2: Long = 0, s3: Long = 0,
                                 s4: Long = 0, s5: Long = 0, s6: Long = 0, s7: Long = 0, t8: Long = 0, t9: Long = 0, k0: Long = 0,
                                 k1: Long = 0, gp: Long = 0, sp: Long = 0, fp: Long = 0, ra: Long = 0) {
-        assertRegister(0, zero, mips.cpu.regs.zero)
-        assertRegister(1, at, mips.cpu.regs.at)
-        assertRegister(2, v0, mips.cpu.regs.v0)
-        assertRegister(3, v1, mips.cpu.regs.v1)
-        assertRegister(4, a0, mips.cpu.regs.a0)
-        assertRegister(5, a1, mips.cpu.regs.a1)
-        assertRegister(6, a2, mips.cpu.regs.a2)
-        assertRegister(7, a3, mips.cpu.regs.a3)
-        assertRegister(8, t0, mips.cpu.regs.t0)
-        assertRegister(9, t1, mips.cpu.regs.t1)
-        assertRegister(10, t2, mips.cpu.regs.t2)
-        assertRegister(11, t3, mips.cpu.regs.t3)
-        assertRegister(12, t4, mips.cpu.regs.t4)
-        assertRegister(13, t5, mips.cpu.regs.t5)
-        assertRegister(14, t6, mips.cpu.regs.t6)
-        assertRegister(15, t7, mips.cpu.regs.t7)
-        assertRegister(16, s0, mips.cpu.regs.s0)
-        assertRegister(17, s1, mips.cpu.regs.s1)
-        assertRegister(18, s2, mips.cpu.regs.s2)
-        assertRegister(19, s3, mips.cpu.regs.s3)
-        assertRegister(20, s4, mips.cpu.regs.s4)
-        assertRegister(21, s5, mips.cpu.regs.s5)
-        assertRegister(22, s6, mips.cpu.regs.s6)
-        assertRegister(23, s7, mips.cpu.regs.s7)
-        assertRegister(24, t8, mips.cpu.regs.t8)
-        assertRegister(25, t9, mips.cpu.regs.t9)
-        assertRegister(26, k0, mips.cpu.regs.k0)
-        assertRegister(27, k1, mips.cpu.regs.k1)
-        assertRegister(28, gp, mips.cpu.regs.gp)
-        assertRegister(29, sp, mips.cpu.regs.sp)
-        assertRegister(30, fp, mips.cpu.regs.fp)
-        assertRegister(31, ra, mips.cpu.regs.ra)
+        assertRegister(0, zero, mips.cpu.regs.zero.value)
+        assertRegister(1, at, mips.cpu.regs.at.value)
+        assertRegister(2, v0, mips.cpu.regs.v0.value)
+        assertRegister(3, v1, mips.cpu.regs.v1.value)
+        assertRegister(4, a0, mips.cpu.regs.a0.value)
+        assertRegister(5, a1, mips.cpu.regs.a1.value)
+        assertRegister(6, a2, mips.cpu.regs.a2.value)
+        assertRegister(7, a3, mips.cpu.regs.a3.value)
+        assertRegister(8, t0, mips.cpu.regs.t0.value)
+        assertRegister(9, t1, mips.cpu.regs.t1.value)
+        assertRegister(10, t2, mips.cpu.regs.t2.value)
+        assertRegister(11, t3, mips.cpu.regs.t3.value)
+        assertRegister(12, t4, mips.cpu.regs.t4.value)
+        assertRegister(13, t5, mips.cpu.regs.t5.value)
+        assertRegister(14, t6, mips.cpu.regs.t6.value)
+        assertRegister(15, t7, mips.cpu.regs.t7.value)
+        assertRegister(16, s0, mips.cpu.regs.s0.value)
+        assertRegister(17, s1, mips.cpu.regs.s1.value)
+        assertRegister(18, s2, mips.cpu.regs.s2.value)
+        assertRegister(19, s3, mips.cpu.regs.s3.value)
+        assertRegister(20, s4, mips.cpu.regs.s4.value)
+        assertRegister(21, s5, mips.cpu.regs.s5.value)
+        assertRegister(22, s6, mips.cpu.regs.s6.value)
+        assertRegister(23, s7, mips.cpu.regs.s7.value)
+        assertRegister(24, t8, mips.cpu.regs.t8.value)
+        assertRegister(25, t9, mips.cpu.regs.t9.value)
+        assertRegister(26, k0, mips.cpu.regs.k0.value)
+        assertRegister(27, k1, mips.cpu.regs.k1.value)
+        assertRegister(28, gp, mips.cpu.regs.gp.value)
+        assertRegister(29, sp, mips.cpu.regs.sp.value)
+        assertRegister(30, fp, mips.cpu.regs.fp.value)
+        assertRegister(31, ra, mips.cpu.regs.ra.value)
     }
 
     private fun regs(at: Long = 0, v0: Long = 0, v1: Long = 0, a0: Long = 0, a1: Long = 0, a2: Long = 0, a3: Long = 0,
@@ -126,37 +126,37 @@ class MipsInstructionsTest: Module(null, "top") {
                      t7: Long = 0, s0: Long = 0, s1: Long = 0, s2: Long = 0, s3: Long = 0, s4: Long = 0, s5: Long = 0,
                      s6: Long = 0, s7: Long = 0, t8: Long = 0, t9: Long = 0, k0: Long = 0, k1: Long = 0, gp: Long = 0,
                      sp: Long = 0, fp: Long = 0, ra: Long = 0) {
-        mips.cpu.regs.at = at
-        mips.cpu.regs.v0 = v0
-        mips.cpu.regs.v1 = v1
-        mips.cpu.regs.a0 = a0
-        mips.cpu.regs.a1 = a1
-        mips.cpu.regs.a2 = a2
-        mips.cpu.regs.a3 = a3
-        mips.cpu.regs.t0 = t0
-        mips.cpu.regs.t1 = t1
-        mips.cpu.regs.t2 = t2
-        mips.cpu.regs.t3 = t3
-        mips.cpu.regs.t4 = t4
-        mips.cpu.regs.t5 = t5
-        mips.cpu.regs.t6 = t6
-        mips.cpu.regs.t7 = t7
-        mips.cpu.regs.s0 = s0
-        mips.cpu.regs.s1 = s1
-        mips.cpu.regs.s2 = s2
-        mips.cpu.regs.s3 = s3
-        mips.cpu.regs.s4 = s4
-        mips.cpu.regs.s5 = s5
-        mips.cpu.regs.s6 = s6
-        mips.cpu.regs.s7 = s7
-        mips.cpu.regs.t8 = t8
-        mips.cpu.regs.t9 = t9
-        mips.cpu.regs.k0 = k0
-        mips.cpu.regs.k1 = k1
-        mips.cpu.regs.gp = gp
-        mips.cpu.regs.sp = sp
-        mips.cpu.regs.fp = fp
-        mips.cpu.regs.ra = ra
+        mips.cpu.regs.at.value = at
+        mips.cpu.regs.v0.value = v0
+        mips.cpu.regs.v1.value = v1
+        mips.cpu.regs.a0.value = a0
+        mips.cpu.regs.a1.value = a1
+        mips.cpu.regs.a2.value = a2
+        mips.cpu.regs.a3.value = a3
+        mips.cpu.regs.t0.value = t0
+        mips.cpu.regs.t1.value = t1
+        mips.cpu.regs.t2.value = t2
+        mips.cpu.regs.t3.value = t3
+        mips.cpu.regs.t4.value = t4
+        mips.cpu.regs.t5.value = t5
+        mips.cpu.regs.t6.value = t6
+        mips.cpu.regs.t7.value = t7
+        mips.cpu.regs.s0.value = s0
+        mips.cpu.regs.s1.value = s1
+        mips.cpu.regs.s2.value = s2
+        mips.cpu.regs.s3.value = s3
+        mips.cpu.regs.s4.value = s4
+        mips.cpu.regs.s5.value = s5
+        mips.cpu.regs.s6.value = s6
+        mips.cpu.regs.s7.value = s7
+        mips.cpu.regs.t8.value = t8
+        mips.cpu.regs.t9.value = t9
+        mips.cpu.regs.k0.value = k0
+        mips.cpu.regs.k1.value = k1
+        mips.cpu.regs.gp.value = gp
+        mips.cpu.regs.sp.value = sp
+        mips.cpu.regs.fp.value = fp
+        mips.cpu.regs.ra.value = ra
     }
 
     private fun assertSpecialRegister(num: Int, expected: Long, actual: Long, type: String = "SRVC") =
@@ -165,13 +165,13 @@ class MipsInstructionsTest: Module(null, "top") {
     private fun specialRegs(hi: Long = 0, lo: Long = 0, status: Long = 0) {
         mips.cpu.hi = hi
         mips.cpu.lo = lo
-        mips.cop.regs.Status = status
+        mips.cop.regs.Status.value = status
     }
 
     private fun assertSpecialRegisters(hi: Long = 0, lo: Long = 0, status: Long = 0) {
         assertSpecialRegister(0, hi, mips.cpu.hi)
         assertSpecialRegister(1, lo, mips.cpu.lo)
-        assertSpecialRegister(2, status, mips.cop.regs.Status)
+        assertSpecialRegister(2, status, mips.cop.regs.Status.value)
     }
 
     private fun load(address: Long, dtyp: Datatype): Long = mips.read(dtyp, address, 0)
@@ -419,8 +419,10 @@ class MipsInstructionsTest: Module(null, "top") {
     }
 
     @After fun checkPC() {
+        // standard exception vector address 0x80000180L
+        val expected = if (mips.cpu.exception == null) startAddress + size else 0x80000180L
         Assert.assertEquals("Program counter error: ${(startAddress + size).hex8} != ${mips.cpu.pc.hex8}",
-                startAddress + size, mips.cpu.pc)
+                expected, mips.cpu.pc)
     }
 
     @Test fun addTest() {

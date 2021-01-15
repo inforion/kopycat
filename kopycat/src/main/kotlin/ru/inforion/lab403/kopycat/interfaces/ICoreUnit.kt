@@ -31,7 +31,7 @@ import java.util.logging.Level
 
 interface ICoreUnit : IResettable, ITerminatable, ISerializable, IStringable, IInteractive {
     companion object {
-        val log = logger(Level.CONFIG)
+        @Transient val log = logger(Level.CONFIG)
     }
 
     val name: String

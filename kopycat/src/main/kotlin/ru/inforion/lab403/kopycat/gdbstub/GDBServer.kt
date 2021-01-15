@@ -51,7 +51,7 @@ class GDBServer constructor(
 ) : ANetworkThread(port, "GDB_SERVER", bufSize = 0x1000, start = start, isDaemon = false) {
 
     companion object {
-        val log = logger(Level.INFO)
+        @Transient val log = logger(Level.INFO)
     }
 
     // ida pro gdb server don't clear breakpoints
@@ -79,20 +79,29 @@ class GDBServer constructor(
 
     override fun toString(): String = "$name(port=$port,alive=$isAlive)"
 
-    private lateinit var debugger: IDebugger
+    /**
+     * This property made to simple code of checking on null-safety everywhere.
+     * Here checking isn't required because on top level placed exception handler
+     * that handle and respond to client.
+     *
+     * TODO: nullableInternalDebugger should be refactored
+     */
+    private var nullableInternalDebugger: IDebugger? = null
 
-    fun isDebuggerInit() = ::debugger.isInitialized
+    private val debugger get() = nullableInternalDebugger!!
+
+    fun isDebuggerInit() = nullableInternalDebugger != null
 
     fun debuggerModule() = debugger
 
-    fun debuggerModule(newDebugger: IDebugger) {
+    fun debuggerModule(newDebugger: IDebugger?) {
         if (clientProcessing && isDebuggerInit()) {
             log.severe { "Can't set debugger module=$newDebugger due to GDB client is now processing... disconnect first" }
             return
         }
 
         log.info { "Set new debugger module $newDebugger for $this" }
-        debugger = newDebugger
+        nullableInternalDebugger = newDebugger
     }
 
     private var messageProcessing = false
@@ -538,7 +547,7 @@ class GDBServer constructor(
     }
 
     private fun processAllRegistersRead() {
-        log.fine("GDB Request read all registers")
+        log.fine { "GDB Request read all registers" }
         val regVals = debugger.registers()
         val response = regVals.joinToString(separator = "") { it.swap32().lhex8 }
         sendMessageResponse(response)
@@ -568,9 +577,9 @@ class GDBServer constructor(
 
     override fun close() {
         log.info { "GDB Request close -> stopping target if it was running..." }
-        try {
+        if (isDebuggerInit()) {
             debugger.halt()
-        } catch (ex: UninitializedPropertyAccessException) {
+        } else {
             log.warning { "Debugger was not initialized, so it will not be halted by gdb server" }
         }
         clientProcessing = false

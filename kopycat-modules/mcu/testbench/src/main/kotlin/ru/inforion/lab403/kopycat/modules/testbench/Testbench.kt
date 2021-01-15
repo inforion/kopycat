@@ -29,7 +29,7 @@ import ru.inforion.lab403.common.extensions.MHz
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.modules.cores.ARMv6MCore
-import ru.inforion.lab403.kopycat.modules.debuggers.ARMDebugger
+import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 
 // Kopycat library manager looks for classes inherited from Module class

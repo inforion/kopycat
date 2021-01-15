@@ -33,9 +33,6 @@ open class KopycatExtensions {
     var useDevelopmentCore = true
 
     var addKopycatDependency = true
-    var addKotlinStdlibDependency = true
-    var addExtensionsDependency = true
-    var addLoggingDependency = true
 
     var kopycatHome: String? = null
 }

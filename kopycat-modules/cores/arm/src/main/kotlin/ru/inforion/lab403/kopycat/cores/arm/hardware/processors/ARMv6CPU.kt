@@ -26,22 +26,17 @@
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.arm.enums.Mode
-import ru.inforion.lab403.kopycat.cores.arm.enums.ProcessorMode
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.VMSABank
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ARMDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.Thumb16Decoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.Thumb32Decoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
 import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
-import java.util.logging.Level
-
 
 
 class ARMv6CPU(
@@ -52,66 +47,7 @@ class ARMv6CPU(
 ) : AARMCPU(core, name, haveSecurityExt, haveVirtExt) {
 
     companion object {
-        val log = logger(Level.FINER)
-    }
-
-    // TODO: get rid of spProcess
-    override fun CurrentMode(): Mode = Mode.Thread
-
-    override fun CurrentModeIsPrivileged(): Boolean = false
-
-    override fun StackPointerSelect(): Int = regs.spMain.reg
-
-    override fun ALUWritePC(address: Long) {
-        if (ArchVersion() >= 7 && CurrentInstrSet() == InstructionSet.ARM)
-            BXWritePC(address)
-        else
-            BranchWritePC(address)
-    }
-
-    override fun LoadWritePC(address: Long) {
-        if (ArchVersion() >= 5) {
-            BXWritePC(address)
-        } else {
-            BranchWritePC(address)
-        }
-    }
-
-    override fun BXWritePC(address: Long) {
-        if (CurrentInstrSet() == InstructionSet.THUMB_EE) {
-            TODO("Not implemented")
-        } else {
-            when {
-                address[0] == 1L -> {
-                    SelectInstrSet(InstructionSet.THUMB)
-                    BranchTo(address clr 0)
-                }
-                address[1] == 0L -> {
-                    SelectInstrSet(InstructionSet.ARM)
-                    BranchTo(address)
-                }
-                address[1..0] == 0b10L -> throw ARMHardwareException.Unpredictable
-            }
-        }
-    }
-
-    override fun BranchWritePC(address: Long) {
-        when (CurrentInstrSet()) {
-            InstructionSet.ARM -> {
-                if (ArchVersion() < 6 && address[1..0] != 0L)
-                    throw ARMHardwareException.Unpredictable
-                BranchTo(address bzero 1..0)
-            }
-            InstructionSet.JAZELLE -> TODO("WILL NEVER BE IMPLEMENTED!")
-            else -> BranchTo(address clr 0)
-        }
-    }
-
-    override fun CurrentInstrSet(): InstructionSet = InstructionSet.from(status.ISETSTATE.asInt)
-
-    override fun SelectInstrSet(target: InstructionSet) {
-        if (target != InstructionSet.CURRENT)
-            status.ISETSTATE = target.code.asLong
+        @Transient val log = logger(FINER)
     }
 
     override fun InITBlock(): Boolean = status.ITSTATE[3..0] != 0b0000L
@@ -149,7 +85,7 @@ class ARMv6CPU(
         log.fine { "pc=0x${pc.hex8} sp=0x${sp.hex8}" }
 
         BXWritePC(pc)
-        regs.spMain.value = sp
+        regs.sp.value = sp
         regs.lr.value = 0xFFFF_FFFF
 
         pipelineRefillRequired = false
@@ -198,8 +134,6 @@ class ARMv6CPU(
 
 //        println("[${pc.hex8}] ${insn.opcode.hex8} $insn")
     }
-
-
 
     override fun execute(): Int {
         pc += insn.size + offset

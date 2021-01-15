@@ -33,10 +33,8 @@ import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 class DataProcessingRegDecoder(
@@ -54,9 +52,9 @@ class DataProcessingRegDecoder(
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
     override fun decode(data: Long): AARMInstruction {
         val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rd = GPRBank.Operand(data[15..12].asInt)
-        val rn = GPRBank.Operand(data[19..16].asInt)
-        val rm = GPRBank.Operand(data[3..0].asInt)
+        val rd = gpr(data[15..12].asInt)
+        val rn = gpr(data[19..16].asInt)
+        val rm = gpr(data[3..0].asInt)
         val setFlags = data[20] == 1L
         val type = data[6..5]
         val imm5 = data[11..7]

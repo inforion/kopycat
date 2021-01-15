@@ -50,16 +50,19 @@ import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.memBarier.sync
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.memSync.isync
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.memSync.lwarx
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.procCtrl.*
-import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.rotateInt.*
-import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.*
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.rotateInt.rlwimix
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.rotateInt.rlwinmx
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.rotateInt.rlwnmx
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.slwx
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.srawix
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.srawx
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.srwx
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.storageCtrl.dcbst
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.storeInt.*
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.sysLink.sc
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.tlbmanage.tlbsync
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.trap.twi
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
-
 
 
 class PPCDecoderBase(core: PPCCore) : APPCSystemDecoder(core) {

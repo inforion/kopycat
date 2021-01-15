@@ -35,6 +35,4 @@ data class LibraryInfo(
     override fun toString() = modules.joinToString("\n", "\nLibrary '$library':\n") {
         "\tModule: [%20s] -> %s".format(it.name, it.builder)
     }
-
-    fun getModulesNames() = modules.map { it.name }
 }

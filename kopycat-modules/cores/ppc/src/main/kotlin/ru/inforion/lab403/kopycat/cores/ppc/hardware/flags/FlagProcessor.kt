@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.flags
 
-import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.modules.cores.PPCCore
+import ru.inforion.lab403.common.extensions.mask
+import ru.inforion.lab403.common.extensions.toBool
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
+import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 
 @Suppress("NOTHING_TO_INLINE")

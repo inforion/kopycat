@@ -33,7 +33,10 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.*
+import ru.inforion.lab403.kopycat.serializer.loadByteBuffer
 import ru.inforion.lab403.kopycat.serializer.loadEnum
+import ru.inforion.lab403.kopycat.serializer.storeByteBuffer
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.io.File
 import java.io.InputStream
 import java.nio.ByteBuffer
@@ -51,7 +54,7 @@ class SD(parent: Module,
          private val page: Int = 0x2000
 ) : Module(parent, name) {
     companion object {
-        private val log = logger(Level.INFO)
+        @Transient private val log = logger(Level.INFO)
     }
 
     constructor(parent: Module, name: String, cid: String, csd: String, capacity: Int, page: Int, content: InputStream) :
@@ -314,18 +317,12 @@ class SD(parent: Module,
         }
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return super.serialize(ctxt) + mapOf(
-                "buffer" to buffer.array().hexlify(),
-                "flashCID" to cidBuf.array().hexlify(),
-                "flashCSD" to csdBuf.array().hexlify(),
-                "execCommand" to execCommand.toString()
-        ) + ctxt.storeBinary("sd.bin", memory) +
-                ctxt.storeByteBufferData("buffer", buffer) +
-                ctxt.storeByteBufferData("flashCID", cidBuf) +
-                ctxt.storeByteBufferData("flashCSD", csdBuf)
-
-    }
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+            "buffer" to storeByteBuffer(buffer),
+            "flashCID" to storeByteBuffer(cidBuf),
+            "flashCSD" to storeByteBuffer(csdBuf),
+            "execCommand" to execCommand.toString(),
+            "sd" to ctxt.storeBinary("sd", memory))
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -346,13 +343,8 @@ class SD(parent: Module,
 
     private fun restoreCommon(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         execCommand = loadEnum(snapshot, "execCommand")
-
-        buffer = ByteBuffer.wrap((snapshot["buffer"] as String).unhexlify()).apply { order(ByteOrder.LITTLE_ENDIAN) }
-        cidBuf.put((snapshot["flashCID"] as String).unhexlify())
-        csdBuf.put((snapshot["flashCSD"] as String).unhexlify())
-
-        ctxt.restoreByteBufferData(snapshot, "buffer", buffer)
-        ctxt.restoreByteBufferData(snapshot, "flashCID", cidBuf)
-        ctxt.restoreByteBufferData(snapshot, "flashCSD", csdBuf)
+        loadByteBuffer(snapshot, "buffer", buffer)
+        loadByteBuffer(snapshot, "cidBuf", cidBuf)
+        loadByteBuffer(snapshot, "csdBuf", csdBuf)
     }
 }

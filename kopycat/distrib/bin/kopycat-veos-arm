@@ -1,0 +1,10 @@
+#!/usr/bin/env sh
+
+SCRIPT=$(basename "$0")
+DIR=$(dirname "$0")
+
+ARCH="$(cut -d '-' -f3 <<< "$SCRIPT")"
+
+EXEC="../scripts/kopycat-veos-any"
+
+"$DIR/$EXEC" $ARCH $@

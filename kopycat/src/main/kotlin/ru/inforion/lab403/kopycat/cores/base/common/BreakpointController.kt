@@ -25,12 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import gnu.trove.map.hash.THashMap
 import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Type.ANY
-import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Type.HARDWARE
-import java.util.logging.Level
+import java.io.Serializable
 
 /**
  * {RU}
@@ -46,14 +44,12 @@ import java.util.logging.Level
  * @property store storage for breakpoints (HashMap)
  * {EN}
  */
-class BreakpointController {
+class BreakpointController: Serializable {
     companion object {
-        private val log = logger(Level.FINE)
+        @Transient private val log = logger(FINE)
     }
 
-//    var enabled = true
-
-    private val store = THashMap<Long, Breakpoint>(0x1000)
+    private val store = HashMap<Long, Breakpoint>(0x1000)
 
     /**
      * {RU}
@@ -145,11 +141,7 @@ class BreakpointController {
      * @return found breakpoint or null is it not found.
      * {EN}
      */
-    fun lookup(addr: Long): Breakpoint? {
-//        if (!enabled)
-//            return null
-        return store[addr]
-    }
+    fun lookup(addr: Long) = store[addr]
 
     /**
      * {EN}Delete all breakpoints from [BreakpointController]{EN}

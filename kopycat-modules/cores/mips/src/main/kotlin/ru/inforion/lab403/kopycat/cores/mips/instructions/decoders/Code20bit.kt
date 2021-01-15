@@ -41,6 +41,6 @@ class Code20bit(
 ) : ADecoder(core) {
     override fun decode(data: Long): AMipsInstruction {
         val code = data[25..6]
-        return construct(core, data, MipsImmediate(code))
+        return construct(core, data, imm(code))
     }
 }

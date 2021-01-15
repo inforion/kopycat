@@ -44,7 +44,7 @@ import java.util.logging.Level.FINEST
 class DUART(parent: Module, name: String) : Module(parent, name) {
 
     companion object {
-        val log = logger(FINEST)
+        @Transient val log = logger(FINEST)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -212,13 +212,13 @@ class DUART(parent: Module, name: String) : Module(parent, name) {
             return data
 
             log.finest { "DUART checks for input data. Do you want to send anything? [y/N]" }
-            val cmd = readLine() ?: throw GeneralException("Wrong input")
+            val cmd = readLine().sure { "Wrong input" }
             while (true) {
                 when (cmd) {
                     "", "n", "no" -> return data
                     "y", "yes" -> {
                         log.finest { "Enter DUART string" }
-                        val str = readLine() ?: throw GeneralException("Wrong input")
+                        val str = readLine().sure { "Wrong input" }
                         DUART_BUFREG1.bytesOut.addAll(str.toList())
                         DUART_BUFREG1.bytesOut.add('\n')
                     }

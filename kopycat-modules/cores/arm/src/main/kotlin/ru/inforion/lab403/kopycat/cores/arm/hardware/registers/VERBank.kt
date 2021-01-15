@@ -25,21 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.registers
 
-import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
-class VERBank : ARegisterBankNG(32) {
-    override val name: String = "Virtualization Extension Registers"
-
-    class Operand(reg: Int, access: Access = Access.ANY) : ARegister<AARMCore>(reg, access) {
-        override fun toString(): String = "VER[$reg]" // TODO: replace it
-        override fun value(core: AARMCore, data: Long) = core.cpu.ver.write(reg, data)
-        override fun value(core: AARMCore): Long = core.cpu.ver.read(reg)
-    }
-
-    inner class HCR : Register() {
+class VERBank : ARegistersBankNG<AARMCore>("Virtualization Extension Registers", 3, 32) {
+    inner class HCR : Register("hcr", 0) {
         var vm by bitOf(0)
         var swio by bitOf(1)
         var ptw by bitOf(2)
@@ -50,7 +41,7 @@ class VERBank : ARegisterBankNG(32) {
         var vi by bitOf(7)
         var va by bitOf(8)
         var fb by bitOf(9)
-        var bsu by fieldOf(11, 10)
+        var bsu by fieldOf(11..10)
         var dc by bitOf(12)
         var twi by bitOf(13)
         var twe by bitOf(14)
@@ -70,10 +61,7 @@ class VERBank : ARegisterBankNG(32) {
     }
 
     val hcr = HCR()
-    val hsr = Register()
-    val hstr = Register()
 
-    init {
-        initialize()
-    }
+    val hsr = Register("hsr", 1)
+    val hstr = Register("hstr", 2)
 }

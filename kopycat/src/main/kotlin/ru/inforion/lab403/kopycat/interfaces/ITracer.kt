@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.interfaces
 
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
+import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 
 
 interface ITracer<R: AGenericCore>: ICoreUnit {
@@ -35,21 +36,21 @@ interface ITracer<R: AGenericCore>: ICoreUnit {
      *
      * {RU}Метод вызывается каждый раз перед выполнением инструкции{RU}
      */
-    fun preExecute(core: R): Boolean
+    fun preExecute(core: R): Long
 
     /**
      * {EN}This method is called after each instruction executed{EN}
      *
      * {RU}Метод вызывается каждый раз после выполнения инструкции{RU}
      */
-    fun postExecute(core: R, status: Status): Boolean
+    fun postExecute(core: R, status: Status): Long
 
     /**
      * {EN}This method is called before device is running{EN}
      *
      * {RU}Метод вызывается перед тем, как устройство переведено в состояние run{RU}
      */
-    fun onStart() = Unit
+    fun onStart(core: R) = Unit
 
     /**
      * {EN}This method is called before device is stopped{EN}
@@ -57,15 +58,4 @@ interface ITracer<R: AGenericCore>: ICoreUnit {
      * {RU}Метод вызывается перед тем, как устройство переведено в состояние stop{RU}
      */
     fun onStop() = Unit
-
-    /**
-     * {EN}This method is called to run simulation{EN}
-     *
-     * {RU}Метод вызывается для начала симуляции устройства{RU}
-     */
-    fun run(block: () -> Unit) {
-        onStart()
-        block()
-        onStop()
-    }
 }

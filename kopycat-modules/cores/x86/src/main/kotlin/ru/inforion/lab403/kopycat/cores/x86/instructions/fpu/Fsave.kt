@@ -52,7 +52,7 @@ class Fsave(core: x86Core, opcode: ByteArray, prefs: Prefixes, val dst: AOperand
         core.outl(address + 20, core.fpu.fwr.FPUDataPointer)
         core.outl(address + 24, 0)  // FPUDataPointer Selector
 
-        (0 until x86FPU.FPU_STACK_SIZE).forEach {
+        repeat(x86FPU.FPU_STACK_SIZE) {
             core.outl(address + 28 + 10 * it, core.fpu[it])
         }
         // occupied 0x6C bytes (108)

@@ -30,7 +30,9 @@ import ru.inforion.lab403.kopycat.cores.base.APort
 import ru.inforion.lab403.kopycat.cores.base.Bus
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.modules.*
+import ru.inforion.lab403.kopycat.modules.BUS44
+import ru.inforion.lab403.kopycat.modules.BUS56
+import ru.inforion.lab403.kopycat.modules.PCI_SPACES_COUNT
 
 fun pciBusDevicePrefix(bus: Int, device: Int) = PCIAddress(bus, device).prefix
 fun pciFuncRegPrefix(func: Int, reg: Int) = PCIAddress(0, 0, func).prefix + reg

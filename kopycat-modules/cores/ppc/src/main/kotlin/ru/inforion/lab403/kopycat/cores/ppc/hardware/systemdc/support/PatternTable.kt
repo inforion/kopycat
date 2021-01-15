@@ -38,7 +38,7 @@ class PatternTable(
         decoders: Array<Pair<String, ITableEntry?>>) : ATable() {
 
     companion object {
-        private val log = logger(Level.INFO)
+        @Transient private val log = logger(Level.INFO)
     }
 
     data class Entry(val ord: Int, val pattern: String, val mask: Mask, val table: ITableEntry?)

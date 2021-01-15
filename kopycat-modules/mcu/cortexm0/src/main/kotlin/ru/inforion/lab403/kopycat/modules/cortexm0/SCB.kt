@@ -39,7 +39,7 @@ import java.util.logging.Level
 
 class SCB(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        val log = logger(Level.WARNING)
+        @Transient val log = logger(Level.WARNING)
     }
 
     inner class Ports : ModulePorts(this) {

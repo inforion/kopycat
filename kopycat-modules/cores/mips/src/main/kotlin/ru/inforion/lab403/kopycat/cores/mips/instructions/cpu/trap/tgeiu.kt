@@ -27,8 +27,8 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.trap
 
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsImmInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -45,7 +45,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class tgeiu(core: MipsCore,
             data: Long,
-            rs: GPR,
+            rs: MipsRegister,
             imm: MipsImmediate) : RsImmInsn(core, data, Type.VOID, rs, imm) {
 
 //    override val isSigned: Boolean = false

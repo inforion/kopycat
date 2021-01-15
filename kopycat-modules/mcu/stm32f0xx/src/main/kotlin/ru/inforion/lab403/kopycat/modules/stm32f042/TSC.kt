@@ -35,7 +35,7 @@ import java.util.logging.Level
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class TSC(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        private val log = logger(Level.ALL)
+        @Transient private val log = logger(Level.ALL)
         private enum class RegisterType(val offset: Long) {
             TSC_CR          (0x00),
             TSC_IER         (0x04),

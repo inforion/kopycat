@@ -29,7 +29,7 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.toULong
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 
@@ -42,8 +42,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class seh(
         core: MipsCore,
         data: Long,
-        rd: GPR,
-        rt: GPR) : RdRtInsn(core, data, Type.VOID, rd, rt) {
+        rd: MipsRegister,
+        rt: MipsRegister) : RdRtInsn(core, data, Type.VOID, rd, rt) {
 
     override val mnem = "seh"
 

@@ -29,7 +29,7 @@ import ru.inforion.lab403.common.extensions.isIntegerOverflow
 import ru.inforion.lab403.common.extensions.toULong
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -43,14 +43,14 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class add(
         core: MipsCore,
         data: Long,
-        rd: GPR,
-        rs: GPR,
-        rt: GPR) : RdRsRtInsn(core, data, Type.VOID, rd, rs, rt) {
+        rd: MipsRegister,
+        rs: MipsRegister,
+        rt: MipsRegister) : RdRsRtInsn(core, data, Type.VOID, rd, rs, rt) {
 
     override val mnem = "add"
 
     override fun execute() {
-        // MIPS guide is wierd and cause exception each time if second operand < 0
+        // MIPS guide is weird and cause exception each time if second operand < 0
         val op1 = vrs.toInt()
         val op2 = vrt.toInt()
         val res = op1 + op2

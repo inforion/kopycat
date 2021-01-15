@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc
 
 import gnu.trove.map.hash.THashMap
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.support.InstructionTable
@@ -36,9 +35,6 @@ import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 import java.util.logging.Level
-
-
-
 
 
 abstract class APPCSystemDecoder(val core: PPCCore) : ICoreUnit {
@@ -54,7 +50,7 @@ abstract class APPCSystemDecoder(val core: PPCCore) : ICoreUnit {
     }
 
     companion object {
-        val log = logger(Level.FINE)
+        @Transient val log = logger(Level.FINE)
     }
 
 

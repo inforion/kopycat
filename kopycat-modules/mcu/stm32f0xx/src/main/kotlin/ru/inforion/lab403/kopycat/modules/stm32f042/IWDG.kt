@@ -39,7 +39,7 @@ import java.util.logging.Level
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class IWDG(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        private val log = logger(Level.ALL)
+        @Transient private val log = logger(Level.ALL)
         private enum class RegisterType(val offset: Long) {
             IWDG_KR     (0x00),
             IWDG_PR     (0x04),
@@ -88,7 +88,7 @@ class IWDG(parent: Module, name: String) : Module(parent, name) {
     }
 
     private fun startWatchdog() {
-        log.info("Watchdog started!")
+        log.info { "Watchdog started!" }
         reloadWatchdog()
     }
 

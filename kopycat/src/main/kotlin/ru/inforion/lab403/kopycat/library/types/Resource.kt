@@ -25,21 +25,20 @@
  */
 package ru.inforion.lab403.kopycat.library.types
 
-import ru.inforion.lab403.common.proposal.DynamicClassLoader
+import ru.inforion.lab403.common.extensions.DynamicClassLoader
 import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
+import java.net.URL
 import java.util.zip.GZIPInputStream
 
-class Resource(val path: String) {
+class Resource(private val path: String) {
+    private fun getResource(path: String) = DynamicClassLoader.getResource(path)
+
     private fun openResourceStream(resource: String): InputStream {
         // WARNING: don't change -> with function not working
-        val stream = DynamicClassLoader.getResourceAsStream(resource)
-        if (stream == null) {
-            val basepath = DynamicClassLoader.getResource("")
-            throw FileNotFoundException("Can't open resource $resource within path $basepath")
-        }
-        return stream
+        return DynamicClassLoader.getResourceAsStream(resource)
+                ?: throw FileNotFoundException("Can't open resource $resource within path ${getResource("")}")
     }
 
     fun exists(): Boolean {
@@ -51,6 +50,8 @@ class Resource(val path: String) {
         val stream = openResourceStream(path)
         return if (File(path).extension == "gz") GZIPInputStream(stream) else stream
     }
+
+    val url get() = getResource(path) ?: throw FileNotFoundException("Can't open resource $path within path ${getResource("")}")
 
     fun readBytes(): ByteArray = inputStream().readBytes()
 }

@@ -28,10 +28,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions
 import org.junit.After
 import org.junit.Assert
 import org.junit.Before
-import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.hexlify
-import ru.inforion.lab403.common.extensions.unhexlify
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
@@ -83,8 +80,11 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         return resTemp.readBytes()
     }
 
-    fun assertAssembly(expected: String) = Assert.assertEquals("Unexpected disassembly view!", expected.toLowerCase(),
-            x86.cpu.insn.toString().substring(11).toLowerCase())
+    fun assertAssembly(expected: String) {
+        val disasm = x86.cpu.insn.toString()
+        val actual = disasm.splitWhitespaces().drop(2).joinToString(" ").toLowerCase()
+        Assert.assertEquals("Unexpected disassembly view!", expected.toLowerCase(), actual)
+    }
 
     private fun assertRegister(num: Int, expected: Long, actual: Long, type: String = "GPR") =
             Assert.assertEquals("${x86.cpu.insn} -> " +

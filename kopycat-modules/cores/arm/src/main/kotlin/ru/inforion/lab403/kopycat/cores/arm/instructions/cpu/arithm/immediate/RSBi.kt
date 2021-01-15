@@ -31,6 +31,7 @@ import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpr
 import ru.inforion.lab403.kopycat.cores.arm.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
@@ -39,10 +40,10 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 class RSBi(cpu: AARMCore,
            opcode: Long,
            cond: Condition,
-           var setFlags: Boolean,
-           var rd: ARMRegister,
-           var rn: ARMRegister,
-           var imm32: Immediate<AARMCore>,
+           val setFlags: Boolean,
+           val rd: ARMRegister,
+           val rn: ARMRegister,
+           val imm32: Immediate<AARMCore>,
            size: Int):
         AARMInstruction(cpu, Type.VOID, cond, opcode, rd, rn, imm32, size = size) {
 
@@ -50,7 +51,7 @@ class RSBi(cpu: AARMCore,
 
     override fun execute() {
         val (result, carry, overflow) = AddWithCarry(rn.dtyp.bits, rn.inv(core), imm32.value, 1)
-        if(rd.reg == core.cpu.regs.pc.reg) {
+        if (rd.isProgramCounter(core)) {
             if(setFlags) throw Unpredictable
             core.cpu.ALUWritePC(result)
         } else {

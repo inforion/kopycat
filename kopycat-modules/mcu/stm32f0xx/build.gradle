@@ -1,12 +1,13 @@
 plugins {
     id 'ru.inforion.lab403.gradle.kopycat'
+    id 'maven-publish'
 }
 
 group 'ru.inforion.lab403.kopycat'
 version '0.1'
 
 dependencies {
-    implementation project(":common:proposal")
+    testImplementation group: 'com.github.inforion', name: 'swarm', version: '0.2.0'
 }
 
 buildKopycatModule {

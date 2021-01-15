@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions
 
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
@@ -2269,7 +2268,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         x86.cpu.cregs.cr0 = 0L
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertTrue { x86.cpu.exception is GeneralException }
+        assertTrue { x86.cpu.exception is x86HardwareException.GeneralProtectionFault }
     }
 
     @Test fun pushfPopfTestGeneral2() {
@@ -2285,7 +2284,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         iopl(2)
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertTrue { x86.cpu.exception is GeneralException }
+        assertTrue { x86.cpu.exception is x86HardwareException.GeneralProtectionFault }
     }
 
     // TEST LEAVE INSTRUCTION
@@ -3696,7 +3695,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         gprRegisters(eax = 0x2, ebx = 0x907C_FAFA)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x2, ebx = 0xF0_0100)
+        assertGPRRegisters(eax = 0x2, ebx = 0x0100)
         assertFlagRegisters(zf = true)
     }
 

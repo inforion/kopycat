@@ -32,20 +32,26 @@ import ru.inforion.lab403.kopycat.modules.virtarm.VirtARM
 
 class VirtARMSerializationTest {
     companion object {
-        val log = logger()
+        @Transient val log = logger()
     }
 
     private fun execute() {
         val exitPoint = 0xAFFCC7C0
 
-        val kopycat = Kopycat(null, "temp").apply {
+        val kopycat = Kopycat(null).apply {
             val top = VirtARM(null, "top")
+            setSnapshotsDirectory("temp")
             open(top, false, null)
         }
 
         kopycat.reset()
 
         kopycat.save("VirtARMSerializationTest.zip")
+        kopycat.run { _, core -> core.pc != exitPoint }
+        assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
+
+        // This part call true restore
+        kopycat.restore()
         kopycat.run { _, core -> core.pc != exitPoint }
         assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
 

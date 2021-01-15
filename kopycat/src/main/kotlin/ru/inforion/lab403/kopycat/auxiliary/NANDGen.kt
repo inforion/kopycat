@@ -37,7 +37,7 @@ import java.util.logging.Level
 
 object NANDGen {
 
-    val log = logger(Level.INFO)
+    @Transient val log = logger(Level.INFO)
 
     enum class Manufacturer(val id: Long) {
         TOSHIBA(0x98),

@@ -26,13 +26,14 @@
 package ru.inforion.lab403.kopycat.interfaces
 
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
+import java.io.Serializable
 
 /**
  * {RU}
  * Любой объект, который может быть сохранён snapshot-е должет быть унаследован от этого интерфейса.
  * {RU}
  */
-interface ISerializable {
+interface ISerializable: Serializable {
     /**
      * {RU}Сериализация объекта с использованием контекста <ctxt> в Map из строки.{RU}
      *
@@ -41,7 +42,7 @@ interface ISerializable {
      * Final Map should ended with Map<String, String>
      * {EN}
      */
-    fun serialize(ctxt: GenericSerializer): Map<String, Any>
+    fun serialize(ctxt: GenericSerializer): Map<String, Any> = emptyMap()
 
     /**
      * {RU}Загрузка snapshot-а с использованием указанного контекста <ctxt> из любого типа.{RU}
@@ -59,7 +60,7 @@ interface ISerializable {
      *
      * {EN}Loading snapshot using specified deserialization context <ctxt> from Map<String, Any>{EN}
      */
-    fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>)
+    fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) { }
 
     /**
      * {RU}

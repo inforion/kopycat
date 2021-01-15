@@ -34,8 +34,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.*
-import ru.inforion.lab403.kopycat.serializer.loadEnum
-import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.*
 import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
@@ -61,7 +60,7 @@ class NAND constructor(
         val pagesInBlock: Int = 64
 ): Module(parent, name) {
     companion object {
-        private val log = logger(Level.WARNING)
+        @Transient private val log = logger(Level.WARNING)
     }
 
     constructor(parent: Module, name: String, id: String, blockCount: Int, colLen: Int, rowLen: Int, pageSize: Int, spareSize: Int, pagesInBlock: Int, bank1: InputStream, bank2: InputStream?) :
@@ -281,21 +280,15 @@ class NAND constructor(
             return "Address(%08X, latched = %s)".format(value, latched)
         }
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return mapOf(
-                    "buffer" to buffer.array().hexlify(),
-                    "latched" to latched.toString(),
-                    "value" to value.toString()
-            ) + ctxt.storeByteBufferData(name, buffer)
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
+                "buffer" to storeByteBuffer(buffer),
+                "latched" to latched,
+                "value" to value)
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            buffer.rewind()
-            buffer.put((snapshot["buffer"] as String).unhexlify())
-            ctxt.restoreByteBufferData(snapshot, name, buffer)
-
-            latched = (snapshot["latched"] as String).toBoolean()
-            value = (snapshot["value"] as String).toInt()
+            loadByteBuffer(snapshot, "buffer", buffer)
+            latched = loadValue(snapshot, "latched")
+            value = loadValue(snapshot, "value")
         }
     }
 
@@ -614,21 +607,14 @@ class NAND constructor(
         address.reset()
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return super.serialize(ctxt) + mapOf(
-                "devId" to devId.array().hexlify(),
-                "status" to status.serialize(ctxt),
-                "address" to address.serialize(ctxt)
-        ) + ctxt.storeValues(
-                "state" to state.toString(),
-                "devId_pos" to devId.position(),
-                "devId_lim" to devId.limit(),
-                "canBeDual" to canBeDual
-        ) + ctxt.storeBinaries(
-                "nand.bin" to banks[0],
-                "nand2.bin" to banks[1]
-        )
-    }
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+            "devId" to storeByteBuffer(devId),
+            "status" to status.serialize(ctxt),
+            "address" to address.serialize(ctxt),
+            "state" to state.toString(),
+            "canBeDual" to canBeDual,
+            "nand1" to ctxt.storeBinary("nand1", banks[0]),
+            "nand2" to ctxt.storeBinary("nand2", banks[1]))
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -638,14 +624,14 @@ class NAND constructor(
         if (banks[0].limit() == 0)
             banks[0] = allocate(totalSize)
 
-        if (!ctxt.loadBinary(snapshot, "nand.bin", banks[0]))
-            throw IllegalStateException("Can't load nand.bin!")
+        if (!ctxt.loadBinary(snapshot, "nand1", banks[0]))
+            throw IllegalStateException("Can't load nand1!")
 
-        if (canBeDual && ctxt.isBinaryExists("nand2.bin")) {
+        if (canBeDual && ctxt.isBinaryExists("nand2")) {
             if (banks[1].limit() == 0)
                 banks[1] = allocate(totalSize)
 
-            ctxt.loadBinary(snapshot, "nand2.bin", banks[1])
+            ctxt.loadBinary(snapshot, "nand2", banks[1])
         }
     }
 
@@ -653,9 +639,9 @@ class NAND constructor(
     override fun restore(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         restoreCommon(ctxt, snapshot)
 
-        ctxt.restoreBinary(snapshot, "nand.bin", banks[0], dirtyPages, pageSize)
-        if (canBeDual && ctxt.isBinaryExists("nand2.bin")) {
-            ctxt.restoreBinary(snapshot, "nand2.bin", banks[1], dirtyPages, pageSize)
+        ctxt.restoreBinary(snapshot, "nand1", banks[0], dirtyPages, pageSize)
+        if (canBeDual && ctxt.isBinaryExists("nand2")) {
+            ctxt.restoreBinary(snapshot, "nand2", banks[1], dirtyPages, pageSize)
         }
 
         dirtyPages.clear()
@@ -663,12 +649,8 @@ class NAND constructor(
 
     @Suppress("UNCHECKED_CAST")
     private fun restoreCommon(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        devId.rewind()
-        devId.put((snapshot["devId"] as String).unhexlify())
-        devId.position(loadValue(snapshot, "devId_pos", 0))
-        devId.limit(loadValue(snapshot, "devId_lim", 0))
-
-        canBeDual = loadValue(snapshot, "canBeDual", false)
+        loadByteBuffer(snapshot, "devId", devId)
+        canBeDual = loadValue(snapshot, "canBeDual") { false }
         status.deserialize(ctxt, snapshot["status"] as Map<String, Any>)
         address.deserialize(ctxt, snapshot["address"] as Map<String, Any>)
         state = loadEnum(snapshot, "state")

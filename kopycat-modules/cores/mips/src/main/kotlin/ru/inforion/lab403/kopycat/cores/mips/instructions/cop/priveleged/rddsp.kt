@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -35,9 +35,9 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class rddsp(core: MipsCore,
             data: Long,
-            rd: GPR) : RdInsn(core, data, Type.VOID, rd) {
+            rd: MipsRegister
+) : RdInsn(core, data, Type.VOID, rd) {
 
-//    override val construct = ::rddsp
     override val mnem = "rddsp"
 
     override fun execute() {

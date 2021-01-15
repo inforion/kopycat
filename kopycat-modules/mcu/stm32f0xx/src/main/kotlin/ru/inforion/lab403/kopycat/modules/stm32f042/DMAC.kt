@@ -35,16 +35,18 @@ import ru.inforion.lab403.kopycat.cores.base.bits
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareNotReadyException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.PIN
+import java.io.Serializable
 import java.util.logging.Level.*
 
 
 class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, name) {
     companion object {
-        val log = logger(ALL)
+        @Transient val log = logger(ALL)
 
         private fun ch2ea(base: Long, ch: Int) = base + 20L * (ch - 1)
 
@@ -184,7 +186,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
         override fun write(ea: Long, ss: Int, size: Int, value: Long) = dmaChannels[idx].hardwareRequest()
     }
 
-    class Location(val start: Int, val size: Int, val increment: Int) {
+    class Location(val start: Int, val size: Int, val increment: Int): Serializable {
         private fun getSize(code: Int) = when(code) {
             0b00 -> 1
             0b01 -> 2
@@ -208,7 +210,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
         val itemSize = getSize(size)
     }
 
-    inner class Channel(ch: Int) {
+    inner class Channel(ch: Int): Serializable {
 
         private val idx = ch - 1
 
@@ -417,7 +419,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
                 try {
                     transfer()
                     processInterruptsFlags()
-                } catch (error: MemoryAccessError) {
+                } catch (error: HardwareNotReadyException) {
                     log.severe { "Can't access to DMA region: $error" }
                     hardwareRequestPending = false
                     // I think bad fate wait for me

@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.exceptions
 
+import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
@@ -49,6 +50,8 @@ open class MipsHardwareException(excCode: ExcCode, where: Long, val vAddr: Long 
             LOAD, FETCH -> ExcCode.TLBL_INVALID
         }
     }
+
+    inline val vpn2 get() = vAddr[31..13]
 
     override fun toString(): String = "$prefix[${where.hex8}]: $excCode VA = ${vAddr.hex8}"
 

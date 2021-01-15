@@ -36,8 +36,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.*
-import ru.inforion.lab403.kopycat.serializer.loadEnum
-import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.*
 import java.nio.ByteBuffer
 import java.util.logging.Level.FINER
 import java.util.logging.Level.FINEST
@@ -414,15 +413,12 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
         return true
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return super.serialize(ctxt) + ctxt.storeValues(
-                "lba" to lba,
-                "sectorsCount" to sectorsCount,
-                "command" to command.toString(),
-                "error" to error.toString(),
-                "buffer" to buffer.array().hexlify()
-        ) + ctxt.storeByteBufferData("buffer", buffer)
-    }
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+            "lba" to lba,
+            "sectorsCount" to sectorsCount,
+            "command" to command.toString(),
+            "error" to error.toString(),
+            "buffer" to storeByteBuffer(buffer))
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
@@ -430,7 +426,6 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
         sectorsCount = loadValue(snapshot, "sectorsCount")
         command = loadEnum(snapshot, "command")
         error = loadEnum(snapshot, "error")
-        buffer.put((snapshot["buffer"] as String).unhexlify())
-        ctxt.restoreByteBufferData(snapshot, "buffer", buffer)
+        loadByteBuffer(snapshot, "buffer", buffer)
     }
 }

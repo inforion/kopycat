@@ -40,7 +40,7 @@ import java.util.logging.Level.FINE
 
 class ARMv6MCOP(val cpu: ARMv6MCore, name: String) : AARMCOP(cpu, name) {
     companion object {
-        val log = logger(FINE)
+        @Transient val log = logger(FINE)
     }
 
     fun ExceptionEntry(core: ARMv6MCore, exceptionType: VectorTable) {
@@ -55,17 +55,10 @@ class ARMv6MCOP(val cpu: ARMv6MCore, name: String) : AARMCOP(cpu, name) {
     }
 
     fun PushStack(core: ARMv6MCore, exceptionType: VectorTable) {
-        val framePtrAlign: Long
-        val framePtr: Long
-        if (core.cpu.spr.control.spsel && core.cpu.CurrentMode == Mode.Thread) {
-            framePtrAlign = core.cpu.regs.spProcess.value[2]
-            core.cpu.regs.spProcess.value = (core.cpu.regs.spProcess.value - 0x20) clr 2
-            framePtr = core.cpu.regs.spProcess.value
-        } else {
-            framePtrAlign = core.cpu.regs.spMain.value[2]
-            core.cpu.regs.spMain.value = (core.cpu.regs.spMain.value - 0x20) clr 2
-            framePtr = core.cpu.regs.spMain.value
-        }
+        val framePtrAlign = core.cpu.regs.sp.value[2]
+        core.cpu.regs.sp.value = (core.cpu.regs.sp.value - 0x20) clr 2
+        val framePtr = core.cpu.regs.sp.value
+
         core.outl(framePtr, core.cpu.regs.r0.value)
         core.outl(framePtr + 0x4, core.cpu.regs.r1.value)
         core.outl(framePtr + 0x8, core.cpu.regs.r2.value)

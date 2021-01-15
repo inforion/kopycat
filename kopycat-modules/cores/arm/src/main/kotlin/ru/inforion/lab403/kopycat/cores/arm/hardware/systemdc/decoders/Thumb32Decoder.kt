@@ -46,7 +46,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 class Thumb32Decoder(cpu: AARMCore) : ADecoder<AARMInstruction>(cpu) {
     companion object {
-        private val log = logger()
+        @Transient private val log = logger()
     }
 
     private val undefined = ExceptionDecoder.Undefined(cpu)

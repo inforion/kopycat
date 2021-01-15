@@ -25,14 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.consoles.jep
 
+import ru.inforion.lab403.common.extensions.splitWhitespaces
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.Shell
-import ru.inforion.lab403.common.proposal.splitWhitespaces
-import java.lang.RuntimeException
+import ru.inforion.lab403.common.extensions.Shell
 
 class PythonShell(command: String) {
     companion object {
-        private val log = logger()
+        @Transient val log = logger()
     }
 
     // split to make possible get command like py -3.8

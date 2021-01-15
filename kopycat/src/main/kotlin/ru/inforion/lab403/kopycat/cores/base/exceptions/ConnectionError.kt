@@ -25,4 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.exceptions
 
-class ConnectionError(message: String) : Exception(message)
+class ConnectionError constructor(message: String) : Exception(message) {
+    companion object {
+        // be careful compiler didn't see throw outside function
+        inline fun raise(message: () -> String): Unit = throw ConnectionError(message())
+
+        inline fun on(condition: Boolean, message: () -> String) {
+            if (condition) raise(message)
+        }
+    }
+}

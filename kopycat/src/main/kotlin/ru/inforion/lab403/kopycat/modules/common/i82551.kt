@@ -31,8 +31,8 @@ import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.PCI_CSR1
 import ru.inforion.lab403.kopycat.modules.PCI_CSR0
+import ru.inforion.lab403.kopycat.modules.PCI_CSR1
 import ru.inforion.lab403.kopycat.modules.PIN
 import ru.inforion.lab403.kopycat.modules.common.pci.PCITarget
 import java.util.logging.Level
@@ -66,7 +66,7 @@ class i82551(parent: Module, name: String) : PCITarget(
 //        val mdiPhyAddr: Int = 1 // MDI Physical Address
 
     companion object {
-        private val log = logger(Level.FINE)
+        @Transient private val log = logger(Level.FINE)
     }
 
     val spi = ports.Master("spi", PIN)

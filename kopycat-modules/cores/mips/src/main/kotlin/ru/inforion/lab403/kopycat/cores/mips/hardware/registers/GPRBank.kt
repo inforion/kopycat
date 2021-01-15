@@ -25,53 +25,54 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.hardware.registers
 
-import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
-import ru.inforion.lab403.kopycat.cores.mips.enums.eGPR
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 
-class GPRBank(core: MipsCore) : ARegistersBank<MipsCore, eGPR>(core, eGPR.values(), bits = 32) {
-    override val name: String = "CPU General Purpose Registers"
+class GPRBank : ARegistersBankNG<MipsCore>("CPU General Purpose Registers", 32, 32) {
 
-    val zero by valueOf(GPR.zero)
+    val zero = object : Register( "\$zero", 0) {
+        override var value: Long
+            get() = 0
+            set(value) = Unit
+    }
 
-    var at by valueOf(GPR.at)
+    val at = Register("\$at", 1)
 
-    var a0 by valueOf(GPR.a0)
-    var a1 by valueOf(GPR.a1)
-    var a2 by valueOf(GPR.a2)
-    var a3 by valueOf(GPR.a3)
+    val v0 = Register("\$v0", 2)
+    val v1 = Register("\$v1", 3)
 
-    var v0 by valueOf(GPR.v0)
-    var v1 by valueOf(GPR.v1)
+    val a0 = Register("\$a0", 4)
+    val a1 = Register("\$a1", 5)
+    val a2 = Register("\$a2", 6)
+    val a3 = Register("\$a3", 7)
 
-    var k0 by valueOf(GPR.k0)
-    var k1 by valueOf(GPR.k1)
+    val t0 = Register("\$t0", 8)
+    val t1 = Register("\$t1", 9)
+    val t2 = Register("\$t2", 10)
+    val t3 = Register("\$t3", 11)
+    val t4 = Register("\$t4", 12)
+    val t5 = Register("\$t5", 13)
+    val t6 = Register("\$t6", 14)
+    val t7 = Register("\$t7", 15)
 
-    var t0 by valueOf(GPR.t0)
-    var t1 by valueOf(GPR.t1)
-    var t2 by valueOf(GPR.t2)
-    var t3 by valueOf(GPR.t3)
-    var t4 by valueOf(GPR.t4)
-    var t5 by valueOf(GPR.t5)
-    var t6 by valueOf(GPR.t6)
-    var t7 by valueOf(GPR.t7)
-    var t8 by valueOf(GPR.t8)
-    var t9 by valueOf(GPR.t9)
+    val s0 = Register("\$s0", 16)
+    val s1 = Register("\$s1", 17)
+    val s2 = Register("\$s2", 18)
+    val s3 = Register("\$s3", 19)
+    val s4 = Register("\$s4", 20)
+    val s5 = Register("\$s5", 21)
+    val s6 = Register("\$s6", 22)
+    val s7 = Register("\$s7", 23)
 
-    var s0 by valueOf(GPR.s0)
-    var s1 by valueOf(GPR.s1)
-    var s2 by valueOf(GPR.s2)
-    var s3 by valueOf(GPR.s3)
-    var s4 by valueOf(GPR.s4)
-    var s5 by valueOf(GPR.s5)
-    var s6 by valueOf(GPR.s6)
-    var s7 by valueOf(GPR.s7)
-    
-    var ra by valueOf(GPR.ra)
-    var gp by valueOf(GPR.gp)
-    var fp by valueOf(GPR.fp)
-    var sp by valueOf(GPR.sp)
+    val t8 = Register("\$t8", 24)
+    val t9 = Register("\$t9", 25)
 
+    val k0 = Register("\$k0", 26)
+    val k1 = Register("\$k1", 27)
+
+    val gp = Register("\$gp", 28)
+    val sp = Register("\$sp", 29)
+    val fp = Register("\$fp", 30)
+    val ra = Register("\$ra", 31)
 }

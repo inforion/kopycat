@@ -26,12 +26,9 @@
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eSystem
 import ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.support.InstructionTable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
 
 
 class PPCSystemDecoder(core: PPCCore, vararg systems: eSystem) : APPCSystemDecoder(core) {

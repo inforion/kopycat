@@ -32,7 +32,6 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.branch.B
-import ru.inforion.lab403.kopycat.cores.arm.operands.ARMImmediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 object ArmBranchDecoder {
@@ -40,7 +39,7 @@ object ArmBranchDecoder {
         override fun decode(data: Long): AARMInstruction {
             val imm24 = data[23..0]
             val imm26 = imm24 shl 2
-            val imm32 = ARMImmediate(signext(imm26, 26).asLong, true)
+            val imm32 = imm(signext(imm26, 26).asLong, true)
             return B(core, data, Condition.UN, imm32)
 //            TODO("WHEN CACHE FOR THUMB ENABLE THIS SHOULD BE FIXED!")
         }

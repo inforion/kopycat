@@ -34,18 +34,19 @@ import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
-import ru.inforion.lab403.kopycat.cores.base.extensions.pending
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.PIN
 import java.util.logging.Level
-import java.util.logging.Level.*
+import java.util.logging.Level.FINE
+import java.util.logging.Level.INFO
 
 @Suppress("EnumEntryName", "PrivatePropertyName", "PropertyName")
 class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
     companion object {
-        private val log = logger(INFO)
+        @Transient private val log = logger(INFO)
         private enum class RegisterType(val offset: Long) {
             TIMx_CR1    (0x00),
             TIMx_CR2    (0x04),
@@ -102,11 +103,14 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
             writable: Boolean = true,
             readable: Boolean = true,
             level: Level = FINE,
-            val shadowRange: IntRange = if (useDWORD) 31..0 else 15..0
+            shadowRange: IntRange = if (useDWORD) 31..0 else 15..0
     ) : RegisterBase(register, default, useDWORD, writable, readable, level) {
-        var shadow = data[shadowRange].asInt
+        val first = shadowRange.first
+        val last = shadowRange.last
+
+        var shadow = data[first..last].asInt
         open fun updateShadow() {
-            shadow = data[shadowRange].asInt
+            shadow = data[first..last].asInt
         }
     }
 

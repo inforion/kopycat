@@ -42,7 +42,7 @@ import java.util.logging.Level
  */
 class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
     companion object {
-        val log = logger(Level.FINE)
+        @Transient val log = logger(Level.FINE)
 
         const val INTERRUPT_COUNT = 2
     }

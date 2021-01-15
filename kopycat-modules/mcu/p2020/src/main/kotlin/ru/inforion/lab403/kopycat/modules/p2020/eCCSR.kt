@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.p2020
 
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.sure
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 
 
@@ -102,8 +103,8 @@ enum class eCCSR(val offset: Long, val size: Long = 0x1000) {
     val range = offset until (offset + size)
 
     companion object {
-
-        fun find(offset: Long): eCCSR = values().find { offset in it.range }
-                ?: throw GeneralException("Access in reserved area: ${offset.hex8}")
+        fun find(offset: Long): eCCSR = values()
+                .find { offset in it.range }
+                .sure { "Access in reserved area: ${offset.hex8}" }
     }
 }

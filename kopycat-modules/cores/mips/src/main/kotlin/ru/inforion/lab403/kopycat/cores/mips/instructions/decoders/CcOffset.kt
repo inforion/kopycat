@@ -46,6 +46,6 @@ class CcOffset(
         val cc = data[20..18]
         if (cc != 0L) throw UnsupportedOperationException()
         val offset = signext(data[15..0] shl 2, n = 18)
-        return construct(core, data, MipsImmediate(cc), MipsNear(offset))
+        return construct(core, data, imm(cc), near(offset))
     }
 }

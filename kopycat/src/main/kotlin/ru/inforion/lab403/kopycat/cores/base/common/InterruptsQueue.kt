@@ -30,6 +30,7 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.interfaces.IResettable
+import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.logging.Level
 
@@ -45,8 +46,8 @@ import java.util.logging.Level
  *
  * {EN}Not a really queue but collection for support interrupts{EN}
  */
-class InterruptsQueue(val core: AGenericCore): IResettable {
-    private val log = logger(Level.INFO)
+class InterruptsQueue(val core: AGenericCore): IResettable, ISerializable {
+    @Transient private val log = logger(Level.INFO)
 
     val name: String = "Interrupts Queue"
 

@@ -28,7 +28,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.VOID
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -38,16 +38,15 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class wrpgpr(
         core: MipsCore,
         data: Long,
-        rd: GPR,
-        rt: GPR
+        rd: MipsRegister,
+        rt: MipsRegister
 ) : RdRtInsn(core, data, VOID, rd, rt) {
 
     override val mnem = "wrpgpr"
 
     override fun execute() {
-        val pss = core.cop.regs.SRSCtl[9..6].toInt()
+        val pss = core.cop.regs.SRSCtl.value[9..6].toInt()
         val shadow = core.cpu.sgprs[pss]
-        // FIXME: Remove write intern here rd.value should used
-        shadow.writeIntern(rd.reg, vrt)
+        shadow.write(rd.desc.id, vrt)
     }
 }

@@ -38,7 +38,7 @@ import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.loadValue
-
+import ru.inforion.lab403.kopycat.serializer.storeValues
 
 
 class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
@@ -240,19 +240,17 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             var shareable: Boolean = false,
             var outersharable: Boolean = false
     ) : ISerializable {
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return ctxt.storeValues(
-                    "type" to type,
-                    "innerattrs" to innerattrs,
-                    "outerattrs" to outerattrs,
-                    "innerhints" to innerhints,
-                    "outerhints" to outerhints,
-                    "innertransient" to innertransient,
-                    "outertransient" to outertransient,
-                    "shareable" to shareable,
-                    "outersharable" to outersharable
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
+                "type" to type,
+                "innerattrs" to innerattrs,
+                "outerattrs" to outerattrs,
+                "innerhints" to innerhints,
+                "outerhints" to outerhints,
+                "innertransient" to innertransient,
+                "outertransient" to outertransient,
+                "shareable" to shareable,
+                "outersharable" to outersharable
+        )
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             type = loadEnum(snapshot, "type")
@@ -280,13 +278,11 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             physicalAddress = (physicalAddress and mask) or (mva and mask.inv())
         }
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return ctxt.storeValues(
-                    "physicalAddress" to physicalAddress,
-                    "ns" to ns,
-                    "mask" to mask
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
+                "physicalAddress" to physicalAddress,
+                "ns" to ns,
+                "mask" to mask
+        )
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             physicalAddress = loadValue(snapshot, "physicalAddress")
@@ -299,12 +295,10 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             val memattrs: MemoryAttributes = MemoryAttributes(),
             val paddress: FullAddress = FullAddress()
     ): ISerializable {
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return ctxt.storeValues(
-                    "memattrs" to memattrs.serialize(ctxt),
-                    "paddress" to paddress.serialize(ctxt)
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
+                "memattrs" to memattrs.serialize(ctxt),
+                "paddress" to paddress.serialize(ctxt)
+        )
 
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -318,13 +312,11 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             var xn: Boolean = false, // Execute-never bit
             var pxn: Boolean = false // Privileged execute-never bit
     ) : ISerializable {
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return ctxt.storeValues(
-                    "ap" to ap,
-                    "xn" to xn,
-                    "pxn" to pxn
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
+                "ap" to ap,
+                "xn" to xn,
+                "pxn" to pxn
+        )
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             ap = loadValue(snapshot, "ap")
@@ -343,17 +335,15 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             var blocksize: Int = 0, // describes size of memory translated in KBytes
             var addrdesc: AddressDescriptor = AddressDescriptor()
     ) : ISerializable {
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return ctxt.storeValues(
-                    "perms" to perms.serialize(ctxt),
-                    "nG" to nG,
-                    "domain" to domain,
-                    "contiguousbit" to contiguousbit,
-                    "level" to level,
-                    "blocksize" to blocksize,
-                    "addrdesc" to addrdesc.serialize(ctxt)
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
+                "perms" to perms.serialize(ctxt),
+                "nG" to nG,
+                "domain" to domain,
+                "contiguousbit" to contiguousbit,
+                "level" to level,
+                "blocksize" to blocksize,
+                "addrdesc" to addrdesc.serialize(ctxt)
+        )
 
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -557,10 +547,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
         override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
             val tlb = l2descs.map { it?.serialize(ctxt) }
-
-            return ctxt.storeValues(
-                    "l2descs" to tlb
-            )
+            return storeValues("l2descs" to tlb)
         }
 
         @Suppress("UNCHECKED_CAST")
@@ -630,11 +617,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         }
 
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return ctxt.storeValues(
-                    "entry" to entry.serialize(ctxt)
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues("entry" to entry.serialize(ctxt))
 
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -1167,13 +1150,13 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             if (it == null)
                 null
             else
-                ctxt.storeValues(
+                storeValues(
                         "l1desc" to it.l1desc,
                         "entry" to it.serialize(ctxt)
                 )
         }
 
-        return super.serialize(ctxt) + ctxt.storeValues(
+        return super.serialize(ctxt) + storeValues(
                 "privEnabled" to privEnabled,
                 "tlb_fast" to tlbstored
         )

@@ -30,7 +30,7 @@ import org.junit.Test
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS.R_W
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
-import ru.inforion.lab403.kopycat.device.TestTopDevice
+import ru.inforion.lab403.kopycat.modules.cores.device.TestTopDevice
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
 
@@ -55,13 +55,7 @@ class BusCacheTest: Module(null, "Module Buses Test") {
 
     val testCore = TestTopDevice(this, "Test")
 
-    private fun assert(expected: Boolean, actual: Boolean, type: String = "Bus Cache") =
-            Assert.assertEquals("$type error: $expected != $actual", expected, actual)
-
-    private fun assert(expected: Long, actual: Long, type: String = "Bus Cache") =
-            Assert.assertEquals("$type error: $expected != $actual", expected, actual)
-
-    private fun assert(expected: String, actual: String, type: String = "Bus Cache") =
+    private fun <T> assert(expected: T, actual: T, type: String = "Bus Cashe") =
             Assert.assertEquals("$type error: $expected != $actual", expected, actual)
 
     @Test fun masterSlaveTest1() {
@@ -95,7 +89,7 @@ class BusCacheTest: Module(null, "Module Buses Test") {
         assert(0xFFFF, readMem2)
     }
 
-    @Test(expected = MemoryAccessError::class) fun masterSlaveTest4() {
+    @Test(expected = IllegalStateException::class) fun masterSlaveTest4() {
         buses.connect(module.ports.master16, module.ports.slave16)
         Memory(module.ports.slave16, 0x0, 0x200, "a", R_W)
         Memory(module.ports.slave16, 0x100, 0x300, "b", R_W)

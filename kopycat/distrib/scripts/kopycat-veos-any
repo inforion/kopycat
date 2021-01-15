@@ -1,0 +1,95 @@
+#!/usr/bin/env sh
+
+error_exit()
+{
+  echo "ERROR: $1" 1>&2
+  exit 1
+}
+
+ARCH=$1
+EXEC=$2
+ARGS="${@:3}"
+
+if [ -z "$EXEC" ]; then
+  error_exit "Input executable as first argument isn't specified"
+fi
+
+case $ARCH in
+"arm")
+  module="ARMApplication"
+  ;;
+"mips")
+  module="MIPSApplication"
+  ;;
+"any")
+  error_exit "Please, use soft-link to this script for one of available processor architectures"
+  ;;
+*)
+  error_exit "Unknown architecture for VEOS: $ARCH"
+  ;;
+esac
+
+# Check on GDB-port option
+
+if [ -n "$KOPYCAT_VEOS_GDB_PORT" ]; then
+  gdb="-g $KOPYCAT_VEOS_GDB_PORT"
+else
+  gdb=""
+fi
+
+# Check on console type option
+
+if [ -n "$KOPYCAT_VEOS_CONSOLE" ]; then
+  console_type="$(cut -d '=' -f1 <<< "$KOPYCAT_VEOS_CONSOLE")"
+
+  case "$console_type" in
+  "kotlin")
+    console="-kts"
+    ;;
+  "python")
+    python_command="$(cut -d '=' -f2 <<< "$KOPYCAT_VEOS_CONSOLE")"
+    console="-python=$python_command"
+    ;;
+  "*")
+    error_exit "Unknown console type, use 'kotlin' or 'python=<command>'"
+    ;;
+  esac
+else
+  console="-kts"
+fi
+
+# Check working directory for VEOS
+
+if [ -n "$KOPYCAT_VEOS_WORKING_DIR" ]; then
+  working_dir="dir=$KOPYCAT_VEOS_WORKING_DIR"
+else
+  working_dir="dir=."
+fi
+
+# Check LD_PRELOAD for VEOS
+
+if [ -n "$KOPYCAT_VEOS_LD_PRELOAD" ]; then
+  ld_preload=",ldPreload=$KOPYCAT_VEOS_LD_PRELOAD"
+else
+  ld_preload=""
+fi
+
+# Check standalone for VEOS
+
+if [ -n "$KOPYCAT_VEOS_STANDALONE" ] && [ "$KOPYCAT_VEOS_STANDALONE" = "NO" ]; then
+  standalone=""
+else
+  standalone="-standalone"
+fi
+
+# Check logging level for Kopycat
+
+if [ -n "$KOPYCAT_VEOS_LOGGING_CONF" ]; then
+  logging_conf="-ll $KOPYCAT_VEOS_LOGGING_CONF"
+else
+  logging_conf=""
+fi
+
+# Start the emulator
+
+kopycat $standalone $gdb $console -n $module -l veos -p "$working_dir,exec=$EXEC,args=$ARGS$ld_preload" $logging_conf

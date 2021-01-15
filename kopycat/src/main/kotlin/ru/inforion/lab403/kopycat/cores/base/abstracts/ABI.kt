@@ -25,199 +25,69 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
-import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
-import ru.inforion.lab403.kopycat.cores.base.common.StackStream
-import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
-import java.util.logging.Level
 
-/**
- * {RU}
- * Класс двоичного интерфеса приложений (Application Binary Interface, ABI).
- * Используется для абстрагирования взаимодействия ОС с конкретной реализацией аппаратного обеспечения.
- *
- * @param T шаблон типа AGenericCore
- * @property core ядро
- * @property heap размер кучи
- * @property stack размер стека
- * @property bigEndian порядок байтов
- * @property types поддерживаемые типы данных
- * @property sp регистр указателя стека
- * @property ssr регистр указателя сегмента стека
- * @property ra регистр адреса возврата (при отсутствии регистра необходимо генерировать ислючение и перегрузить метод getReturnAddress)
- * @property v0 регистр результата
- * @property argl список аргументов, передаваемых через регистры
- * @constructor создаёт абстрактный класс двоичного интерфейса
- * {RU}
- */
-abstract class ABI<T: AGenericCore>(
+
+abstract class ABI<T: AGenericCore> constructor(
         val core: T,
-        val heap: LongRange,
-        val stack: LongRange,
-        val bigEndian: Boolean,
-        val types: Types = Types.default) {
+        bits: Int,
+        bigEndian: Boolean,
+        types: Types = Types.default): ABIBase(bits, bigEndian, types) {
 
-    companion object {
-        val log = logger(Level.INFO)
-    }
-
-    /**
-     * {RU}
-     * Типы данных, поддерживаемые конкретным ABI
-     * {RU}
-     */
-    data class Types(
-            val byte: Datatype,
-            val half: Datatype,
-            val word: Datatype,
-            val pointer: Datatype,
-            val long: Datatype) {
-        companion object {
-            val default = Types(BYTE, WORD, DWORD, DWORD, QWORD)
-        }
-    }
-
-    abstract val ssr: Int
+    abstract val pc: ARegister<T>   // program counter register
     abstract val sp: ARegister<T>   // stack pointer register
-    abstract val ra: ARegister<T>   // return address register (if not possible error should be thrown and getReturnAddress override)
-    abstract val v0: ARegister<T>   // return value register
-    abstract val argl: List<ARegister<T>>   // list of register arguments
+    abstract val ra: ARegister<T>   // return address register
+    abstract val rv: ARegister<T>   // return value register
 
-    abstract fun createCpuContext(): AContext<*>
+    open val segmentSelector = 0
 
-    var stackPointerValue: Long
+    abstract val registerCount: Int
+    abstract fun register(index: Int): ARegister<T>
+
+    abstract fun createContext(): AContext<T>
+
+    override var stackPointerValue: Long
         get() = sp.value(core)
         set(value) = sp.value(core, value)
 
-    var returnValue: Long
-        get() = v0.value(core)
-        set(value) = v0.value(core, value)
+    override val returnValue: Long
+        get() = rv.value(core)
 
-    var programCounterValue: Long
-        get() = core.cpu.pc
-        set(value) { core.cpu.pc = value }
+    override var programCounterValue: Long
+        get() = pc.value(core)
+        set(value) { pc.value(core, value) }
 
-    open var returnAddressValue: Long
+    override var returnAddressValue: Long
         get() = ra.value(core)
         set(value) = ra.value(core, value)
 
-    open fun ret() {
-        programCounterValue = returnAddressValue
+    override fun setReturnValue(value: Long, type: Datatype, instance: ABIBase) {
+        if (type.bits > bits)
+            throw NotImplementedError("Override this function for ${type.bits}-bit arguments")
+        instance.writeRegister(rv.reg, value like type)
     }
 
-    /**
-     * {RU}
-     * Получает аргументы для подпрограммы (функции) по списку типов [args]
-     * @return массив аргументов функции
-     * {RU}
-     */
-    open fun getArgs(args: Array<ArgType>): Array<Long> {
-        var res = argl.map { it.value(core) }
+    override fun readRegister(index: Int): Long = register(index).value(core)
 
-        if (args.size > argl.size) {
-            val ss = stackStream()
-            res += args.drop(argl.size).map {  // !!!!!!!!!!!!!!!!!!!!!  Не все аргументы !!!!!!!!!!!!!!1
-                when (it) {
-                    ArgType.Pointer -> ss.read(types.pointer)
-                    ArgType.Word -> ss.read(types.word)
-                    ArgType.Half -> ss.read(types.half)
-                                                               // x86 can't push byte, but others ...
-                    ArgType.Byte -> ss.read(types.half)  // x86 не поддерживает помещение 1 байта на стек
-                }
-            }
-        }
+    override fun writeRegister(index: Int, value: Long) = register(index).value(core, value)
 
-        return res.toTypedArray()
-    }
+    override fun readStack(offset: Long, type: Datatype) =
+            core.read(type, stackPointerValue + offset, segmentSelector)
 
-    /**
-     * {RU}
-     * Получает [n] аргументов одинакового типа [type] для подпрограммы (функции)
-     * @return массив аргументов функции
-     * {RU}
-     */
-    open fun getArgs(n: Int, type: ArgType): Array<Long> = getArgs(Array(n) { type })
-
-    /**
-     * {RU}
-     * Установка аргументов [args] перед вызовом функции
-     * {RU}
-     */
-    open fun setArgs(args: Array<Long>) {
-        val n = minOf(args.size, argl.size)
-
-        (0 until n).forEach { i -> argl[i].value(core, args[i]) }
-
-        if (args.size > argl.size)
-            args.drop(argl.size).asReversed().forEach { push(it) }
-    }
-
-    /**
-     * {RU}
-     * Сохранение значения [value] типа [datatype] на стеке
-     * (для x86 необходимо переопределить реализацию метода)
-     * x86 must have its own push
-     * {RU}
-     */
-    open fun push(value: Long, datatype: Datatype = types.word) {
-        stackPointerValue -= datatype.bytes
-        writeMemory(stackPointerValue, value, datatype)
-    }
-
-    /**
-     * {RU}
-     * Получение значения типа [datatype] со стека
-     * @return значение с вершины стека
-     * {RU}
-     */
-    open fun pop(datatype: Datatype = types.word): Long {
-        val result = readMemory(stackPointerValue, datatype)
-        stackPointerValue += datatype.bytes
-        return result
-    }
-
-    /**
-     * {RU}
-     * Сброс регистров общего назначения
-     * {RU}
-     */
-    fun cpuReset() = core.cpu.reset()
-
-    /**
-     * {RU}
-     * Получение доступа к стеку, как к потоку данных
-     * @return объект класса StackStream
-     * {RU}
-     */
-    fun stackStream(opSize16bit: Boolean = false, where: Long = stackPointerValue) =
-            StackStream(core.cpu.ports.mem, where, ssr, opSize16bit)
-
-    abstract fun gpr(index: Int): ARegister<T>
-
-    /**
-     * {RU}
-     * Запись значения [value] в регистр общего назначения с индексом [index]
-     * {RU}
-     */
-    fun writeRegister(index: Int, value: Long) { gpr(index).value(core, value) }
-
-    /**
-     * {RU}
-     * Чтение значения регистра общего назначения с индексом [index]
-     * @return значение регистра
-     * {RU}
-     */
-    fun readRegister(index: Int): Long = gpr(index).value(core)
+    override fun writeStack(offset: Long, type: Datatype, value: Long) =
+            core.write(type, stackPointerValue + offset, value, segmentSelector)
 
     /**
      * {RU}
      * Запись массива байт [data] в память по адресу [address]
      * {RU}
      */
-    open fun writeBytes(address: Long, data: ByteArray) { core.store(address, data) }
+    fun writeBytes(address: Long, data: ByteArray) = run { core.store(address, data) }
 
     /**
      * {RU}
@@ -225,29 +95,29 @@ abstract class ABI<T: AGenericCore>(
      * @return массив байт
      * {RU}
      */
-    open fun readBytes(address: Long, size: Int): ByteArray = core.load(address, size)
+    fun readBytes(address: Long, size: Int) = core.load(address, size)
 
     /**
      * {RU}
-     * Запись значения [value] типа [datatype] в память по адресу [address]
+     * Запись значения [value] типа [type] в память по адресу [address]
      * {RU}
      */
-    fun writeMemory(address: Long, value: Long, datatype: Datatype) { core.write(datatype, address, value) }
+    fun writeMemory(address: Long, value: Long, type: Datatype) = run { core.write(type, address, value) }
 
     /**
      * {RU}
-     * Чтение значения типа [datatype] из памяти по адресу [address]
+     * Чтение значения типа [type] из памяти по адресу [address]
      * @return значение из памяти
      * {RU}
      */
-    fun readMemory(address: Long, datatype: Datatype) = core.read(datatype, address)
+    fun readMemory(address: Long, type: Datatype) = core.read(type, address)
 
     /**
      * {RU}
      * Запись указателя [value] в память по адресу [address]
      * {RU}
      */
-    fun writePointer(address: Long, value: Long) { core.write(types.pointer, address, value) }
+    fun writePointer(address: Long, value: Long) = run { core.write(types.pointer, address, value) }
 
     /**
      * {RU}
@@ -255,14 +125,29 @@ abstract class ABI<T: AGenericCore>(
      * @return значение из памяти
      * {RU}
      */
-    fun readPointer(address: Long): Long = core.read(types.pointer, address)
+    fun readPointer(address: Long) = core.read(types.pointer, address)
 
     /**
      * {RU}
-     * Запись long-значения [value] в память по адресу [address]
+     * Запись long long-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeLong(address: Long, value: Long) { core.write(types.long, address, value) }
+    fun writeLongLong(address: Long, value: Long) = run { core.write(types.longLong, address, value) }
+
+    /**
+     * {RU}
+     * Чтение long long-значения из памяти по адресу [address]
+     * @return long long-значение из памяти
+     * {RU}
+     */
+    fun readLongLong(address: Long) = core.read(types.longLong, address)
+
+    /**
+     * {RU}
+     * Запись long long-значения [value] в память по адресу [address]
+     * {RU}
+     */
+    fun writeLong(address: Long, value: Long) = run { core.write(types.long, address, value) }
 
     /**
      * {RU}
@@ -270,50 +155,50 @@ abstract class ABI<T: AGenericCore>(
      * @return long-значение из памяти
      * {RU}
      */
-    fun readLong(address: Long): Long = core.read(types.long, address)
+    fun readLong(address: Long) = core.read(types.long, address)
 
     /**
      * {RU}
-     * Запись word-значения [value] в память по адресу [address]
+     * Запись int-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeWord(address: Long, value: Long) { core.write(types.word, address, value) }
+    fun writeInt(address: Long, value: Long) = run { core.write(types.int, address, value) }
 
     /**
      * {RU}
-     * Чтение word-значения из памяти по адресу [address]
-     * @return word-значение из памяти
+     * Чтение int-значения из памяти по адресу [address]
+     * @return int-значение из памяти
      * {RU}
      */
-    fun readWord(address: Long): Long = core.read(types.word, address)
+    fun readInt(address: Long) = core.read(types.int, address)
 
     /**
      * {RU}
-     * Запись half-значения [value] в память по адресу [address]
+     * Запись short-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeHalf(address: Long, value: Long) { core.write(types.half, address, value) }
+    fun writeShort(address: Long, value: Long) = run { core.write(types.short, address, value) }
 
     /**
      * {RU}
-     * Чтение half-значения из памяти по адресу [address]
-     * @return half-значение из памяти
+     * Чтение short-значения из памяти по адресу [address]
+     * @return short-значение из памяти
      * {RU}
      */
-    fun readHalf(address: Long): Long = core.read(types.half, address)
+    fun readShort(address: Long) = core.read(types.short, address)
 
     /**
      * {RU}
-     * Запись byte-значения [value] в память по адресу [address]
+     * Запись char-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeByte(address: Long, value: Long) { core.write(types.byte, address, value) }
+    fun writeChar(address: Long, value: Long) = run { core.write(types.char, address, value) }
 
     /**
      * {RU}
-     * Чтение byte-значения из памяти по адресу [address]
-     * @return byte-значение из памяти
+     * Чтение char-значения из памяти по адресу [address]
+     * @return char-значение из памяти
      * {RU}
      */
-    fun readByte(address: Long): Long = core.read(types.byte, address)
+    fun readChar(address: Long) = core.read(types.char, address)
 }

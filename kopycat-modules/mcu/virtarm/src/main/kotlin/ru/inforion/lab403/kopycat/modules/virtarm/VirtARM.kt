@@ -26,8 +26,8 @@
 package ru.inforion.lab403.kopycat.modules.virtarm
 
 import ru.inforion.lab403.common.extensions.MHz
+import ru.inforion.lab403.common.extensions.toFile
 import ru.inforion.lab403.common.proposal.emptyInputStream
-import ru.inforion.lab403.common.proposal.toFile
 import ru.inforion.lab403.kopycat.auxiliary.NANDGen
 import ru.inforion.lab403.kopycat.auxiliary.NANDPart
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -38,7 +38,7 @@ import ru.inforion.lab403.kopycat.modules.NAND_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.UART_MASTER_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.UART_SLAVE_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.cores.arm1176jzs.ARM1176JZS
-import ru.inforion.lab403.kopycat.modules.debuggers.ARMDebugger
+import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
 import java.io.InputStream
@@ -46,12 +46,12 @@ import java.io.InputStream
 class VirtARM(
         parent: Module?,
         name: String,
-        tty: String,
-        bootloaderContent: InputStream,
-        kernelContent: InputStream,
-        filesystemContent: InputStream,
-        kernelSymbols: InputStream?,
-        bootloaderCmd: String?
+        tty: String = defaultTerminal,
+        bootloaderContent: InputStream = Resource(defaultBootloaderPath).inputStream(),
+        kernelContent: InputStream = Resource(defaultKernelPath).inputStream(),
+        filesystemContent: InputStream = Resource(defaultFilesystemPath).inputStream(),
+        kernelSymbols: InputStream? = Resource(defaultSymbolsPath).inputStream(),
+        bootloaderCmd: String? = defaultBootloaderCmd
 ) : Module(parent, name) {
 
     companion object {
@@ -80,12 +80,12 @@ class VirtARM(
     constructor(
             parent: Module?,
             name: String,
-            tty: String,
+            tty: String = defaultTerminal,
             bootloaderContentPath: String,
             kernelContentPath: String,
             filesystemContentPath: String,
             kernelSymbolsPath: String?,
-            bootloaderCmd: String?
+            bootloaderCmd: String? = defaultBootloaderCmd
     ) : this(
             parent,
             name,
@@ -95,26 +95,6 @@ class VirtARM(
             filesystemContentPath.toFile().inputStream(),
             kernelSymbolsPath?.toFile()?.inputStream(),
             bootloaderCmd)
-
-    constructor(parent: Module?, name: String, tty: String) : this(
-            parent,
-            name,
-            tty,
-            Resource(defaultBootloaderPath).inputStream(),
-            Resource(defaultKernelPath).inputStream(),
-            Resource(defaultFilesystemPath).inputStream(),
-            Resource(defaultSymbolsPath).inputStream(),
-            defaultBootloaderCmd)
-
-    constructor(parent: Module?, name: String) : this(
-            parent,
-            name,
-            defaultTerminal,
-            Resource(defaultBootloaderPath).inputStream(),
-            Resource(defaultKernelPath).inputStream(),
-            Resource(defaultFilesystemPath).inputStream(),
-            Resource(defaultSymbolsPath).inputStream(),
-            defaultBootloaderCmd)
 
     inner class Buses : ModuleBuses(this) {
         val mem = Bus("mem", BUS32)
@@ -156,11 +136,15 @@ class VirtARM(
     val term = UartSerialTerminal(this, "term", tty)
 
     init {
-        if (bootloaderCmd != null)
+        if (bootloaderCmd != null) {
+            log.config { "Setting bootloaderCmd: '$bootloaderCmd'" }
             uart.sendText(bootloaderCmd)
+        }
 
-        if (kernelSymbols != null)
+        if (kernelSymbols != null) {
+            log.config { "Loading GCC map-file..." }
             arm1176jzs.info.loadGCCMapFile(kernelSymbols)
+        }
 
         arm1176jzs.ports.mem.connect(buses.mem, 0x0000_0000L)
         nor.ports.mem.connect(buses.mem, 0x0000_0000L)

@@ -41,13 +41,7 @@ enum class GPR(val id: Int) {
     R10(10),
     R11(11),
     R12(12),
-    SPMain(13),
+    SP(13),
     LR(14),
-    PC(15),
-    SPProcess(16);
-
-    companion object {
-        val COUNT: Int get() = values().size - 1
-        fun from(id: Int): GPR = values().first { it.id == id }
-    }
+    PC(15)
 }

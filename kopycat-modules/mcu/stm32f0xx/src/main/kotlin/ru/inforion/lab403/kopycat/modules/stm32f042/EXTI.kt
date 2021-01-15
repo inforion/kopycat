@@ -34,7 +34,8 @@ import java.util.logging.Level
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class EXTI(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        private val log = logger(Level.ALL)
+        @Transient private val log = logger(Level.ALL)
+
         private enum class RegisterType(val offset: Long) {
             EXTI_IMR    (0x00),
             EXTI_EMR    (0x04),

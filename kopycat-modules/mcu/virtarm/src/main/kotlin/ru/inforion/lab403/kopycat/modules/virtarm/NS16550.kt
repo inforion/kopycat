@@ -35,6 +35,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level
 
 
@@ -43,7 +44,7 @@ import java.util.logging.Level
 class NS16550(parent: Module, name: String) : Module(parent, name) {
 
     companion object {
-        val log = logger(Level.SEVERE)
+        @Transient val log = logger(Level.SEVERE)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -95,13 +96,11 @@ class NS16550(parent: Module, name: String) : Module(parent, name) {
             }
         }
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return super.serialize(ctxt) + ctxt.storeValues(
-                    "dll" to dll,
-                    "bytesOut" to bytesOut,
-                    "bytesIn" to bytesIn
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+                "dll" to dll,
+                "bytesOut" to bytesOut,
+                "bytesIn" to bytesIn
+        )
 
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -160,12 +159,10 @@ class NS16550(parent: Module, name: String) : Module(parent, name) {
             }
         }
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return super.serialize(ctxt) + ctxt.storeValues(
-                    "ier" to ier,
-                    "dlh" to dlh
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+                "ier" to ier,
+                "dlh" to dlh
+        )
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             super.deserialize(ctxt, snapshot)
@@ -200,12 +197,10 @@ class NS16550(parent: Module, name: String) : Module(parent, name) {
             fcr = value
         }
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return super.serialize(ctxt) + ctxt.storeValues(
-                    "iir" to iir,
-                    "fcr" to fcr
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+                "iir" to iir,
+                "fcr" to fcr
+        )
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             super.deserialize(ctxt, snapshot)

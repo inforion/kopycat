@@ -90,7 +90,7 @@ class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name) {
         fwr.deserialize(ctxt, snapshot["fwr"] as Map<String, String>)
         cwr.deserialize(ctxt, snapshot["cwr"] as Map<String, String>)
         swr.deserialize(ctxt, snapshot["swr"] as Map<String, String>)
-        pos = loadValue(snapshot, "pos", 0)
+        pos = loadValue(snapshot, "pos") { 0 }
         stack.deserialize<Long, Int>(ctxt, snapshot["stack"]) { it.asULong }
     }
 }

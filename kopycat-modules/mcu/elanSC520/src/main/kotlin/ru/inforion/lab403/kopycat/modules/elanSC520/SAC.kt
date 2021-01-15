@@ -39,7 +39,7 @@ import java.util.logging.Level
  */
 class SAC(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        val log = logger(Level.FINER)
+        @Transient val log = logger(Level.FINER)
     }
 
     inner class Ports : ModulePorts(this) {

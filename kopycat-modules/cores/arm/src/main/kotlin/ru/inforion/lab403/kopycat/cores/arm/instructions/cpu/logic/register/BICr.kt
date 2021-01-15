@@ -34,6 +34,7 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMVariable
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
@@ -58,7 +59,7 @@ class BICr(cpu: AARMCore,
     override fun execute() {
         val (shifted, carry) = Shift_C(rm.value(core), rm.dtyp.bits, shiftT, shiftN, core.cpu.flags.c.asInt)
         result.and(core, rn, Immediate(shifted.inv()))
-        if(rd.reg == core.cpu.regs.pc.reg) {
+        if (rd.isProgramCounter(core)) {
             if(setFlags) throw Unpredictable
             core.cpu.ALUWritePC(result.value(core))
         } else {

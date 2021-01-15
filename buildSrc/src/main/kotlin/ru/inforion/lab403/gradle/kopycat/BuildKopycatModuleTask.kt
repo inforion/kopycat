@@ -194,10 +194,6 @@ open class BuildKopycatModuleTask : Copy() {
 
         with(project.repositories) {
             add(mavenCentral())
-            if (extensions.addLoggingDependency || extensions.addExtensionsDependency) {
-                add(jcenter())
-                add(maven { it.url = File(jitpackURL).toURI() })
-            }
         }
 
         with(project.dependencies) {
@@ -205,15 +201,6 @@ open class BuildKopycatModuleTask : Copy() {
                 val kopycatDependency = getKopycatDependency(extensions)
                 addImplementationAndTest(kopycatDependency)
             }
-
-            if (extensions.addKotlinStdlibDependency)
-                addImplementationAndTest(kotlinStdlibDependency)
-
-            if (extensions.addExtensionsDependency)
-                addImplementationAndTest(kotlinExtensionsDependency)
-
-            if (extensions.addLoggingDependency)
-                addImplementationAndTest(kotlinLoggingDependency)
 
             getModuleDependency(extensions).forEach { addImplementationAndTest(it) }
         }

@@ -94,10 +94,31 @@ object settings {
 
     const val libraryPathSeparator = ":"
 
+    const val registriesSeparator = ","
+
     const val librariesSeparator = ","
 
     /**
      * {EN}Available types in json for variables, parameters and arguments{EN}
      */
     val availableTypes = listOf("String", "char", "int", "long", "float", "double", "boolean", "File", "Resource")
+
+    /**
+     * {EN}Path relative to working directory of emulator with modules{EN}
+     */
+    const val modulesDirectoryPath = "modules"
+
+    const val systemModulesMainPath = "classes/kotlin/main/"
+
+    const val systemModulesTestPath = "classes/kotlin/test/"
+
+    /**
+     * {EN}Kopycat home environment variable name{EN}
+     */
+    const val envHomeVariableName = "KOPYCAT_HOME"
+
+    /**
+     * {EN}Use or not directed [ByteBuffer] for emulator memory object{EN}
+     */
+    const val directedMemory = false
 }

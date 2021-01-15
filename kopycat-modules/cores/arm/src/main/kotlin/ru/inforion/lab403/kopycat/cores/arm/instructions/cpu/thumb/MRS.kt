@@ -48,25 +48,25 @@ class MRS(cpu: AARMCore,
 
     val result = ARMVariable(Datatype.WORD)
     override fun execute() {
-        when(SYSm[7..3]) {
+        when (SYSm[7..3]) {
             0b00000L -> {
-                if(SYSm[0] == 1L)
+                if (SYSm[0] == 1L)
                     rd.value(core, core.cpu.sregs.ipsr.value[8..0])
-                if(SYSm[1] == 1L)
+                if (SYSm[1] == 1L)
                     rd.value(core, rd.value(core) clr 24)
-                if(SYSm[0] == 0L){
+                if (SYSm[0] == 0L){
                     val result = rd.value(core) or (core.cpu.sregs.apsr.value[31..27] shl 27)
                     rd.value(core, result)
                 }
             }
             0b00001L -> {
-                if(core.cpu.CurrentModeIsPrivileged()) {
-                    when(SYSm[2..0]) {
+                if (core.cpu.CurrentModeIsPrivileged()) {
+                    when (SYSm[2..0]) {
                         0b000L -> {
-                            rd.value(core, core.cpu.regs.spMain.value)
+                            rd.value(core, core.cpu.regs.sp.main)
                         }
                         0b001L -> {
-                            rd.value(core, core.cpu.regs.spProcess.value)
+                            rd.value(core, core.cpu.regs.sp.process)
                         }
                         else -> {
                             throw Unpredictable
@@ -75,8 +75,8 @@ class MRS(cpu: AARMCore,
                 }
             }
             0b00010L -> {
-                if(core.cpu.CurrentModeIsPrivileged()) {
-                    when(SYSm[2..0]) {
+                if (core.cpu.CurrentModeIsPrivileged()) {
+                    when (SYSm[2..0]) {
                         0b000L -> {
                             if(core.cpu.CurrentModeIsPrivileged() && core.cpu.spr.primask.pm)
                                 rd.value(core, rd.value(core) set 0)

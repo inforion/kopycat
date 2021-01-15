@@ -23,17 +23,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("NOTHING_TO_INLINE", "FunctionName", "MemberVisibilityCanBePrivate", "LocalVariableName")
+
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.insert
-import ru.inforion.lab403.common.extensions.set
-import ru.inforion.lab403.common.extensions.toBool
-import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.arm.enums.*
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.*
-import ru.inforion.lab403.kopycat.cores.arm.enums.Mode
-import ru.inforion.lab403.kopycat.cores.arm.enums.ProcessorMode
-import ru.inforion.lab403.kopycat.cores.arm.enums.GPR as eGPR
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -41,9 +37,10 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MCR
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MRC
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
-
+import ru.inforion.lab403.kopycat.serializer.loadValue
 
 
 abstract class AARMCPU(
@@ -55,13 +52,12 @@ abstract class AARMCPU(
         //Returns TRUE if the implementation
         //includes the Virtualization Extensions
         val haveVirtExt: Boolean = false
-) : ACPU<AARMCPU, AARMCore, AARMInstruction, eGPR>(arm, name) {
-    var pipelineRefillRequired = false
-
+) : ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>(arm, name) {
     // TODO: index <-> reg is ambiguous
     override fun reg(index: Int): Long = regs.read(index)
     override fun reg(index: Int, value: Long) = regs.write(index, value)
     override fun count() = regs.count
+    override fun flags() = sregs.cpsr.value
 
     override var pc: Long
         get() = regs.pc.value
@@ -86,37 +82,84 @@ abstract class AARMCPU(
         UN -> true
     }
 
-    fun BranchTo(address: Long) {
-        pipelineRefillRequired = true
+    protected var pipelineRefillRequired = false
+
+    fun BranchTo(address: Long, refill: Boolean) {
+        if (refill) pipelineRefillRequired = true
         pc = address
     }
 
-    fun BadMode(mode: Long): Boolean {
-        return when(mode) {
-            0b10000L -> false               // User mode
-            0b10001L -> false               // FIQ mode
-            0b10010L -> false               // IRQ mode
-            0b10011L -> false               // Supervisor mode
-            0b10110L -> !haveSecurityExt    // Monitor mode
-            0b10111L -> false               // Abort mode
-            0b11010L -> !haveVirtExt        // Hyp mode
-            0b11011L -> false               // Undefined mode
-            0b11111L -> false               // System mode
-            else -> true
+    fun BadMode(mode: Long) = when(mode) {
+        0b10000L -> false               // User mode
+        0b10001L -> false               // FIQ mode
+        0b10010L -> false               // IRQ mode
+        0b10011L -> false               // Supervisor mode
+        0b10110L -> !haveSecurityExt    // Monitor mode
+        0b10111L -> false               // Abort mode
+        0b11010L -> !haveVirtExt        // Hyp mode
+        0b11011L -> false               // Undefined mode
+        0b11111L -> false               // System mode
+        else -> true
+    }
+
+    open fun BranchWritePC(address: Long, refill: Boolean = true) {
+        when (CurrentInstrSet()) {
+            InstructionSet.ARM -> {
+                if (ArchVersion() < 6 && address[1..0] != 0L)
+                    throw ARMHardwareException.Unpredictable
+                BranchTo(address bzero 1..0, refill)
+            }
+            InstructionSet.JAZELLE -> TODO("WILL NEVER BE IMPLEMENTED!")
+            else -> BranchTo(address clr 0, refill)
         }
     }
 
-    abstract fun BranchWritePC(address: Long)
-    abstract fun BXWritePC(address: Long)
-    abstract fun LoadWritePC(address: Long)
-    abstract fun ALUWritePC(address: Long)
-    abstract fun CurrentInstrSet(): InstructionSet
-    abstract fun CurrentModeIsPrivileged(): Boolean
-    abstract fun CurrentMode(): Mode
-    abstract fun SelectInstrSet(target: InstructionSet)
-    abstract fun StackPointerSelect(): Int
+    open fun BXWritePC(address: Long, refill: Boolean = true) {
+        if (CurrentInstrSet() == InstructionSet.THUMB_EE) {
+            TODO("Not implemented")
+        } else when {
+            address[0] == 1L -> {
+                SelectInstrSet(InstructionSet.THUMB)
+                BranchTo(address clr 0, refill)
+            }
+            address[1] == 0L -> {
+                SelectInstrSet(InstructionSet.ARM)
+                BranchTo(address, refill)
+            }
+            address[1..0] == 0b10L -> throw ARMHardwareException.Unpredictable
+        }
+    }
+
+    open fun LoadWritePC(address: Long) {
+        if (ArchVersion() >= 5) {
+            BXWritePC(address)
+        } else {
+            BranchWritePC(address)
+        }
+    }
+
+    open fun ALUWritePC(address: Long) {
+        if (ArchVersion() >= 7 && CurrentInstrSet() == InstructionSet.ARM)
+            BXWritePC(address)
+        else
+            BranchWritePC(address)
+    }
+
+    open fun CurrentInstrSet() = InstructionSet.from(status.ISETSTATE.asInt)
+
+    open fun CurrentModeIsPrivileged() = false
+
+    open fun CurrentMode() = Mode.Thread
+
+    open fun SelectInstrSet(target: InstructionSet) {
+        if (target != InstructionSet.CURRENT)
+            status.ISETSTATE = target.code.asLong
+    }
+
+    open fun StackPointerSelect() = StackPointer.Main
 
     open fun InITBlock(): Boolean = false
+
     open fun LastInITBlock(): Boolean = false
 
     fun ArchVersion(): Int = arm.version
@@ -139,7 +182,9 @@ abstract class AARMCPU(
             else -> false // Other modes
         }
     }
+
     fun UnalignedSupport(): Boolean = true
+
     fun PCStoreValue(): Long = pc
 
     fun IsSecure() = !haveSecurityExt || !ser.scr.ns || status.m == 0b10110L // Monitor mode
@@ -242,7 +287,7 @@ abstract class AARMCPU(
                 status.j = false; status.t = vmsa.sctlr.te
                 status.ENDIANSTATE = vmsa.sctlr.ee
 
-                BranchTo(ExcVectorBase() + vect_offset)
+                BranchTo(ExcVectorBase() + vect_offset, true)
             }
         }
 
@@ -446,7 +491,7 @@ abstract class AARMCPU(
                 sregs.cpsr.j = false
                 sregs.cpsr.t = vmsa.sctlr.te // TE=0: ARM, TE=1: Thumb
                 sregs.cpsr.ENDIANSTATE = vmsa.sctlr.ee // EE=0: little-endian, EE=1: big-endian
-                BranchTo(ExcVectorBase() + vect_offset)
+                BranchTo(ExcVectorBase() + vect_offset, true)
             }
         }
     }
@@ -475,8 +520,8 @@ abstract class AARMCPU(
         }
 
         when(mode) {
-            ProcessorMode.sys -> banking[ProcessorMode.usr.ordinal].sp.value = regs.spMain.value
-            else -> banking[mode.ordinal].sp.value = regs.spMain.value
+            ProcessorMode.sys -> banking[ProcessorMode.usr.ordinal].sp.value = regs.sp.value
+            else -> banking[mode.ordinal].sp.value = regs.sp.value
         }
 
         when(mode) {
@@ -506,8 +551,8 @@ abstract class AARMCPU(
         }
 
         when(mode) {
-            ProcessorMode.sys -> regs.spMain.value = banking[ProcessorMode.usr.ordinal].sp.value
-            else -> regs.spMain.value = banking[mode.ordinal].sp.value
+            ProcessorMode.sys -> regs.sp.value = banking[ProcessorMode.usr.ordinal].sp.value
+            else -> regs.sp.value = banking[mode.ordinal].sp.value
         }
 
         when(mode) {
@@ -555,14 +600,12 @@ abstract class AARMCPU(
 //            if CPSR.M == '10110' then SCR.NS = '0';
 //            EnterMonitorMode(new_spsr_value, new_lr_value, vect_offset);
             TODO("Not implemented: route_to_monitor")
-        }
-        else if (route_to_hyp) {
+        } else if (route_to_hyp) {
 //            HSR = bits(32) UNKNOWN;
 //            preferred_exceptn_return = new_lr_value - 4;
 //            EnterHypMode(new_spsr_value, preferred_exceptn_return, vect_offset);
             TODO("Not implemented: route_to_hyp")
-        }
-        else {
+        } else {
             // Handle in IRQ mode. Ensure Secure state if initially in Monitor mode. This
             // affects the Banked versions of various registers accessed later in the code.
             if (sregs.cpsr.m == 0b10110L) ser.scr.ns = false
@@ -583,14 +626,12 @@ abstract class AARMCPU(
             sregs.cpsr.t = vmsa.sctlr.te // TE=0: ARM, TE=1: Thumb
             sregs.cpsr.ENDIANSTATE = vmsa.sctlr.ee // EE=0: little-endian, EE=1: big-endian
 
-
             // Branch to correct IRQ vector.
             if (vmsa.sctlr.ve) {
                 // IMPLEMENTATION_DEFINED branch to an IRQ vector;
                 TODO("IMPLEMENTATION_DEFINED")
-            }
-            else
-                BranchTo(ExcVectorBase() + vect_offset)
+            } else
+                BranchTo(ExcVectorBase() + vect_offset, true)
         }
     }
 
@@ -651,16 +692,16 @@ abstract class AARMCPU(
                 sregs.cpsr.j = false
                 sregs.cpsr.t = vmsa.sctlr.te // TE=0: ARM, TE=1: Thumb
                 sregs.cpsr.ENDIANSTATE = vmsa.sctlr.ee // EE=0: little-endian, EE=1: big-endian
-                BranchTo(ExcVectorBase() + vect_offset)
+                BranchTo(ExcVectorBase() + vect_offset, true)
             }
         }
     }
 
     inline fun BigEndian() = status.ENDIANSTATE
 
-    val regs = GPRBank()
+    val regs = GPRBank(this)
 
-    val banking = ProcessorMode.values().map { RegisterBanking(it) }.toTypedArray()
+    val banking = ProcessorMode.values().map { RegistersBanking(it) }.toTypedArray()
 
     val sregs = PSRBank(this)
 
@@ -673,12 +714,19 @@ abstract class AARMCPU(
     val ver = VERBank() // Virtualization Extensions Registers
     val ser = SERBank() // Security Extensions Registers
 
-
+    override fun stringify() = buildString {
+        appendLine("ARM CPU:")
+        appendLine(regs.stringify())
+        appendLine(sregs.stringify())
+        append(spr.stringify())
+    }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+        super.serialize(ctxt)
+
         val savedBanking = banking.map { it.serialize(ctxt) }
 
-        return mapOf(
+        return super.serialize(ctxt) + mapOf(
                 "regs" to regs.serialize(ctxt),
                 "banking" to savedBanking,
                 "sregs" to sregs.serialize(ctxt),
@@ -691,15 +739,16 @@ abstract class AARMCPU(
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        (snapshot["banking"] as ArrayList<Map<String, Any>>).forEachIndexed { i, data ->
-            banking[i].deserialize(ctxt, data)
-        }
+        super.deserialize(ctxt, snapshot)
 
-        regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
-        sregs.deserialize(ctxt, snapshot["sregs"] as Map<String, String>)
-        spr.deserialize(ctxt, snapshot["spr"] as Map<String, String>)
-        vmsa.deserialize(ctxt, snapshot["vmsa"] as Map<String, String>)
-        ver.deserialize(ctxt, snapshot["ver"] as Map<String, String>)
-        ser.deserialize(ctxt, snapshot["ser"] as Map<String, String>)
+        loadValue(snapshot, "banking") { emptyList<Map<String, Any>>() }
+                .forEachIndexed { i, data -> banking[i].deserialize(ctxt, data) }
+
+        regs.deserialize(ctxt, loadValue(snapshot, "regs") { emptyMap<String, String>() })
+        sregs.deserialize(ctxt, loadValue(snapshot, "sregs") { emptyMap<String, String>() })
+        spr.deserialize(ctxt, loadValue(snapshot, "spr") { emptyMap<String, String>() })
+        vmsa.deserialize(ctxt, loadValue(snapshot, "vmsa") { emptyMap<String, String>() })
+        ver.deserialize(ctxt, loadValue(snapshot, "ver") { emptyMap<String, String>() })
+        ser.deserialize(ctxt, loadValue(snapshot, "ser") { emptyMap<String, String>() })
     }
 }

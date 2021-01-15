@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.exceptions
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.toBool
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eIrq
@@ -34,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_Embedded
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_e500v2
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
 
 
 abstract class PPCHardwareException(

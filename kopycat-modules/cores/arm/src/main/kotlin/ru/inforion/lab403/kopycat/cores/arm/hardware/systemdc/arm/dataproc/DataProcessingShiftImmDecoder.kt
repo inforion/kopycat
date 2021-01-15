@@ -32,11 +32,9 @@ import ru.inforion.lab403.kopycat.cores.arm.DecodeImmShift
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 class DataProcessingShiftImmDecoder(
@@ -53,8 +51,8 @@ class DataProcessingShiftImmDecoder(
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
     override fun decode(data: Long): AARMInstruction {
         val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rd = GPRBank.Operand(data[15..12].asInt)
-        val rm = GPRBank.Operand(data[3..0].asInt)
+        val rd = gpr(data[15..12].asInt)
+        val rm = gpr(data[3..0].asInt)
         val imm5 = Immediate<AARMCore>(data[11..7])
         val setFlags = data[20] == 1L
         val type = data[6..5]

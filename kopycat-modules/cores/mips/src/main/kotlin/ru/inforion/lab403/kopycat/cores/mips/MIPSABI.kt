@@ -25,29 +25,36 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips
 
-import ru.inforion.lab403.common.extensions.UNDEF
+import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
-import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
-import ru.inforion.lab403.kopycat.cores.mips.enums.eGPR
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
+class MIPSABI(core: MipsCore, bigEndian: Boolean): ABI<MipsCore>(core, 32, bigEndian) {
+    @DontAutoSerialize
+    override val regArguments = listOf(
+            core.cpu.regs.a0.id,
+            core.cpu.regs.a1.id,
+            core.cpu.regs.a2.id,
+            core.cpu.regs.a3.id)
 
+    override val minimumStackAlignment = 4
 
+    override val gprDatatype = Datatype.values().first { it.bits == this.core.cpu.regs.bits }
+    override fun register(index: Int) = core.cpu.regs[index].toOperand()
+    override val registerCount: Int get() = core.cpu.count()
+    override val sizetDatatype = Datatype.DWORD
 
-class MIPSABI(core: MipsCore, heap: LongRange, stack: LongRange, bigEndian: Boolean):
-        ABI<MipsCore>(core, heap, stack, bigEndian) {
-    override fun gpr(index: Int): ARegister<MipsCore> = GPR(index)
-    override fun createCpuContext() = MIPSContext(core.cpu)
-    override val ssr = UNDEF
-    override val sp = GPR(eGPR.SP.id)
-    override val ra = GPR(eGPR.RA.id)
-    override val v0 = GPR(eGPR.V0.id)
-    override val argl = listOf(
-            GPR(eGPR.A0.id),
-            GPR(eGPR.A1.id),
-            GPR(eGPR.A2.id),
-            GPR(eGPR.A3.id),
-            GPR(eGPR.T0.id),
-            GPR(eGPR.T1.id))
+    override fun createContext() = MIPSContext(this)
+
+    override val pc get() = throw NotImplementedError("PC isn't a register in MIPS")
+    override val sp get() = core.cpu.regs.sp.toOperand()
+    override val ra get() = core.cpu.regs.ra.toOperand()
+    override val rv get() = core.cpu.regs.v0.toOperand()
+
+    override val stackArgsOffset: Long = 0x10
+
+    override var programCounterValue: Long
+        get() = core.cpu.pc
+        set(value) { core.cpu.pc = value }
 }

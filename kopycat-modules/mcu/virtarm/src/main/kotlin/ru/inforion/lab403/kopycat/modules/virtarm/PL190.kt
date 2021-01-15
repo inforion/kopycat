@@ -40,7 +40,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
-
+import ru.inforion.lab403.kopycat.serializer.storeValues
 
 
 class PL190(parent: Module, name: String) : APIC(parent, name) {
@@ -69,16 +69,14 @@ class PL190(parent: Module, name: String) : APIC(parent, name) {
 
         // Interrupt serialization is unnecessary, because all data gets by VICVECTCNTL which is array of registers,
         // and all registers in VICVECTCNTL have their own serialize method. But this is left for info in snapshot to user.
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return ctxt.storeValues(
-                    "irq" to irq,
-                    "name" to name,
-                    "nmi" to nmi,
-                    "pending" to pending,
-                    "enabled" to enabled,
-                    "priority" to try { priority } catch (e: NoSuchElementException) { -1 }
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = storeValues(
+                "irq" to irq,
+                "name" to name,
+                "nmi" to nmi,
+                "pending" to pending,
+                "enabled" to enabled,
+                "priority" to try { priority } catch (e: NoSuchElementException) { -1 }
+        )
     }
 
     val interrupts = Interrupts(ports.irq,  "IRQ", *Array(INTERRUPT_COUNT) { Interrupt(it, "IRQ$it")})

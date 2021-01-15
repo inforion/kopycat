@@ -26,15 +26,22 @@
 package ru.inforion.lab403.kopycat.library.builders
 
 import com.fasterxml.jackson.module.kotlin.isKotlinClass
-import ru.inforion.lab403.common.proposal.DynamicClassLoader
+import ru.inforion.lab403.common.extensions.DynamicClassLoader
+import ru.inforion.lab403.common.extensions.sure
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.FINEST
+import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.stringify
+import ru.inforion.lab403.kopycat.annotations.DontExportModule
 import ru.inforion.lab403.kopycat.cores.base.common.Component
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
-import ru.inforion.lab403.kopycat.annotations.DontExportModule
 import ru.inforion.lab403.kopycat.library.builders.api.AFileModuleFactoryBuilder
 import ru.inforion.lab403.kopycat.library.builders.api.IModuleFactory
 import ru.inforion.lab403.kopycat.library.builders.api.ModuleParameterInfo
 import java.io.File
+import java.lang.IllegalArgumentException
 import kotlin.reflect.KFunction
 import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
@@ -43,6 +50,8 @@ import kotlin.reflect.jvm.javaType
 
 class ClassModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFactoryBuilder(path) {
     companion object {
+        @Transient val log = logger(INFO)
+
         private fun getFileFromClass(klass: Class<*>): String {
             val path = File(klass.protectionDomain.codeSource.location.path)
             val name = klass.canonicalName.replace(".", "/") + ".class"
@@ -110,7 +119,7 @@ class ClassModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFacto
         // If jar not null then we should patch path
         val fullname = if (jar != null)
             path.substringBeforeLast(".")
-                .replace("/", ".")
+                    .replace("/", ".")
         else path
 
         if (File(path).extension != "class")
@@ -130,7 +139,7 @@ class ClassModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFacto
         return loadModuleFromClass(klass)
     }
 
-    override fun plugins(): Set<String> = setOf(moduleJavaClass.simpleName)
+    override val plugins get() = setOf(moduleJavaClass.simpleName)
 
     override fun load(): Boolean {
         constructors = if (!::moduleJavaClass.isInitialized) {
@@ -143,22 +152,47 @@ class ClassModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFacto
 
     private fun getTypename(type: KType): String = type.javaType.typeName.substringAfterLast(".")
 
-    override fun factory(pluginName: String, registry: ModuleLibraryRegistry): List<IModuleFactory> {
-        return constructors.map { constructor ->
-            object : IModuleFactory {
-                override val canBeTop: Boolean =
-                        constructor.parameters.first().type.javaType == Module::class.java &&
-                        constructor.parameters.first().type.isMarkedNullable
-
-                override val parameters = constructor.parameters
-                        .filter { it.index >= 2 }
-                        .map { ModuleParameterInfo(it.index, it.name!!, -1, getTypename(it.type)) }
-
-                override fun create(parent: Component?, name: String, vararg parameters: Any?): Module =
-                        constructor.call(parent, name, *parameters)
+    override fun factory(name: String, registry: ModuleLibraryRegistry): List<IModuleFactory> = constructors.map { constructor ->
+        object : IModuleFactory {
+            override val canBeTop = with(constructor.parameters.first()) {
+                type.javaType == Module::class.java && type.isMarkedNullable
             }
+
+            override val parameters = constructor.parameters
+                    .filter { it.index >= 2 }
+                    .map { ModuleParameterInfo(it.index, it.name!!, getTypename(it.type), it.isOptional) }
+
+            private fun arguments(
+                    parent: Component?,
+                    name: String,
+                    parameters: Map<String, Any?>
+            ) = with (constructor.parameters) {
+                val kParameterParent = singleOrNull { it.name == "parent" }
+                        .sure { "Mandatory argument 'parent' not found in constructor $constructor" }
+
+                val kParameterName = singleOrNull { it.name == "name" }
+                        .sure { "Mandatory argument 'name' not found in constructor $constructor" }
+
+                val mandatoryArguments = mapOf(kParameterParent to parent, kParameterName to name)
+
+                val optionalArguments = parameters.map { (name, value) ->
+                    val kParameter = singleOrNull { it.name == name }
+                            .sure { "Optional argument '$name' not found in constructor $constructor"}
+                    kParameter to value
+                }.toMap()
+
+                mandatoryArguments + optionalArguments
+            }.also {
+                log.finest {
+                    val stringOfArguments = it
+                            .map { (param, value) -> "\t#${param.index} ${param.name}: ${param.type} = $value" }
+                            .joinToString("\n")
+                    "\n${constructor.stringify()} -> \n$stringOfArguments"
+                }
+            }
+
+            override fun create(parent: Component?, name: String, parameters: Map<String, Any?>) =
+                    constructor.callBy(arguments(parent, name, parameters))
         }
     }
-
-    override fun getFilePath(): String = TODO("This case is unexpected")
 }

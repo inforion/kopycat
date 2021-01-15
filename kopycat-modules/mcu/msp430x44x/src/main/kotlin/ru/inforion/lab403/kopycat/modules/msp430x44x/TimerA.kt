@@ -44,7 +44,7 @@ import java.util.logging.Level
 class TimerA(parent: Module, name: String) : Module(parent, name) {
 
     companion object {
-        private val log = logger(Level.FINE)
+        @Transient private val log = logger(Level.FINE)
     }
 
     inner class Ports : ModulePorts(this) {

@@ -34,7 +34,7 @@ import java.util.logging.Level
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class SYSCFG(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        private val log = logger(Level.ALL)
+        @Transient private val log = logger(Level.ALL)
         private enum class RegisterType(val offset: Long) {
             SYSCFG_CFGR1    (0x00),
             SYSCFG_EXTICR1  (0x08),

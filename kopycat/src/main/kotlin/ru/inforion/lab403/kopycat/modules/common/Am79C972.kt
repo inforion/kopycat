@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.common
 
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.modules.common.pci.PCITarget
 import java.util.logging.Level
@@ -55,6 +56,6 @@ class Am79C972(parent: Module, name: String) : PCITarget(
         0x00000000L to 0x1000  // CSRIO (32 bytes)
 ) {
     companion object {
-        private val log = logger(Level.FINE)
+        @Transient private val log = logger(Level.FINE)
     }
 }

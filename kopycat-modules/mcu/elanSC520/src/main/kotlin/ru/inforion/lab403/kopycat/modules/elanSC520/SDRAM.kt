@@ -33,8 +33,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.BUS12
-import java.util.logging.Level
-import java.util.logging.Level.*
+import java.util.logging.Level.FINER
 
 /**
  *
@@ -43,7 +42,7 @@ import java.util.logging.Level.*
 class SDRAM(parent: Module, name: String) : Module(parent, name) {
 
     companion object {
-        val log = logger(FINER)
+        @Transient val log = logger(FINER)
     }
 
     inner class Ports : ModulePorts(this) {

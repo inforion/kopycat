@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.exceptions
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.common.extensions.toLong
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eIrq
 import ru.inforion.lab403.kopycat.cores.ppc.enums.systems.e500v2.eESR
@@ -34,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_Embedde
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_EmbeddedMMUFSL
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_e500v2
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
 
 
 object PPCExceptionHolder_e500v2 : IPPCExceptionHolder {

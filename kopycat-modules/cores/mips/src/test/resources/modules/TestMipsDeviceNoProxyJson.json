@@ -1,0 +1,122 @@
+{
+  "top": true,
+
+  // Plugin name should be the same as file name (or full path from library start)
+  "plugin": "TestMipsDeviceNoProxyJson",
+
+  // Directory where plugin places
+  "library": "tests",
+
+  // Plugin parameters (constructor parameters if jar-plugin version)
+  "params": [
+    { "name": "fwMode", "type": "int", "default": 0 },
+    { "name": "fakePrimitivesCount", "type": "int", "default": -1 }
+  ],
+
+  // Plugin outer ports
+  "ports": [ ],
+
+  // Plugin internal buses
+  "buses": [
+    { "name": "mem", "size": "BUS30" }
+  ],
+
+  // Plugin internal components
+  "modules": [
+    {
+      "name": "mips",
+      "plugin": "MipsCore",
+      "library": "cores",
+      "params": {
+        "frequency": "50000000",
+        "ipc": "1.0",
+        "multiplier": "9",
+        "PRId": "0x55ABCC01", // PRId from my imagination,
+        "PABITS": "30", // Physical address is just 30 bit long,
+        "ArchitectureRevision": "1",
+        "countOfShadowGPR": "0",
+        "Config0Preset": "0x80000480",
+        "Config1Preset": "0xBE000000",   // set msb = 1, Config2 present
+        "Config2Preset": "0x80000000",   // set msb = 1, Config3 present
+        "Config3Preset": "0x00002000",   // ULRI = 1
+        "IntCtlPreset": "0xC0000000",  // Count/Compare Timer connected to 6 HW interrupt pin
+        "countRateFactor": "2",
+        "countCompareSupported": "false",
+        "syncSupported": "true",
+        "EIC_option1": "false",
+        "EIC_option2": "false",
+        "EIC_option3": "false",
+        "dspExtension": "false",
+        "useMMU": "true"
+      }
+    },
+
+    {
+      "name": "dbg",
+      "plugin": "MipsDebugger",
+      "library": "cores"
+    },
+
+    {
+      "name": "flash",
+      "plugin": "Flash",
+      "library": "tests"
+    },
+
+    {
+      "name": "ram",
+      "plugin": "RAM",
+      "library": "memory",
+      "params": {
+        "size": "0x08000000"
+      }
+    },
+
+    {
+      "name": "rom",
+      "plugin": "ROM",
+      "library": "memory",
+      "params": {
+        "size": "0x00050000",
+        "data:Resource": "binaries/mips.bin"
+      }
+    },
+
+    { "name": "fa0", "plugin": "FakeArea", "library": "tests", "params": { "size": "0x1000", "value": "0x00000000" } },
+    { "name": "fa1", "plugin": "FakeArea", "library": "tests", "params": { "size": "0x1000", "value": "0x01010101" } },
+    { "name": "fa2", "plugin": "FakeArea", "library": "tests", "params": { "size": "0x1000", "value": "0x02020202" } },
+    { "name": "fa3", "plugin": "FakeArea", "library": "tests", "params": { "size": "0x1000", "value": "0x02020202" } },
+
+    { "name": "fr0", "plugin": "FakeRegister", "library": "tests", "params": { "value": "0x00000000" } },
+    { "name": "fr1", "plugin": "FakeRegister", "library": "tests", "params": { "value": "0x01010101" } },
+    { "name": "fr2", "plugin": "FakeRegister", "library": "tests", "params": { "value": "0x02020202" } },
+    { "name": "fr3", "plugin": "FakeRegister", "library": "tests", "params": { "value": "0x02020202" } }
+
+  ],
+
+  "reset": [
+    "val rom = module[\"rom\"] as ROM",
+    "rom.outb(0x308, fwMode.asULong)"
+  ],
+
+  // Plugin connection between components
+  "connections": [
+    [ "mips.ports.mem", "buses.mem" ],
+    [ "dbg.ports.breakpoint", "mips.buses.virtual" ],
+    [ "dbg.ports.reader", "mips.buses.virtual" ],
+
+    [ "rom.ports.mem", "buses.mem", "0x00000000" ],
+    [ "flash.ports.mem", "buses.mem", "0x18000000" ],
+    [ "ram.ports.mem", "buses.mem", "0x10000000" ],
+
+    [ "fa0.ports.mem", "buses.mem", "0x18001000" ],
+    [ "fa1.ports.mem", "buses.mem", "0x18002000" ],
+    [ "fa2.ports.mem", "buses.mem", "0x18003000" ],
+    [ "fa3.ports.mem", "buses.mem", "0x18004000" ],
+
+    [ "fr0.ports.mem", "buses.mem", "0x18011000" ],
+    [ "fr1.ports.mem", "buses.mem", "0x18012000" ],
+    [ "fr2.ports.mem", "buses.mem", "0x18013000" ],
+    [ "fr3.ports.mem", "buses.mem", "0x18014000" ]
+  ]
+}

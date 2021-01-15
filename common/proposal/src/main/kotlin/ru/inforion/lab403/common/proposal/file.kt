@@ -26,8 +26,9 @@
 package ru.inforion.lab403.common.proposal
 
 import java.io.File
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.attribute.PosixFileAttributes
 
-fun createTimeFile(prefix: String? = null, suffix: String? = null, directory: File? = null): File {
-    val realPrefix = prefix ?: System.currentTimeMillis().toString()
-    return File.createTempFile(realPrefix, suffix, directory).also { it.deleteOnExit() }
-}
+fun File.attributes(): PosixFileAttributes =
+        Files.getFileAttributeView(toPath(), PosixFileAttributeView::class.java).readAttributes()

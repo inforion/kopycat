@@ -26,8 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
 
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsOffsetInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -36,7 +36,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class bgez(core: MipsCore,
            data: Long,
-           rs: GPR,
+           rs: MipsRegister,
            off: MipsNear) : RsOffsetInsn(core, data, Type.COND_JUMP, rs, off) {
 
     override val mnem = "bgez"

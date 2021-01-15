@@ -38,7 +38,6 @@ import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT
 import ru.inforion.lab403.kopycat.interfaces.IDebugger
 import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.BUS32
-import java.util.concurrent.locks.Condition
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
@@ -101,23 +100,20 @@ open class Debugger(
     }
 
     private val lock = ReentrantLock()
-    private val stopped: Condition = lock.newCondition()
+    private val stopped = lock.newCondition()
     private fun signalStop() = lock.withLock { stopped.signal() }
 
     /**
      * {RU}Ожидание перехода в останов{RU}
      */
-    private fun waitUntilStop() {
-        synchronized(lock) {
-            while (isRunning)
-                stopped.await()
-        }
+    fun waitUntilStop() = synchronized(lock) {
+        while (isRunning) stopped.await()
     }
 
     // GDB Debugger implementation
     // Реализация GDB-отладчика
 
-    override var isRunning: Boolean = false
+    override var isRunning = false
 
     /**
      * {RU}Прерывание работы и ожидание перехода в останов{RU}
@@ -136,7 +132,7 @@ open class Debugger(
      * @return список значений регистров
      * {RU}
      */
-    override fun registers(): List<Long> = (0 until core.cpu.count()).map { regRead(it) }
+    override fun registers() = List(core.cpu.count()) { regRead(it) }  // method regRead may be overridden
 
     /**
      * {RU}
@@ -146,7 +142,7 @@ open class Debugger(
      * @return значение регистра
      * {RU}
      */
-    override fun regRead(index: Int): Long = core.cpu.reg(index)
+    override fun regRead(index: Int) = core.cpu.reg(index)
 
     /**
      * {RU}
@@ -176,7 +172,7 @@ open class Debugger(
      * @return успешность выполнения (true/false)
      * {RU}
      */
-    private fun preExecute(value: Int = 0): Boolean = ports.trace.preExecute(value)
+    private fun preExecute(value: Int = 0) = ports.trace.preExecute(value)
 
     /**
      * {RU}
@@ -187,7 +183,7 @@ open class Debugger(
      * @return успешность выполнения (true/false)
      * {RU}
      */
-    private fun postExecute(value: Int = 0): Boolean = ports.trace.postExecute(value)
+    private fun postExecute(value: Int = 0) = ports.trace.postExecute(value)
 
     /**
      * {RU}Действия выполняемые отладчиком перед командой run (перед запуском процесса эмуляции){RU}
@@ -201,6 +197,15 @@ open class Debugger(
 
     private var steps = 0
     private var startTime: Long = 0
+
+    private inline fun stopAndSignalIf(predicate: () -> Boolean): Boolean {
+        val result = predicate()
+        if (result) {
+            isRunning = false
+            signalStop()
+        }
+        return result
+    }
 
     /**
      * {RU}
@@ -221,38 +226,30 @@ open class Debugger(
             // if tracer has errors show it in catch block
             try {
                 start()
-                while (isRunning) {
+                loop@ while (isRunning) {
                     status = core.enter()
-                    if (!status.resume) {
-                        isRunning = false
-                        signalStop()
-                        break
-                    }
+                    if (stopAndSignalIf { !status.resume }) break
 
                     status = core.decode()
-                    if (!status.resume) {
-                        isRunning = false
-                        signalStop()
-                        break
-                    }
+                    if (stopAndSignalIf { !status.resume }) break
 
-                    if (!preExecute()) {
-                        isRunning = false
-                        signalStop()
+                    when (preExecute()) {
+                        TRACER_STATUS_SUCCESS -> Unit  // Nothing to do
+                        TRACER_STATUS_STOP -> {
+                            stopAndSignalIf { true }
+                            // pipeline breaks here
+                            // it should carefully checked for with restore/reset methods
+                            // required for VEOS to stop when Application exited
+                            break
+                        }
+                        TRACER_STATUS_SKIP -> continue@loop
                     }
 
                     status = core.execute()
+
                     steps += 1
 
-                    if (!status.resume) {
-                        isRunning = false
-                        signalStop()
-                    }
-
-                    if (!postExecute(status.ordinal)) {
-                        isRunning = false
-                        signalStop()
-                    }
+                    stopAndSignalIf { !status.resume || postExecute(status.ordinal) == TRACER_STATUS_STOP }
                 }
                 stop()
             } catch (e: Exception) {
@@ -262,16 +259,13 @@ open class Debugger(
         } else while (isRunning) {
             status = core.step()
             steps += 1
-            if (!status.resume) {
-                isRunning = false
-                signalStop()
-            }
+            stopAndSignalIf { !status.resume }
         }
 
-        val deltaTimeMiliSec = System.currentTimeMillis() - startTime
-        if (deltaTimeMiliSec > 500) {
-            val kips = steps / deltaTimeMiliSec
-            log.info { "Emulation running for %,d ms [%,d KIPS]".format(deltaTimeMiliSec, kips) }
+        val deltaTimeMilliSec = System.currentTimeMillis() - startTime
+        if (deltaTimeMilliSec > 500) {
+            val kips = steps / deltaTimeMilliSec
+            log.info { "Emulation running for %,d ms [%,d KIPS]".format(deltaTimeMilliSec, kips) }
         }
 
         return status
@@ -283,23 +277,39 @@ open class Debugger(
      *
      * Именно этот метод вызывается при нажатии кнопки F7 в IDA Pro
      *
+     * ВНИМАНИЕ: данные метод немного отличается от [cont] в поведении - в случае [TRACER_STATUS_SKIP] будет
+     *   возвращено значение true и вызывающий данный метод код не может никак отличить этот статус
+     *   от [TRACER_STATUS_SUCCESS]. Поэтому, если в вызывающем коде есть счетчик выполненных инструкций, то
+     *   он прибавит еще одну инструкции. При этом метод [cont] пропустить инкремент переменной внутреннего
+     *   количества шагов [steps].
+     *
      * @return успешность выполнения шага (true/false)
      * {RU}
      */
     final override fun step(): Boolean {
-        return if (ports.trace.isTracerOk()) {
+        if (ports.trace.isTracerOk()) {
             if (!core.enter().resume)
                 return false
 
             if (!core.decode().resume)
                 return false
 
-            preExecute()
-            val status = core.execute()
-            postExecute(status.ordinal)
-            status.resume
+            return when (val code = preExecute()) {
+                TRACER_STATUS_SUCCESS -> {
+                    val status = core.execute()
+
+                    if (postExecute(status.ordinal) == TRACER_STATUS_STOP)
+                        return false
+
+                    status.resume
+                }
+                TRACER_STATUS_STOP -> false
+                TRACER_STATUS_SKIP -> true
+
+                else -> error("Tracer return wrong status code=$code")
+            }
         } else {
-            core.step().resume
+            return core.step().resume
         }
     }
 
@@ -313,7 +323,7 @@ open class Debugger(
      * @return массив байт из памяти (ByteArray)
      * {RU}
      */
-    final override fun dbgLoad(address: Long, size: Int): ByteArray = ports.reader.load(address, size) { defaultByte }
+    final override fun dbgLoad(address: Long, size: Int) = ports.reader.load(address, size) { defaultByte }
 
     /**
      * {RU}
@@ -323,7 +333,7 @@ open class Debugger(
      * @param data массив байт для записи в память
      * {RU}
      */
-    final override fun dbgStore(address: Long, data: ByteArray): Unit = ports.reader.store(address, data)
+    final override fun dbgStore(address: Long, data: ByteArray) = ports.reader.store(address, data)
 
     /**
      * {RU}

@@ -26,17 +26,15 @@
 package ru.inforion.lab403.kopycat.benchmarks
 
 import org.junit.Test
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.auxiliary.PerformanceTester
-import ru.inforion.lab403.kopycat.cores.base.common.ComponentTracer
 import ru.inforion.lab403.kopycat.modules.virtarm.VirtARM
-import java.util.logging.Level
-
 
 
 class VirtARMPerformanceTest {
     companion object {
-        val log = logger(Level.FINE)
+        @Transient val log = logger(FINE)
     }
 
     @Test
@@ -48,5 +46,11 @@ class VirtARMPerformanceTest {
     fun linuxPerformance() {
         val tester = PerformanceTester(-1, 150_000_000) { VirtARM(null, "top") }
         tester.stopWhenTerminalReceive(tester.top.term.socat!!.pty1, "buildroot login:").run(1, 0)
+//        val top = VirtARM(null, "top")
+//        val kopycat = Kopycat(null).apply { open(top, false, GDBServer(6666, true, false)) }
+//        kopycat.bptSet(0xC001FEA8, "rx")
+//        kopycat.debugger.cont()
+//        log.warning { "connect debugger..." }
+//        kopycat.gdb.join()
     }
 }

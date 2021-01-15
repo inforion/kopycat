@@ -47,7 +47,7 @@ import kotlin.properties.Delegates
  */
 class PIC(parent: Module, name: String) : APIC(parent, name) {
     companion object {
-        val log = logger(Level.INFO)
+        @Transient val log = logger(Level.INFO)
 
         const val INTERRUPT_COUNT = 214
     }

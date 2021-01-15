@@ -29,19 +29,19 @@ import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.stretch
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.DynamicClassLoader
 import ru.inforion.lab403.kopycat.auxiliary.LimitedQueue
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.interfaces.IResettable
 import java.io.InputStream
+import java.io.Serializable
 import java.util.*
 
-class CoreInfo<C: AGenericCore>(val core: C): IResettable {
+class CoreInfo<C: AGenericCore>(val core: C): IResettable, Serializable {
     companion object {
-        val log = logger()
+        @Transient val log = logger()
     }
 
-    private data class StackElement(val pc: Long, val ra: Long)
+    private data class StackElement(val pc: Long, val ra: Long): Serializable
 
     private val trace = LimitedQueue<Long>(32)
     private val stacktrace = Stack<StackElement>()
@@ -143,6 +143,11 @@ class CoreInfo<C: AGenericCore>(val core: C): IResettable {
     }
 
     private fun doStackTrace(exception: Boolean) {
+        if (!core.cpu.hasInstruction) {
+            log.warning { "Something weired happen: no instructions executed -> can't handle stack trace..." }
+            return
+        }
+
         if (core.pc != lastPC + core.cpu.insn.size) { // Jump occurred
             if (exception || core.cpu.callOccurred) { // Sub call
                 stacktrace.push(StackElement(lastPC, lastPC + core.cpu.insn.size))
@@ -164,27 +169,11 @@ class CoreInfo<C: AGenericCore>(val core: C): IResettable {
     }
 
     fun printCpuState() {
-        val regsOnLine = 4
-        val buffer = StringBuffer()
         log.info { "-------------------- CPU state: --------------------------------" }
 
         log.info { "Total executed instructions: $totalExecuted" }
 
-        repeat(core.cpu.count()) { reg ->
-            val name = "R$reg".stretch(3)
-            val value = "0x${core.reg(reg).hex8}"
-            buffer.append("$name = $value".stretch(20))
-
-            // print by 4 regs on line
-            if ((reg + 1) % regsOnLine == 0) {
-                val line = buffer.toString()
-                buffer.setLength(0)
-                log.info { line }
-            }
-        }
-        if (buffer.isNotBlank()) {
-            log.info { buffer.toString() }
-        }
+        log.info { core.stringify() }
     }
 
     fun dump(cpu: Boolean = true, stack: Boolean = true, trace: Boolean = true) {

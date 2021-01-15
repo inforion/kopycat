@@ -26,19 +26,18 @@
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.hex4
+import ru.inforion.lab403.common.logging.ALL
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.modules.BUS04
-import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
-import java.util.logging.Level
 
 class GPIOxModule(val register: GPIOx.RegisterType) : Module(null, "GPIOx_test_module") {
     companion object {
-        private val log = logger(Level.ALL)
+        @Transient private val log = logger(ALL)
     }
 
     inner class Buses : ModuleBuses(this) {
@@ -64,7 +63,7 @@ class GPIOxModule(val register: GPIOx.RegisterType) : Module(null, "GPIOx_test_m
         override fun fetch(ea: Long, ss: Int, size: Int): Long = TODO("not implemented... never be")
         override fun read(ea: Long, ss: Int, size: Int): Long = 0L
         override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            log.info("gpio send output signal [${value.hex4}]")
+            log.info { "gpio send output signal [${value.hex4}]" }
         }
     }
 

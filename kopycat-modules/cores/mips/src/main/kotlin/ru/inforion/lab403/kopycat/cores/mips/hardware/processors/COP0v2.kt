@@ -23,12 +23,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("LocalVariableName")
+
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
-import ru.inforion.lab403.kopycat.cores.mips.enums.*
+import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException.*
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -36,32 +38,32 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
     override fun reset() {
         super.reset()
-        regs.EBase = 0x8000_0000
+        regs.EBase.value = 0x8000_0000
     }
 
     override fun processInterrupts() {
         super.processInterrupts()
 
-        val DebugDM = 0  // regs.Debug[Debug.DM.pos].asInt
-        val StatusIE = regs.Status[Status.IE.pos].asInt
-        val StatusEXL = regs.Status[Status.EXL.pos].asInt
-        val StatusERL = regs.Status[Status.ERL.pos].asInt
-        val Config3VEIC = regs.Config3[Config3.VEIC.pos].asInt
+        val DebugDM = false  // regs.Debug.DM
+        val StatusIE = regs.Status.IE
+        val StatusEXL = regs.Status.EXL
+        val StatusERL = regs.Status.ERL
+        val Config3VEIC = regs.Config3.VEIC
 
-        if (DebugDM == 0 && StatusIE == 1 && StatusEXL == 0 && StatusERL == 0) {
-            if (Config3VEIC == 1) {
-//                if (regs.Cause[Cause.IP7.pos..Cause.IP2.pos] != 0L)
+        if (!DebugDM && StatusIE && StatusEXL && StatusERL) {
+            if (Config3VEIC) {
+//                if (regs.Cause.IP7_2 != 0L)
 //                    throw UnsupportedOperationException("Hardware EIC IPL bits shouldn't be here...")
 
-                val IPL = regs.Status[Status.IM7.pos..Status.IM2.pos]
+                val IPL = regs.Status.IM7_2
                 // TODO: IE set always true for backward MIPS compat. but reconsideration required
                 val interrupt = pending(true)
                 if (interrupt != null) {
                     val RIPL = interrupt.cause.asULong
                     if (RIPL > IPL) {
-                        setIPValue(RIPL)
+                        regs.Cause.IP7_2 = RIPL
                         interrupt.onInterrupt()
-                        throw MipsHardwareException.INT(core.pc, interrupt)
+                        throw INT(core.pc, interrupt)
                     }
                 }  // If throw then we need no else
 
@@ -70,8 +72,8 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                 // (Config3VEIC = 1), these bits are writable, but have no effect on the interrupt system.
                 val swInterrupt = when {
                     // TODO: Sort out software interrupts mess
-                    regs.Cause[Cause.IP1.pos] == 1L -> TODO() //(dev as PIC32MZ2048EFH144).system.swInterrupt1
-                    regs.Cause[Cause.IP0.pos] == 1L -> TODO() //(dev as PIC32MZ2048EFH144).system.swInterrupt0
+                    regs.Cause.IP1 -> TODO() //(dev as PIC32MZ2048EFH144).system.swInterrupt1
+                    regs.Cause.IP0 -> TODO() //(dev as PIC32MZ2048EFH144).system.swInterrupt0
                     else -> return
                 }
 //                if (swInterrupt.cause > IPL)
@@ -84,16 +86,14 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
 
                 if (interrupt != null) {
                     // Merge external interrupt with pending internal software interrupt (or required, see EMUKOT-106)
-                    insertIPBits(interrupt.cause.asULong)
+                    regs.Cause.IP7_0 = interrupt.cause.asULong
                     interrupt.onInterrupt()
                 }
 
                 // Interrupt taken only if these condition are true
                 // see vol.3 MIPS32 (Rev. 0.95) Architecture (5.1)
-                val ip = regs.Cause[Cause.IP7.pos..Cause.IP0.pos]
-                val im = regs.Status[Status.IM7.pos..Status.IM0.pos]
                 // log.config { "IP = %08X IM = %08X IRQ = %08X".format(ip, im, ip and im) }
-                if ((ip and im) != 0L) {
+                if (regs.Cause.IP7_0 and regs.Status.IM7_0 != 0L) {
                     // Software and hardware interrupts both exceptions,
                     // see vol.3 MIPS32 (Rev. 0.95) Architecture (5.2.23)
                     throw MipsHardwareException.INT(core.pc, interrupt)
@@ -112,34 +112,35 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
         val vectorOffset: Int
         val vectorBase: Long
 
-        val StatusBEV = regs.Status[Status.BEV.pos].asInt
-        val StatusEXL = regs.Status[Status.EXL.pos].asInt
-        val CauseIV = regs.Cause[Cause.IV.pos].asInt
+        val StatusBEV = regs.Status.BEV
+        val StatusEXL = regs.Status.EXL
+        val CauseIV = regs.Cause.IV
 
-        if (StatusEXL == 1) {
+        if (StatusEXL) {
             vectorOffset = 0x180
         } else {
             if (core.cpu.branchCntrl.isDelaySlot) {
-                regs.EPC = core.cpu.pc - 4
-                regs.Cause = setBit(regs.Cause, Cause.BD.pos)
+                regs.EPC.value = core.cpu.pc - 4
+                regs.Cause.BD = true
             } else {
-                regs.EPC = core.cpu.pc
-                regs.Cause = clearBit(regs.Cause, Cause.BD.pos)
+                regs.EPC.value = core.cpu.pc
+                regs.Cause.BD = false
             }
 
             val VecNum: Int
-            val SRSCtlHSS = regs.SRSCtl[SRSCtl.HSS.range]
-            val SRSCtlCSS = regs.SRSCtl[SRSCtl.CSS.range]
-            val SRSCtlESS = regs.SRSCtl[SRSCtl.ESS.range]
-            val SRSCtlEICSS = regs.SRSCtl[SRSCtl.EICSS.range]
+
+            val SRSCtlHSS = regs.SRSCtl.HSS
+            val SRSCtlCSS = regs.SRSCtl.CSS
+            val SRSCtlESS = regs.SRSCtl.ESS
+            val SRSCtlEICSS = regs.SRSCtl.EICSS
 
             /* Compute vector offsets as a function of the type of exception */
             var NewShadowSet = SRSCtlESS     /* Assume exception, Release 2 only */
             if (exception is TLBInvalid || exception is TLBMiss || exception is TLBModified) {
                 exception as MipsHardwareException
-                regs.BadVAddr = exception.vAddr
-                regs.EntryHi = regs.EntryHi.insert(exception.vAddr[31..13], 31..13)
-                regs.Context = regs.Context.insert(exception.vAddr[31..13], 22..4)
+                regs.BadVAddr.value = exception.vAddr
+                regs.EntryHi.VPN2 = exception.vpn2
+                regs.Context.BadVPN2 = exception.vpn2
 //                log.warning { "[${core.cpu.pc.hex8}] ${exception.excCode} -> BadVAddr = ${exception.vAddr.hex8}" }
                 if (exception.vAddr == 0L) {
                     log.severe { "Null-pointer exception occurred... halting CPU core!" }
@@ -148,7 +149,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                 vectorOffset = if (exception is TLBMiss) 0x000 else 0x180
             } else if (isInterrupt(exception)) {
                 exception as MipsHardwareException.INT
-                if (CauseIV == 0) {
+                if (!CauseIV) {
                     vectorOffset = 0x180
                 } else { // CauseIV = 1
                     // Vector Spacing
@@ -158,16 +159,16 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                     // 0x04 0x080 128
                     // 0x08 0x100 256
                     // 0x10 0x200 512
-                    val IntCtlVS = regs.IntCtl[IntCtl.VS.range].asInt
-                    val Config3VEIC = regs.Config3[Config3.VEIC.pos].asInt
+                    val IntCtlVS = regs.IntCtl.VS.asInt
+                    val Config3VEIC = regs.Config3.VEIC
 
-                    if (StatusBEV == 1 || IntCtlVS == 0) {
+                    if (StatusBEV || IntCtlVS == 0) {
                         vectorOffset = 0x200
                     } else { // StatusBEV = 0
-                        if (Config3VEIC == 1) {
+                        if (Config3VEIC) {
                             // 6.1.1.3 External Interrupt Controller Mode
                             // For VEIC = 1 IP field is RIPL (Requested interrupt level)
-                            val CauseRIPL = regs.Cause[Cause.IP7.pos..Cause.IP2.pos].asInt
+                            val CauseRIPL = regs.Cause.IP7_2.asInt
 
                             VecNum = when {
                                 core.EIC_option1 -> CauseRIPL
@@ -178,13 +179,13 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                             NewShadowSet = SRSCtlEICSS
                         } else { // Config3VEIC = 0
                             VecNum = VIntPriorityEncoder()
-                            NewShadowSet = regs.SRSMap[4*VecNum+3..4*VecNum]
+                            NewShadowSet = ShadowSetEncoder(VecNum)
                         }
 
-                        if (Config3VEIC == 1 && core.EIC_option3) {
-                            vectorOffset = exception.interrupt!!.vector.asInt // EIC_VectorOffset_Signal
+                        vectorOffset = if (Config3VEIC && core.EIC_option3) {
+                            exception.interrupt!!.vector.asInt // EIC_VectorOffset_Signal
                         } else {
-                            vectorOffset = 0x200 + VecNum * (IntCtlVS shl 5)
+                            0x200 + VecNum * (IntCtlVS shl 5)
                         }
                     } /* if (StatusBEV = 1) or (IntCtlVS = 0) then */
                 } /* if (CauseIV = 0) then */
@@ -196,9 +197,9 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
 
             /* Update the shadow set information for an implementation of */
             /* Release 2 of the architecture */
-            if (core.ArchitectureRevision >= 2 && SRSCtlHSS > 0 && StatusBEV == 0) {
-                regs.SRSCtl = regs.SRSCtl.insert(SRSCtlCSS, SRSCtl.PSS.range)
-                regs.SRSCtl = regs.SRSCtl.insert(NewShadowSet, SRSCtl.CSS.range)
+            if (core.ArchitectureRevision >= 2 && SRSCtlHSS > 0 && !StatusBEV) {
+                regs.SRSCtl.PSS = SRSCtlCSS
+                regs.SRSCtl.CSS = NewShadowSet
             }
         } /* if StatusEXL = 1 then */
 
@@ -207,20 +208,18 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
         // StatusEXL <- 1
         if (exception is MipsHardwareException) {
             val code = exception.excCode as ExcCode
-            regs.Cause = regs.Cause.insert(code.id, Cause.EXC_H.pos..Cause.EXC_L.pos)
+            regs.Cause.EXC = code.id
         }
-        regs.Status = setBit(regs.Status, Status.EXL.pos)
+        regs.Status.EXL = true
 
         /* Calculate the vector base address */
-        if (StatusBEV == 1) {
+        if (StatusBEV) {
             vectorBase = 0xBFC0_0200
         } else {
-            vectorBase = if (core.ArchitectureRevision >= 2) {
-                /* The fixed value of EBase31..30 forces the base to be in kseg0 or kseg1 */
-                regs.EBase bzero 12..0  // Exception Base
-            } else {
-                0x8000_0000
-            }
+            if (core.ArchitectureRevision >= 2)
+                vectorBase = regs.EBase.value bzero 12..0
+            else
+                vectorBase = 0x8000_0000
         }
 
         /* Exception PC is the sum of vectorBase and vectorOffset. Vector */

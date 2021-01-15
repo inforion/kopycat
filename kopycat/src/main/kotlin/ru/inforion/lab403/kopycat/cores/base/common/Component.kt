@@ -32,6 +32,7 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level.INFO
 
 
@@ -47,19 +48,9 @@ import java.util.logging.Level.INFO
  * В противном случае, иерархия компонентов будет построенна некорректно ввиду присутствия в ней ненужной копии от
  * класса-родителя.
  *
- *
  * @param parent Родительский компонент (необязательный параметр)
- * @property name Произвольное имя объекта Компонента
+ * @param name Произвольное имя объекта Компонента
  * @param plugin Имя плагина (необязательный параметр)
- *
- * @property components Набор-отображение (HashMap) дочерних компонентов (компонентов, входящих в данный компонент)
- * @property instanceName Имя текущего объекта
- * @property loadedPlugin Имя загруженного плагина
- * @property snapshotPlugin Имя плагина снимка состояния системы
- * @property snapshotLibrary Имя библиотеки снимка состояния системы
- * @property isTopInstance Флаг "Объект верхнего уровня" (отсутствует родитель)
- * @property parent Родительский компонент, в который включается текущий компонент
- * @property root Корневой компонент (по умолчанию, текущий объект - this)
  * {RU}
  *
  * {EN}
@@ -67,17 +58,8 @@ import java.util.logging.Level.INFO
  * It allows you to create a hierarchy of components. It doesn't tied to any particular entity.
  *
  * @param parent parent component (can be null if it doesn't have parent)
- * @property name component name
+ * @param name component name
  * @param plugin plugin name (can be null)
- *
- * @property components hashmap of child components (components included in current component)
- * @property instanceName name of current component
- * @property loadedPlugin name of loaded plugin
- * @property snapshotPlugin name of plugin for snapshot
- * @property snapshotLibrary library name for snapshot
- * @property isTopInstance flag "this component if top component" - has no parent
- * @property parent parent component
- * @property root top component of current device (this by default)
  * {EN}
  */
 open class Component(
@@ -87,7 +69,7 @@ open class Component(
 ): Iterable<Component>, ICoreUnit {
 
     companion object {
-        val log = logger(INFO)
+        @Transient val log = logger(INFO)
     }
 
     /**
@@ -101,34 +83,67 @@ open class Component(
      **/
     override fun command(): String = name
 
-    /**
-     * {EN}
-     * Object string representation
-     *
-     * @return string representation
-     * {EN}
-     *
-     * {RU}
-     * Строковое представление объекта
-     * @return строка-представление объекта
-     * {RU}
-     **/
     override fun toString(): String = fullname()
 
+    /**
+     * {EN}
+     * Returns detailed string representation
+     *
+     * @return detailed string representation
+     * {EN}
+     *
+     * {RU}
+     * Подробное строковое представление объекта
+     *
+     * @return подробное строковое представление объекта
+     * {RU}
+     */
+    override fun stringify() = "$name [override fun stringify(): String -> " +
+            "wasn't correctly overridden for this ${this::class.qualifiedName}]"
+
+    /**
+     * {RU}Дочерние компоненты (компонентов, входящих в данный компонент){RU}
+     *
+     * {EN}Child components (components included in current component){EN}
+     */
     protected val components = THashMap<String, Component>()
 
-    val instanceName: String = name
-    val loadedPlugin: String get() = javaClass.simpleName
-    var snapshotPlugin: String = plugin ?: loadedPlugin
-        private set
-    var snapshotLibrary: String = "veos"
-        private set
+    /**
+     * {RU}Имя текущего объекта{RU}
+     * {EN}Name of current component{EN}
+     */
+    val designator: String = name
 
+    /**
+     * {RU}Имя загруженного плагина{RU}
+     *
+     * {EN}Name of loaded plugin{EN}
+     */
+    val plugin: String = plugin ?: javaClass.simpleName
+
+    /**
+     * {RU}
+     * Флаг равен true если это "Объект верхнего уровня" (отсутствует родитель)
+     * {RU}
+     *
+     * {EN}
+     * Flag is true if this component if top component i.e. has no parent
+     * {EN}
+     */
     val isTopInstance: Boolean get() = parent == null
 
+    /**
+     * {RU}Родительский компонент, в который включается текущий компонент{RU}
+     *
+     * {EN}Parent component{EN}
+     */
     var parent: Component? = parent
         private set
 
+    /**
+     * {RU}Корневой компонент (по умолчанию, текущий объект - this){RU}
+     * {EN}Top component of current device (this by default){EN}
+     */
     @Suppress("LeakingThis")
     var root: Component = this
         private set
@@ -138,18 +153,8 @@ open class Component(
      *
      * {RU}Выполнение функции обработчика [block] для всех компонентов заданного класса в иерархии (за исключением себя!){RU}
      **/
-    inline fun <reified T: Component>forEachNested(block: (component: T) -> Unit) =
-            getComponentsByClass<T>().forEach { block(it) }
-
-    /**
-     * {EN}Execute lambda function [block] for all component of the hierarchy{EN}
-     *
-     * {RU}Выполнение функции обработчика [block] для всех компонентов системы заданного класса{RU}
-     **/
-    inline fun <reified T: Component>forMeAndEachNested(block: (component: T) -> Unit) {
-        block(this as T)
-        getComponentsByClass<T>().forEach { block(it) }
-    }
+    inline fun <reified T: Component>forEachChildren(block: (component: T) -> Unit) =
+            getChildrenComponentsByClass<T>().forEach { block(it) }
 
     /**
      * {RU}
@@ -210,6 +215,43 @@ open class Component(
 
     /**
      * {RU}
+     * Получение списка дочерних компонентов, для которых успешно выполняется заданная функция (предикат)
+     *
+     * @param predicate Функция-фильтр для отбора компонентов
+     *
+     * @return Список дочерних компонентов
+     * {RU}
+     *
+     * {EN}
+     * Get list of children components for which the predicate was successful.
+     *
+     * @param predicate filter-function for component selection
+     *
+     * @return List of children components
+     * {EN}
+     */
+    fun getChildrenComponentsByPredicate(predicate: (Component) -> Boolean) =
+            getChildrenComponentsByPredicateTo(mutableListOf(), predicate)
+
+    /**
+     * {RU}
+     * Получение списка дочерних компонентов, соответствующих классу текущего компонента
+     *
+     * @return components
+     * {RU}
+     *
+     * {EN}
+     * Get list of children components by class of current component
+     *
+     * @return components
+     * {EN}
+     */
+    @Suppress("UNCHECKED_CAST")
+    inline fun <reified R: Component>getChildrenComponentsByClass() =
+            getChildrenComponentsByPredicate { it is R } as MutableCollection<R>
+
+    /**
+     * {RU}
      * Получение всех компонентов, входящих в root и удовлетворяющих предикату
      *
      * @param result Результирующий список компонентов
@@ -230,7 +272,12 @@ open class Component(
     fun getComponentsByPredicateTo(
             result: MutableCollection<in Component>,
             predicate: (Component) -> Boolean
-    ): MutableCollection<in Component> = root.getChildrenComponentsByPredicateTo(result, predicate)
+    ): MutableCollection<in Component> {
+        root.getChildrenComponentsByPredicateTo(result, predicate)
+        if (predicate(root))
+            result.add(root)
+        return result
+    }
 
     /**
      * {RU}
@@ -268,7 +315,7 @@ open class Component(
      * @return Components list
      * {EN}
      */
-    fun getComponentsByPluginName(name: String) = getComponentsByPredicate { it.loadedPlugin == name }
+    fun getComponentsByPluginName(name: String) = getComponentsByPredicate { it.plugin == name }
 
     /**
      * {RU}
@@ -287,7 +334,7 @@ open class Component(
      * @return Components list
      * {EN}
      */
-    fun getComponentsByInstanceName(name: String) = getComponentsByPredicate { it.instanceName == name }
+    fun getComponentsByInstanceName(name: String) = getComponentsByPredicate { it.designator == name }
 
     /**
      * {RU}
@@ -440,13 +487,13 @@ open class Component(
      */
     fun fullname(): String {
         if (parent == null)
-            return instanceName
-        return "${parent!!.fullname()}.$instanceName"
+            return designator
+        return "${parent!!.fullname()}.$designator"
     }
 
     /**
      * {RU}
-     * Add children component
+     * Добавить дочерний компонент
      *
      * @param component дочерний компонент
      * {RU}
@@ -486,7 +533,7 @@ open class Component(
      * {EN}Reset components state (and all children components){EN}
      */
     override fun reset() {
-        if (this == root) forEachNested<Component> { it.reset() }
+        if (this == root) forEachChildren<Component> { it.reset() }
     }
 
     /**
@@ -495,7 +542,7 @@ open class Component(
      * {EN}Terminate component execution (and all children components){EN}
      */
     override fun terminate() {
-        if (this == root) forEachNested<Component> { it.terminate() }
+        if (this == root) forEachChildren<Component> { it.terminate() }
     }
 
     /**
@@ -515,13 +562,10 @@ open class Component(
      * @return map of object properties
      * {EN}
      */
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return ctxt.storeValues(
-                "name" to name,
-                "loadedPlugin" to loadedPlugin,
-                "snapshotPlugin" to snapshotPlugin,
-                "components" to components.map{ it.key to it.value.serialize(ctxt) }.toMap() )
-    }
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> = storeValues(
+            "name" to name,
+            "plugin" to plugin,
+            "components" to components.map{ it.key to it.value.serialize(ctxt) }.toMap() )
 
     /**
      * {RU}
@@ -540,16 +584,19 @@ open class Component(
      */
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        val shName: String = loadValue(snapshot, "name")
-        val shLoadedPlugin: String = loadValue(snapshot, "loadedPlugin")
-        if (name != shName && !ctxt.suppressWarnings)
-            log.warning { "name != snapshot name [$name !=  $shName]" }
-        if (loadedPlugin != shLoadedPlugin && !ctxt.suppressWarnings)
-            log.warning { "name != snapshot name [$loadedPlugin !=  $shLoadedPlugin]" }
-        snapshotPlugin = loadValue(snapshot, "snapshotPlugin")
+        val snpName: String = loadValue(snapshot, "name")
+        val snpPlugin: String = loadValue(snapshot, "plugin")
 
-        val snapshotComponents: LinkedHashMap<String, Any> = loadValue(snapshot, "components")
-        snapshotComponents.forEach { cName, cData -> components[cName]?.deserialize(ctxt, cData as LinkedHashMap<String, Any>) }
+        if (name != snpName && !ctxt.suppressWarnings)
+            log.warning { "name != snapshot name [$name != $snpName]" }
+
+        if (plugin != snpPlugin && !ctxt.suppressWarnings)
+            log.warning { "name != snapshot name [$plugin != $snpPlugin]" }
+
+        val snapshotComponents: Map<String, Any> = loadValue(snapshot, "components")
+        snapshotComponents.forEach { (cName, cData) ->
+            components[cName]?.deserialize(ctxt, cData as Map<String, Any>)
+        }
     }
 
     /**

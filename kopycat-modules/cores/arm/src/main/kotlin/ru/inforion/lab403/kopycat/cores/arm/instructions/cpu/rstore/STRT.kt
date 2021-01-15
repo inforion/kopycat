@@ -30,6 +30,7 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
@@ -54,7 +55,7 @@ class STRT(cpu: AARMCore,
 
         val offsetAddress = rn.value(core) + if (add) offset.value(core) else -offset.value(core)
         val address = if (postindex) rn.value(core) else offsetAddress
-        val data = if(rt.reg == core.cpu.regs.pc.reg) core.cpu.PCStoreValue() else rt.value(core)
+        val data = if (rt.isProgramCounter(core)) core.cpu.PCStoreValue() else rt.value(core)
 
         if(core.cpu.UnalignedSupport() || address[1..0] == 0b00L || core.cpu.CurrentInstrSet() == ARM)
             core.outl(address like Datatype.DWORD, data)

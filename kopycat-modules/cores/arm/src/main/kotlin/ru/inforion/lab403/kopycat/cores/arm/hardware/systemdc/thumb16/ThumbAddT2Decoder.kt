@@ -33,7 +33,6 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
@@ -53,9 +52,9 @@ class ThumbAddT2Decoder(cpu: AARMCore,
         val dn = data[7].asInt
         val n = ((dn shl 3) + data[2..0]).asInt
         val m = data[6..3].asInt
-        val rn = GPRBank.Operand(n)
-        val rd = GPRBank.Operand(n)
-        val rm = GPRBank.Operand(m)
+        val rn = gpr(n)
+        val rd = gpr(n)
+        val rm = gpr(m)
         if (n == 15 && m == 15) throw Unpredictable
         if (n == 15 && core.cpu.InITBlock() && !core.cpu.LastInITBlock()) throw Unpredictable
         return constructor(core, data, Condition.AL, false, rd, rn, rm, 0, SRType_LSL, 2)

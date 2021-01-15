@@ -29,8 +29,9 @@ import ru.inforion.lab403.common.extensions.clr
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.set
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import java.io.Serializable
 
-class Mask private constructor(val pandm: Long, val porm: Long, val mandm: Long, val morm: Long) {
+class Mask private constructor(val pandm: Long, val porm: Long, val mandm: Long, val morm: Long): Serializable {
     class PatternInvalidError(message: String): GeneralException(message)
 
     companion object {

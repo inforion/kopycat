@@ -26,9 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.arm.enums.GPR
-import ru.inforion.lab403.kopycat.cores.arm.enums.Mode
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ARMDecoder
@@ -41,68 +40,9 @@ import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
 import java.util.logging.Level
 
 
-
 class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
     companion object {
-        val log = logger(Level.FINER)
-    }
-
-    override fun CurrentMode(): Mode = Mode.Thread
-
-    override fun CurrentModeIsPrivileged(): Boolean = false
-
-    override fun StackPointerSelect(): Int = GPR.SPMain.id
-
-    override fun ALUWritePC(address: Long) {
-        if (ArchVersion() >= 7 && CurrentInstrSet() == InstructionSet.ARM)
-            BXWritePC(address)
-        else
-            BranchWritePC(address)
-    }
-
-    override fun LoadWritePC(address: Long) {
-        if (ArchVersion() >= 5) {
-            BXWritePC(address)
-        } else {
-            BranchWritePC(address)
-        }
-    }
-
-    override fun BXWritePC(address: Long) {
-        if (CurrentInstrSet() == InstructionSet.THUMB_EE) {
-            TODO("Not implemented")
-        } else {
-            when {
-                address[0] == 1L -> {
-                    SelectInstrSet(InstructionSet.THUMB)
-                    BranchTo(address clr 0)
-                }
-                address[1] == 0L -> {
-                    SelectInstrSet(InstructionSet.ARM)
-                    BranchTo(address)
-                }
-                address[1..0] == 0b10L -> throw ARMHardwareException.Unpredictable
-            }
-        }
-    }
-
-    override fun BranchWritePC(address: Long) {
-        when (CurrentInstrSet()) {
-            InstructionSet.ARM -> {
-                if (ArchVersion() < 6 && address[1..0] != 0L)
-                    throw ARMHardwareException.Unpredictable
-                BranchTo(address bzero 1..0)
-            }
-            InstructionSet.JAZELLE -> TODO("WILL NEVER BE IMPLEMENTED!")
-            else -> BranchTo(address clr 0)
-        }
-    }
-
-    override fun CurrentInstrSet(): InstructionSet = InstructionSet.from(status.ISETSTATE.asInt)
-
-    override fun SelectInstrSet(target: InstructionSet) {
-        if (target != InstructionSet.CURRENT)
-            status.ISETSTATE = target.code.asLong
+        @Transient val log = logger(FINER)
     }
 
     override fun InITBlock(): Boolean = status.ITSTATE[3..0] != 0b0000L
@@ -122,7 +62,7 @@ class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
         log.fine { "pc=${pc.hex8} sp=${sp.hex8}" }
 
         BXWritePC(pc)
-        regs.spMain.value = sp
+        regs.sp.value = sp
         regs.lr.value = 0xFFFF_FFFF
 
         pipelineRefillRequired = false
@@ -196,17 +136,5 @@ class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
         }
 
         return 1  // TODO: get from insn.execute()
-    }
-
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return mapOf(
-                "regs" to regs.serialize(ctxt),
-                "pc" to pc.hex8
-        )
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
     }
 }

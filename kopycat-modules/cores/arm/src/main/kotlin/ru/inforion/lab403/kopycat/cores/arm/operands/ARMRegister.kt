@@ -25,9 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.operands
 
-import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
+import ru.inforion.lab403.kopycat.cores.base.operands.ARegisterNG
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
+typealias ARMRegister = ARegisterNG<AARMCore>
 
-typealias ARMRegister = ARegister<AARMCore>
+inline fun ARMRegister.isProgramCounter(core: AARMCore) = desc === core.cpu.regs.pc
+inline fun ARMRegister.isStackPointer(core: AARMCore) = desc === core.cpu.regs.sp

@@ -41,7 +41,7 @@ import java.util.logging.Level
 
 class M95160(parent: Module, name: String, val eeprom: File): Module(parent, name) {
     companion object {
-        val log = logger(Level.CONFIG)
+        @Transient val log = logger(Level.CONFIG)
     }
 
     enum class CMD(val OPCODE: Int) {

@@ -34,6 +34,8 @@ import ru.inforion.lab403.kopycat.modules.ATA_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.ATA_DATA_AREA
 import ru.inforion.lab403.kopycat.modules.ATA_PARAM_AREA
 import ru.inforion.lab403.kopycat.modules.ATA_SECTOR_SIZE
+import ru.inforion.lab403.kopycat.serializer.loadValue
+import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.io.ByteArrayOutputStream
 import java.io.DataOutputStream
 import java.io.File
@@ -182,15 +184,13 @@ class CompactFlash(
 //        }
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return super.serialize(ctxt) + ctxt.storeValues(
-                "parameters" to parameters.hexlify()
-        ) + ctxt.storeBinary("content", content)
-    }
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+            "parameters" to parameters,
+            "cf" to ctxt.storeBinary("cf", content))
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
-        parameters = (snapshot["parameters"] as String).unhexlify()
-        ctxt.loadBinary(snapshot, "content", content)
+        parameters = loadValue(snapshot, "parameters")
+        ctxt.loadBinary(snapshot, "cf", content)
     }
 }

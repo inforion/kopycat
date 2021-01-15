@@ -27,7 +27,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.stack
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.CTRLR.cr0
@@ -51,6 +51,6 @@ class Pushf(core: x86Core, opcode: ByteArray, prefs: Prefixes):
             } else {
                 x86utils.push(core, eflags[15..0], Datatype.WORD, prefs)
             }
-        } else throw GeneralException("GP(0)")
+        } else throw x86HardwareException.GeneralProtectionFault(core.pc, 0)
     }
 }

@@ -25,50 +25,71 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86
 
+import ru.inforion.lab403.common.logging.WARNING
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
-import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ABIBase
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-class x86ABI(core: x86Core, heap: LongRange, stack: LongRange, bigEndian: Boolean):
-        ABI<x86Core>(core, heap, stack, bigEndian) {
-    override fun gpr(index: Int): ARegister<x86Core> = x86Register.gpr(Datatype.DWORD, index)
-    override fun createCpuContext() = x86Context(core.cpu)
-    override val ssr = SSR.SS.id
-    override val sp = x86Register.GPRDW.esp
-    override val ra by lazy { throw IllegalAccessError("x86 has no return address register!") }
-    override val v0 = x86Register.GPRDW.eax
-    override val argl = emptyList<x86Register>()
-
-    override var returnAddressValue: Long
-        get() = readPointer(stackPointerValue)
-        set(value) { push(value) }
-
-    override fun ret() {
-        super.ret()
-        stackPointerValue += types.pointer.bytes
+class x86ABI(core: x86Core, bigEndian: Boolean) : ABI<x86Core>(core, 32, bigEndian) {
+    companion object {
+        @Transient
+        val log = logger(WARNING)
     }
 
-    override fun getArgs(args: Array<ArgType>): Array<Long> {
-        var res = argl.map { it.value(core) }
+    @DontAutoSerialize
+    override val regArguments = listOf<Int>()
 
-        if (args.size > argl.size) {
-            val ss = stackStream(where = stackPointerValue + types.pointer.bytes)
-            res += args.drop(argl.size).map {  // !!!!!!!!!!!!!!!!!!!!!  Не все аргументы !!!!!!!!!!!!!!1
-                when (it) {
-                    ArgType.Pointer -> ss.read(types.pointer)
-                    ArgType.Word -> ss.read(types.word)
-                    ArgType.Half -> ss.read(types.half)
-                    ArgType.Byte -> ss.read(types.half)  // x86 can't push byte but others ...
-                }
+    override val minimumStackAlignment = 2.also { log.warning { "Determine stack alignment in x86" } }
+
+    override val stackArgsOffset = 4L
+
+    override val gprDatatype = Datatype.values().first { it.bits == (this.core.cpu.regs.msb + 1) }
+    override fun register(index: Int) = x86Register.gpr(Datatype.DWORD, index)
+    override val registerCount: Int get() = core.cpu.count()
+    override val sizetDatatype get() = Datatype.DWORD
+
+    override fun createContext() = x86Context(this)
+
+    override val pc get() = x86Register.GPRDW.eip
+    override val sp get() = x86Register.GPRDW.esp
+    override val rv get() = x86Register.GPRDW.eax
+    override val ra get() = throw IllegalAccessError("x86 has no return address register!")
+
+    override val segmentSelector = SSR.SS.id
+
+    override var returnAddressValue: Long
+        get() = readPointer(stackPointerValue).also {
+            log.severe { "Please, fix it" }
+        }
+        set(value) {
+            push(value).also {
+                log.severe { "Please, fix it" }
             }
         }
 
-        return res.toTypedArray()
+    override fun ret() {
+//        super.ret()
+        programCounterValue = pop(types.pointer)
+//        programCounterValue = readPointer(stackPointerValue)
+//        stackPointerValue += types.pointer.bytes
+    }
+
+    var argOffset = 0L
+
+    override fun getArg(index: Int, type: Datatype, alignment: Int, instance: ABIBase) =
+            instance.readStack(stackArgsOffset + argOffset, type).also {
+                argOffset += maxOf(minimumStackAlignment, type.bytes)
+            }
+
+    override fun getArgs(args: Iterable<Datatype>, instance: ABIBase): Array<Long> {
+        argOffset = 0
+        return args.mapIndexed { i, it -> getArg(i, it, 0, instance) }.toTypedArray()
     }
 
 }

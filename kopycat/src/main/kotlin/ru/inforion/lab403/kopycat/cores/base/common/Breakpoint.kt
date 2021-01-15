@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.cores.base.common
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Access.*
 import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Type.*
+import java.io.Serializable
 
 
 /**
@@ -50,7 +51,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Type.*
  * @property onBreak function to process on breakpoint activation
  * {EN}
  */
-data class Breakpoint(val ea: Long, val access: Access, val onBreak: ((ea: Long) -> Unit)?) {
+data class Breakpoint(val ea: Long, val access: Access, val onBreak: ((ea: Long) -> Unit)?): Serializable {
 
     /**
      * {RU}

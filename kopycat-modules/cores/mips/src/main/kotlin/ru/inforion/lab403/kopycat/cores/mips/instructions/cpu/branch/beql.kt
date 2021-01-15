@@ -36,8 +36,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class beql(core: MipsCore,
            data: Long,
-           rs: MipsRegister<*>,
-           rt: MipsRegister<*>,
+           rs: MipsRegister,
+           rt: MipsRegister,
            off: MipsNear) : RsRtOffsetInsn(core, data, Type.COND_JUMP, rs, rt, off) {
 
     override val mnem = "beql"

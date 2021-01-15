@@ -34,7 +34,7 @@ import java.util.logging.Level
 
 class PCI(parent: Module, name: String): PCIHost(parent, name) {
     companion object {
-        val log = logger(Level.FINER)
+        @Transient val log = logger(Level.FINER)
     }
 
     val HBCTL = Register(ports.mmcr, 0x60, WORD, "HBCTL")

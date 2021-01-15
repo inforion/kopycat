@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.auxiliary
 
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.toSerializable
 import java.net.*
 import java.util.logging.Level
 
@@ -38,7 +40,7 @@ abstract class ANetworkThread(
         isDaemon: Boolean = false) : Thread(name), AutoCloseable {
 
     companion object {
-        private val log = logger(Level.INFO)
+        @Transient private val log = logger(CONFIG)
     }
 
     private val server = ServerSocket()
@@ -73,10 +75,9 @@ abstract class ANetworkThread(
     open fun onDisconnect() = Unit
 
     override fun run() {
-        log.info { "$name thread started on $name [$address:$port]" }
         while (running) {
             try {
-                log.info { "$name waited for clients on $port..." }
+                log.info { "$name waited for clients on [$address:$port]" }
                 client = server.accept()
             } catch (e: SocketException) {
                 log.info { "$name thread connection closed" }

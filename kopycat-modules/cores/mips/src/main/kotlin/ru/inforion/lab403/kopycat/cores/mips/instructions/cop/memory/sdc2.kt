@@ -39,7 +39,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class sdc2(
         core: MipsCore,
         data: Long,
-        ct: MipsRegister<*>,
+        ct: MipsRegister,
         off: MipsDisplacement) : FtOffsetInsn(core, data, Type.VOID, ct, off) {
 
     override val mnem = "sdc2"

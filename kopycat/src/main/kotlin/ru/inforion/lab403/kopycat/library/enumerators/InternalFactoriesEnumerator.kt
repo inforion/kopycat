@@ -25,10 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.library.enumerators
 
-import org.reflections.Reflections
-import org.reflections.scanners.SubTypesScanner
 import org.reflections.util.ClasspathHelper
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.subtypesScan
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.library.builders.ClassModuleFactoryBuilder
 import ru.inforion.lab403.kopycat.library.builders.api.IModuleFactoryBuilder
@@ -36,7 +35,7 @@ import java.util.logging.Level
 
 class InternalFactoriesEnumerator(private val internalClassDirectory: String) : IFactoriesEnumerator {
     companion object {
-        val log = logger(Level.INFO)
+        @Transient val log = logger(Level.INFO)
 
         val anonymousClassPattern = Regex("""\$.*\$""")
     }
@@ -44,10 +43,7 @@ class InternalFactoriesEnumerator(private val internalClassDirectory: String) : 
     private lateinit var builders: List<ClassModuleFactoryBuilder>
 
     override fun preload() {
-        val helper = ClasspathHelper.forPackage(internalClassDirectory)
-        val reflections = Reflections(helper, SubTypesScanner())
-        val types = reflections.getSubTypesOf(Module::class.java)
-        builders = types
+        builders = subtypesScan<Module>(internalClassDirectory)
                 .filter { it.name.startsWith(internalClassDirectory) && !it.name.contains(anonymousClassPattern)}
                 .map { ClassModuleFactoryBuilder(it) }
     }
@@ -56,7 +52,7 @@ class InternalFactoriesEnumerator(private val internalClassDirectory: String) : 
         val result = builders
                 .filter { it.load() }
                 .fold(listOf<Pair<String, IModuleFactoryBuilder>>()) { acc, builder ->
-                    acc + builder.plugins().map { it to builder }
+                    acc + builder.plugins.map { it to builder }
                 }
 
         // Name clashes verification

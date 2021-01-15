@@ -33,6 +33,7 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
@@ -52,7 +53,7 @@ class SUBr(cpu: AARMCore,
     override fun execute() {
         val shifted = Shift(rm.value(core), 32, shiftT, shiftN, core.cpu.flags.c.asInt)
         val (result, carry, overflow) = AddWithCarry(rn.dtyp.bits, rn.value(core), shifted.inv(), 1)
-        if(rd.reg == core.cpu.regs.pc.reg) {
+        if (rd.isProgramCounter(core)) {
             core.cpu.ALUWritePC(result)
         } else {
             rd.value(core, result)

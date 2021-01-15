@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.branch
 
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.base.exceptions.UnsupportedInstructionException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.CcOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
@@ -44,7 +45,5 @@ class bc2t(
 
     override val mnem = "bc2t"
 
-    override fun execute() {
-        throw GeneralException("Sorry, but I don't know how to execute this instruction!")
-    }
+    override fun execute(): Unit = throw UnsupportedInstructionException(this)
 }

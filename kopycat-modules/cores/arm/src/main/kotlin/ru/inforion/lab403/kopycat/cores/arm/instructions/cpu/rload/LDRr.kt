@@ -30,14 +30,14 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.Shift
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
-import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
+import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unknown
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
 
 
 class LDRr(cpu: AARMCore,
@@ -60,10 +60,10 @@ class LDRr(cpu: AARMCore,
         val address = if(index) offsetAddress else rn.value(core)
         val data = core.inl(address like Datatype.DWORD)
         if(wback) rn.value(core, offsetAddress)
-        if (rt.reg == core.cpu.regs.pc.reg)
+        if (rt.isProgramCounter(core))
             if (address[1..0] == 0b00L) core.cpu.LoadWritePC(data)
             else throw Unpredictable
         else if (core.cpu.UnalignedSupport() || address[1..0] == 0b00L) rt.value(core, data)
-        else throw ARMHardwareException.Unknown
+        else throw Unknown
     }
 }

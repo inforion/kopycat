@@ -26,8 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.logical
 
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtImmInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -42,7 +42,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class lui(
         core: MipsCore,
         data: Long,
-        rt: GPR,
+        rt: MipsRegister,
         imm: MipsImmediate) : RtImmInsn(core, data, Type.VOID, rt, imm) {
 
     override val mnem = "lui"

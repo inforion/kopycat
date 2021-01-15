@@ -25,6 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
+import ru.inforion.lab403.common.extensions.sure
+import java.io.Serializable
+
 /**
  * {RU}
  * Базовый класс набора переменных
@@ -37,20 +40,19 @@ package ru.inforion.lab403.kopycat.cores.base.common
  * {EN}
  * Base class variable set
  *
- * @author a.glakikh
  * @since 18.07.2018
  *
  * @property args input variable set
  * @property container container for variable set (HashMap)
  * {EN}
  **/
-open class AVariables(val args: Array<out Pair<String, Any>> = emptyArray()) {
+open class AVariables(val args: Array<out Pair<String, Any>> = emptyArray()): Serializable {
 
     private val container = HashMap<String, Variable<*>>()
 
     @Suppress("UNCHECKED_CAST")
     operator fun <T>get(key: String): T {
-        val tmp = container[key] ?: throw IllegalArgumentException("Can't get $key!")
+        val tmp = container[key].sure { "Can't get $key!" }
         return tmp.value as T
     }
 

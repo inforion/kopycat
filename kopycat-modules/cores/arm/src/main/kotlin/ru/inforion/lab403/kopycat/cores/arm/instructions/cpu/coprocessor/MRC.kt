@@ -31,6 +31,7 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMVariable
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
@@ -52,7 +53,7 @@ class MRC(cpu: AARMCore,
             TODO("Not implemented") //GenerateCoprocessorException()
         else {
             val value = core.cop.Coproc_GetOneWord(opcode_1, opcode_2, crn, crm, cp_num)
-            if (rd.reg != 15)
+            if (!rd.isProgramCounter(core))
                 rd.value(core, value)
             else {
                 // TODO: make it faster

@@ -28,14 +28,12 @@ package ru.inforion.lab403.kopycat.cores.base.common
 import org.junit.Assert
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.asLong
-import ru.inforion.lab403.kopycat.Kopycat
-import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS.*
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS.R_W
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.ConnectionError
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
-import ru.inforion.lab403.kopycat.cores.base.exceptions.PortDefinitionError
-import ru.inforion.lab403.kopycat.device.TestCore
+import ru.inforion.lab403.kopycat.modules.cores.device.TestCore
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
 
@@ -100,10 +98,10 @@ class ModulePortsTest: Module(null, "Ports module test") {
     private fun assert(expected: String, actual: String, type: String = "Module") =
             Assert.assertEquals("$type error: $expected != $actual", expected, actual)
 
-    @Test(expected = PortDefinitionError::class) fun slaveTest1() { ports.test1() }
-    @Test(expected = PortDefinitionError::class) fun slaveTest2() { ports.test2() }
-    @Test(expected = PortDefinitionError::class) fun slaveTest3() { ports.test3() }
-    @Test(expected = PortDefinitionError::class) fun slaveTest4() { ports.test4() }
+    @Test(expected = ModulePorts.PortDefinitionError::class) fun slaveTest1() { ports.test1() }
+    @Test(expected = ModulePorts.PortDefinitionError::class) fun slaveTest2() { ports.test2() }
+    @Test(expected = ModulePorts.PortDefinitionError::class) fun slaveTest3() { ports.test3() }
+    @Test(expected = ModulePorts.PortDefinitionError::class) fun slaveTest4() { ports.test4() }
     @Test(expected = ConnectionError::class) fun slaveTest5() { ports.slave32.connect(buses.innerBus32) }
     @Test(expected = ConnectionError::class) fun slaveTest6() { ports.slave32.connect(anotherModule.buses.outerBus16) }
     @Test fun slaveTest7() {

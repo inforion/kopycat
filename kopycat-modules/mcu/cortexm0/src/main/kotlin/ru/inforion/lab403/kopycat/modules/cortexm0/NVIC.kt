@@ -42,7 +42,7 @@ import java.util.logging.Level
 
 class NVIC(parent: Module, name: String) : APIC(parent, name) {
     companion object {
-        private val log = logger(Level.ALL)
+        @Transient private val log = logger(Level.ALL)
 
         const val INTERRUPT_COUNT = 32
         const val EXCEPTION_COUNT = 16

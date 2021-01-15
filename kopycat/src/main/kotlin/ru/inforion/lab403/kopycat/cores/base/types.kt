@@ -57,3 +57,5 @@ typealias ProxyPort = ModulePorts.Proxy
 typealias HardwareErrorHandler = (HardwareException) -> Long
 
 typealias StackOfStrings = LinkedList<String>
+
+typealias CpuRegister = ARegistersBankNG<*>.Register

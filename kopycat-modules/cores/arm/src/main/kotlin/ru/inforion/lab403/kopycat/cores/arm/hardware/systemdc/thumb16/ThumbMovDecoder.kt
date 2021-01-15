@@ -32,7 +32,6 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
@@ -49,7 +48,7 @@ object ThumbMovDecoder {
                         imm32: Immediate<AARMCore>,
                         size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
         override fun decode(data: Long): AARMInstruction {
-            val rd = GPRBank.Operand(data[10..8].asInt)
+            val rd = gpr(data[10..8].asInt)
             val setFlag = !core.cpu.InITBlock()
             val imm32 = Immediate<AARMCore>(data[7..0])
             return constructor(core, data, Condition.AL, setFlag, core.cpu.flags.c, rd, imm32, 2)
@@ -70,8 +69,8 @@ object ThumbMovDecoder {
         override fun decode(data: Long): AARMInstruction {
             val m = data[6..3].asInt
             val d = ((data[7] shl 3) + data[2..0]).asInt
-            val rd = GPRBank.Operand(d)
-            val rm = GPRBank.Operand(m)
+            val rd = gpr(d)
+            val rm = gpr(m)
             if (d == 15 && core.cpu.InITBlock() && !core.cpu.LastInITBlock()) throw Unpredictable
             return constructor(core, data, Condition.AL, false, rd, rm, rm, SRType.SRType_LSL, 0, 2)
         }
@@ -89,8 +88,8 @@ object ThumbMovDecoder {
                         shiftN: Int,
                         size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
         override fun decode(data: Long): AARMInstruction {
-            val rd = GPRBank.Operand(data[2..0].asInt)
-            val rm = GPRBank.Operand(data[5..3].asInt)
+            val rd = gpr(data[2..0].asInt)
+            val rm = gpr(data[5..3].asInt)
             if(core.cpu.InITBlock()) throw Unpredictable
             return constructor(core, data, Condition.AL, true, rd, rd, rm, SRType.SRType_LSL, 0, 2)
         }

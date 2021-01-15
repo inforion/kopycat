@@ -35,7 +35,7 @@ import java.util.logging.Level
 class Signals(parent: Module, name: String, val size: Long, val value: Long) : Module(parent, name) {
 
     companion object {
-        private val log = logger(Level.FINE)
+        @Transient private val log = logger(Level.FINE)
     }
 
     inner class Ports : ModulePorts(this) {

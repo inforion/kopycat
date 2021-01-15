@@ -41,7 +41,7 @@ import java.util.logging.Level
 
 class STK(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        val log = logger(Level.FINE)
+        @Transient val log = logger(Level.FINE)
     }
 
     inner class Ports : ModulePorts(this) {

@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.base.abstracts
 
 import ru.inforion.lab403.common.extensions.WRONGL
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.*
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
@@ -110,7 +111,7 @@ abstract class AInstruction<T: AGenericCore>(
      * {RU}Объект-логгер{RU}
      */
     companion object {
-        val log = logger(Level.FINER)
+        @Transient val log = logger(Level.FINER)
     }
 
     // Mandatory implementation part

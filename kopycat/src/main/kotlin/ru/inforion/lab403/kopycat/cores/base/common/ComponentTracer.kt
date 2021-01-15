@@ -31,21 +31,31 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.ATracer
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.interfaces.ITracer
 
-class ComponentTracer<R: AGenericCore>(
-        parent: Module,
-        name: String,
-        vararg val args: ATracer<R>
-): ATracer<R>(parent, name) {
-    private val tracers = ArrayList<ITracer<R>>(args.toList())
+class ComponentTracer<R: AGenericCore> constructor(parent: Module, name: String): ATracer<R>(parent, name) {
+    private val tracers = mutableListOf<ITracer<R>>()
 
-    fun addTracer(vararg newTracers: ITracer<R>): Boolean = tracers.addAll(newTracers)
-    fun removeTracer(tracer: ITracer<R>): Boolean = tracers.remove(tracer)
+    fun addTracer(vararg newTracers: ITracer<R>) =
+            tracers.addAll(newTracers).also { working = tracers.isNotEmpty() }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> = HashMap()
+    fun removeTracer(tracer: ITracer<R>) = tracers.remove(tracer).also { working = tracers.isNotEmpty() }
+
+    // Quite a strange serialization -> check required
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> = mapOf()
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) = Unit
 
-    override fun preExecute(core: R): Boolean = tracers.all { it.preExecute(core) }
-    override fun postExecute(core: R, status: Status): Boolean = tracers.all { it.postExecute(core, status) }
-    override fun onStart() = tracers.forEach { it.onStart() }
+    // Get the minimal status when executing, see TRACER_STATUS_STOP and other status
+    override fun preExecute(core: R): Long = tracers.minOf { it.preExecute(core) }
+    override fun postExecute(core: R, status: Status) = tracers.minOf { it.postExecute(core, status) }
+    override fun onStart(core: R) = tracers.forEach { it.onStart(core) }
     override fun onStop() = tracers.forEach { it.onStop() }
+
+    override fun reset() {
+        super.reset()
+        tracers.forEach { it.reset() }
+    }
+
+    init {
+        // disabled until subtracer added
+        working = false
+    }
 }

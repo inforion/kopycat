@@ -28,16 +28,16 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.arith
 import ru.inforion.lab403.common.extensions.ieee754
 import ru.inforion.lab403.kopycat.cores.mips.enums.COND
 import ru.inforion.lab403.kopycat.cores.mips.instructions.CcFsFtInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.FPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 
 class c_cond_s(
         core: MipsCore,
         data: Long,
-        fs: FPR,
-        ft: FPR,
+        fs: MipsRegister,
+        ft: MipsRegister,
         cc: MipsImmediate) : CcFsFtInsn(core, data, Type.VOID, fs, ft, cc) {
 
     override val mnem get() = "c.$cond.s".toLowerCase()

@@ -52,7 +52,7 @@ import java.util.logging.Level
 class CoherencyModule(parent: Module, name: String, startAddress: Long = 0xFF700000L) : Module(parent, name) {
 
     companion object {
-        val log = logger(Level.FINE)
+        @Transient val log = logger(Level.FINE)
     }
 
     val outdump = File("temp/outdump.txt")

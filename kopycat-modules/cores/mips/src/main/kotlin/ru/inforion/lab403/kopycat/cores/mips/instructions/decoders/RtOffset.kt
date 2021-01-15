@@ -31,8 +31,8 @@ import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ProcType
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -43,7 +43,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class RtOffset(
         core: MipsCore,
-        val construct: (MipsCore, Long, GPR, MipsDisplacement) -> AMipsInstruction,
+        val construct: (MipsCore, Long, MipsRegister, MipsDisplacement) -> AMipsInstruction,
         val dtyp: Datatype,
         val store: AccessAction,
         val type: ProcType = ProcType.CentralProc
@@ -53,8 +53,6 @@ class RtOffset(
         val rt = data[20..16].toInt()
         val offset = signext(data[15..0], n = 16)
         val base = data[25..21].toInt()
-        return construct(core, data,
-                GPR(rt),
-                MipsDisplacement(dtyp, base, offset))
+        return construct(core, data, gpr(rt), displ(dtyp, base, offset))
     }
 }

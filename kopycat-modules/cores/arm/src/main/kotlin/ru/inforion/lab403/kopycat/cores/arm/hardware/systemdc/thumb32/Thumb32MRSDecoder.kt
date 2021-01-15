@@ -32,7 +32,6 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
@@ -47,11 +46,11 @@ class Thumb32MRSDecoder(
                 rd: ARMRegister,
                 SYSm: Long) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
     override fun decode(data: Long): AARMInstruction {
-        val rd = GPRBank.Operand(data[11..8].asInt)
+        val rd = gpr(data[11..8].asInt)
         val SYSm = data[7..0]
         val uintsysm = UInt(SYSm, 32)
-        if(rd.reg in 13..15) throw Unpredictable
-        if(!((uintsysm in 0..3)||(uintsysm in 5..9)||(uintsysm == 16L)||(uintsysm == 20L))) throw Unpredictable
+        if (rd.desc.id in 13..15) throw Unpredictable
+        if (!((uintsysm in 0..3)||(uintsysm in 5..9)||(uintsysm == 16L)||(uintsysm == 20L))) throw Unpredictable
         return constructor(core, data, Condition.UN, rd, SYSm)
     }
 }

@@ -33,13 +33,12 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.modules.PIN
-import java.util.logging.Level
-import java.util.logging.Level.*
+import java.util.logging.Level.INFO
 import kotlin.properties.Delegates
 
 class LED(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        val log = logger(INFO)
+        @Transient val log = logger(INFO)
     }
 
     enum class STATE(val id: Int) {
@@ -62,9 +61,11 @@ class LED(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    var state by Delegates.observable(STATE.UNKNOWN) { _, old, new ->
-        if (old != new && core.clock.time() != 0L) log.info { stringify() }
-    }
+    var state = STATE.UNKNOWN
+        set(value) {
+            if (field != value && core.clock.time() != 0L) log.info { stringify() }
+            field = value
+        }
 
     override fun stringify(): String {
         val time = if (isCorePresent) core.clock.time() else -1

@@ -27,8 +27,8 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.WRONGL
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRsImmInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -40,8 +40,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class addiu(
         core: MipsCore,
         data: Long = WRONGL,
-        rt: GPR,
-        rs: GPR,
+        rt: MipsRegister,
+        rs: MipsRegister,
         imm: MipsImmediate) : RtRsImmInsn(core, data, Type.VOID, rt, rs, imm) {
 
     override val mnem = "addiu"

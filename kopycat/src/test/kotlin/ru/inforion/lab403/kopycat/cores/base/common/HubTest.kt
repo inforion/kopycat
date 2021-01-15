@@ -31,7 +31,7 @@ import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
-import ru.inforion.lab403.kopycat.device.TestCore
+import ru.inforion.lab403.kopycat.modules.cores.device.TestCore
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.common.Hub
 

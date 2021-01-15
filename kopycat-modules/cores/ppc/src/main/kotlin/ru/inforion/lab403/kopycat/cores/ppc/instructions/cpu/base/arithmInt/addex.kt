@@ -25,8 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.arithmInt
 
-import ru.inforion.lab403.common.extensions.toBool
-import ru.inforion.lab403.common.extensions.toInt
 import ru.inforion.lab403.common.extensions.toLong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
@@ -34,7 +32,6 @@ import ru.inforion.lab403.kopycat.cores.ppc.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCVariable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
 
 
 //Add extended

@@ -25,16 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
-import ru.inforion.lab403.kopycat.cores.mips.enums.Cause
 import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
-import ru.inforion.lab403.kopycat.cores.mips.enums.Status
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
+    // TODO: refactor to ARegisterBankNG-fields
     override fun processInterrupts() {
         super.processInterrupts()
 
@@ -44,20 +43,18 @@ class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
         val interrupt = pending(true)
         if (interrupt != null) {
             // Merge external interrupt with pending internal software interrupt (or required, see EMUKOT-106)
-            regs.Cause = regs.Cause or regs.Cause.insert(interrupt.cause.asULong, Cause.IP7.pos..Cause.IP0.pos)
+            regs.Cause.IP7_0 = interrupt.cause.asULong
             interrupt.onInterrupt()
         }
 
         // Interrupt taken only if these condition are true
         // see vol.3 MIPS32 (Rev. 0.95) Architecture (5.1)
-        val ip = regs.Cause[Cause.IP7.pos..Cause.IP0.pos]
-        val im = regs.Status[Status.IM7.pos..Status.IM0.pos]
         // log.config { "IP = %08X IM = %08X IRQ = %08X".format(ip, im, ip and im) }
-        if ((ip and im) != 0L &&
-                //      regs.Debug[Debug.DM.pos] == 0L &&
-                regs.Status[Status.IE.pos] == 1L &&
-                regs.Status[Status.EXL.pos] == 0L &&
-                regs.Status[Status.ERL.pos] == 0L) {
+        if ((regs.Cause.IP7_0 and regs.Status.IM7_0) != 0L
+//                && !regs.Debug.DM
+                && regs.Status.IE
+                && !regs.Status.EXL
+                && !regs.Status.ERL) {
             // Software and hardware interrupts both exceptions,
             // see vol.3 MIPS32 (Rev. 0.95) Architecture (5.2.23)
             throw MipsHardwareException.INT(core.pc, interrupt)
@@ -76,23 +73,22 @@ class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
         val isTlbRefillFlag = isTlbRefill(exception)
         if (isTlbRefillFlag) {
             exception as MipsHardwareException
-            val vAddr = exception.vAddr
-            regs.BadVAddr = vAddr
-            regs.EntryHi = regs.EntryHi.insert(vAddr[31..13], 31..13)
-            regs.Context = regs.Context.insert(vAddr[31..13], 22..4)
+            regs.BadVAddr.value = exception.vAddr
+            regs.EntryHi.VPN2 = exception.vpn2
+            regs.Context.BadVPN2 = exception.vpn2
         }
 
         // if StatusEXL = 0...
-        if (regs.Status[Status.EXL.pos] == 0L) {
+        if (!regs.Status.EXL) {
             if (core.cpu.branchCntrl.isDelaySlot) {
-                regs.Cause = setBit(regs.Cause, Cause.BD.pos)
-                regs.EPC = core.cpu.pc - 4
+                regs.Cause.BD = true
+                regs.EPC.value = core.cpu.pc - 4
             } else {
-                regs.Cause = clearBit(regs.Cause, Cause.BD.pos)
-                regs.EPC = core.cpu.pc
+                regs.Cause.BD = false
+                regs.EPC.value = core.cpu.pc
             }
 
-            val isInterruptPending = isInterrupt(exception) && regs.Cause[Cause.IV.pos] == 1L
+            val isInterruptPending = isInterrupt(exception) && regs.Cause.IV
 
             vectorOffset = when {
                 isTlbRefillFlag -> 0x000
@@ -104,15 +100,15 @@ class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
         }
 
         if (exception is MipsHardwareException && exception.excCode != ExcCode.INT)
-            setExcCode(exception.excCode as ExcCode)
+            regs.Cause.EXC = (exception.excCode as ExcCode).id
 
         // CauseCE <- FaultingCoprocessorNumber
         // CauseExcCode <- ExceptionType
         // StatusEXL <- 1
-        regs.Status = setBit(regs.Status, Status.EXL.pos)
+        regs.Status.EXL = true
 
         // if StatusBEV = 1 then ...
-        if (regs.Status[Status.BEV.pos] == 1L) {
+        if (regs.Status.BEV) {
             core.cpu.branchCntrl.setIp(0xBFC0_0200 + vectorOffset)
         } else {
             core.cpu.branchCntrl.setIp(0x8000_0000 + vectorOffset)

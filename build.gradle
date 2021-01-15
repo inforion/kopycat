@@ -2,23 +2,30 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
     id 'org.jetbrains.kotlin.jvm' apply false
-}
-
-allprojects {
-    repositories {
-        mavenCentral()
-        jcenter()
-        maven { url "https://jitpack.io" }
-    }
-
-    ext.kotlinx_version = "1.0.1"
+    id 'maven-publish'
 }
 
 subprojects {
-    afterEvaluate {
-        tasks.each { task ->
-            if (task instanceof Test) {
-                task.jvmArgs += ["-Xms2G", "-Xmx5G", "-XX:MaxDirectMemorySize=2g"]
+    if (childProjects.isEmpty()) {
+        beforeEvaluate {
+            repositories {
+                mavenLocal()
+                mavenCentral()
+                jcenter()
+                maven { url "https://jitpack.io" }
+            }
+        }
+
+        afterEvaluate {
+            tasks.findAll { it instanceof Test }.each { task ->
+                task.jvmArgs += [
+                        "-server",
+                        "-Xms2G",
+                        "-Xmx5G",
+                        "-XX:MaxDirectMemorySize=2g",
+                        "-XX:+UseParallelGC",
+                        "-XX:SurvivorRatio=6",
+                        "-XX:-UseGCOverheadLimit"]
 
                 task.testLogging {
                     events "passed", "skipped", "failed" //, "standardOut", "standardError"
@@ -32,14 +39,63 @@ subprojects {
                 }
             }
 
-            if (task instanceof KotlinCompile) {
-                task.kotlinOptions {
-                    jvmTarget = "11"
-                    apiVersion = "1.3"
-                    languageVersion = "1.3"
+            tasks.findAll { it instanceof KotlinCompile }.each { task ->
+                task.kotlinOptions { jvmTarget = "11" }
+            }
+
+            if (tasks.findByName("sourcesJar") == null) {
+                task sourcesJar(type: Jar, dependsOn: classes) {
+                    classifier = 'sources'
+                    from sourceSets.main.allSource
                 }
             }
 
+            publishing {
+                publications {
+                    "$name"(MavenPublication) {
+                        groupId = group
+                        artifactId = name
+                        version = version
+                        from components.kotlin
+                        artifact tasks.sourcesJar
+                    }
+                }
+            }
+
+            if (project.name != "proposal") {
+                dependencies {
+                    implementation project(":common:proposal")
+                }
+            }
+
+            dependencies {
+                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
+                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect'
+                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-test'
+                implementation group: 'org.jetbrains.kotlinx', name: 'kotlinx-coroutines-core', version: "1.3.9"
+
+                implementation group: 'com.github.inforion', name: 'kotlin-logging', version: '0.2.3'
+                implementation group: 'com.github.inforion', name: 'kotlin-extensions', version: '0.3.5'
+
+                implementation group: 'net.sourceforge.argparse4j', name: 'argparse4j', version: '0.8.1'
+                implementation group: 'com.fasterxml.jackson.module', name: 'jackson-module-kotlin', version: '2.11.3'
+                implementation group: 'net.sf.trove4j', name: 'trove4j', version: '3.0.3'
+                implementation group: 'joda-time', name: 'joda-time', version: '2.10.6'
+
+                testImplementation group: 'com.nhaarman', name: 'mockito-kotlin', version: '1.6.0'
+                testImplementation group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.19.0'
+
+                testImplementation group: 'junit', name: 'junit', version: '4.13'
+
+                testImplementation group: 'org.jetbrains.kotlin', name: 'kotlin-test-junit'
+                testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'
+                testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-engine', version: '5.6.2'
+                testImplementation group: 'org.assertj', name: 'assertj-core', version: '3.16.1'
+
+                // Enable use of the JUnitPlatform Runner within the IDE
+                testImplementation group: 'org.junit.platform', name: 'junit-platform-runner', version: '1.6.2'
+                testImplementation group: 'org.junit.vintage', name: 'junit-vintage-engine', version: '5.6.2'
+            }
         }
     }
 }

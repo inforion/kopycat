@@ -28,7 +28,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.convert
 import ru.inforion.lab403.common.extensions.ieee754
 import ru.inforion.lab403.common.extensions.toULong
 import ru.inforion.lab403.kopycat.cores.mips.instructions.FdFsInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.FPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -40,8 +40,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class cvt_s_d(
         core: MipsCore,
         data: Long,
-        fd: FPR,
-        fs: FPR
+        fd: MipsRegister,
+        fs: MipsRegister
 ) : FdFsInsn(core, data, Type.VOID, fd, fs) {
 
     override val mnem = "cvt.s.d"

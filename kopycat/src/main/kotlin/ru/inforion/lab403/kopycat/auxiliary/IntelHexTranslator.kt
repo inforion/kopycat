@@ -34,7 +34,7 @@ import java.util.logging.Level
 
 class IntelHexTranslator(val data: String, val offset: Int = 0x0) {
     companion object {
-        private val log = logger(Level.CONFIG)
+        @Transient private val log = logger(Level.CONFIG)
     }
 
     enum class RECORD_TYPE(val id: Int) {
@@ -72,7 +72,7 @@ class IntelHexTranslator(val data: String, val offset: Int = 0x0) {
                 val checksum = stream.readUnsignedByte()
                 if (verifyChecksum) {
                     var caclCksum = 0
-                    (0 until raw.size - 1).forEach { caclCksum -= raw[it] }
+                    repeat(raw.size - 1) { caclCksum -= raw[it] }
                     if (caclCksum.toByte() != checksum.toByte())
                         throw ParsingException("Checksum incorrect for $info (${caclCksum.toByte()} != ${checksum.toByte()})")
                 }

@@ -25,20 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system
 
-import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
-import ru.inforion.lab403.kopycat.cores.arm.enums.GPR
 import ru.inforion.lab403.kopycat.cores.arm.enums.ProcessorMode
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
-import ru.inforion.lab403.kopycat.cores.arm.hardware.registers.RegisterBanking
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegisterList
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
-
 
 
 // LDM (User registers), see B9.3.6
@@ -55,23 +50,29 @@ class LDMur(cpu: AARMCore,
     override val mnem = "LDM$mcnd"
 
     override fun execute() {
-        if (core.cpu.CurrentModeIsHyp())
-            throw ARMHardwareException.Undefined
-        else if (core.cpu.CurrentModeIsUserOrSystem())
-            throw ARMHardwareException.Unpredictable
-        else {
-            val length = 4 * registers.bitCount
-            var address = if (increment) rn.value(core) else rn.value(core) - length
-            if (wordhigher) address += 4
-            if (core.cpu.sregs.cpsr.m == ProcessorMode.fiq.id.toLong())
-                TODO("Write user regs from r8 to r12")
-            registers.forEachIndexed { _, reg ->
-                if (reg.reg < GPR.SPMain.id)
-                    reg.value(core, core.inl(address like Datatype.DWORD))
-                else
-                    /** Class [RegisterBanking] contains registers from r8 to lr */
-                    core.cpu.banking[ProcessorMode.usr.ordinal].write(reg.reg - 8, core.inl(address like Datatype.DWORD))
-                address += 4
+        when {
+            core.cpu.CurrentModeIsHyp() -> throw ARMHardwareException.Undefined
+            core.cpu.CurrentModeIsUserOrSystem() -> throw ARMHardwareException.Unpredictable
+            else -> {
+                val length = 4 * registers.count
+                var address = if (increment) rn.value(core) else rn.value(core) - length
+
+                if (wordhigher) address += 4
+
+                if (core.cpu.sregs.cpsr.m == ProcessorMode.fiq.id.toLong())
+                    TODO("Write user regs from r8 to r12")
+
+                registers.forEachIndexed { _, reg ->
+                    val value = core.inl(address like DWORD)
+
+                    // Class [RegistersBanking] contains registers from r8 to lr
+                    if (reg.desc.id < core.cpu.regs.sp.id)
+                        reg.value(core, value)
+                    else
+                        core.cpu.banking[ProcessorMode.usr.ordinal].write(reg.desc.id, value)
+
+                    address += 4
+                }
             }
         }
     }

@@ -30,6 +30,8 @@ import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegisterList
+import ru.inforion.lab403.kopycat.cores.arm.operands.isProgramCounter
+import ru.inforion.lab403.kopycat.cores.arm.operands.isStackPointer
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
@@ -47,13 +49,12 @@ class PUSH(cpu: AARMCore,
     override val mnem = "PUSH$mcnd"
 
     override fun execute() {
-        val sp = core.cpu.StackPointerSelect()
-        val newBaseValue = rn.value(core) - 4 * registers.bitCount
+        val newBaseValue = rn.value(core) - 4 * registers.count
         var address = newBaseValue
-        registers.forEachIndexed { i, reg ->
-            if (reg.reg == sp && i != registers.lowestSetBit) {  // SP
+        registers.forEach { reg ->
+            if (reg.isStackPointer(core) && reg != registers.lowest) {  // SP
                 throw ARMHardwareException.Unknown
-            } else if (reg.reg == core.cpu.regs.pc.reg) {  // PC
+            } else if (reg.isProgramCounter(core)) {  // PC
                 if (core.cpu.UnalignedSupport()) {
                     core.outl(address like Datatype.DWORD, core.cpu.PCStoreValue())
                 } else {

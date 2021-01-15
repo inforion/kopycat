@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
 
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.GPR
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -36,7 +36,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class jrhb(
         core: MipsCore,
         data: Long,
-        rs: GPR) : RsInsn(core, data, Type.IND_JUMP, rs) {
+        rs: MipsRegister) : RsInsn(core, data, Type.IND_JUMP, rs) {
 
     override val mnem = "jr.hb"
 
