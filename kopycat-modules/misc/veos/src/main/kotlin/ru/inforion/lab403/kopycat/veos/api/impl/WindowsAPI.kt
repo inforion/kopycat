@@ -33,16 +33,21 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.*
+import ru.inforion.lab403.kopycat.veos.api.annotations.APIFunc
+import ru.inforion.lab403.kopycat.veos.api.datatypes.LongLong
+import ru.inforion.lab403.kopycat.veos.api.datatypes.VaList
+import ru.inforion.lab403.kopycat.veos.api.format.charArrayPointer
+import ru.inforion.lab403.kopycat.veos.api.format.vsprintfMain
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 import ru.inforion.lab403.kopycat.veos.api.misc.*
-import ru.inforion.lab403.kopycat.veos.deferred.DeferredOperation
+import ru.inforion.lab403.kopycat.veos.api.pointers.CharPointer
+import ru.inforion.lab403.kopycat.veos.api.pointers.IntPointer
 import ru.inforion.lab403.kopycat.veos.exceptions.InvalidArgument
 import ru.inforion.lab403.kopycat.veos.filesystems.impl.FileSystem
 import ru.inforion.lab403.kopycat.veos.ports.stdc.FILE
 import ru.inforion.lab403.kopycat.veos.ports.windows.ProcessorFeature
-import java.util.ArrayList
 
 
- 
 class WindowsAPI(os: VEOS<*>) : API(os) {
 
     companion object {

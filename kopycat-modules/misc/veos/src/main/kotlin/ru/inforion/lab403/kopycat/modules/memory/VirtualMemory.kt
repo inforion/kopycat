@@ -35,13 +35,15 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.FETCH
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.serializer.deserializePrimitive
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import java.nio.ByteOrder
-import java.nio.ByteOrder.*
+import java.nio.ByteOrder.BIG_ENDIAN
+import java.nio.ByteOrder.LITTLE_ENDIAN
 
 
 class VirtualMemory constructor(
@@ -57,6 +59,8 @@ class VirtualMemory constructor(
     }
 
     private var shareCount = 1
+
+    val isUnused get() = shareCount == 0
 
     fun share() {
         ++shareCount

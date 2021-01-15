@@ -61,18 +61,16 @@ object KopycatStarter {
         return if (optional != null) "$default,$optional" else default
     }
 
-    private fun console(kopycat: Kopycat, opts: Options): AConsole {
-        if (opts.kts) {
-            val console = Kotlin(kopycat)
-            if (console.initialized()) return console
-        } else {
-            log.warning { "Use -kts option to enable Kotlin console" }
-        }
+    private fun console(kopycat: Kopycat, opts: Options): AConsole = if (opts.kts) {
+        Kotlin(kopycat)
+                .takeIf { it.initialized() }
+                .sure { "-kts option specified but Kotlin console can't be initialized!" }
+    } else {
+        log.warning { "Use -kts option to enable Kotlin console. In the next version Kotlin console will be default." }
 
-        val console = Python(kopycat, opts.python)
-        if (console.initialized()) return console
-
-        return Argparse(kopycat)
+        Python(kopycat, opts.python).takeIf { it.initialized() }
+                ?: Kotlin(kopycat).takeIf { it.initialized() }
+                ?: Argparse(kopycat)
     }
 
     @JvmStatic
@@ -131,7 +129,7 @@ object KopycatStarter {
             kopycat.start()
 
         if (opts.standalone) {
-            log.info { "Standalone mode is activated" }
+            // log.info { "Standalone mode is activated" }
             kopycat.start { exitProcess(0) } // TODO: get from guest
         }
 

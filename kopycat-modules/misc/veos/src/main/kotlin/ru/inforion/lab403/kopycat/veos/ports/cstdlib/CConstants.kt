@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.veos.ports.cstdlib
 
 
-
 // From Glibc sources
 const val BUFSIZ = 8192
 const val EOF = -1

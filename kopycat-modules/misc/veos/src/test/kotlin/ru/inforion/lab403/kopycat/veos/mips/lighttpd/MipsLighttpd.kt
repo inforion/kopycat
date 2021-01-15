@@ -75,7 +75,7 @@ internal class MipsLighttpd {
         val kopycat = Kopycat(null).also { it.open(top, false, null) }
 
         var socket: Socket? = null
-        val data = "GET / HTTP/1.1\r\n${"Connection: keep-alive\r\n"*2} ${"a"*128}\r\n\r\n".toByteArray(ISO_8859_1)
+        val data = "GET / HTTP/1.1\r\n${"Connection: keep-alive\r\n"*2} ${"a"*128}\r\n\r\n".convertToBytes()
         kopycat.run { step, core ->
             if (core.pc == fdeventPollAddress && socket == null) {
                 val tcpSocket = top.veos.network.socketByPort(80)
@@ -97,7 +97,7 @@ internal class MipsLighttpd {
         val kopycat = Kopycat(null).also { it.open(top, false, null) }
 
         var socket: Socket? = null
-        val data = "GET / HTTP/1.0\r\n\r\n".toByteArray(ISO_8859_1)
+        val data = "GET / HTTP/1.0\r\n\r\n".convertToBytes()
         var found = false
         kopycat.run { step, core ->
             if (core.pc == fdeventPollAddress && socket == null) {
@@ -112,7 +112,7 @@ internal class MipsLighttpd {
             if (socket != null) {
                 val inputStream = socket!!.inputStream
                 if (inputStream.available() > 1000) { // To receive body of response
-                    val response = String(inputStream.readNBytes(inputStream.available()), ISO_8859_1)
+                    val response = inputStream.readNBytes(inputStream.available()).convertToString()
                     log.info { response }
                     assertTrue { response.startsWith(httpOk) }
                     found = true
@@ -147,7 +147,7 @@ internal class MipsLighttpd {
         kopycat.restore()
 
         val acceptor = (top.veos.network.getVirtualSocketByName("server") as PseudoSocketFile).control.acceptor(1234)
-        acceptor.control.append("GET / HTTP/1.0\r\n\r\n".toByteArray(ISO_8859_1))
+        acceptor.control.append("GET / HTTP/1.0\r\n\r\n".convertToBytes())
 
         kopycat.run { step, core ->
             step < maxStepsCount && core.pc != connectionCloseAddress
@@ -155,6 +155,6 @@ internal class MipsLighttpd {
 
         assertEquals(connectionCloseAddress, kopycat.pcRead())
         assertFalse { kopycat.hasException() }
-        assertTrue { String(acceptor.control.get(), ISO_8859_1).startsWith(httpOk) } // TODO: bug: too early access
+        assertTrue { acceptor.control.get().convertToString().startsWith(httpOk) } // TODO: bug: too early access
     }
 }

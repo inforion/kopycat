@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.veos.kernel
 
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 
+
 class Symbol constructor(
         val name: String,
         var address: Long = 0L,

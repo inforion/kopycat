@@ -26,12 +26,10 @@
 package ru.inforion.lab403.kopycat.veos.ports.stdc
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith.add
-import ru.inforion.lab403.kopycat.veos.api.misc.StructPointer
+import ru.inforion.lab403.kopycat.veos.api.pointers.StructPointer
 import ru.inforion.lab403.kopycat.veos.filesystems.impl.FileSystem
 import ru.inforion.lab403.kopycat.veos.kernel.System
 import ru.inforion.lab403.kopycat.veos.ports.cstdlib.EOF
-
 
 
 class FILE constructor(sys: System, address: Long) : StructPointer(sys, address) {

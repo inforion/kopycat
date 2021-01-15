@@ -29,23 +29,33 @@ import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.memory.VirtualMemory
-import ru.inforion.lab403.kopycat.veos.api.impl.PosixAPI
-import ru.inforion.lab403.kopycat.veos.api.impl.StdioAPI
-import ru.inforion.lab403.kopycat.veos.api.impl.StdlibAPI
-import ru.inforion.lab403.kopycat.veos.api.impl.StringAPI
-import ru.inforion.lab403.kopycat.veos.kernel.Process
+import ru.inforion.lab403.kopycat.veos.api.impl.*
 import ru.inforion.lab403.kopycat.veos.loader.UnixOsLoader
 import ru.inforion.lab403.kopycat.veos.ports.posix.PosixThread
 
-class UnixVEOS<C: AGenericCore>(parent: Module, name: String, bus: Long = BUS32): VEOS<C>(parent, name, bus) {
+
+class UnixVEOS<C : AGenericCore>(parent: Module, name: String, bus: Long = BUS32) : VEOS<C>(parent, name, bus) {
     override val loader = UnixOsLoader(this)
 
     override fun initialize(): Boolean {
         if (!super.initialize())
             return false
-        addApi(StdioAPI(this),
+        addApi(ELFAPI(this),
+                StdioAPI(this),
                 StdlibAPI(this),
                 StringAPI(this),
+                ErrnoAPI(this),
+                LocaleAPI(this),
+                TimeAPI(this),
+                CXXAPI(this),
+                DLAPI(this),
+                PThreadAPI(this),
+                WcharAPI(this),
+                DirentAPI(this),
+                SignalAPI(this),
+                StatAPI(this),
+                PwdAPI(this),
+                GrpAPI(this),
                 PosixAPI(this))
         return true
     }

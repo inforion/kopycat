@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
 import ru.inforion.lab403.common.extensions.asUInt
 import ru.inforion.lab403.common.extensions.asULong
-import ru.inforion.lab403.kopycat.veos.loader.peloader.skip
 import ru.inforion.lab403.kopycat.veos.loader.peloader.string
 import ru.inforion.lab403.kopycat.veos.loader.peloader.structs.PECharacteristic
 import ru.inforion.lab403.kopycat.veos.loader.peloader.structs.PESection

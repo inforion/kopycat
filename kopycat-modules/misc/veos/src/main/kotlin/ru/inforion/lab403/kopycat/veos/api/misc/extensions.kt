@@ -33,28 +33,21 @@ import ru.inforion.lab403.kopycat.veos.exceptions.InvalidArgument
 import ru.inforion.lab403.kopycat.veos.exceptions.io.*
 import ru.inforion.lab403.kopycat.veos.ports.posix.PosixError
 
-
-
-val CharArray.charArrayPointer get() = CharArrayPointer(this)
-
-fun Exception.toStdCErrno(where: Long): PosixError {
-    // TODO: sort by posix error
-    // TODO: add posix error codes to exceptions as it's property?
-    return when (this) {
-        // If we got memory access error, then throw it because it is not usual for normal programs
-        is MemoryAccessError -> throw this // PosixError.EFAULT
-        is IONotAppropriateDevice -> PosixError.ENOTTY
-        is IONotConnected -> PosixError.ENOTCONN
-        is IOConnectionAborted -> PosixError.ECONNABORTED
-        is IONotReadyError -> PosixError.EAGAIN
-        is IONotFoundError -> PosixError.EBADF
-        is IONotSocket -> PosixError.ENOTSOCK
-        is IOAddressInUse -> PosixError.EADDRINUSE
-        is IOOperationNotSupported -> PosixError.EOPNOTSUPP
-        is InvalidArgument -> PosixError.EINVAL
-        is IONoSuchFileOrDirectory -> PosixError.ENOENT
-        is BadAddressException -> PosixError.EFAULT
-        is IOFileExists -> PosixError.EEXIST
-        else -> throw CantDecodeVeosError("[0x${where.hex8}] Unknown exception = $this")
-    }
+// TODO: sort by posix error
+fun Exception.toStdCErrno(where: Long) = when (this) {
+    // If we got memory access error, then throw it because it is not usual for normal programs
+    is MemoryAccessError -> throw this // PosixError.EFAULT
+    is BadAddressException -> PosixError.EFAULT
+    is IONotAppropriateDevice -> PosixError.ENOTTY
+    is IONotConnected -> PosixError.ENOTCONN
+    is IOConnectionAborted -> PosixError.ECONNABORTED
+    is IONotReadyError -> PosixError.EAGAIN
+    is IONotFoundError -> PosixError.EBADF
+    is IONotSocket -> PosixError.ENOTSOCK
+    is IOAddressInUse -> PosixError.EADDRINUSE
+    is IOOperationNotSupported -> PosixError.EOPNOTSUPP
+    is InvalidArgument -> PosixError.EINVAL
+    is IONoSuchFileOrDirectory -> PosixError.ENOENT
+    is IOFileExists -> PosixError.EEXIST
+    else -> throw CantDecodeVeosError("[0x${where.hex8}] Unknown exception = $this")
 }

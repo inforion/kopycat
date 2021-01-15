@@ -33,7 +33,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ComponentTracer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
-import ru.inforion.lab403.kopycat.cores.x86.x86ABI
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.modules.cores.MipsDebugger
@@ -45,7 +44,7 @@ import ru.inforion.lab403.kopycat.veos.UnixVEOS
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIResult
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue

@@ -557,6 +557,15 @@ fun <R, T> deserializeSpecialProperty(ctxt: GenericSerializer, snapshot: Any, re
                     (value as Array<Any?>)[i] = deserializeItem(ctxt, it as Map<String, Any>, i.toString())
                 }
             }
+            is ArrayList<*> -> {
+                value.clear()
+                value.addAll((snapshot as Iterable<*>).mapIndexed { i, it ->
+                    deserializeItem(ctxt, it as Map<String, Any>, i.toString())
+                } as Iterable<Nothing>)
+            }
+            is List<*>, is Set<*> -> {
+                // is immutable collection and so we don't need to deserialize it
+            }
             is MutableCollection<*> -> {
                 value.clear()
                 value.addAll((snapshot as Iterable<*>).mapIndexed { i, it ->

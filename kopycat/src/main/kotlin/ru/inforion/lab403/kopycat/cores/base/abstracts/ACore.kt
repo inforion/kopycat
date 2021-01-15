@@ -220,7 +220,7 @@ abstract class ACore<
 
             is DecoderException -> log.warning { explain(exception, "instruction decoding error...") }
 
-            is UnsupportedInstruction -> log.warning { explain(exception, "unsupported instruction found...") }
+            is UnsupportedInstructionException -> log.warning { explain(exception, "unsupported instruction found...") }
 
             else -> log.warning { explain(exception, "unknown exception passed to debugger...") }
         }

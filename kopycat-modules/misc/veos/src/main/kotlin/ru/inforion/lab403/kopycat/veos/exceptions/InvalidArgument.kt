@@ -26,5 +26,4 @@
 package ru.inforion.lab403.kopycat.veos.exceptions
 
 
- 
 class InvalidArgument : Exception()

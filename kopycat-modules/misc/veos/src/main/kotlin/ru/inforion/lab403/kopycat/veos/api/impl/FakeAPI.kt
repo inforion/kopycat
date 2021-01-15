@@ -27,9 +27,9 @@ package ru.inforion.lab403.kopycat.veos.api.impl
 
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.veos.VEOS
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIResult
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 
 
 class FakeAPI(os: VEOS<*>): API(os) {

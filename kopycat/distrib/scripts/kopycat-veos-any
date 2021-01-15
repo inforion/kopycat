@@ -6,17 +6,13 @@ error_exit()
   exit 1
 }
 
-SCRIPT=$(basename "$0")
-EXEC=$1
-ARGS="${@:2}"
+ARCH=$1
+EXEC=$2
+ARGS="${@:3}"
 
 if [ -z "$EXEC" ]; then
   error_exit "Input executable as first argument isn't specified"
 fi
-
-# Get architecture to choose right module to run
-
-ARCH="$(cut -d '-' -f3 <<< "$SCRIPT")"
 
 case $ARCH in
 "arm")

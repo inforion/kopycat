@@ -72,7 +72,6 @@ class ARMABI(core: AARMCore, bigEndian: Boolean): ABI<AARMCore>(core, 32, bigEnd
         val alignedIndex = if (type.bits > bits) alignedLongIndex(realIndex) else realIndex
         return if (alignedIndex < regArguments.size) {
             if (type.bits > bits) {
-
                 argOffset++
                 if (index == 1)
                     argOffset++
@@ -80,12 +79,12 @@ class ARMABI(core: AARMCore, bigEndian: Boolean): ABI<AARMCore>(core, 32, bigEnd
                 val low = instance.readRegister(regArguments[alignedIndex])
                 val high = instance.readRegister(regArguments[alignedIndex + 1])
                 (high shl 32) or low
-            }
-            else
+            } else {
                 instance.readRegister(regArguments[alignedIndex]) like type
-        }
-        else
+            }
+        } else {
             instance.readStack(stackArgsOffset + (realIndex - regArguments.size) * alignment, type)
+        }
     }
 
     override fun getArgs(args: Iterable<Datatype>, instance: ABIBase): Array<Long> {

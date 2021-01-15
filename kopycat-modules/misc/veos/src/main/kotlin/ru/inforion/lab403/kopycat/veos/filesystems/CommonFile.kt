@@ -26,6 +26,8 @@
 package ru.inforion.lab403.kopycat.veos.filesystems
 
 import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.toFile
+import ru.inforion.lab403.common.proposal.attributes
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IOFileExists
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONoSuchFileOrDirectory
@@ -33,6 +35,11 @@ import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotFoundError
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import java.io.File
 import java.io.RandomAccessFile
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.attribute.PosixFileAttributes
+
 
 class CommonFile(val path: String, private val flags: AccessFlags) : IRandomAccessFile {
 
@@ -90,4 +97,6 @@ class CommonFile(val path: String, private val flags: AccessFlags) : IRandomAcce
             file.close()
         }
     }
+
+    override fun attributes() = path.toFile().attributes()
 }

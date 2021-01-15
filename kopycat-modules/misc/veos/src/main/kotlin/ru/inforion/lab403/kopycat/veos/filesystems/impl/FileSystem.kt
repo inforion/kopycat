@@ -31,18 +31,24 @@ import ru.inforion.lab403.common.extensions.isNotTraverseDirectory
 import ru.inforion.lab403.common.extensions.toFile
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.attributes
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
+import ru.inforion.lab403.kopycat.veos.exceptions.io.IONoSuchFileOrDirectory
 import ru.inforion.lab403.kopycat.veos.filesystems.*
 import ru.inforion.lab403.kopycat.veos.filesystems.AccessFlags.Companion.toAccessFlags
-import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IBasicFile
-import java.io.File
-import kotlin.collections.set
+import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import ru.inforion.lab403.kopycat.veos.kernel.System
-import java.lang.IllegalStateException
+import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.attribute.PosixFileAttributes
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.set
 
 
 class FileSystem(val sys: System): IAutoSerializable {
@@ -108,6 +114,11 @@ class FileSystem(val sys: System): IAutoSerializable {
     fun file(fd: Int): IRandomAccessFile {
         log.fine { "Requested fd = $fd as IRandomAccessFile" }
         return sys.ioSystem.descriptor(fd) as IRandomAccessFile
+    }
+
+    fun dir(fd: Int): CommonDirectory {
+        log.fine { "Requested fd = $fd as CommonDirectory" }
+        return sys.ioSystem.descriptor(fd) as CommonDirectory
     }
 
     // safe function for use in posix layer
@@ -177,9 +188,20 @@ class FileSystem(val sys: System): IAutoSerializable {
 
     fun isDirectory(path: String) = concatPath(path).isDirectory // TODO: virtual files
 
+    fun listDir(path: String) = concatPath(path).list() ?: throw IONoSuchFileOrDirectory(path)
+
     fun fileSize(path: String): Long {
         val file = concatPath(path)
         return if (!file.exists() || !file.isFile) -1L else file.length()
+    }
+
+    fun attributes(path: String): PosixFileAttributes {
+        val file = concatPath(path)
+        try {
+            return file.attributes()
+        } catch (error: IOException) {
+            throw IONoSuchFileOrDirectory(path)
+        }
     }
 
     fun reset() {
@@ -205,7 +227,9 @@ class FileSystem(val sys: System): IAutoSerializable {
         return sys.ioSystem.register(dir).also { dir.open(it) }
     }
 
-    fun closeDir(pdesc: Int): Int = TODO("not implemented")
+    fun readDir(fd: Int) = dir(fd).next()
+
+    fun closeDir(fd: Int) = sys.ioSystem.close(fd)
 
     fun tempFilename(): String {
         for (i in 0 until 1024) {

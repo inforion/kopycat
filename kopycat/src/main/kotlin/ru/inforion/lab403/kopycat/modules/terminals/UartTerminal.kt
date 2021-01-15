@@ -40,8 +40,8 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.IGNO
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareNotReadyException
 import ru.inforion.lab403.kopycat.modules.*
-import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.io.Serializable
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
@@ -124,14 +124,12 @@ open class UartTerminal(
         private val logBufferTx = LoggingBuffer(name, "send")
         private val logBufferRx = LoggingBuffer(name, "recv")
 
-        override fun beforeRead(from: MasterPort, ea: Long): Boolean = terminalReceiveEnabled && !rxUnderflow
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = terminalTransmitEnabled && !txOverflow
+        override fun beforeRead(from: MasterPort, ea: Long) = terminalReceiveEnabled
+        override fun beforeWrite(from: MasterPort, ea: Long, value: Long) = terminalTransmitEnabled
 
         override fun read(ea: Long, ss: Int, size: Int): Long {
-            // Небольшой gap на всякий случай, должен быть не null, так как читать этот регистр можно
-            // только если выставлен флаг в ISR-регистре, что в RDR что-то есть
             val byte = rxBuffer.poll(10, TimeUnit.MILLISECONDS)
-                    ?: throw GeneralException("UART[$name] reading empty UART -> something went totally wrong...")
+                    ?: throw HardwareNotReadyException(core.pc, "UART[$name] reading empty UART -> rxBuffer underflow")
 
             log.finest { "UART[$name] receive byte ${byte.toChar()}[${byte.hex2}]" }
 
@@ -147,10 +145,11 @@ open class UartTerminal(
             logBufferTx.add(value.asByte)
 
             log.finest { "UART[$name] transmit bytes ${value.toChar()}[${value.hex2}]" }
-            // Небольшой gap на всякий случай, offer должен вернуть true, так как писать этот регистр можно
-            // только если выставлен флаг в ISR-регистре, что в TDR передача завершена
+
             if (!txBuffer.offer(value.asByte, 10, TimeUnit.MILLISECONDS))
-                throw GeneralException("UART[$name] writing full UART -> something went totally wrong...")
+                throw HardwareNotReadyException(core.pc, "UART[$name] writing full UART -> txBuffer overflow")
+
+            dataTransmittedRequest()
         }
 
         override fun reset() {
@@ -204,10 +203,7 @@ open class UartTerminal(
             runCatching {
                 while (uartTerminalEnabled and terminalTransmitEnabled) {
                     val byte = txBuffer.poll(1000, TimeUnit.MILLISECONDS)
-                    if (byte != null) {
-                        onByteTransmitReady(byte)
-                        dataTransmittedRequest()
-                    }
+                    if (byte != null) onByteTransmitReady(byte)
                 }
                 log.finer { "$this finished main loop" }
             }.onFailure {

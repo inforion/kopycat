@@ -139,7 +139,7 @@ internal class stm32f042Tests {
     }
 
     /**
-     * {EN}  {EN}
+     * {EN} Checks USART working under FreeRTOS {EN}
      */
     @Test
     fun freertos_uart() {

@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.veos.kernel
 
 import org.junit.Test
+import ru.inforion.lab403.common.extensions.convertToString
 import ru.inforion.lab403.common.extensions.div
 import ru.inforion.lab403.common.extensions.getResourceUrl
 import ru.inforion.lab403.common.extensions.times
@@ -49,7 +50,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 
- 
+
 internal class StdioTest {
 
     companion object {
@@ -61,38 +62,33 @@ internal class StdioTest {
         val pathToExecutable = "stdio" / extension / executable
         val root = getResourceUrl(pathToExecutable).toURI().resolve(".").path
 
-        val top = ARMApplication(
-                null,
-                "top",
-                root,
-                executable,
-        )
+        val top = ARMApplication(null, "top", root, executable)
+
         VirtualMemory.log.level = INFO
         val kopycat = Kopycat(null).also { it.open(top, false, null) }
         top.veos.ioSystem.close(FileSystem.STDOUT_INDEX)
         val stream = ByteArrayOutputStream(100 * 1024)
         top.veos.ioSystem.reserve(StreamFile(stream), FileSystem.STDOUT_INDEX)
 
-        kopycat.run { step, core ->
-            true
-        }
+        kopycat.run { step, core -> true }
 
-        val data = String(stream.toByteArray(), Charsets.ISO_8859_1).split("\n").filter { it.isNotEmpty() }
         var failed = false
-        data.forEach {
-            if (it.startsWith("[")) {
-                log.fine { it }
+
+        stream.toByteArray()
+            .convertToString()
+            .lines().filter { it.isNotEmpty() }
+            .forEach {
+                if (it.startsWith("[")) {
+                    log.fine { it }
+                } else {
+                    log.severe { it }
+                    failed = true
+                }
             }
-            else {
-                log.severe { it }
-                failed = true
-            }
-        }
 
         assertTrue { top.veos.state == VEOS.State.Exit }
         assertFalse(failed)
     }
-
 
     @Test fun fopenARMTests() = runTest("fopen.arm")
     @Test fun fcloseARMTests() = runTest("fclose.arm")

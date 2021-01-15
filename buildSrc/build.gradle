@@ -23,7 +23,7 @@ dependencies {
     implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
 
-    implementation group: 'com.github.inforion', name: 'kotlin-extensions', version: '0.3.4'
+    implementation group: 'com.github.inforion', name: 'kotlin-extensions', version: '0.3.5'
 
     testImplementation group: 'junit', name: 'junit', version: '4.13'
     testImplementation group: 'org.junit.jupiter', name: 'junit-jupiter-api', version: '5.6.2'

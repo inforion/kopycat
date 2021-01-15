@@ -29,8 +29,8 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotFoundError
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotReadyError
+import ru.inforion.lab403.kopycat.veos.filesystems.StandardStreamFile
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IBasicFile
-import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IBasicDirectory
 import ru.inforion.lab403.kopycat.veos.kernel.IdAllocator
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
@@ -75,6 +75,8 @@ class IOSystem(val sys: System): IAutoSerializable {
     fun find(predicate: (IBasicFile) -> Boolean) = openedFiles.values.find { predicate(it) }
 
     fun isOpen(fd: Int) = fd in openedFiles
+
+    fun isTerm(fd: Int) = descriptor(fd) is StandardStreamFile
 
     fun isNonBlocking(fd: Int) = fd in nonBlockingFiles
 

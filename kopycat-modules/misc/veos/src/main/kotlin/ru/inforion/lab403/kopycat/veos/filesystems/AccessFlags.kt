@@ -25,10 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems
 
-import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.veos.exceptions.InvalidArgument
-import java.io.Serializable
 
 data class AccessFlags(
         var readable: Boolean = false,

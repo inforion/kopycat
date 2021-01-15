@@ -30,7 +30,8 @@ import ru.inforion.lab403.common.extensions.asUInt
 import ru.inforion.lab403.common.extensions.convertToBytes
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
-import java.io.Serializable
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.PosixFileAttributes
 
 interface IBasicFile: IAutoSerializable, IConstructorSerializable {
     fun open(fd: Int) = Unit
@@ -52,4 +53,6 @@ interface IBasicFile: IAutoSerializable, IConstructorSerializable {
     fun readable() = true
 
     fun writable() = true
+
+    fun attributes(): PosixFileAttributes = throw NotImplementedError("attributes() not implemented for $this")
 }

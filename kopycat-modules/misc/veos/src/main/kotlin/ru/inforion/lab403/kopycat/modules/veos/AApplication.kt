@@ -35,6 +35,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.veos.VEOS
 
+
 abstract class AApplication <C: AGenericCore, T: VEOS<C>>(
         parent: Module?,
         name: String,

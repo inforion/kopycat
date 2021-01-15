@@ -36,6 +36,7 @@ import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.ISocketFile
 import ru.inforion.lab403.kopycat.veos.kernel.System
 import java.net.InetSocketAddress
 
+
 class SocketSystem(val sys: System): IAutoSerializable {
 
     companion object {

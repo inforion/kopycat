@@ -26,17 +26,20 @@
 package ru.inforion.lab403.kopycat.veos.api.impl
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.CONFIG
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunc
+import ru.inforion.lab403.kopycat.veos.api.annotations.APIFunc
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIResult
-import ru.inforion.lab403.kopycat.veos.api.misc.BytePointer
-import ru.inforion.lab403.kopycat.veos.api.misc.FunctionPointer
-import ru.inforion.lab403.kopycat.veos.api.misc.VoidPointer
-import ru.inforion.lab403.kopycat.veos.api.misc.size_t
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
+import ru.inforion.lab403.kopycat.veos.api.pointers.BytePointer
+import ru.inforion.lab403.kopycat.veos.api.pointers.FunctionPointer
+import ru.inforion.lab403.kopycat.veos.api.pointers.VoidPointer
+import ru.inforion.lab403.kopycat.veos.api.datatypes.size_t
 import ru.inforion.lab403.kopycat.veos.ports.posix.nullptr
 
 /**
@@ -112,6 +115,10 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
         TODO: lldiv_t  - Structure returned by lldiv
         TODO: size_t - Unsigned integral type
      */
+
+    companion object {
+        @Transient val log = logger(CONFIG)
+    }
 
     // --- String conversion ---
     // http://www.cplusplus.com/reference/cstdlib/atof/
@@ -216,7 +223,8 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
 
     // TODO: not tested
     // http://www.cplusplus.com/reference/cstdlib/calloc/
-    @APIFunc fun calloc(num: size_t, size: size_t): VoidPointer {
+    @APIFunc
+    fun calloc(num: size_t, size: size_t): VoidPointer {
         log.finest { "[0x${ra.hex8}] calloc(num=$num size=$size)" }
         val address = sys.allocateClean((num * size).toInt())
         return VoidPointer(sys, address)
@@ -224,7 +232,8 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
 
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstdlib/free/
-    @APIFunc fun free(ptr: VoidPointer) {
+    @APIFunc
+    fun free(ptr: VoidPointer) {
         log.finest { "[0x${ra.hex8}] free(ptr=0x$ptr)" }
 
         // REVIEW: Different exception
@@ -236,7 +245,8 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     // REVIEW: exception operating
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstdlib/malloc/
-    @APIFunc fun malloc(size: size_t): VoidPointer {
+    @APIFunc
+    fun malloc(size: size_t): VoidPointer {
         log.finest { "[0x${ra.hex8}] malloc(size=$size)" }
         val address = sys.allocate(size.toInt())
         return VoidPointer(sys, address)
@@ -244,7 +254,8 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
 
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstdlib/realloc/
-    @APIFunc fun realloc(ptr: VoidPointer, size: size_t): VoidPointer {
+    @APIFunc
+    fun realloc(ptr: VoidPointer, size: size_t): VoidPointer {
         log.finest { "[0x${ra.hex8}] realloc(ptr=$ptr size=$size)" }
 
         if (size.equals(0)) {
@@ -256,13 +267,13 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
 
         if (ptr.isNotNull) {
             val oldSize = sys.allocatedBlockSize(ptr.address) // REVIEW: rename function
-            var oldData = sys.fullABI.readBytes(ptr.address, oldSize)
+            var oldData = sys.abi.readBytes(ptr.address, oldSize)
             sys.free(ptr.address)
 
             if (oldSize > size.toInt())
                 oldData = oldData.copyOfRange(0, size.toInt())
 
-            sys.fullABI.writeBytes(address, oldData)
+            sys.abi.writeBytes(address, oldData)
         }
 
         return VoidPointer(sys, address)
@@ -320,7 +331,8 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
 
     // TODO: convert to new API
     // http://www.cplusplus.com/reference/cstdlib/qsort/
-    @APIFunc fun qsort(ptr: BytePointer, count: Int, size: Int, comp: FunctionPointer) = /* void */
+    @APIFunc
+    fun qsort(ptr: BytePointer, count: Int, size: Int, comp: FunctionPointer) = /* void */
             withCallback(ptr.address, count.asULong, size.asULong, comp.address) {
                 log.config { "[0x${ra.hex8}] qsort(ptr=$ptr count=${count.hex8} size=${size.hex8} comp=$comp)" }
                 val addresses = List(count) { ptr.address + it * size }

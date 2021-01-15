@@ -26,10 +26,11 @@
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
-
 
 
 abstract class ABI<T: AGenericCore> constructor(
@@ -37,7 +38,6 @@ abstract class ABI<T: AGenericCore> constructor(
         bits: Int,
         bigEndian: Boolean,
         types: Types = Types.default): ABIBase(bits, bigEndian, types) {
-
 
     abstract val pc: ARegister<T>   // program counter register
     abstract val sp: ARegister<T>   // stack pointer register
@@ -77,18 +77,17 @@ abstract class ABI<T: AGenericCore> constructor(
     override fun writeRegister(index: Int, value: Long) = register(index).value(core, value)
 
     override fun readStack(offset: Long, type: Datatype) =
-            core.cpu.ports.mem.read(type, stackPointerValue + offset, segmentSelector)
+            core.read(type, stackPointerValue + offset, segmentSelector)
 
     override fun writeStack(offset: Long, type: Datatype, value: Long) =
-            core.cpu.ports.mem.write(type, stackPointerValue + offset, value, segmentSelector)
-
+            core.write(type, stackPointerValue + offset, value, segmentSelector)
 
     /**
      * {RU}
      * Запись массива байт [data] в память по адресу [address]
      * {RU}
      */
-    open fun writeBytes(address: Long, data: ByteArray) { core.store(address, data) }
+    fun writeBytes(address: Long, data: ByteArray) = run { core.store(address, data) }
 
     /**
      * {RU}
@@ -96,14 +95,14 @@ abstract class ABI<T: AGenericCore> constructor(
      * @return массив байт
      * {RU}
      */
-    open fun readBytes(address: Long, size: Int): ByteArray = core.load(address, size)
+    fun readBytes(address: Long, size: Int) = core.load(address, size)
 
     /**
      * {RU}
      * Запись значения [value] типа [type] в память по адресу [address]
      * {RU}
      */
-    fun writeMemory(address: Long, value: Long, type: Datatype) { core.write(type, address, value) }
+    fun writeMemory(address: Long, value: Long, type: Datatype) = run { core.write(type, address, value) }
 
     /**
      * {RU}
@@ -118,7 +117,7 @@ abstract class ABI<T: AGenericCore> constructor(
      * Запись указателя [value] в память по адресу [address]
      * {RU}
      */
-    fun writePointer(address: Long, value: Long) { core.write(types.pointer, address, value) }
+    fun writePointer(address: Long, value: Long) = run { core.write(types.pointer, address, value) }
 
     /**
      * {RU}
@@ -126,14 +125,14 @@ abstract class ABI<T: AGenericCore> constructor(
      * @return значение из памяти
      * {RU}
      */
-    fun readPointer(address: Long): Long = core.read(types.pointer, address)
+    fun readPointer(address: Long) = core.read(types.pointer, address)
 
     /**
      * {RU}
      * Запись long long-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeLongLong(address: Long, value: Long) { core.write(types.longLong, address, value) }
+    fun writeLongLong(address: Long, value: Long) = run { core.write(types.longLong, address, value) }
 
     /**
      * {RU}
@@ -141,14 +140,14 @@ abstract class ABI<T: AGenericCore> constructor(
      * @return long long-значение из памяти
      * {RU}
      */
-    fun readLongLong(address: Long): Long = core.read(types.longLong, address)
+    fun readLongLong(address: Long) = core.read(types.longLong, address)
 
     /**
      * {RU}
      * Запись long long-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeLong(address: Long, value: Long) { core.write(types.long, address, value) }
+    fun writeLong(address: Long, value: Long) = run { core.write(types.long, address, value) }
 
     /**
      * {RU}
@@ -156,14 +155,14 @@ abstract class ABI<T: AGenericCore> constructor(
      * @return long-значение из памяти
      * {RU}
      */
-    fun readLong(address: Long): Long = core.read(types.long, address)
+    fun readLong(address: Long) = core.read(types.long, address)
 
     /**
      * {RU}
      * Запись int-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeInt(address: Long, value: Long) { core.write(types.int, address, value) }
+    fun writeInt(address: Long, value: Long) = run { core.write(types.int, address, value) }
 
     /**
      * {RU}
@@ -171,14 +170,14 @@ abstract class ABI<T: AGenericCore> constructor(
      * @return int-значение из памяти
      * {RU}
      */
-    fun readInt(address: Long): Long = core.read(types.int, address)
+    fun readInt(address: Long) = core.read(types.int, address)
 
     /**
      * {RU}
      * Запись short-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeShort(address: Long, value: Long) { core.write(types.short, address, value) }
+    fun writeShort(address: Long, value: Long) = run { core.write(types.short, address, value) }
 
     /**
      * {RU}
@@ -186,14 +185,14 @@ abstract class ABI<T: AGenericCore> constructor(
      * @return short-значение из памяти
      * {RU}
      */
-    fun readShort(address: Long): Long = core.read(types.short, address)
+    fun readShort(address: Long) = core.read(types.short, address)
 
     /**
      * {RU}
      * Запись char-значения [value] в память по адресу [address]
      * {RU}
      */
-    fun writeChar(address: Long, value: Long) { core.write(types.char, address, value) }
+    fun writeChar(address: Long, value: Long) = run { core.write(types.char, address, value) }
 
     /**
      * {RU}
@@ -201,6 +200,5 @@ abstract class ABI<T: AGenericCore> constructor(
      * @return char-значение из памяти
      * {RU}
      */
-    fun readChar(address: Long): Long = core.read(types.char, address)
-
+    fun readChar(address: Long) = core.read(types.char, address)
 }

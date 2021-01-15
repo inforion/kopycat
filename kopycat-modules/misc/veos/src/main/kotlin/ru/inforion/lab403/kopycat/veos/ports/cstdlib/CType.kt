@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.veos.ports.cstdlib
 
 
-
 object CTypeB {
 
     const val _ISupper = 1 shl 0	/* UPPERCASE.  */

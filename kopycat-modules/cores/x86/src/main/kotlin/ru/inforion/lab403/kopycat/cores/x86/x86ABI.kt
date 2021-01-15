@@ -25,30 +25,27 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86
 
-import ru.inforion.lab403.common.logging.FINEST
 import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ABIBase
-import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.like
-import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-class x86ABI(core: x86Core, bigEndian: Boolean): ABI<x86Core>(core, 32, bigEndian) {
+class x86ABI(core: x86Core, bigEndian: Boolean) : ABI<x86Core>(core, 32, bigEndian) {
     companion object {
-        @Transient val log = logger(WARNING)
+        @Transient
+        val log = logger(WARNING)
     }
 
     @DontAutoSerialize
     override val regArguments = listOf<Int>()
 
-    override val minimumStackAlignment: Int = 2.also { log.warning {"Determine stack alignment in x86"} }
+    override val minimumStackAlignment = 2.also { log.warning { "Determine stack alignment in x86" } }
 
     override val stackArgsOffset = 4L
 
@@ -70,9 +67,11 @@ class x86ABI(core: x86Core, bigEndian: Boolean): ABI<x86Core>(core, 32, bigEndia
         get() = readPointer(stackPointerValue).also {
             log.severe { "Please, fix it" }
         }
-        set(value) { push(value).also {
-            log.severe { "Please, fix it" }
-        } }
+        set(value) {
+            push(value).also {
+                log.severe { "Please, fix it" }
+            }
+        }
 
     override fun ret() {
 //        super.ret()

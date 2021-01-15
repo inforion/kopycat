@@ -1,15 +1,17 @@
 <img src="https://kopy.cat/static/media/big_logo.169d84fb.png" width="384">
 
-Kopycat is a multi-architecture hardware emulation solution
+Kopycat is a multi-processor architectures system and user-level (with VEOS module) emulator.
 
 ## Description
 
 Main features are:
 
-- Easy to assemble. Configure your own platform using JSON or Kotlin
-- Easy to customise. Create your own platform-module using Kotlin
-- One-to-one correspondence. Virtual platform representation is identical to block diagram
-- Multiple supported architectures: MIPS, ARM, MSP430, v850ES, x86
+- Easy to assemble a new device. Configure your own platform using JSON or Kotlin.
+- Easy to customise. Create your own platform-module using Kotlin.
+- Cross-platform. Kopycat uses JVM as a backend and can be run on Windows, Linux and OSX.   
+- One-to-one correspondence. Virtual platform representation is identical to block diagram.
+- Multiple supported architectures: MIPS, ARM, MSP430, v850ES, x86.
+- User-level mode. Can emulate a standalone ELF-file without full system emulation.
 
 This project contains CPU cores: ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86, and MCUs: CortexM0, STM32F0xx, MSP430x44x. 
 
@@ -27,7 +29,7 @@ You can download prebuild JAR-files modules via the link: https://kopy.cat/downl
 To run Kopycat you have to install the following software:
 
 1. OpenJDK (version 11.0.6/7 tested)
-2. Highly recommended Python (version 2.7 and 3.6, 3.8 tested) with Jep package (version 0.3.9 tested) for embedded console in Kopycat.
+2. If Python REPL console is preferred instead of Kotlin console then Python required (version 2.7 and 3.6, 3.8 tested) with Jep package (version 0.3.9 tested) for embedded console in Kopycat.
     
 NOTE: prebuild OpenJDK installer is available on https://adoptopenjdk.net/ 
     
@@ -41,7 +43,7 @@ Linux and OSX users can use package manager to install OpenJDK and Python. To in
 
 1. Download and install Visual Studio build tools: https://visualstudio.microsoft.com/visual-cpp-build-tools/ (**DON'T FORGET TO SELECT VERSION 14.x**)
 
-1. Fix ¯\_(ツ)_/¯ Python setuptools to work with Visual Studio compiler: https://stackoverflow.com/a/20050195/1312718
+1. Fix ¯\\\_(ツ)\_/¯ Python setuptools to work with Visual Studio compiler: https://stackoverflow.com/a/20050195/1312718
 
 1. Run Console from **x64 Native Tools Command Prompt** (installed in the main menu of Windows) and execute:
 
@@ -84,12 +86,15 @@ NOTE: OpenJDK installation reference https://dzone.com/articles/install-openjdk-
 
 For module development and working with sources the following software is required:
 
-1. IntelliJ (version >= 2020.1)
-2. Kotlin plugin (version >= 1.3.72)
+1. IntelliJ (version >= 2020.2)
+2. Kotlin plugin (version >= 1.4.21)
 
 ## Getting started
 
-In this part of readme you will see how to start Kopycat for device with STM32F042 (core: Cortex-M0; architecture: ARMv6M) and virtual ARM device (core: ARM1176JZS; architecture: ARMv6/v7). 
+In this part of readme you will see how to start Kopycat: 
+- for a device with STM32F042 (core: Cortex-M0; architecture: ARMv6M)
+- virtual ARM device (core: ARM1176JZS; architecture: ARMv6/v7) 
+- `ls` and `cat` command for ARM architecture in user-level mode with VEOS
 
 The peripheral modules implemented for STM32F042 are UART, TIMx, DMAC, GPIOx, WDG. These peripheral modules are enough to run FreeRTOS. How to work with FreeRTOS is shown in the `freertos_uart` firmware example. 
 
@@ -101,9 +106,9 @@ ARM architecture is used in all the examples as the most popular in embedded dev
 
 ### Run prebuild Kopycat core and module STM32F042 on Cortex-M0 core 
 
-1. Download prebuild emulator core kopycat-X.Y.AB (https://kopy.cat/download/0.3.20/kopycat-0.3.20.zip) and unzip the archive into any directory (**it is strongly recommended not to use directories with spaces or special symbols!**)
+1. Download prebuild emulator core `kopycat-X.Y.AB` from [latest release](https://github.com/inforion/kopycat/releases/latest) and unzip the archive into any directory (**it is strongly recommended not to use directories with spaces or special symbols!**)
 1. Add environment variable `KOPYCAT_HOME` (recommended, used by Kopycat core to lookup default modules library) to this directory, e.g. `KOPYCAT_HOME=/opt/kopycat-X.Y.Z-RCx` and add to environment variable `PATH` path to `KOPYCAT_HOME/bin`   
-1. Download prebuild modules libraries for Kopycat (https://kopy.cat/download/0.3.20/modules.zip) and:
+1. Download prebuild modules libraries for Kopycat `modules-X.Y.AB` from [latest release](https://github.com/inforion/kopycat/releases/latest) and:
     - unzip this archive into any directory (**it is also strongly recommended not to use directories with spaces or special symbols!**) and add environment variable `KOPYCAT_MODULES_LIB_PATH` (only to simplify readme commands) to the directory
     
     OR
@@ -138,40 +143,85 @@ ARM architecture is used in all the examples as the most popular in embedded dev
     
 1. You should see the following start log:
     
+    - for python console:
+    
     ```log
-    bat@Kernel % kopycat -l mcu -n stm32f042_example -g 23946 -p "firmware=example:usart_poll,tty1=socat:,tty2=socat:"
-    INFORION_LOGGING_PRINT: null
-    INFORION_LOGGING_CONF_PATH: null
-    15:43:40 INFO   [ KopycatStarter.main            ]: Java version: 11.0.6
-    15:43:40 INFO   [ KopycatStarter.main            ]: Working Directory: <WORKING_DIR>
-    15:43:40 INFO   [ KopycatStarter.main            ]: Build version information: kopycat-0.3.20-6e48fed1-2020.510-Regular
-    15:43:40 INFO   [LibraryRegistry.create          ]: Library configuration line: ,mcu:modules/mcu,cores:modules/cores,devices:modules/devices
-    15:43:43 INFO   [ KopycatStarter.main            ]: GDB_SERVER(port=23946,alive=true) was created
-    15:43:43 INFO   [eFactoryLibrary.instantiate     ]: stm32f042_example(null, top, firmware=example:usart_poll, tty1=socat:, tty2=socat:)
-    15:43:43 INFO   [ ANetworkThread.run             ]: GDB_SERVER thread started on GDB_SERVER [127.0.0.1:23946]
-    15:43:43 INFO   [ ANetworkThread.run             ]: GDB_SERVER waited for clients on 23946...
-    15:43:43 WARN   [         Module.createPseudoTerm]: Pseudo-terminals created for top.term1: /dev/ttys002 and /dev/ttys004
-    15:43:44 WARN   [         Module.createPseudoTerm]: Pseudo-terminals created for top.term2: /dev/ttys005 and /dev/ttys007
-    15:43:45 INFO   [         Module.initializeAndRes]: Setup core to top.stm32f042.cortexm0.arm for top
-    15:43:45 INFO   [         Module.initializeAndRes]: Setup debugger to top.stm32f042.dbg for top
-    15:43:45 WARN   [         Module.initializeAndRes]: Tracer wasn't found in top...
-    15:43:45 INFO   [         Module.initializeAndRes]: Initializing ports and buses...
-    15:43:45 WARN   [         Module.initializePortsA]: ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
-    15:43:45 INFO   [         Module.reset           ]: Setup CORTEX-M0 core PC=0x080022C1 MSP=0x20001800
-    15:43:45 INFO   [         Module.initializeAndRes]: Module top is successfully initialized and reset as a top cell!
-    15:43:45 INFO   [        Kopycat.open            ]: Starting virtualization of board top[stm32f042_example] with arm[ARMv6MCore]
-    15:43:45 INFO   [      GDBServer.debuggerModule  ]: Set new debugger module top.stm32f042.dbg for GDB_SERVER(port=23946,alive=true)
-    15:43:45 CONFIG [      JepLoader.load            ]: Loading Jep using Python command 'python'
-    15:43:45 CONFIG [    PythonShell.version         ]: Python Version(major=2, minor=7, micro=17)
-    15:43:45 CONFIG [      JepLoader.findFileInPath  ]: Jep jar file: /usr/local/lib/python2.7/site-packages/jep/jep-3.9.0.jar
-    15:43:45 CONFIG [      JepLoader.findFileInPath  ]: Jep shared library file: /usr/local/lib/python2.7/site-packages/jep/jep.so
+    bat@Kernel ~ % kopycat -l mcu -n stm32f042_example -g 23946 -p "firmware=example:usart_poll,tty1=socat:,tty2=socat:"
+    12:53:54 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:54): Build version: kopycat-0.3.30-e87ed235-2021.112-Regular [JRE v11.0.6]
+    12:53:54 INF ...atStarter.getRegistryPath(KopycatStarter.kt:34): Kopycat directory: '...'
+    12:53:55 INF ...kopycat.Kopycat.setSnapshotsDir(Kopycat.kt:103): Change snapshots directory to '/Users/bat'
+    12:53:55 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:78): GDB_SERVER(port=23946,alive=true) was created
+    12:53:55 INF ...ibrary.instantiate(ModuleFactoryLibrary.kt:105): stm32f042_example(null, top, firmware=example:usart_poll, tty1=socat:, tty2=socat:)
+    12:53:55 INF ...iliary.ANetworkThread.run(ANetworkThread.kt:55): GDB_SERVER waited for clients on [172.20.10.6:23946]
+    12:53:56 WRN ...cat$Companion.createPseudoTerminal(Socat.kt:75): Pseudo-terminals created for top.term1: /dev/ttys014 and /dev/ttys015
+    12:53:56 WRN ...cat$Companion.createPseudoTerminal(Socat.kt:75): Pseudo-terminals created for top.term2: /dev/ttys016 and /dev/ttys017
+    12:53:56 CFG ....initializeAndResetAsTopInstance(Module.kt:189): Setup core to top.stm32f042.cortexm0.arm for top
+    12:53:56 CFG ....initializeAndResetAsTopInstance(Module.kt:194): Setup debugger to top.stm32f042.dbg for top
+    12:53:56 WRN ....initializeAndResetAsTopInstance(Module.kt:210): Tracer wasn't found in top...
+    12:53:56 CFG ...s.UartTerminal$tx$2.invoke(UartTerminal.kt:176): Create transmitter UART terminal thread: 'top.term2'
+    12:53:56 CFG ...s.UartTerminal$tx$2.invoke(UartTerminal.kt:176): Create transmitter UART terminal thread: 'top.term1'
+    12:53:56 CFG ....initializeAndResetAsTopInstance(Module.kt:218): Initializing ports and buses...
+    12:53:56 WRN ....initializeAndResetAsTopInstance(Module.kt:220): ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
+    12:53:56 INF ...modules.cortexm0.CORTEXM0.reset(CORTEXM0.kt:58): Setup CORTEX-M0 core PC=0x080022C1 MSP=0x20001800
+    12:53:56 CFG ....initializeAndResetAsTopInstance(Module.kt:232): Module top is successfully initialized and reset as a top cell!
+    12:53:56 INF ...ion.lab403.kopycat.Kopycat.open(Kopycat.kt:151): Board top[stm32f042_example] with arm[ARMv6MCore] is ready
+    12:53:56 INF ...bstub.GDBServer.debuggerModule(GDBServer.kt:78): Set new debugger module top.stm32f042.dbg for GDB_SERVER(port=23946,alive=true)
+    12:53:56 WRN ...at.KopycatStarter.console(KopycatStarter.kt:44): Use -kts option to enable Kotlin console. In the next version Kotlin console will be default.
+    12:53:56 CFG ...at.consoles.jep.JepLoader.load(JepLoader.kt:53): Loading Jep using Python command 'python3' to overwrite use '--python' option
+    12:53:56 CFG ...oles.jep.PythonShell.version(PythonShell.kt:34): Python Version(major=3, minor=9, micro=0)
+    12:53:56 CFG ...s.jep.JepLoader.findFileInPath(JepLoader.kt:25): Jep jar file: /usr/local/lib/python3.9/site-packages/jep/jep-3.9.1.jar
+    12:53:56 CFG ...s.jep.JepLoader.findFileInPath(JepLoader.kt:25): Jep shared library file: /usr/local/lib/python3.9/site-packages/jep/jep.cpython-39-darwin.so
     Jep starting successfully!
+    12:53:56 INF ...ycat.KopycatStarter.main(KopycatStarter.kt:112): Python console enabled
     Python > 
     ```
+
+    - for kotlin console:
+    
+    ```
+    bat@Kernel ~ % kopycat -l mcu -n stm32f042_example -g 23946 -p "firmware=example:usart_poll,tty1=socat:,tty2=socat:" -kts           
+    12:55:07 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:54): Build version: kopycat-0.3.30-e87ed235-2021.112-Regular [JRE v11.0.6]
+    12:55:08 INF ...atStarter.getRegistryPath(KopycatStarter.kt:34): Kopycat directory: '<KOPYCAT_HOME>'
+    12:55:09 INF ...kopycat.Kopycat.setSnapshotsDir(Kopycat.kt:103): Change snapshots directory to '/Users/bat'
+    12:55:09 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:78): GDB_SERVER(port=23946,alive=true) was created
+    12:55:09 INF ...ibrary.instantiate(ModuleFactoryLibrary.kt:105): stm32f042_example(null, top, firmware=example:usart_poll, tty1=socat:, tty2=socat:)
+    12:55:09 INF ...iliary.ANetworkThread.run(ANetworkThread.kt:55): GDB_SERVER waited for clients on [172.20.10.6:23946]
+    12:55:09 WRN ...cat$Companion.createPseudoTerminal(Socat.kt:75): Pseudo-terminals created for top.term1: /dev/ttys018 and /dev/ttys019
+    12:55:10 WRN ...cat$Companion.createPseudoTerminal(Socat.kt:75): Pseudo-terminals created for top.term2: /dev/ttys020 and /dev/ttys021
+    12:55:10 CFG ....initializeAndResetAsTopInstance(Module.kt:189): Setup core to top.stm32f042.cortexm0.arm for top
+    12:55:10 CFG ....initializeAndResetAsTopInstance(Module.kt:194): Setup debugger to top.stm32f042.dbg for top
+    12:55:10 WRN ....initializeAndResetAsTopInstance(Module.kt:210): Tracer wasn't found in top...
+    12:55:10 CFG ...s.UartTerminal$tx$2.invoke(UartTerminal.kt:176): Create transmitter UART terminal thread: 'top.term2'
+    12:55:10 CFG ...s.UartTerminal$tx$2.invoke(UartTerminal.kt:176): Create transmitter UART terminal thread: 'top.term1'
+    12:55:10 CFG ....initializeAndResetAsTopInstance(Module.kt:218): Initializing ports and buses...
+    12:55:10 WRN ....initializeAndResetAsTopInstance(Module.kt:220): ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
+    12:55:10 INF ...modules.cortexm0.CORTEXM0.reset(CORTEXM0.kt:58): Setup CORTEX-M0 core PC=0x080022C1 MSP=0x20001800
+    12:55:10 CFG ....initializeAndResetAsTopInstance(Module.kt:232): Module top is successfully initialized and reset as a top cell!
+    12:55:10 INF ...ion.lab403.kopycat.Kopycat.open(Kopycat.kt:151): Board top[stm32f042_example] with arm[ARMv6MCore] is ready
+    12:55:10 INF ...bstub.GDBServer.debuggerModule(GDBServer.kt:78): Set new debugger module top.stm32f042.dbg for GDB_SERVER(port=23946,alive=true)
+    warning: runtime JAR files in the classpath should have the same version. These files were found in the classpath:
+        <KOPYCAT_HOME>/lib/kotlin-reflect-1.4.10.jar (version 1.4)
+        <KOPYCAT_HOME>/lib/kotlin-stdlib-1.4.10.jar (version 1.4)
+        <KOPYCAT_HOME>/lib/kotlin-stdlib-jdk8-1.3.71.jar (version 1.3)
+        <KOPYCAT_HOME>/lib/kotlin-stdlib-jdk7-1.3.71.jar (version 1.3)
+        <KOPYCAT_HOME>/lib/kotlin-script-runtime-1.4.10.jar (version 1.4)
+        <KOPYCAT_HOME>/lib/kotlin-stdlib-common-1.4.10.jar (version 1.4)
+    warning: some runtime JAR files in the classpath have an incompatible version. Consider removing them from the classpath
+    12:55:13 INF ...ycat.KopycatStarter.main(KopycatStarter.kt:112): Kotlin console enabled
+    Kotlin > 
+    ```
    
-   Where `Pseudo-terminals created for top.term1: /dev/ttys002 and /dev/ttys004` 
-   - /dev/ttys002 is endpoint to emulator connection to virtual COM port of USART1
-   - /dev/ttys004 is endpoint to user connection to virtual COM port of USART1
+    NOTES:
+   
+    1. `Pseudo-terminals created for top.term1: /dev/ttys002 and /dev/ttys004` 
+        - /dev/ttys002 is endpoint to emulator connection to virtual COM port of USART1
+        - /dev/ttys004 is endpoint to user connection to virtual COM port of USART1
+        
+    2. `warning: runtime JAR files in the classpath should have the same version` caused by Javalin library because it uses Kotlin 1.3.x that clashes with current Kopycat Kotlin version 1.4.10 but it not interferes.
+    
+    3. The next examples will be shown for Python console but almost all examples for Kotlin will be the same. 
+    
+    4. Currently, Kotlin console supports autocomplete feature, for Python it will be added in next releases.
     
 1. Attach to `/dev/ttys004` (name may differ) COM port using, for example, **putty** or **screen**
 
@@ -185,7 +235,7 @@ ARM architecture is used in all the examples as the most popular in embedded dev
     kc.start()  # run Kopycat emulation
     ```
    
-1. Now you can print something in `/dev/ttys004` and will see echo. This echo is sent back by internal firmare of STM32F042. If emulation isn't running, there is no echo in the console.
+1. Now you can print something in `/dev/ttys004` and will see echo. This echo is sent back by the internal firmware of STM32F042. If emulation isn't running, there is no echo in the console.
 
 1. To stop emulation in Kopycat console print and press enter:
 
@@ -202,26 +252,36 @@ ARM architecture is used in all the examples as the most popular in embedded dev
     ```shell script
     kopycat -y ${KOPYCAT_MODULES_LIB_PATH} -l mcu -n VirtARM -g 23946 -p "tty=socat:"
    
-    16:30:16 INFO   [ KopycatStarter.main            ]: Java version: 11.0.6
-    16:30:16 INFO   [ KopycatStarter.main            ]: Working Directory: ...
-    16:30:16 INFO   [ KopycatStarter.main            ]: Build version information: kopycat-0.3.20-6e48fed1-2020.510-Regular
-    16:30:16 INFO   [LibraryRegistry.create          ]: Library configuration line: ...
-    16:30:18 INFO   [eFactoryLibrary.instantiate     ]: VirtARM(null, top, tty=socat:)
-    16:30:19 WARN   [         Module.createPseudoTerm]: Pseudo-terminals created for top.term: /dev/ttys012 and /dev/ttys013
-    16:30:20 INFO   [         Module.initializeAndRes]: Setup core to top.arm1176jzs for top
-    16:30:20 INFO   [         Module.initializeAndRes]: Setup debugger to top.dbg for top
-    16:30:20 WARN   [         Module.initializeAndRes]: Tracer wasn't found in top...
-    16:30:20 INFO   [         Module.initializeAndRes]: Initializing ports and buses...
-    16:30:20 WARN   [         Module.initializePortsA]: ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
-    16:30:20 FINE   [       ARMv6CPU.reset           ]: pc=0x00000000 sp=0x00000000
-    16:30:20 INFO   [         Module.initializeAndRes]: Module top is successfully initialized and reset as a top cell!
-    16:30:20 INFO   [        Kopycat.open            ]: Starting virtualization of board top[VirtARM] with arm1176jzs[ARM1176JZS]
-    16:30:20 CONFIG [      JepLoader.load            ]: Loading Jep using Python command 'python'
-    16:30:20 CONFIG [    PythonShell.version         ]: Python Version(major=2, minor=7, micro=17)
-    16:30:20 CONFIG [      JepLoader.findFileInPath  ]: Jep jar file: /usr/local/lib/python2.7/site-packages/jep/jep-3.9.0.jar
-    16:30:20 CONFIG [      JepLoader.findFileInPath  ]: Jep shared library file: /usr/local/lib/python2.7/site-packages/jep/jep.so
+    13:29:02 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:54): Build version: kopycat-0.3.30-e87ed235-2021.112-Regular [JRE v11.0.6]
+    13:29:02 INF ...atStarter.getRegistryPath(KopycatStarter.kt:34): Kopycat directory: '<KOPYCAT_HOME>'
+    13:29:03 INF ...kopycat.Kopycat.setSnapshotsDir(Kopycat.kt:103): Change snapshots directory to '/Users/bat'
+    13:29:03 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:78): GDB_SERVER(port=23946,alive=true) was created
+    13:29:03 INF ...ibrary.instantiate(ModuleFactoryLibrary.kt:105): VirtARM(null, top, tty=socat:)
+    13:29:03 INF ...iliary.ANetworkThread.run(ANetworkThread.kt:55): GDB_SERVER waited for clients on [172.20.10.6:23946]
+    13:29:04 WRN ...cat$Companion.createPseudoTerminal(Socat.kt:75): Pseudo-terminals created for top.term: /dev/ttys018 and /dev/ttys019
+    13:29:04 CFG ....modules.virtarm.VirtARM.<init>(VirtARM.kt:115): Setting bootloaderCmd: 'setenv machid 25f8
+    setenv bootargs console=ttyS0,115200n8 ignore_loglevel root=/dev/mtdblock0 init=/linuxrc lpj=622592
+    setenv verify n
+    bootm 1000000
+    '
+    13:29:04 CFG ....modules.virtarm.VirtARM.<init>(VirtARM.kt:120): Loading GCC map-file...
+    13:29:04 CFG ....initializeAndResetAsTopInstance(Module.kt:189): Setup core to top.arm1176jzs for top
+    13:29:04 CFG ....initializeAndResetAsTopInstance(Module.kt:194): Setup debugger to top.dbg for top
+    13:29:04 WRN ....initializeAndResetAsTopInstance(Module.kt:210): Tracer wasn't found in top...
+    13:29:04 CFG ...s.UartTerminal$tx$2.invoke(UartTerminal.kt:176): Create transmitter UART terminal thread: 'top.term'
+    13:29:04 CFG ....initializeAndResetAsTopInstance(Module.kt:218): Initializing ports and buses...
+    13:29:04 WRN ....initializeAndResetAsTopInstance(Module.kt:220): ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
+    13:29:04 FNE ...ware.processors.ARMv6CPU.reset(ARMv6CPU.kt:151): pc=0x00000000 sp=0x00000000
+    13:29:05 CFG ....initializeAndResetAsTopInstance(Module.kt:232): Module top is successfully initialized and reset as a top cell!
+    13:29:05 INF ...ion.lab403.kopycat.Kopycat.open(Kopycat.kt:151): Board top[VirtARM] with arm1176jzs[ARM1176JZS] is ready
+    13:29:05 INF ...bstub.GDBServer.debuggerModule(GDBServer.kt:78): Set new debugger module top.dbg for GDB_SERVER(port=23946,alive=true)
+    13:29:05 WRN ...at.KopycatStarter.console(KopycatStarter.kt:44): Use -kts option to enable Kotlin console. In the next version Kotlin console will be default.
+    13:29:05 CFG ...at.consoles.jep.JepLoader.load(JepLoader.kt:53): Loading Jep using Python command 'python3' to overwrite use '--python' option
+    13:29:05 CFG ...oles.jep.PythonShell.version(PythonShell.kt:34): Python Version(major=3, minor=9, micro=0)
+    13:29:05 CFG ...s.jep.JepLoader.findFileInPath(JepLoader.kt:25): Jep jar file: /usr/local/lib/python3.9/site-packages/jep/jep-3.9.1.jar
+    13:29:05 CFG ...s.jep.JepLoader.findFileInPath(JepLoader.kt:25): Jep shared library file: /usr/local/lib/python3.9/site-packages/jep/jep.cpython-39-darwin.so
     Jep starting successfully!
-    Python > 
+    13:29:05 INF ...ycat.KopycatStarter.main(KopycatStarter.kt:112): Python console enabled
     ```
    
 1. Attach to `/dev/ttys013` (name may differ) COM port using for example **putty** or **screen**
@@ -239,96 +299,100 @@ ARM architecture is used in all the examples as the most popular in embedded dev
     ```shell script
     kopycat -y ${KOPYCAT_MODULES_LIB_PATH} -all
    
+    13:29:57 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:54): Build version: kopycat-0.3.30-e87ed235-2021.112-Regular [JRE v11.0.6]
+    13:29:57 INF ...atStarter.getRegistryPath(KopycatStarter.kt:34): Kopycat directory: '<KOPYCAT_HOME>'
+    13:29:58 INF ...kopycat.Kopycat.setSnapshotsDir(Kopycat.kt:103): Change snapshots directory to '/Users/bat'
+    13:29:58 INF ...opycat.printModulesRegistryInfo(Kopycat.kt:722): 
+    Library 'PeripheralFactoryLibrary[veos]':
+        Module: [       VirtualMemory] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/veos/veos.jar]
+        Module: [     MIPSApplication] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/veos/veos.jar]
+        Module: [x86WindowsApplication] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/veos/veos.jar]
+        Module: [      ARMApplication] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/veos/veos.jar]
+    
     Library 'PeripheralFactoryLibrary[mcu]':
-        Module: [                 RTC] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [           Testbench] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/testbench.jar]
-        Module: [                 SCP] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [     stm32f042_rhino] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [               rhino] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [               GPIOx] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                NVIC] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/cortexm0.jar]
-        Module: [             VirtARM] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/virtarm.jar]
-        Module: [                EXTI] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [              Am5X86] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [                 STK] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/cortexm0.jar]
-        Module: [                DMAC] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [            CORTEXM0] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/cortexm0.jar]
-        Module: [              USARTx] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                  BT] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                IWDG] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [              SYSCFG] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [               GPBUS] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [               TIM18] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                 FMI] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                 TSC] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                TIMx] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                UART] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [           STM32F042] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                 LED] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                 PIC] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [        AMDElanSC520] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [                BOOT] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [               FLASH] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                GPIO] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [             NS16550] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/virtarm.jar]
-        Module: [                 SCB] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/cortexm0.jar]
-        Module: [                 RCC] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [                 SAC] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [               Timer] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/virtarm.jar]
-        Module: [                 PCI] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [                 PIT] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [               SDRAM] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [                 SAM] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/elanSC520.jar]
-        Module: [   stm32f042_example] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
+        Module: [                 SCB] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/cortexm0.jar]
+        Module: [                 STK] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/cortexm0.jar]
+        Module: [            CORTEXM0] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/cortexm0.jar]
+        Module: [                NVIC] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/cortexm0.jar]
+        Module: [   stm32f042_example] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [     stm32f042_rhino] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                EXTI] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [           STM32F042] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                 LED] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                IWDG] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [               GPIOx] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [               FLASH] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                  BT] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                DMAC] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                 RCC] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                TIMx] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [              SYSCFG] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                 TSC] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [                 FMI] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [               TIM18] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [              USARTx] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [               rhino] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [             VirtARM] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/virtarm.jar]
+        Module: [               Timer] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/virtarm.jar]
+        Module: [            NANDCtrl] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/virtarm.jar]
+        Module: [             NS16550] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/virtarm.jar]
+        Module: [               PL190] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/virtarm.jar]
+    
     Library 'PeripheralFactoryLibrary[cores]':
-        Module: [             x86Core] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/x86.jar]
-        Module: [         x86Debugger] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/x86.jar]
-        Module: [            MipsCore] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/mips.jar]
-        Module: [        MipsDebugger] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/mips.jar]
-        Module: [         ARMDebugger] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/arm.jar]
-        Module: [          ARM1176JZS] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/arm.jar]
-        Module: [          ARMv6MCore] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/arm.jar]
-        Module: [           ARMv7Core] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/arm.jar]
-        Module: [          v850ESCore] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/v850es.jar]
-        Module: [      v850ESDebugger] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/v850es.jar]
-        Module: [      MSP430Debugger] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/msp430.jar]
-        Module: [          MSP430Core] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/msp430.jar]
-        Module: [         PPCDebugger] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/ppc.jar]
-        Module: [              E500v2] as JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/cores/ppc.jar]
+        Module: [        MipsDebugger] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/cores/mips.jar]
+        Module: [            MipsCore] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/cores/mips.jar]
+        Module: [          ARM1176JZS] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/cores/arm.jar]
+        Module: [          ARMv6MCore] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/cores/arm.jar]
+        Module: [           ARMv7Core] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/cores/arm.jar]
+        Module: [         ARMDebugger] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/cores/arm.jar]
+        Module: [         x86Debugger] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/cores/x86.jar]
+        Module: [             x86Core] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/cores/x86.jar]
+    
     Library 'PeripheralFactoryLibrary[common]':
-        Module: [                NAND] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/NAND.class]
-        Module: [              i82551] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/i82551.class]
-        Module: [              EEPROM] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/EEPROM.class]
-        Module: [             Signals] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/Signals.class]
-        Module: [            Am79C972] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/Am79C972.class]
-        Module: [                  SD] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/SD.class]
-        Module: [             PCIHost] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/pci/PCIHost.class]
-        Module: [              M95160] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/M95160.class]
-        Module: [        CompactFlash] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/CompactFlash.class]
-        Module: [                 Hub] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/Hub.class]
-        Module: [             ATACTRL] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/common/ATACTRL.class]
+        Module: [             ATACTRL] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/ATACTRL.class]
+        Module: [              M95160] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/M95160.class]
+        Module: [                NAND] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/NAND.class]
+        Module: [                 Hub] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/Hub.class]
+        Module: [              i82551] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/i82551.class]
+        Module: [        CompactFlash] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/CompactFlash.class]
+        Module: [            Am79C972] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/Am79C972.class]
+        Module: [             Signals] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/Signals.class]
+        Module: [                  SD] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/SD.class]
+        Module: [              EEPROM] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/EEPROM.class]
+        Module: [             PCIHost] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/common/pci/PCIHost.class]
+    
     Library 'PeripheralFactoryLibrary[memory]':
-        Module: [                 ROM] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/memory/ROM.class]
-        Module: [           SparseRAM] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/memory/SparseRAM.class]
-        Module: [                VOID] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/memory/VOID.class]
-        Module: [                 RAM] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/memory/RAM.class]
-    Library 'terminals':
-        Module: [  UartStreamTerminal] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/terminals/UartStreamTerminal.class]
-        Module: [  UartSerialTerminal] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/terminals/UartSerialTerminal.class]
-        Module: [        UartTerminal] as ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.20.jar/ru/inforion/lab403/kopycat/modules/terminals/UartTerminal.class]
+        Module: [                 ROM] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/memory/ROM.class]
+        Module: [                VOID] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/memory/VOID.class]
+        Module: [           SparseRAM] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/memory/SparseRAM.class]
+        Module: [                 RAM] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/memory/RAM.class]
+    
+    Library 'PeripheralFactoryLibrary[terminals]':
+        Module: [  UartStreamTerminal] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/terminals/UartStreamTerminal.class]
+        Module: [        UartTerminal] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/terminals/UartTerminal.class]
+        Module: [  UartSerialTerminal] -> ClassModuleFactoryBuilder[<KOPYCAT_HOME>/lib/kopycat-0.3.30.jar/ru/inforion/lab403/kopycat/modules/terminals/UartSerialTerminal.class]
     ```
    
 1. To get info of only modules in libraries, that can be used as a top module run Kopycat using the following command: `kopycat -top`
 
     ```shell script
+    13:41:17 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:54): Build version: kopycat-0.3.30-e87ed235-2021.112-Regular [JRE v11.0.6]
+    13:41:18 INF ...atStarter.getRegistryPath(KopycatStarter.kt:34): Kopycat directory: '<KOPYCAT_HOME>'
+    13:41:19 INF ...kopycat.Kopycat.setSnapshotsDir(Kopycat.kt:103): Change snapshots directory to '/Users/bat'
+    13:41:19 INF ...opycat.printModulesRegistryInfo(Kopycat.kt:722): 
+    Library 'PeripheralFactoryLibrary[veos]':
+        Module: [     MIPSApplication] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/veos/veos.jar]
+        Module: [x86WindowsApplication] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/veos/veos.jar]
+        Module: [      ARMApplication] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/veos/veos.jar]
+    
     Library 'PeripheralFactoryLibrary[mcu]':
-        Module: [           Testbench] -> JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/testbench.jar]
-        Module: [     stm32f042_rhino] -> JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [               rhino] -> JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
-        Module: [          MSP430x44x] -> JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/msp430x44x.jar]
-        Module: [               P2020] -> JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/p2020.jar]
-        Module: [             VirtARM] -> JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/virtarm.jar]
-        Module: [   stm32f042_example] -> JarModuleFactoryBuilder[<KOPYCAT_MODULES_LIB_PATH>/mcu/stm32f0xx.jar]
+        Module: [   stm32f042_example] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [     stm32f042_rhino] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [               rhino] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/stm32f0xx.jar]
+        Module: [             VirtARM] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/virtarm.jar]
+        Module: [           Testbench] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/testbench.jar]
+        Module: [          MSP430x44x] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/msp430x44x.jar]
+        Module: [               P2020] -> JarModuleFactoryBuilder[<KOPYCAT_HOME>/modules/mcu/p2020.jar]
     ```
    
 ### Get help 
@@ -336,39 +400,140 @@ ARM architecture is used in all the examples as the most popular in embedded dev
 To get full help, run Kopycat using the following command `kopycat --help`:
 
 ```
-16:27:52 INFO   [ KopycatStarter.main            ]: Java version: 11.0.6
-16:27:52 INFO   [ KopycatStarter.main            ]: Working Directory: ...
-16:27:52 INFO   [ KopycatStarter.main            ]: Build version information: kopycat-0.3.20-6e48fed1-2020.510-Regular
-usage: kopycat [-h] [-r REST] [-g GDB_PORT] [-gb] [-n NAME] [-l LIBRARY] [-s SNAPSHOT] [-u MODULES] [-y REGISTRY] [-p PARAMETERS] [--python PYTHON] [-pw] [-all] [-top] [-ci]
+13:43:06 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:54): Build version: kopycat-0.3.30-e87ed235-2021.112-Regular [JRE v11.0.6]
+usage: kopycat [-h] [-u MODULES] [-y REGISTRY] [-n NAME] [-l LIBRARY] [-s SNAPSHOT] [-p PARAMETERS] [-w SNAPSHOTS_DIR] [-g GDB_PORT] [-r REST] [-gb] [-run] [-standalone] [-all] [-top]
+               [-ci] [-pw] [-python PYTHON] [-kts] [-ll LOG_LEVEL]
 
 virtualization platform
 
-optional arguments:
+named arguments:
   -h, --help             show this help message and exit
-  -r REST, --rest REST   REST server port. If null - Commander will work
-  -g GDB_PORT, --gdb-port GDB_PORT
-                         GDB server port (if not specified then not started)
-  -gb, --gdb-bin-proto   GDB server enabled binary protocol (default: false)
+  -u MODULES, --modules MODULES
+                         Modules libraries paths in format: lib1:path/to/lib1,lib2:path/to/lib2
+  -y REGISTRY, --registry REGISTRY
+                         Path to registry with libraries
   -n NAME, --name NAME   Top instance module name (with package path dot-separated)
   -l LIBRARY, --library LIBRARY
                          Top instance module library name
   -s SNAPSHOT, --snapshot SNAPSHOT
                          Snapshot file (top instance module/library can be obtained from here)
-  -u MODULES, --modules MODULES
-                         Modules libraries paths in format: lib1:path/to/lib1,lib2:path/to/lib2
-  -y REGISTRY, --registry REGISTRY
-                         Path to registry with libraries
   -p PARAMETERS, --parameters PARAMETERS
                          Parameters for top module constructor in format: arg1=100,arg2=/dev/io
-  --python PYTHON        Python interpreter command (default: python)
-  -pw, --ports-warnings  Print all ports warnings when loading Kopycat module at startup (default: false)
+  -w SNAPSHOTS_DIR, --snapshots-dir SNAPSHOTS_DIR
+                         Snapshots directory path (default path to store and load snapshots)
+  -g GDB_PORT, --gdb-port GDB_PORT
+                         GDB server port (if not specified then not started)
+  -r REST, --rest REST   REST server port. If null - Commander will work
+  -gb, --gdb-bin-proto   GDB server enabled binary protocol (default: false)
+  -run, --run            Run emulation as soon as Kopycat ready (default: false)
+  -standalone, --standalone
+                         Run emulation as soon as Kopycat ready and exit when guest application stops (default: false)
   -all, --modules-registry-all-info
                          Print all loaded modules info and exit (default: false)
   -top, --modules-registry-top-info
                          Print top loaded modules info and exit (default: false)
   -ci, --connections-info
                          Print hier. top module buses connections info at startup (default: false)
+  -pw, --ports-warnings  Print all ports warnings when loading Kopycat module at startup (default: false)
+  -python PYTHON, --python PYTHON
+                         Python interpreter command
+  -kts, --kotlin-script  Set REPL to Kotlin script language (default: false)
+  -ll LOG_LEVEL, --log-level LOG_LEVEL
+                         Set messages minimum logging level for specified loggers in format logger0=LEVEL,logger1=LEVEL
+                         Or for all loggers if no '=' was found in value just logger level, i.e. FINE
+                         Available levels: ALL, SEVERE, WARNING, INFO, CONFIG, FINE, FINER, FINEST, DEBUG, TRACE, OFF
 ``` 
+
+### Run Kopycat in user-level emulation mode with VEOS module
+
+1. `KOPYCAT_HOME` environment variable is required and `KOPYCAT_HOME/bin` is required to be added into `PATH` environment variable
+
+1. VEOS module should be placed in modules directory into `KOPYCAT_HOME/modules`
+
+1. Download other architecture ELF binary files to run using Kopycat, i.e. from Debian Stretch distributive: 
+    - binutils: https://packages.debian.org/stretch/armel/binutils/download
+    - coreutils: https://packages.debian.org/stretch/armel/coreutils/download
+    
+1. Unpack it to some folders and change directory to where you unpack
+
+1. Run the required binary using command for example:
+        
+    ```
+    kopycat-veos-arm bin/ls -la /usr/share
+    ```
+    
+    The output of this command will be something like that:
+    
+    ```
+    ... tons of log ...
+    13:07:24 CFG ...at.veos.api.impl.StatAPI.stat64(StatAPI.kt:140): [0x00009ACC] stat64(path='/usr/share/doc' buf=0x100004E8) -> stat(st_dev=0, st_ino=0, st_mode=16877, st_nlink=1, st_uid=0, st_gid=0, st_rdev=0, st_size=96, st_blksize=0, st_blocks=0, st_atime=1607940014, st_mtime=1487766225, st_ctime=1487766225) in Process:1(state=Running)
+    total 0
+    drwxr-xr-x  1 root root   96 Feb 22  2017 doc
+    drwxr-xr-x  1 root root   96 Feb 22  2017 info
+    drwxr-xr-x 43 root root 1440 Feb 22  2017 locale
+    drwxr-xr-x  2 root root  128 Feb 22  2017 man
+    13:07:24 FST ...ab403.kopycat.veos.VEOS.preExecute(VEOS.kt:402): Application exited
+    ```
+    
+    Command `kopycat-veos-arm` is a script located in `<KOPYCAT_HOME>/bin` directory. This script run Kopycat in a standalone mode. Standalone mode is not waiting until a debugger connected but rather run emulated processor as soon as it is ready. To configure Kopycat with VEOS module the next environment options may be used: 
+    
+    - `KOPYCAT_VEOS_GDB_PORT` - starts GDB server for specified port (default: not started).
+    - `KOPYCAT_VEOS_CONSOLE` - what type of console to be used, may be: `kotlin` or `python=<PYTHON_COMMAND>` (default: `python=python`). 
+    - `KOPYCAT_VEOS_WORKING_DIR` - working root directory for emulation i.e. directory in host system that will be `/` for emulating (default: is current a directory).
+    - `KOPYCAT_VEOS_STANDALONE` - if `NO` don't run emulated processor in Kopycat as soon as emulator ready (default: standalone mode)
+    - `KOPYCAT_VEOS_LD_PRELOAD` - comma-separated list of preload dynamic libraries if these libraries required for ELF-file and not resolved automatically (default: empty)
+    - `KOPYCAT_VEOS_LOGGING_CONF` - logging level for whole Kopycat or if specified module for the module, i.e. `KOPYCAT_VEOS_LOGGING_CONF=OFF` disable all logging messages, or `KOPYCAT_VEOS_LOGGING_CONF=TimeAPI=OFF,StdlibAPI=FINE` - disable logging for TimeAPI and set minimum logging level for StdlibAPI to FINE. 
+    
+    For example with disabled logging:
+    
+    ```
+    export KOPYCAT_VEOS_LOGGING_CONF=OFF
+    kopycat-veos-arm usr/bin/readelf -S /usr/bin/readelf
+    ```
+    
+    Output is:
+    
+    ```
+    13:52:05 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:54): Build version: kopycat-0.3.30-e87ed235-2021.115-Regular [JRE v11.0.6]
+    13:52:05 INF ...atStarter.getRegistryPath(KopycatStarter.kt:34): Kopycat directory: '<KOPYCAT_HOME>'
+    There are 28 section headers, starting at offset 0x862fc:
+    
+    Section Headers:
+      [Nr] Name              Type            Addr     Off    Size   ES Flg Lk Inf Al
+      [ 0]                   NULL            00000000 000000 000000 00      0   0  0
+      [ 1] .interp           PROGBITS        00000000 000154 000013 00   A  0   0  1
+      [ 2] .note.ABI-tag     NOTE            00000000 000168 000020 00   A  0   0  4
+      [ 3] .note.gnu.build-i NOTE            00000000 000188 000024 00   A  0   0  4
+      [ 4] .gnu.hash         GNU_HASH        00000000 0001ac 00015c 04   A  5   0  4
+      [ 5] .dynsym           DYNSYM          00000000 000308 000750 10   A  6   3  4
+      [ 6] .dynstr           STRTAB          00000000 000a58 0004e4 00   A  0   0  1
+      [ 7] .gnu.version      VERSYM          00000000 000f3c 0000ea 02   A  5   0  2
+      [ 8] .gnu.version_r    VERNEED         00000000 001028 000020 00   A  6   1  4
+      [ 9] .rel.dyn          REL             00000000 001048 001c28 08   A  5   0  4
+      [10] .rel.plt          REL             00000000 002c70 000210 08  AI  5  23  4
+      [11] .init             PROGBITS        00000000 002e80 000010 00  AX  0   0  4
+      [12] .plt              PROGBITS        00000000 002e90 00032c 04  AX  0   0  4
+      [13] .text             PROGBITS        00000000 0031c0 05d65c 00  AX  0   0  8
+      [14] .fini             PROGBITS        00000000 06081c 00000c 00  AX  0   0  4
+      [15] .rodata           PROGBITS        00000000 060828 023418 00   A  0   0  4
+      [16] .ARM.exidx        ARM_EXIDX       00000000 083c40 000008 00  AL 13   0  4
+      [17] .eh_frame         PROGBITS        00000000 083c48 000004 00   A  0   0  4
+      [18] .init_array       INIT_ARRAY      00000000 0842f4 000004 04  WA  0   0  4
+      [19] .fini_array       FINI_ARRAY      00000000 0842f8 000004 04  WA  0   0  4
+      [20] .jcr              PROGBITS        00000000 0842fc 000004 00  WA  0   0  4
+      [21] .data.rel.ro      PROGBITS        00000000 084300 000c00 00  WA  0   0  4
+      [22] .dynamic          DYNAMIC         00000000 084f00 000100 08  WA  6   0  4
+      [23] .got              PROGBITS        00000000 085000 0001cc 04  WA  0   0  4
+      [24] .data             PROGBITS        00000000 0851d0 001004 00  WA  0   0  8
+      [25] .bss              NOBITS          00000000 0861d4 00269c 00  WA  0   0  8
+      [26] .ARM.attributes   ARM_ATTRIBUTES  00000000 0861d4 00002a 00      0   0  1
+      [27] .shstrtab         STRTAB          00000000 0861fe 0000fe 00      0   0  1
+    Key to Flags:
+      W (write), A (alloc), X (execute), M (merge), S (strings), I (info),
+      L (link order), O (extra OS processing required), G (group), T (TLS),
+      C (compressed), x (unknown), o (OS specific), E (exclude),
+      y (purecode), p (processor specific)  
+    ```
 
 ### Run core from sources with an implemented module STM32F042
 
@@ -481,20 +646,20 @@ optional arguments:
 1. Run the application using green triangle near `fun main(args: Array<String>)` and you should see log:
 
     ```log
-    22:44:26 WARN   [         Module.createPseudoTerm]: Pseudo-terminals created for top.term1: /dev/ttys002 and /dev/ttys004
-    22:44:27 INFO   [         Module.initializeAndRes]: Setup core to top.mcu.cortexm0.arm for top
-    22:44:27 INFO   [         Module.initializeAndRes]: Setup debugger to top.mcu.dbg for top
-    22:44:27 WARN   [         Module.initializeAndRes]: Tracer wasn't found in top...
-    22:44:27 INFO   [         Module.initializeAndRes]: Initializing ports and buses...
-    22:44:27 WARN   [         Module.initializePortsA]: ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
-    22:44:27 INFO   [         Module.reset           ]: Setup CORTEX-M0 core PC=0x00000009 MSP=0x00000000
-    22:44:27 INFO   [         Module.initializeAndRes]: Module top is successfully initialized and reset as a top cell!
-    22:44:27 INFO   [      GDBServer.debuggerModule  ]: Set new debugger module top.mcu.dbg for GDB_SERVER(port=23946,alive=true)
-    22:44:27 INFO   [ ANetworkThread.run             ]: GDB_SERVER thread started on GDB_SERVER [127.0.0.1:23946]
-    22:44:27 INFO   [ ANetworkThread.run             ]: GDB_SERVER waited for clients on 23946...
-    using debugger API: r0 = 0x00000003 r15 = 0x0000000D
-    using Core/CPU API: r0 = 0x00000003 r15 = 0x0000000C
-    using internal API: r0 = 0x00000003 r15 = 0x0000000C
+    15:28:04 WRN ...cat$Companion.createPseudoTerminal(Socat.kt:75): Pseudo-terminals created for top.term1: /dev/ttys020 and /dev/ttys021
+    15:28:05 CFG ....initializeAndResetAsTopInstance(Module.kt:189): Setup core to top.mcu.cortexm0.arm for top
+    15:28:05 CFG ....initializeAndResetAsTopInstance(Module.kt:194): Setup debugger to top.mcu.dbg for top
+    15:28:05 WRN ....initializeAndResetAsTopInstance(Module.kt:210): Tracer wasn't found in top...
+    15:28:05 CFG ...s.UartTerminal$tx$2.invoke(UartTerminal.kt:176): Create transmitter UART terminal thread: 'top.term1'
+    15:28:05 CFG ....initializeAndResetAsTopInstance(Module.kt:218): Initializing ports and buses...
+    15:28:05 WRN ....initializeAndResetAsTopInstance(Module.kt:220): ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
+    15:28:05 INF ...modules.cortexm0.CORTEXM0.reset(CORTEXM0.kt:58): Setup CORTEX-M0 core PC=0x00000009 MSP=0x00000000
+    15:28:05 CFG ....initializeAndResetAsTopInstance(Module.kt:232): Module top is successfully initialized and reset as a top cell!
+    15:28:05 INF ...bstub.GDBServer.debuggerModule(GDBServer.kt:78): Set new debugger module top.mcu.dbg for GDB_SERVER(port=23946,alive=true)
+    using debugger API: r0 = 0x00000003 r15 = 0x0000000B
+    using Core/CPU API: r0 = 0x00000003 r15 = 0x0000000A
+    using internal API: r0 = 0x00000003 r15 = 0x0000000A
+    15:28:05 INF ...iliary.ANetworkThread.run(ANetworkThread.kt:55): GDB_SERVER waited for clients on [192.168.69.254:23946]
     ```
       
     NOTE: Different r15 register value is the result of the convention: technically ARM CPU is at 0x00000008 (set using second dword of firmware), but the last two bits of PC specifies in which mode CPU operates (ARM, THUMB). For Kopycat this information is stored in a special internal variable, but for the debugger we should signal that CPU is in THUMB mode.
@@ -639,12 +804,12 @@ Similar example for `VirtARM` with Linux is shown in the source `misc/examples/m
     1. Run the application using green triangle near `fun main(args: Array<String>)` and you should see:
     
         ```log
-        19:29:04 INFO   [         Module.initializeAndRes]: Setup core to testbench.arm for testbench
-        19:29:04 WARN   [         Module.initializeAndRes]: Debugger wasn't found in testbench...
-        19:29:04 WARN   [         Module.initializeAndRes]: Tracer wasn't found in testbench...
-        19:29:04 INFO   [         Module.initializeAndRes]: Initializing ports and buses...
-        19:29:04 WARN   [         Module.initializePortsA]: ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
-        19:29:04 INFO   [         Module.initializeAndRes]: Module testbench is successfully initialized and reset as a top cell!
+        12:25:28 CFG ....initializeAndResetAsTopInstance(Module.kt:189): Setup core to testbench.arm for testbench
+        12:25:28 CFG ....initializeAndResetAsTopInstance(Module.kt:194): Setup debugger to testbench.dbg for testbench
+        12:25:28 WRN ....initializeAndResetAsTopInstance(Module.kt:210): Tracer wasn't found in testbench...
+        12:25:28 CFG ....initializeAndResetAsTopInstance(Module.kt:218): Initializing ports and buses...
+        12:25:28 WRN ....initializeAndResetAsTopInstance(Module.kt:220): ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
+        12:25:28 CFG ....initializeAndResetAsTopInstance(Module.kt:232): Module testbench is successfully initialized and reset as a top cell!
         
         Process finished with exit code 0
         ```
@@ -677,30 +842,41 @@ Similar example for `VirtARM` with Linux is shown in the source `misc/examples/m
 
     This case may be required for dynamic loading modules from library.  
 
-    1. Add run configuration as show in the screenshot below:
+    1. Add run configurations as show in the screenshot below:
     
-        IMG1
+        First add kopycat-arm-build configuration:
+        ![image](https://user-images.githubusercontent.com/2856140/104707644-bcf13000-572d-11eb-9f19-f28184d07402.png)
+        
+        Then add kopycat-testbench-build (please, pay attention on "before launch" section at bottom of run configuration window):
+        ![image](https://user-images.githubusercontent.com/2856140/104707659-bfec2080-572d-11eb-8af3-ffd93ba65efd.png)
+        
+        And finally kopycat-testbench (please, pay attention on "before launch" section at bottom of run configuration window):
+        ![image](https://user-images.githubusercontent.com/2856140/104708043-3ee15900-572e-11eb-926c-cee5b87d1443.png)
     
     1. Start `kopycat-testbench` configuration and after successful start you will see the following log:
 
         ```log
-        19:59:08 INFO   [ KopycatStarter.main            ]: Java version: 11.0.6
-        19:59:08 INFO   [ KopycatStarter.main            ]: Working Directory: ...
-        19:59:08 INFO   [ KopycatStarter.main            ]: Build version information: kopycat-0.3.20-a3078491-2020.417-Regular
-        19:59:08 INFO   [LibraryRegistry.create          ]: Library configuration line: ,mcu:production/modules/mcu,cores:production/modules/cores,devices:production/modules/devices
-        19:59:10 INFO   [ KopycatStarter.main            ]: GDB_SERVER(port=23946,alive=true) was created
-        19:59:10 INFO   [eFactoryLibrary.instantiate     ]: Testbench(null, top)
-        19:59:10 INFO   [ ANetworkThread.run             ]: GDB_SERVER thread started on GDB_SERVER [192.168.69.254:23946]
-        19:59:10 INFO   [ ANetworkThread.run             ]: GDB_SERVER waited for clients on 23946...
-        19:59:10 INFO   [         Module.initializeAndRes]: Setup core to top.arm for top
-        19:59:10 INFO   [         Module.initializeAndRes]: Setup debugger to top.dbg for top
-        19:59:10 WARN   [         Module.initializeAndRes]: Tracer wasn't found in top...
-        19:59:10 INFO   [         Module.initializeAndRes]: Initializing ports and buses...
-        19:59:10 WARN   [         Module.initializePortsA]: ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
-        19:59:10 INFO   [         Module.initializeAndRes]: Module top is successfully initialized and reset as a top cell!
-        19:59:10 INFO   [        Kopycat.open            ]: Starting virtualization of board top[Testbench] with arm[ARMv6MCore]
-        19:59:10 INFO   [      GDBServer.debuggerModule  ]: Set new debugger module top.dbg for GDB_SERVER(port=23946,alive=true)
+        12:28:09 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:54): Build version: kopycat-0.3.30-e87ed235-2021.115-Regular [JRE v11.0.6]
+        12:28:10 INF ...atStarter.getRegistryPath(KopycatStarter.kt:34): Kopycat directory: '<KOPYCAT_HOME>'
+        12:28:13 INF ...kopycat.Kopycat.setSnapshotsDir(Kopycat.kt:103): Change snapshots directory to '/Users/bat/Documents/repos/kopycat-private/temp'
+        12:28:13 INF ...pycat.KopycatStarter.main(KopycatStarter.kt:78): GDB_SERVER(port=23946,alive=true) was created
+        12:28:13 INF ...ibrary.instantiate(ModuleFactoryLibrary.kt:105): Testbench(null, top)
+        12:28:13 INF ...iliary.ANetworkThread.run(ANetworkThread.kt:55): GDB_SERVER waited for clients on [192.168.76.24:23946]
+        12:28:14 CFG ....initializeAndResetAsTopInstance(Module.kt:189): Setup core to top.arm for top
+        12:28:14 CFG ....initializeAndResetAsTopInstance(Module.kt:194): Setup debugger to top.dbg for top
+        12:28:14 WRN ....initializeAndResetAsTopInstance(Module.kt:210): Tracer wasn't found in top...
+        12:28:14 CFG ....initializeAndResetAsTopInstance(Module.kt:218): Initializing ports and buses...
+        12:28:14 WRN ....initializeAndResetAsTopInstance(Module.kt:220): ATTENTION: Some ports has warning use printModulesPortsWarnings to see it...
+        12:28:14 CFG ....initializeAndResetAsTopInstance(Module.kt:232): Module top is successfully initialized and reset as a top cell!
+        12:28:14 INF ...ion.lab403.kopycat.Kopycat.open(Kopycat.kt:151): Board top[Testbench] with arm[ARMv6MCore] is ready
+        12:28:14 INF ...bstub.GDBServer.debuggerModule(GDBServer.kt:78): Set new debugger module top.dbg for GDB_SERVER(port=23946,alive=true)
+        12:28:14 WRN ...at.KopycatStarter.console(KopycatStarter.kt:44): Use -kts option to enable Kotlin console. In the next version Kotlin console will be default.
+        12:28:14 CFG ...at.consoles.jep.JepLoader.load(JepLoader.kt:53): Loading Jep using Python command 'python3' to overwrite use '--python' option
+        12:28:14 CFG ...oles.jep.PythonShell.version(PythonShell.kt:34): Python Version(major=3, minor=9, micro=0)
+        12:28:14 CFG ...s.jep.JepLoader.findFileInPath(JepLoader.kt:25): Jep jar file: /usr/local/lib/python3.9/site-packages/jep/jep-3.9.1.jar
+        12:28:14 CFG ...s.jep.JepLoader.findFileInPath(JepLoader.kt:25): Jep shared library file: /usr/local/lib/python3.9/site-packages/jep/jep.cpython-39-darwin.so
         Jep starting successfully!
+        12:28:15 INF ...ycat.KopycatStarter.main(KopycatStarter.kt:112): Python console enabled
         Python > 
         ```
        

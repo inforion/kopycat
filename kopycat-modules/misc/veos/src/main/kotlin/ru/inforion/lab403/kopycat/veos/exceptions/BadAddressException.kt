@@ -25,6 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.veos.exceptions
 
-
- 
+/**
+ * {EN}
+ * Use this exception only when error is translatable to internal errno value
+ *
+ * For example fopen(NULL, "...") isn't crashes just set errno value
+ * {EN}
+ */
 class BadAddressException : Exception()

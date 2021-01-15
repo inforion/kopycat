@@ -30,6 +30,7 @@ import ru.inforion.lab403.kopycat.veos.kernel.Process
 import ru.inforion.lab403.kopycat.veos.kernel.System
 import java.util.concurrent.LinkedBlockingQueue
 
+
 // TODO: PosixThread used in Unix subsystem consider to rename it
 class PosixThread constructor(
         sys: System,

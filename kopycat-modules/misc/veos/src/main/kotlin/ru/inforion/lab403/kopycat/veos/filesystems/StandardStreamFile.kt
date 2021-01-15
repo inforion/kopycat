@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems
 
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import java.io.Externalizable
 import java.io.ObjectInput
 import java.io.ObjectOutput
@@ -61,6 +62,13 @@ class StandardStreamFile() : StreamFile(), Externalizable {
 
     override fun readExternal(`in`: ObjectInput) {
         stdio = `in`.readObject() as STDIO
+        stream = stdio.toStream()
+    }
+
+    override fun serialize(ctxt: GenericSerializer) = mapOf("stdio" to stdio.name)
+
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        stdio = STDIO.values().first { it.name == snapshot["stdio"] as String }
         stream = stdio.toStream()
     }
 }

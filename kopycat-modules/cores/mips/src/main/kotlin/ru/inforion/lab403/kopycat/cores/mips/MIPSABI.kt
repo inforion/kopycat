@@ -38,7 +38,7 @@ class MIPSABI(core: MipsCore, bigEndian: Boolean): ABI<MipsCore>(core, 32, bigEn
             core.cpu.regs.a2.id,
             core.cpu.regs.a3.id)
 
-    override val minimumStackAlignment: Int = 4
+    override val minimumStackAlignment = 4
 
     override val gprDatatype = Datatype.values().first { it.bits == this.core.cpu.regs.bits }
     override fun register(index: Int) = core.cpu.regs[index].toOperand()

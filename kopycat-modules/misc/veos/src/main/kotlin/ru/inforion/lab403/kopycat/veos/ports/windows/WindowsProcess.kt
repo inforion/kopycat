@@ -30,7 +30,6 @@ import ru.inforion.lab403.kopycat.veos.kernel.Process
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
 
- 
 class WindowsProcess(
         sys: System,
         id: Int,
@@ -45,8 +44,8 @@ class WindowsProcess(
         segmentFS = memory.allocateByAlignment("fs", 0x1000)!!.first
 
         // TODO: as structure, in Windows Process (Thread)
-        sys.fullABI.writePointer(segmentFS + 0x4, stackBottom)
-        sys.fullABI.writePointer(segmentFS + 0x18, segmentFS) // Linear address of TEB
+        sys.abi.writePointer(segmentFS + 0x4, stackBottom)
+        sys.abi.writePointer(segmentFS + 0x18, segmentFS) // Linear address of TEB
     }
 
 }

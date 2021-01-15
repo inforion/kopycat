@@ -28,12 +28,9 @@ package ru.inforion.lab403.kopycat.veos.filesystems.interfaces
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 
-
  
 interface IBasicDirectory: IAutoSerializable, IConstructorSerializable {
-
     fun open() = Unit
 
     fun close() = Unit
-
 }

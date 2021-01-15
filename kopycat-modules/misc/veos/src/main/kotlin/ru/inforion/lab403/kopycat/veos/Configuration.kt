@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.veos
 
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 
+
 /**
  *
  */

@@ -36,7 +36,7 @@ import java.io.Serializable
  
 abstract class ABIBase(val bits: Int, val bigEndian: Boolean, val types: Types = Types.default): IAutoSerializable {
 
-    class Types(
+    class Types constructor(
             val char: Datatype,
             val short: Datatype,
             val int: Datatype,

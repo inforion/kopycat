@@ -35,10 +35,8 @@ import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.memory.VirtualMemory
 import ru.inforion.lab403.kopycat.veos.api.impl.WindowsAPI
-import ru.inforion.lab403.kopycat.veos.kernel.Process
 import ru.inforion.lab403.kopycat.veos.loader.WindowsLoader
 import ru.inforion.lab403.kopycat.veos.ports.windows.WindowsProcess
-
 
 
 class WindowsVEOS<C: AGenericCore>(parent: Module, name: String, bus: Long = BUS32): VEOS<C>(parent, name, bus) {

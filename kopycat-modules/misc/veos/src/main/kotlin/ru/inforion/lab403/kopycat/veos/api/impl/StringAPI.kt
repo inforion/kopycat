@@ -29,11 +29,11 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunc
+import ru.inforion.lab403.kopycat.veos.api.annotations.APIFunc
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIResult
-import ru.inforion.lab403.kopycat.veos.api.misc.CharPointer
-import ru.inforion.lab403.kopycat.veos.api.misc.size_t
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
+import ru.inforion.lab403.kopycat.veos.api.pointers.CharPointer
+import ru.inforion.lab403.kopycat.veos.api.datatypes.size_t
 import ru.inforion.lab403.kopycat.veos.ports.cstdlib.errlistEnternal
 import ru.inforion.lab403.kopycat.veos.ports.posix.nullptr
 
@@ -186,7 +186,8 @@ class StringAPI(os: VEOS<*>) : API(os) {
 
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstring/strcoll/
-    @APIFunc fun strcoll(str1: CharPointer, str2: CharPointer) = strcmp.exec("strcoll", str1.address, str2.address)
+    @APIFunc
+    fun strcoll(str1: CharPointer, str2: CharPointer) = strcmp.exec("strcoll", str1.address, str2.address)
 
     // TODO: convert to new API
     // http://www.cplusplus.com/reference/cstring/strncmp/
@@ -234,18 +235,20 @@ class StringAPI(os: VEOS<*>) : API(os) {
 
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstring/strcspn/
-    @APIFunc fun strcspn(str1: CharPointer, str2: CharPointer): size_t {
+    @APIFunc
+    fun strcspn(str1: CharPointer, str2: CharPointer): size_t {
         val start = strpbrk(str1, str2)
         return if (start.isNull) size_t(str1.string.length.ulong) else size_t((start.address - str1.address).ulong)
     }
 
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstring/strpbrk/
-    @APIFunc fun strpbrk(str1: CharPointer, str2: CharPointer): CharPointer {
+    @APIFunc
+    fun strpbrk(str1: CharPointer, str2: CharPointer): CharPointer {
         val string = str1.string
         val pattern = str2.string
 
-        val ind = string.withIndex().find { it.value in pattern }?.index ?: return CharPointer(os.sys)
+        val ind = string.withIndex().find { it.value in pattern }?.index ?: return CharPointer.nullPtr(os.sys)
 
         return CharPointer(os.sys, str1.address + ind)
     }
@@ -295,7 +298,8 @@ class StringAPI(os: VEOS<*>) : API(os) {
 
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstring/strerror/
-    @APIFunc fun strerror(errnum: Int): CharPointer {
+    @APIFunc
+    fun strerror(errnum: Int): CharPointer {
         val result = errlistEnternal[errnum] ?: "Unknown error $errnum"
         sys.writeAsciiString(strerrorBuffer, result)
         return CharPointer(sys, strerrorBuffer)

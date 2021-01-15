@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.veos.ports.cstdlib
 
-
  
 val errlistEnternal = mutableMapOf(
         0 to "Success",

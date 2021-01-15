@@ -29,6 +29,7 @@ import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import java.io.OutputStream
 
+
 open class StreamFile() : IRandomAccessFile {
 
     @DontAutoSerialize

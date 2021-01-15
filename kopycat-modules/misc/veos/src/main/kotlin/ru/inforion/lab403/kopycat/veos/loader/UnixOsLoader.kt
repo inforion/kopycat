@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader
 
-import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.extensions.asLong
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.logging.FINER
+import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.elfloader.ElfAccess
 import ru.inforion.lab403.elfloader.ElfLoader
 import ru.inforion.lab403.elfloader.ElfSymbol
@@ -270,7 +270,7 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
         val freeRange = os.currentMemory.freeRangeBySize(size)
         check(freeRange != null) { "Can't allocate memory for loading $libName" }
 
-        log.warning { "'$libName' will be rebased to ${freeRange.first.hex8}..${(freeRange.first + size).hex8}" }
+        log.config { "'$libName' will be rebased to ${freeRange.first.hex8}..${(freeRange.first + size).hex8}" }
         val base = freeRange.first
 
         regions.forEach {

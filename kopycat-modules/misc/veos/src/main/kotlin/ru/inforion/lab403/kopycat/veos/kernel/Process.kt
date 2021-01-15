@@ -26,10 +26,10 @@
 package ru.inforion.lab403.kopycat.veos.kernel
 
 import kotlinx.coroutines.Deferred
-import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.common.logging.FINER
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.modules.memory.VirtualMemory
@@ -70,7 +70,7 @@ open class Process constructor(
         context.save()
 
         if (sys.currentProcess == process)
-            initContext(sys.abi.programCounter, sys.abi.stackPointer, sys.abi.returnAddress)
+            initContext(sys.abi.programCounterValue, sys.abi.stackPointerValue, sys.abi.returnAddressValue)
         else
             initContext(process.context.programCounterValue, process.context.stackPointerValue, process.context.returnAddressValue)
 
@@ -92,7 +92,7 @@ open class Process constructor(
         // aliases don't have to init context? (always differs from original)
         context.save()
         if (sys.currentProcess == process)
-            initContext(sys.abi.programCounter, sys.abi.stackPointer, sys.abi.returnAddress)
+            initContext(sys.abi.programCounterValue, sys.abi.stackPointerValue, sys.abi.returnAddressValue)
         else
             initContext(process.context.programCounterValue, process.context.stackPointerValue, process.context.returnAddressValue)
 
@@ -225,7 +225,7 @@ open class Process constructor(
         job.onComplete {
             check(isRunning) { "Wrong state $state (Running expected)" }
             val result = it.deferred()
-            sys.fullABI.setReturnValue(result)
+            sys.abi.setReturnValue(result)
         }
         delayedJob = null
     }

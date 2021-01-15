@@ -25,15 +25,23 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems
 
+import ru.inforion.lab403.common.extensions.div
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.proposal.attributes
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
+import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONoSuchFileOrDirectory
-import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IBasicDirectory
+import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotFoundError
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IBasicFile
 import java.io.File
+import java.nio.file.attribute.BasicFileAttributes
 
 
- 
-class CommonDirectory(val path: String) : IBasicFile {
+class CommonDirectory(val path: String) : IBasicFile, Iterable<CommonDirectory.Descriptor> {
+
+    companion object {
+        @Transient val log = logger()
+    }
 
     @DontAutoSerialize
     private val file = File(path)
@@ -41,11 +49,50 @@ class CommonDirectory(val path: String) : IBasicFile {
     private var desc = -1
 
     init {
-        if (!file.exists())
-            throw IONoSuchFileOrDirectory(path)
+        if (!file.exists()) throw IONoSuchFileOrDirectory(path)
         require(file.isDirectory) { "Can't open directory $path - is not a directory" }
     }
 
+    data class Descriptor(val name: String, val attributes: BasicFileAttributes)
+
     override fun open(fd: Int) = run { desc = fd }
 
+    override fun read(data: ByteArray) = throw NotImplementedError("Use next() method for CommonDirectory!")
+
+    override fun writable() = false
+
+    override fun attributes() = file.attributes()
+
+    class DirectoryIterator(val file: File, desc: Int) : Iterator<Descriptor>, IAutoSerializable {
+        private val dirs = file.list() ?: throw IONotFoundError(desc)
+
+        private var idx = 0
+
+        override fun hasNext() = idx != dirs.size
+
+        override fun next(): Descriptor {
+            val name = dirs[idx++]
+            val attributes = (file / name).attributes()
+            return Descriptor(name, attributes)
+        }
+    }
+
+    private var directoryIterator: DirectoryIterator? = null
+
+    fun next(): Descriptor? {
+        if (directoryIterator == null) {
+            directoryIterator = iterator()
+        }
+
+        directoryIterator!!.run {
+            if (!hasNext()) {
+                directoryIterator = null
+                return null
+            }
+
+            return next()
+        }
+    }
+
+    override fun iterator() = DirectoryIterator(file, desc)
 }

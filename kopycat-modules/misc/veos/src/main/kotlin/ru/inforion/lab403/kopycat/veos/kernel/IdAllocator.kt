@@ -30,6 +30,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotFoundError
 
+
 class IdAllocator(val begin: Int = 0, val end: Long = 0x1_0000_0000): IAutoSerializable {
     private var lastId = begin - 1
     private val allocated = mutableSetOf<Int>()

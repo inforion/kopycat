@@ -34,19 +34,16 @@ class Python(val kopycat: Kopycat, val python: String = "python") : AConsole("Py
 
     private lateinit var jep: JepInterpreter
 
-    override fun onInitialize(): Boolean {
-        try {
-            JepLoader.load(python)
-            jep = JepInterpreter(true)
-            jep.set("kopycat", kopycat)
-            jep.eval("kc = kopycat")
-            jep.eval("print(\"Jep starting successfully!\")")
-        } catch (error: Throwable) {
-            error.printStackTrace()
-            return false
-        }
-        return true
-    }
+    override fun onInitialize() = runCatching {
+        JepLoader.load(python)
+        jep = JepInterpreter(true)
+        jep.set("kopycat", kopycat)
+        jep.eval("kc = kopycat")
+        jep.eval("print(\"Jep starting successfully!\")")
+    }.onFailure {
+        val caused = if (it.cause != null) " caused by ${it.cause}" else ""
+        log.severe { "Can't load JEP -> $it$caused" }
+    }.isSuccess
 
     override fun onReconfigure(): Boolean = true
 

@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.veos.ports.windows
 
-
  
 enum class ProcessorFeature(val value: Int) {
     FLOATING_POINT_PRECISION_ERRATA(0),

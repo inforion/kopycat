@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.kopycat.veos.loader.peloader.enums.ImageFileMachine
-import ru.inforion.lab403.kopycat.veos.loader.peloader.interfaces.ImageOptionalHeader
 import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.kopycat.veos.loader.peloader.enums.ImageFileMachine
 import ru.inforion.lab403.kopycat.veos.loader.peloader.headers.x32.ImageOptionalHeader32
+import ru.inforion.lab403.kopycat.veos.loader.peloader.interfaces.ImageOptionalHeader
 import java.nio.ByteBuffer
 
 class ImageNTHeader(input: ByteBuffer) {

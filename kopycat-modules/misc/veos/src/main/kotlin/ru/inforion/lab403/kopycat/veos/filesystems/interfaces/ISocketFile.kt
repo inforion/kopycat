@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.veos.filesystems.interfaces
 
 import java.net.InetSocketAddress
 
+
 interface ISocketFile: IBasicFile {
     val address: InetSocketAddress
 

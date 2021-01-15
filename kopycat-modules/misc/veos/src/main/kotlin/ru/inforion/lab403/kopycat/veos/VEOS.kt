@@ -46,7 +46,7 @@ import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.memory.VirtualMemory
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIResult
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 import ru.inforion.lab403.kopycat.veos.deferred.Definition
 import ru.inforion.lab403.kopycat.veos.filesystems.impl.FileSystem
 import ru.inforion.lab403.kopycat.veos.filesystems.impl.IOSystem
@@ -57,6 +57,7 @@ import java.io.File
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
+
 
 /**
  * {EN}
@@ -94,8 +95,8 @@ abstract class VEOS<C : AGenericCore> constructor(
     private val apiList = ArrayList<API>()
 
     fun addApi(api: API) {
-        require(api !in apiList) { "API $api already added" }
-        apiList.add(api)
+        if (apiList.find { it::class == api::class } == null)
+            apiList.add(api)
     }
 
     fun addApi(vararg apis: API) = apis.forEach { addApi(it) }
@@ -205,7 +206,13 @@ abstract class VEOS<C : AGenericCore> constructor(
 
     private val scheduling = ReentrantLock()
 
-    private fun resetProcesses() = processes.onEach { it.exit() }.clear()
+    private fun exitProcess(process: Process) {
+        process.exit()
+        if (process.memory.isUnused)
+            components.remove(process.memory.name)
+    }
+
+    private fun resetProcesses() = processes.onEach { exitProcess(it) }.clear()
 
     override fun reset() {
         loader.reset()
@@ -354,12 +361,12 @@ abstract class VEOS<C : AGenericCore> constructor(
                 return scheduling.withLock {
                     // TODO: Wrong implementation
                     if (processes.any { it.isReady || it.isBlocked }) {
-                        log.warning { "$currentProcess -> Segmentation fault" }
-                        currentProcess.segfault()
+                        log.warning { "[0x${abi.programCounterValue.hex8}] $currentProcess -> Segmentation fault" }
+                        currentProcess.segfault() /** REVIEW: as [exitProcess] */
                         schedule()
                         TRACER_STATUS_SKIP
                     } else {
-                        log.finest { "Application exited (Segmentation fault)" }
+                        log.finest { "[0x${abi.programCounterValue.hex8}] Application exited (Segmentation fault)" }
                         state = State.Exception
                         log.severe { "$this -> $error" }
                         error.printStackTrace()
@@ -368,7 +375,7 @@ abstract class VEOS<C : AGenericCore> constructor(
                 }
             } catch (error: Throwable) {
                 state = State.Exception
-                log.severe { "$this -> $error" }
+                log.severe { "[0x${abi.returnAddressValue.hex8}] $this -> $error" }
                 error.printStackTrace()
                 return TRACER_STATUS_STOP
             }
@@ -406,7 +413,7 @@ abstract class VEOS<C : AGenericCore> constructor(
 
                     is APIResult.ThreadExited -> {
                         log.warning { "$currentProcess -> exited" }
-                        currentProcess.exit()
+                        exitProcess(currentProcess)
                         schedule()
                     }
 
@@ -414,7 +421,7 @@ abstract class VEOS<C : AGenericCore> constructor(
                         // TODO: Wrong implementation
                         if (processes.any { it.isReady || it.isBlocked }) {
                             log.warning { "$currentProcess -> exited" }
-                            currentProcess.exit()
+                            exitProcess(currentProcess)
                             schedule()
                         } else {
                             log.finest { "Application exited" }
@@ -509,6 +516,7 @@ abstract class VEOS<C : AGenericCore> constructor(
     }
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        reset()
         reconnect {
             disconnectMemories()
             components.filter { it.value is VirtualMemory }.keys.forEach { components.remove(it) }

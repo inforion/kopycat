@@ -28,12 +28,37 @@ package ru.inforion.lab403.kopycat.veos.api.impl
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.veos.VEOS
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIResult
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
+import ru.inforion.lab403.kopycat.veos.api.abstracts.APIVariable
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 
 
 class QNXAPI(os: VEOS<*>) : API(os) {
+
+    val errno = APIVariable.int(os, "errno")
+
+    val _init_libc = nullsub("_init_libc")
+    val __get_errno_ptr = object : APIFunction("__get_errno_ptr") {
+        override val args = emptyArray<ArgType>()
+        override fun exec(name: String, vararg argv: Long): APIResult {
+            log.finest { "[0x${ra.hex8}] get_errno_ptr()" }
+            val p_errno = errno.allocated.address!!
+            return retval(p_errno)
+        }
+    }
+    val __stackavail = object : APIFunction("__stackavail") {
+        override val args = emptyArray<ArgType>()
+        override fun exec(name: String, vararg argv: Long): APIResult {
+            log.severe { "[0x${ra.hex8}] __stackavail returns always 0x1000 ... should be fixed" }
+            return retval(0x1000)
+        }
+    }
+    val __tls = object : APIFunction("__tls") {
+        override val args = emptyArray<ArgType>()
+        override fun exec(name: String, vararg argv: Long) = TODO("retval(os.currentProcess.localStorageAddress)")
+    }
+
 
     val MsgSendv = object : APIFunction("MsgSendv") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int, ArgType.Pointer, ArgType.Int)

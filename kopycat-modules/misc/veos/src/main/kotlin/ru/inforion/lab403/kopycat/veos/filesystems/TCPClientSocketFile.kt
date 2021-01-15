@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.veos.filesystems
 
 import ru.inforion.lab403.common.extensions.buffers.BlockingCircularBytesIO
-import ru.inforion.lab403.common.extensions.hexlify
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.ISocketFile
 import java.io.IOException

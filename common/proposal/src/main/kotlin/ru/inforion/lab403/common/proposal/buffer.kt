@@ -35,6 +35,7 @@ import java.lang.IllegalArgumentException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.ByteOrder.*
+import kotlin.system.exitProcess
 
 inline val ByteOrder.name get() = toString()
 
@@ -55,7 +56,7 @@ class SerializableByteBuffer constructor(): Externalizable {
         @Transient val log = logger()
 
         const val CHUNK_SIZE = 64 * 1024 * 1024
-        const val END_MARKER = 0x69
+        const val END_MARKER = 0x6EADBEEF
     }
 
     constructor(obj: ByteBuffer): this() {
@@ -66,42 +67,53 @@ class SerializableByteBuffer constructor(): Externalizable {
         private set
 
     override fun writeExternal(out: ObjectOutput) {
-        out.writeObject(obj.order().name)
-        out.writeBoolean(obj.isDirect)
-        out.writeInt(obj.limit())
-        out.writeInt(obj.position())
-        val oldPosition = obj.position()
-        obj.position(0)
-        val array = ByteArray(CHUNK_SIZE)
-        while (obj.remaining() != 0) {
-            val size = minOf(obj.remaining(), array.size)
-            obj.get(array, 0, size)
-            out.write(array, 0, size)
+        runCatching {
+            out.writeObject(obj.order().name)
+            out.writeBoolean(obj.isDirect)
+            out.writeInt(obj.limit())
+            out.writeInt(obj.position())
+            val oldPosition = obj.position()
+            obj.position(0)
+            val array = ByteArray(CHUNK_SIZE)
+            while (obj.remaining() != 0) {
+                val size = minOf(obj.remaining(), array.size)
+                obj.get(array, 0, size)
+                out.write(array, 0, size)
+            }
+            out.writeInt(END_MARKER)
+            obj.position(oldPosition)
+        }.onFailure {
+            it.printStackTrace()
+            exitProcess(-1)
         }
-        out.writeInt(END_MARKER)
-        obj.position(oldPosition)
     }
 
     override fun readExternal(`in`: ObjectInput) {
-        val order = `in`.readObject() as String
-        val isDirect = `in`.readBoolean()
-        val limit = `in`.readInt()
-        val position = `in`.readInt()
+        runCatching {
+            val order = `in`.readObject() as String
+            val isDirect = `in`.readBoolean()
+            val limit = `in`.readInt()
+            val position = `in`.readInt()
 
-        obj = byteBuffer(limit, byteOrder(order), isDirect)
+            obj = byteBuffer(limit, byteOrder(order), isDirect)
 
-        val array = ByteArray(CHUNK_SIZE)
-        while (obj.remaining() != 0) {
-            val remain = obj.remaining()
-            val size = if (remain > array.size) array.size else remain
-            val count = `in`.read(array, 0, size)
-            obj.put(array, 0, count)
+            val array = ByteArray(CHUNK_SIZE)
+            while (obj.remaining() != 0) {
+                val remain = obj.remaining()
+                val size = if (remain > array.size) array.size else remain
+                val count = `in`.read(array, 0, size)
+                obj.put(array, 0, count)
+            }
+
+            check(`in`.readInt() == END_MARKER) { "$this serialization marker != $END_MARKER" }
+
+            obj.position(position)
+        }.onFailure {
+            it.printStackTrace()
+            exitProcess(-1)
         }
-
-        check(`in`.readInt() == END_MARKER) { "$this serialization marker != $END_MARKER" }
-
-        obj.position(position)
     }
+
 
     inline fun array() = obj.array()
 

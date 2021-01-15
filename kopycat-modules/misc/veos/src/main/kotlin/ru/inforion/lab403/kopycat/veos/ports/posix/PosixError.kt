@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.veos.ports.posix
 
 
-
 enum class PosixError(val id:Long){
     ESUCCESS        ( 0 ), /* https://stackoverflow.com/questions/21025631/default-value-of-errno-variable */
     EPERM           ( 1 ), /* Operation not permitted */

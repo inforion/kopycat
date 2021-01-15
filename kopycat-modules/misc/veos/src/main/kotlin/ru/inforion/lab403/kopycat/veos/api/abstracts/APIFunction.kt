@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.veos.api.abstracts
 
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 
 
 abstract class APIFunction constructor(name: String, address: Long? = null) : APIObject(name, address) {

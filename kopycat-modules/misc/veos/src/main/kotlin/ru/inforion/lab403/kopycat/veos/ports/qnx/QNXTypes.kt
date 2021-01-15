@@ -30,13 +30,24 @@ import ru.inforion.lab403.common.extensions.getInt32
 import ru.inforion.lab403.common.extensions.putInt32
 
 
-
 data class _thread_local_storage(
-        val __exitfunc: Long, val __arg: Long, val __errptr: Long, val __errval: Long=0,
-                            val __flags: Long=0, val __pid: Long=0, val __tid: Long=0,
-                            val __owner: Long=0, val __stackaddr: Long=0, val __reserved1: Long=0,
-                                val __numkeys: Long=0, val __keydata: Long=0, val __cleanup: Long=0, val __fpuemu_data: Long=0,
-                                val __reserved2_0: Long=0, val __reserved2_1: Long=0) {
+        val __exitfunc: Long,
+        val __arg: Long,
+        val __errptr: Long,
+        val __errval: Long = 0,
+        val __flags: Long = 0,
+        val __pid: Long = 0,
+        val __tid: Long = 0,
+        val __owner: Long = 0,
+        val __stackaddr: Long = 0,
+        val __reserved1: Long = 0,
+        val __numkeys: Long = 0,
+        val __keydata: Long = 0,
+        val __cleanup: Long = 0,
+        val __fpuemu_data: Long = 0,
+        val __reserved2_0: Long = 0,
+        val __reserved2_1: Long = 0
+) {
     companion object {
         const val sizeof = 0x40
         fun fromByteArray(bytes: ByteArray): _thread_local_storage {
@@ -61,26 +72,23 @@ data class _thread_local_storage(
         }
     }
 
-    val asByteArray: ByteArray
-        get() {
-            val bytes = ByteArray(sizeof)
-            bytes.putInt32(0, __exitfunc.asInt)
-            bytes.putInt32(4, __arg.asInt)
-            bytes.putInt32(8, __errptr.asInt)
-            bytes.putInt32(12, __errval.asInt)
-            bytes.putInt32(16, __flags.asInt)
-            bytes.putInt32(20, __pid.asInt)
-            bytes.putInt32(24, __tid.asInt)
-            bytes.putInt32(28, __owner.asInt)
-            bytes.putInt32(32, __stackaddr.asInt)
-            bytes.putInt32(36, __reserved1.asInt)
-            bytes.putInt32(40, __numkeys.asInt)
-            bytes.putInt32(44, __keydata.asInt)
-            bytes.putInt32(48, __cleanup.asInt)
-            bytes.putInt32(52, __fpuemu_data.asInt)
-            bytes.putInt32(56, __reserved2_0.asInt)
-            bytes.putInt32(60, __reserved2_1.asInt)
-
-            return bytes
+    val asByteArray
+        get() = ByteArray(sizeof).apply {
+            putInt32(0, __exitfunc.asInt)
+            putInt32(4, __arg.asInt)
+            putInt32(8, __errptr.asInt)
+            putInt32(12, __errval.asInt)
+            putInt32(16, __flags.asInt)
+            putInt32(20, __pid.asInt)
+            putInt32(24, __tid.asInt)
+            putInt32(28, __owner.asInt)
+            putInt32(32, __stackaddr.asInt)
+            putInt32(36, __reserved1.asInt)
+            putInt32(40, __numkeys.asInt)
+            putInt32(44, __keydata.asInt)
+            putInt32(48, __cleanup.asInt)
+            putInt32(52, __fpuemu_data.asInt)
+            putInt32(56, __reserved2_0.asInt)
+            putInt32(60, __reserved2_1.asInt)
         }
 }

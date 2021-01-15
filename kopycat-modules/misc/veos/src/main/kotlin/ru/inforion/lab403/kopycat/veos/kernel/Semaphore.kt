@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.veos.kernel
 
 
-
 /**
  * Base class for semaphores, binary semaphores and mutexes
  * */

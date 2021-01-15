@@ -26,20 +26,11 @@
 package ru.inforion.lab403.kopycat.modules.veos
 
 import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
-import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.ComponentTracer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
-import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
-import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
-import ru.inforion.lab403.kopycat.modules.cores.MipsCore
-import ru.inforion.lab403.kopycat.modules.cores.MipsDebugger
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.cores.x86Debugger
-import ru.inforion.lab403.kopycat.veos.UnixVEOS
 import ru.inforion.lab403.kopycat.veos.WindowsVEOS
-
-
 
 
 class x86WindowsApplication constructor(

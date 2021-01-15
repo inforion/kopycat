@@ -31,6 +31,7 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotAppropriateDevice
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 
+
 class NullFile : IRandomAccessFile {
     companion object {
         val log = logger(FINEST)

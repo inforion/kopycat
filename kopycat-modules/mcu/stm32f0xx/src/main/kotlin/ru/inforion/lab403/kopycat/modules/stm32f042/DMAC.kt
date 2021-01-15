@@ -35,6 +35,7 @@ import ru.inforion.lab403.kopycat.cores.base.bits
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareNotReadyException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
@@ -418,7 +419,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
                 try {
                     transfer()
                     processInterruptsFlags()
-                } catch (error: MemoryAccessError) {
+                } catch (error: HardwareNotReadyException) {
                     log.severe { "Can't access to DMA region: $error" }
                     hardwareRequestPending = false
                     // I think bad fate wait for me

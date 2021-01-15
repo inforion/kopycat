@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.kernel
 
+import ru.inforion.lab403.common.extensions.first
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
@@ -33,14 +34,15 @@ import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
-import ru.inforion.lab403.kopycat.veos.api.abstracts.APIResult
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 import java.lang.System.currentTimeMillis
+import kotlin.time.Duration
 
 
 class System(val os: VEOS<*>): IAutoSerializable {
 
     companion object {
-        val log = logger()
+        @Transient val log = logger()
     }
 
     val conf get() = os.conf
@@ -77,22 +79,10 @@ class System(val os: VEOS<*>): IAutoSerializable {
 
     val currentProcess get() = os.currentProcess
 
-    inner class ABI : IAutoSerializable {
-        val programCounter get() = os.abi.programCounterValue
-        val stackPointer get() = os.abi.stackPointerValue
-        val returnAddress get() = os.abi.returnAddressValue
-        val returnValue
-            get() = os.abi.returnValue
-
-        fun createContext() = os.abi.createContext()
-    }
-    val abi = ABI()
-
-    // Full-privileged abi
-    val fullABI get() = os.abi
+    val abi get() = os.abi
 
     // TODO: add datetime and force PosixAPI to use it
-    val time get() = currentTimeMillis() / 1000L
+    val time get() = currentTimeMillis()
 
     // Allocations
     private val currentAllocator get() = os.currentProcess.allocator
@@ -118,6 +108,14 @@ class System(val os: VEOS<*>): IAutoSerializable {
         }
         return base
     }
+
+    fun allocateArray(sizeof: Int, values: List<Long>, allocator: Allocator = currentAllocator): Long {
+        val datatype = first<Datatype> { it.bytes == sizeof }
+        return allocateArray(datatype, values, allocator)
+    }
+
+    fun allocatePointersArray(vararg values: Long, allocator: Allocator = currentAllocator) =
+            allocateArray(sizeOf.pointer, values.toList(), allocator)
 
     fun mapFileToMemory(fd: Int, size: Long, offset: Int = 0): Long {
         val fileDescriptor = os.filesystem.share(fd)

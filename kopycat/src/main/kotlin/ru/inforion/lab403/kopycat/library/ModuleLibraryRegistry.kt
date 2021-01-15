@@ -159,7 +159,7 @@ class ModuleLibraryRegistry constructor(
             // mix it all up together
             val paths = specifiedRegistriesPaths + specifiedLibrariesPaths
 
-            log.config { "Loading user libraries: $paths" }
+            log.fine { "Loading user libraries: $paths" }
 
             // load libraries outside main jar
             val externalLibraries = loadUserLibraries(paths)

@@ -31,15 +31,25 @@ import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.interfaces.IOnlyAlias
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API.SerializableMethod.Companion.toSerializableMethod
-import ru.inforion.lab403.kopycat.veos.api.misc.*
+import ru.inforion.lab403.kopycat.veos.api.annotations.APIFunc
+import ru.inforion.lab403.kopycat.veos.api.cherubim.ArgumentList
+import ru.inforion.lab403.kopycat.veos.api.cherubim.Cherubim
+import ru.inforion.lab403.kopycat.veos.api.datatypes.LongLong
+import ru.inforion.lab403.kopycat.veos.api.datatypes.Sizet
+import ru.inforion.lab403.kopycat.veos.api.datatypes.VaArgs
+import ru.inforion.lab403.kopycat.veos.api.datatypes.VaList
+import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
+import ru.inforion.lab403.kopycat.veos.api.pointers.*
 import java.io.IOException
 import java.io.ObjectInputStream
 import java.io.ObjectOutputStream
@@ -184,7 +194,7 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
      */
     open fun init(argc: Long, argv: Long, envp: Long) = Unit
 
-    open fun setErrno(error: Exception?) = Unit
+    open fun setErrno(error: Exception?): Unit = throw NotImplementedError("setErrno() is not implemented!")
 
     // TODO: full use of system instead of os
     protected inline val sys get() = os.sys
@@ -197,7 +207,7 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
     protected inline fun <T> nothrow(default: T, block: () -> T) = try {
         block()
     } catch (error: Exception) {
-        log.finest { "[0x${ra.hex8}] C errno layer got exception -> $this" }
+        log.finest { "[0x${ra.hex8}] C errno layer got exception -> $error" }
         setErrno(error)
         default
     }
@@ -248,12 +258,39 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
         super<IAutoSerializable>.deserialize(ctxt, snapshot)
     }
 
+    /**
+     * {EN}
+     * Function throws [NullPointerException] exception hat is in fact segmentation fault if [condition] is met
+     *
+     * You can call this function whenever want to check if something goes wrong and program should be stopped
+     *
+     * @param condition is a condition to stop program (if true)
+     * @param message is a message provider function
+     * {EN}
+     */
+    protected inline fun segfault(condition: Boolean, address: Long = -1, message: () -> String) {
+        if (condition) throw MemoryAccessError(ra, address, AccessAction.LOAD, message())
+    }
+
+    /**
+     * {EN}
+     * Function throws [NullPointerException] exception that is in fact segmentation fault if provided pointer is null
+     *
+     * Calling of this function is not necessary just make possible to show a specific message if crash occurred
+     *
+     * @param pointer is a pointer to check on null
+     * @param message is a message provider function
+     * {EN}
+     */
+    protected inline fun <T> segfault(pointer: Pointer<T>, message: () -> String) =
+            segfault(pointer.isNull, pointer.address, message)
+
     init {
         type(ArgType.Char) { _, it -> it.asChar }
         type(ArgType.Short) { _, it ->it.asShort }
         type(ArgType.Int) { _, it ->it.asInt }
         type(ArgType.Long) { _, it -> it }
-        type(ArgType.LongLong) { _, it -> LongLong(it like os.abi.types.longLong)}
+        type(ArgType.LongLong) { _, it -> LongLong(it like os.abi.types.longLong) }
 
         type(ArgType.Char) { _, it -> it.asByte }
         type(ArgType.Short) { _, it -> it.ushort }
@@ -270,9 +307,12 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
 
         type(ArgType.Pointer) { _, it -> BytePointer(os.sys, it) }
         type(ArgType.Pointer) { _, it -> CharPointer(os.sys, it) }
+        type(ArgType.Pointer) { _, it -> ShortPointer(os.sys, it) }
         type(ArgType.Pointer) { _, it -> IntPointer(os.sys, it) }
+        type(ArgType.Pointer) { _, it -> LongPointer(os.sys, it) }
         type(ArgType.Pointer) { _, it -> FunctionPointer(os.sys, it) }
         type(ArgType.Pointer) { _, it -> VoidPointer(os.sys, it) }
+        type(ArgType.Pointer) { _, it -> PointerPointer(os.sys, it) }
         type(ArgType.Pointer /* TODO: may cause bug if stack is empty */) { i, it -> VaArgs(os.sys, i) }
         type(ArgType.Pointer) { _, it -> VaList(os.sys, it) }
 
@@ -291,10 +331,12 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
 
         ret<BytePointer> { APIResult.Value(it.address) }
         ret<CharPointer> { APIResult.Value(it.address) }
+        ret<ShortPointer> { APIResult.Value(it.address) }
+        ret<IntPointer> { APIResult.Value(it.address) }
         ret<FunctionPointer> { APIResult.Value(it.address) }
         ret<VoidPointer> { APIResult.Value(it.address) }
+        ret<PointerPointer> { APIResult.Value(it.address) }
 
         ret<APIResult> { it }
-
     }
 }

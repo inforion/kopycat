@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers.x32
 
-import ru.inforion.lab403.kopycat.veos.loader.peloader.interfaces.ImageOptionalHeader
-import ru.inforion.lab403.kopycat.veos.loader.peloader.headers.ImageDataDirectory
 import ru.inforion.lab403.common.extensions.asUInt
 import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.kopycat.veos.loader.peloader.headers.ImageDataDirectory
+import ru.inforion.lab403.kopycat.veos.loader.peloader.interfaces.ImageOptionalHeader
 import java.nio.ByteBuffer
 
 class ImageOptionalHeader32(input: ByteBuffer) : ImageOptionalHeader {

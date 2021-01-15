@@ -25,11 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader
 
-import ru.inforion.lab403.elfloader.ElfLoader
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.veos.kernel.Symbol
-import java.io.Serializable
 
 abstract class ALoader(val parent: Module): IAutoSerializable {
     abstract fun reset()

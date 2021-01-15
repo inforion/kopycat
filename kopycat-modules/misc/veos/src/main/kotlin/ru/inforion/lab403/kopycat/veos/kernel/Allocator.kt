@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.veos.kernel
 
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.sure
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 
@@ -114,7 +113,7 @@ class Allocator(
 
     fun blockSize(address: Long) = usedBlocks
             .find { it.addr == address }?.size
-            .sure { "Invalid pointer or double free at 0x${sys.abi.programCounter.hex8} called from 0x${sys.abi.returnAddress.hex8}" }
+            .sure { "Invalid pointer or double free at 0x${sys.abi.programCounterValue.hex8} called from 0x${sys.abi.returnAddressValue.hex8}" }
 
     val breakAddress get() = usedBlocks.maxOf { it.addr + it.size }
 
@@ -155,28 +154,4 @@ class Allocator(
         freedBlocks.clear()
         usedBlocks.clear()
     }
-
-//    override fun serialize(ctxt: GenericSerializer) = mapOf(
-//            "startAddr" to startAddr.hex8,
-//            "endAddr" to endAddr.hex,
-//            "alignment" to alignment,
-//            "currentFreePos" to currentFreePos.hex,
-//            "usedBlocks" to usedBlocks,
-//            "freeBlocks" to freedBlocks)
-//
-//    @Suppress("UNCHECKED_CAST")
-//    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-//        currentFreePos = (snapshot["currentFreePos"] as String).hexAsULong
-//        freedBlocks.clear()
-//        (snapshot["freeBlocks"] as ArrayList<HashMap<String, Long>>).forEach { it ->
-//            val block = MBlock(it["addr"]!!, it["size"]!!.asInt)
-//            freedBlocks.add(block)
-//        }
-//
-//        usedBlocks.clear()
-//        (snapshot["usedBlocks"] as ArrayList<HashMap<String, Long>>).forEach { it ->
-//            val block = MBlock(it["addr"]!!, it["size"]!!.asInt)
-//            usedBlocks.add(block)
-//        }
-//    }
 }

@@ -25,10 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.kopycat.veos.loader.peloader.PEFile
 import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.kopycat.veos.loader.peloader.PEFile
 import java.nio.ByteBuffer
-
 
 
 class ImageThunkData(private val peFile: PEFile, private val input: ByteBuffer, val importAddress: Long) {

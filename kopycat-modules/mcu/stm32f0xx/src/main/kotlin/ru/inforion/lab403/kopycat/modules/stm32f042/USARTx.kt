@@ -23,6 +23,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("unused", "SpellCheckingInspection", "PrivatePropertyName", "LocalVariableName", "PropertyName")
+
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.*

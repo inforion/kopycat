@@ -29,5 +29,4 @@ import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
 
 
-
 class Handler(val name: String, val ea: Long, val func: APIFunction): IConstructorSerializable
