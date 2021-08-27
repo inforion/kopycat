@@ -25,10 +25,11 @@ include(":kopycat-modules:mcu:virtarm")
 include(":kopycat-modules:mcu:testbench")
 
 include(":kopycat-modules:misc:examples")
-
+include(":kopycat-modules:misc:veos")
 
 
 
 
 include(":common:proposal")
+include(":common:elfloader")
 
