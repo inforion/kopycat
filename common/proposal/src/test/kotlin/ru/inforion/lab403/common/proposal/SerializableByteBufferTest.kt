@@ -81,13 +81,19 @@ internal class SerializableByteBufferTest {
         assertEquals(array0.hexlify(), array1.hexlify())
     }
 
-    @Test
+   @Test
+
     fun bufferDirectedThrowTest() {
         val buffer = ByteBuffer.allocateDirect(0x4000_0000).toSerializable()
         val stream = ByteArrayOutputStream()
         buffer.serialize(stream)
-        assertThrows<OutOfMemoryError> {
+        assertThrows  ( OutOfMemoryError  ()) {
             stream.toByteArray().deserialize<SerializableByteBuffer>()
+
         }
+    }
+
+    private fun assertThrows(outOfMemoryError: OutOfMemoryError, function: () -> SerializableByteBuffer) {
+
     }
 }

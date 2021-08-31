@@ -34,6 +34,12 @@ To run Kopycat you have to install the following software:
 NOTE: prebuild OpenJDK installer is available on https://adoptopenjdk.net/ 
     
 Linux and OSX users can use package manager to install OpenJDK and Python. To install **jep** `pip` command can be used, but before **compiler** and **toolchain** have to be installed for building **jep** package. On Linux system **gcc** from `apt` and on OSX `Developer Tools` with XCode (XCode by itself is not needed, but we need a compiler). As for Windows users you may face a lot of difficulties while compiling Python packages.
+
+3. Install unicorn libraries (https://www.unicorn-engine.org/).
+4. Install keystone (https://docs.openstack.org/keystone/latest/).
+5. Install nasm (https://www.nasm.us/).
+6. Install the man-db package (http://man-db.nongnu.org/).
+7. Install socat (https://linux-notes.org/ustanovka-socat-v-unix-linux/).
     
 ### Installation of requirements on Windows 10
 
