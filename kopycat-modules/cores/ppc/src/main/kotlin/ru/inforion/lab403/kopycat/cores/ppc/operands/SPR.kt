@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.ppc.operands
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 
@@ -39,16 +39,16 @@ class SPR(val name: String, val id: Int, val dest: PPCRegister, val moveTo: Acce
     }
 
     fun value(core: PPCCore) = dest.value(core)
-    fun value(core: PPCCore, data: Long) = dest.value(core, data)
+    fun value(core: PPCCore, data: ULong) = dest.value(core, data)
 
     val sprH: Int
         get() = getHigh(id)
     val sprL: Int
         get() = getLow(id)
-    val isPriveleged = id[4].toBool()
+    val isPriveleged = id[4].truth
 
     companion object {
-        private fun getHigh(data: Int) = ((data shr 5) and 0b11111)
+        private fun getHigh(data: Int) = ((data ushr 5) and 0b11111)
         private fun getLow(data: Int) = (data and 0b11111)
 
         fun swap(data: Int) = (getLow(data) shl 5) or getHigh(data)

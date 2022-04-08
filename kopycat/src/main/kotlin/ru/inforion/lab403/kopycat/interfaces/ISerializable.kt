@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,33 +45,9 @@ interface ISerializable: Serializable {
     fun serialize(ctxt: GenericSerializer): Map<String, Any> = emptyMap()
 
     /**
-     * {RU}Загрузка snapshot-а с использованием указанного контекста <ctxt> из любого типа.{RU}
-     *
-     * {EN}
-     * Loading snapshot using specified deserialization context <ctxt> from any type
-     * Peripheral legacy support
-     * {EN}
-     */
-    @Deprecated("Old legacy support")
-    fun deserialize(ctxt: GenericSerializer, snapshot: Any) { }
-
-    /**
      * {RU}Загрузка snapshot-а с использованием указанного контекста <ctxt> из Map<String, Any>{RU}
      *
      * {EN}Loading snapshot using specified deserialization context <ctxt> from Map<String, Any>{EN}
      */
-    fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) { }
-
-    /**
-     * {RU}
-     * Восстановить последний загруженное или сериализованное состояние snapshot используя
-     * указанный контекст десериализации <ctxt> из Map<String, Any>
-     * {RU}
-     *
-     * {EN}
-     * Restore to last loaded or serialized snapshot state using specified
-     * deserialization context <ctxt> from Map<String, Any>
-     * {EN}
-     */
-    fun restore(ctxt: GenericSerializer, snapshot: Map<String, Any>) = deserialize(ctxt, snapshot)
+    fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) = Unit
 }

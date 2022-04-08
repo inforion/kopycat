@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,19 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
+import ru.inforion.lab403.common.extensions.clr
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU.Companion.LME
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Far
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Phrase
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.CTRLR.cr0
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.eflags
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -54,24 +53,24 @@ class Jmp(
 
     override fun execute() {
         if (!isFar) {
-            val regip = x86Register.gpr(prefs.opsize, x86GPR.EIP.id)
+            val regip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
             val eip = if (isRelative) {
-                val offset = op1.ssext(core)
-                val eip = regip.value(core)
+                val offset = op1.usext(core)
+                val eip = regip.value
                 eip + offset
             } else op1.value(core)
             if (!x86utils.isWithinCodeSegmentLimits(eip))
-                throw x86HardwareException.GeneralProtectionFault(core.pc, cs.value(core))
+                throw x86HardwareException.GeneralProtectionFault(core.pc, core.cpu.sregs.cs.value)
 
-            regip.value(core, eip)
+            regip.value = eip
         } else {
-            val pe = cr0.pe(core)
-            val vm = eflags.vm(core)
+            val pe = core.cpu.cregs.cr0.pe
+            val vm = core.cpu.flags.vm
 
             //real-address or virtual-8086 mode
             if (!pe || (pe && vm)) {
-                x86Register.gpr(prefs.opsize, x86GPR.EIP.id).value(core, op1.value(core))
-                cs.value(core, (op1 as x86Far).ss)
+                core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize).value = op1.value(core)
+                core.cpu.sregs.cs.value = (op1 as x86Far).ss
             }
 
             //Protected mode, not virtual-8086 mode
@@ -85,9 +84,9 @@ class Jmp(
 
 //                val ss = (op1 as Far).ss
                 val address = op1.value(core)
-                cs.value(core, ss)
-                val regip = x86Register.gpr(prefs.opsize, x86GPR.EIP.id)
-                regip.value(core, address)
+                core.cpu.sregs.cs.value = ss
+                val regip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+                regip.value = address
 //                SegmentsToCheck[] = {CS, DS, ES, FS, GS, SS};
 //                if(!CheckEffectiveAddresses(SegmentsToCheck) || TargetOperand.SegmentSelector == 0) Exception(GP(0)); //effective address in the CS, DS, ES, FS, GS, or SS segment is illegal
 //                if(!IsWithinDescriptorTableLimits(SegmentSelector.Index)) Exception(GP(NewSelector));

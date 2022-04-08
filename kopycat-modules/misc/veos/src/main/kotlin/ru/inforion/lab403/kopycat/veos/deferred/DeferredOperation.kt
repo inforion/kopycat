@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,22 +25,23 @@
  */
 package ru.inforion.lab403.kopycat.veos.deferred
 
+import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.logging.logger
 
 class DeferredOperation<T>(
         private val executeAction: () -> T,
-        private val successAction: (T) -> Long,
-        private val failureAction: (error: Exception) -> Long
+        private val successAction: (T) -> ULong,
+        private val failureAction: (error: Exception) -> ULong
 ) {
     companion object {
         val log = logger()
     }
 
-    private lateinit var finallyAction: () -> Long
+    private lateinit var finallyAction: () -> ULong
 
     fun execute() = executeAction()
 
-    fun deferred(): Long {
+    fun deferred(): ULong {
         check(::finallyAction.isInitialized) { "Deferred action was not initialized! Nor succeed() or failed() invoked!" }
         return finallyAction()
     }
@@ -49,18 +50,12 @@ class DeferredOperation<T>(
         finallyAction = { successAction(result) }
     }
 
-    fun failed(error: Throwable) {
-        when (error) {
-            is NullPointerException -> {
-                log.severe { error }
-                error.printStackTrace()
-            }
-            is Exception -> run { finallyAction = { failureAction(error) } }
-            else -> {
-                // in case if java eat exception in other thread
-                log.severe { error }
-                error.printStackTrace()
-            }
-        }
+    fun failed(error: Throwable) = when (error) {
+        is NullPointerException -> error.logStackTrace(log)
+
+        is Exception -> run { finallyAction = { failureAction(error) } }
+
+        // in case if java eat exception in other thread
+        else -> error.logStackTrace(log)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ package ru.inforion.lab403.kopycat.cores.ppc.enums.systems.embedded.mmufsl
 //WARNING: 64 bit by PowerISA V2.05
 enum class eMAS2(val bit: Int) {
 
+    // 31..12 (32..51 in PPC notation)
     EPNHigh(31),    // Effective page number
     EPNLow(12),
 

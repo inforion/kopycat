@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.interactive.protocols
 
-import org.junit.Assert.*
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.hexlify
 import ru.inforion.lab403.common.logging.logger
@@ -39,7 +38,10 @@ import ru.inforion.lab403.kopycat.modules.cores.device.TestDebugger
 import ru.inforion.lab403.kopycat.modules.cores.device.TestDevice
 import ru.inforion.lab403.kopycat.modules.cores.device.instructions.INSN
 import ru.inforion.lab403.kopycat.modules.memory.RAM
+import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 class KopycatRestProtocolUnitTest {
 
@@ -56,28 +58,28 @@ class KopycatRestProtocolUnitTest {
 
     private fun makeTestDevice(kopycat: Kopycat, program: ByteArray? = null) = with (kopycat) {
         val device = TestDevice(null, defaultModuleName)
-        open(device, false, null)
+        open(device, null, false)
         val actual = program ?: TestCore.program(
                 INSN.ADD, // R2 = 5
                 INSN.MOV, // R0 = 2
                 INSN.MUL, // R2 = 4
                 INSN.SUB  // R2 = 0
         )
-        core.store(0x1000, actual)
-        core.cpu.reg(0, 0x3)
-        core.cpu.reg(1, 0x2)
-        core.cpu.pc = 0x1000
+        core.store(0x1000u, actual)
+        core.cpu.reg(0, 0x3u)
+        core.cpu.reg(1, 0x2u)
+        core.cpu.pc = 0x1000u
         device
     }
 
     @Test
-    fun postModuleTest() = withKopycatRest { _, modules ->
+    fun postModuleTest() = withKopycatRest(port) { _, modules ->
         assertEquals(registryClient.module.create(null, defaultModuleName), defaultModuleName)
         assertTrue(modules.any { it.name == defaultModuleName })
     }
 
     @Test
-    fun deleteModuleTest() = withKopycatRest { _, modules ->
+    fun deleteModuleTest() = withKopycatRest(port) { _, modules ->
         val device = TestDevice(null, defaultModuleName)
         modules.add(device)
 
@@ -92,7 +94,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun deleteModuleTest2() = withKopycatRest { _, modules ->
+    fun deleteModuleTest2() = withKopycatRest(port) { _, modules ->
         val device = TestDevice(null, defaultModuleName)
         modules.add(device)
 
@@ -106,7 +108,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun deleteModuleTest3() = withKopycatRest { kopycat, modules ->
+    fun deleteModuleTest3() = withKopycatRest(port) { kopycat, modules ->
         // Checking to conditions at once if child module have multiple children
         // and different ways of modules inheritance
         val device = TestDevice(null, defaultModuleName)
@@ -133,7 +135,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun instantiateTest() = withKopycatRest { _, modules ->
+    fun instantiateTest() = withKopycatRest(port) { _, modules ->
         val device = Module(null, defaultModuleName)
         modules.add(device)
 
@@ -157,7 +159,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun instantiateFailureTest() = withKopycatRest { _, _ ->
+    fun instantiateFailureTest() = withKopycatRest(port) { _, _ ->
         log.warning { "This test should fail... any exception on server side is ok!" }
         assertFailsWith<IllegalStateException> {
             registryClient.instantiate("test", "dbg", "TestDebugger", "cores")
@@ -165,7 +167,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun busTest() = withKopycatRest { _, modules ->
+    fun busTest() = withKopycatRest(port) { _, modules ->
         val device = Module(null, defaultModuleName)
         modules.add(device)
         val busResponse = kopycatClient.bus(defaultModuleName, "mem", "BUS32")
@@ -174,7 +176,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun portTest() = withKopycatRest { _, modules ->
+    fun portTest() = withKopycatRest(port) { _, modules ->
         val device = Module(null, defaultModuleName)
         modules.add(device)
         val port = kopycatClient.port(defaultModuleName, "port", "Master", "BUS16")
@@ -183,21 +185,21 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun stepTest() = withKopycatRest { kopycat, _ ->
+    fun stepTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
 
         // stepping by the program defined in 'configureKopycat' method
         assertTrue(kopycatClient.step())
-        assertEquals(0x5, kopycat.core.cpu.reg(2))
+        assertEquals(0x5u, kopycat.core.cpu.reg(2))
 
         assertTrue(kopycatClient.step())
-        assertEquals(0x2, kopycat.core.cpu.reg(1))
+        assertEquals(0x2u, kopycat.core.cpu.reg(1))
 
         assertTrue(kopycatClient.step())
-        assertEquals(0x4, kopycat.core.cpu.reg(2))
+        assertEquals(0x4u, kopycat.core.cpu.reg(2))
 
         assertTrue(kopycatClient.step())
-        assertEquals(0x0, kopycat.core.cpu.reg(2))
+        assertEquals(0x0u, kopycat.core.cpu.reg(2))
 
         // Because in program only 4 instructions, 5th should return False
         assertFalse(kopycatClient.step())
@@ -213,7 +215,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun startTest() = withKopycatRest { kopycat, _ ->
+    fun startTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat, TestCore.program(INSN.INF))
         kopycatClient.start()
         kopycat.waitAndAssertRunning(true)
@@ -222,7 +224,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun haltTest() = withKopycatRest { kopycat, _ ->
+    fun haltTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat, TestCore.program(INSN.INF))
         kopycat.start()
         kopycat.waitAndAssertRunning(true)
@@ -231,108 +233,108 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun testMemLoad() = withKopycatRest { kopycat, _ ->
+    fun testMemLoad() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
 
-        assertEquals(kopycat.memLoad(0x1000, 16, 0).hexlify(), kopycatClient.memLoad(0x1000, 16, 0))
-        assertEquals(kopycat.memLoad(0x1000, 18, 0).hexlify(), kopycatClient.memLoad(0x1000, 18, 0))
-        assertEquals(kopycat.memLoad(0xFFF, 18, 0).hexlify(), kopycatClient.memLoad(0xFFF, 18, 0))
+        assertEquals(kopycat.memLoad(0x1000u, 16, 0).hexlify(), kopycatClient.memLoad(0x1000u, 16, 0))
+        assertEquals(kopycat.memLoad(0x1000u, 18, 0).hexlify(), kopycatClient.memLoad(0x1000u, 18, 0))
+        assertEquals(kopycat.memLoad(0xFFFu, 18, 0).hexlify(), kopycatClient.memLoad(0xFFFu, 18, 0))
     }
 
     @Test
-    fun testMemStore() = withKopycatRest { kopycat, _ ->
+    fun testMemStore() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
 
-        kopycatClient.memStore(0x1000, "0F105ACD00351ABDEA", 0)
-        assertEquals(kopycat.memLoad(0x1000, "0F105ACD00351ABDEA".length / 2, 0).hexlify(), "0F105ACD00351ABDEA")
-        kopycatClient.memStore(0x1000, "00000000", 0)
-        assertEquals(kopycat.memLoad(0x1000, "00000000".length / 2, 0).hexlify(), "00000000")
-        kopycatClient.memStore(0x1000, "", 0)
-        assertEquals(kopycat.memLoad(0x1000, 0, 0).hexlify(), "")
+        kopycatClient.memStore(0x1000u, "0F105ACD00351ABDEA", 0)
+        assertEquals(kopycat.memLoad(0x1000u, "0F105ACD00351ABDEA".length / 2, 0).hexlify(), "0F105ACD00351ABDEA")
+        kopycatClient.memStore(0x1000u, "00000000", 0)
+        assertEquals(kopycat.memLoad(0x1000u, "00000000".length / 2, 0).hexlify(), "00000000")
+        kopycatClient.memStore(0x1000u, "", 0)
+        assertEquals(kopycat.memLoad(0x1000u, 0, 0).hexlify(), "")
     }
 
     @Test
-    fun regReadTest() = withKopycatRest { kopycat, _ ->
+    fun regReadTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
 
         assertEquals(kopycat.core.cpu.reg(0), kopycatClient.regRead(0))
         assertEquals(kopycat.core.cpu.reg(1), kopycatClient.regRead(1))
-        kopycat.core.cpu.reg(2, 0xBEEF)
+        kopycat.core.cpu.reg(2, 0xBEEFu)
         assertEquals(kopycat.core.cpu.reg(2), kopycatClient.regRead(2))
     }
 
     @Test
-    fun regWriteTest() = withKopycatRest { kopycat, _ ->
+    fun regWriteTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
 
-        kopycatClient.regWrite(0, 0xABCD)
-        assertEquals(0xABCD, kopycat.core.cpu.reg(0))
+        kopycatClient.regWrite(0, 0xABCDu)
+        assertEquals(0xABCDu, kopycat.core.cpu.reg(0))
 
-        kopycatClient.regWrite(1, 0xFFFF)
-        assertEquals(0xFFFF, kopycat.core.cpu.reg(1))
+        kopycatClient.regWrite(1, 0xFFFFu)
+        assertEquals(0xFFFFu, kopycat.core.cpu.reg(1))
 
-        kopycatClient.regWrite(2, 0xBEEF)
-        assertEquals(0xBEEF, kopycat.core.cpu.reg(2))
+        kopycatClient.regWrite(2, 0xBEEFu)
+        assertEquals(0xBEEFu, kopycat.core.cpu.reg(2))
     }
 
     @Test
-    fun pcReadTest() = withKopycatRest { kopycat, _ ->
+    fun pcReadTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
 
         assertEquals(kopycat.core.cpu.pc, kopycatClient.pcRead())
-        kopycat.core.pc = 0xBEEF
+        kopycat.core.pc = 0xBEEFu
         assertEquals(kopycat.core.cpu.pc, kopycatClient.pcRead())
     }
 
     @Test
-    fun pcWriteTest() = withKopycatRest { kopycat, _ ->
+    fun pcWriteTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
 
-        kopycatClient.pcWrite(0xABCD)
-        assertEquals(0xABCD, kopycat.core.cpu.pc)
+        kopycatClient.pcWrite(0xABCDu)
+        assertEquals(0xABCDu, kopycat.core.cpu.pc)
 
-        kopycatClient.pcWrite(0xFFFF)
-        assertEquals(0xFFFF, kopycat.core.cpu.pc)
+        kopycatClient.pcWrite(0xFFFFu)
+        assertEquals(0xFFFFu, kopycat.core.cpu.pc)
 
-        kopycatClient.pcWrite(0)
-        assertEquals(0, kopycat.core.cpu.pc)
+        kopycatClient.pcWrite(0u)
+        assertEquals(0u, kopycat.core.cpu.pc)
     }
 
     @Test
-    fun saveSnapshotTest() = withKopycatRest { kopycat, _ ->
+    fun saveSnapshotTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
         kopycatClient.save("snapshotUnitTest")
         // Changes default values to check correct serialize/deserialize behavior
-        kopycat.pcWrite(0x0)
-        kopycat.regWrite(1, 0x100)
-        kopycat.load("snapshotUnitTest.zip")
-        assertEquals(kopycat.core.cpu.pc, 0x1000)
-        assertEquals(kopycat.core.cpu.reg(1), 0x2)
+        kopycat.pcWrite(0x0u)
+        kopycat.regWrite(1, 0x100u)
+        kopycat.load("snapshotUnitTest")
+        assertEquals(0x1000u, kopycat.core.cpu.pc)
+        assertEquals(0x2u, kopycat.core.cpu.reg(1))
     }
 
     @Test
-    fun loadSnapshotTest() = withKopycatRest { kopycat, _ ->
+    fun loadSnapshotTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
         kopycat.save("snapshotUnitTest")
         // Changes default values to check correct serialize/deserialize behavior
-        kopycat.pcWrite(0x0)
-        kopycat.regWrite(1, 0x100)
-        kopycatClient.load("snapshotUnitTest.zip")
-        assertEquals(kopycat.core.cpu.pc, 0x1000)
-        assertEquals(kopycat.core.cpu.reg(1), 0x2)
+        kopycat.pcWrite(0x0u)
+        kopycat.regWrite(1, 0x100u)
+        kopycatClient.load("snapshotUnitTest")
+        assertEquals(0x1000u, kopycat.core.cpu.pc)
+        assertEquals(0x2u, kopycat.core.cpu.reg(1))
     }
 
     @Test
-    fun resetTest() = withKopycatRest { kopycat, _ ->
+    fun resetTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
         kopycatClient.reset()
-        assertEquals(kopycat.core.cpu.pc, 0x0)
-        assertEquals(kopycat.core.cpu.reg(0), 0x0)
-        assertEquals(kopycat.memLoad(0x1000, 8, 0).hexlify(), "0000000000000000")
+        assertEquals(0x0u, kopycat.core.cpu.pc)
+        assertEquals(0x0u, kopycat.core.cpu.reg(0))
+        assertEquals("0000000000000000", kopycat.memLoad(0x1000u, 8, 0).hexlify())
     }
 
     @Test
-    fun closeTest() = withKopycatRest { kopycat, _ ->
+    fun closeTest() = withKopycatRest(port) { kopycat, _ ->
         kopycatClient.close()
         assertFalse(kopycat.isTopModulePresented)
         assertFalse(kopycat.isGdbServerPresented)
@@ -340,7 +342,7 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun exitTest() = withKopycatRest { kopycat, _ ->
+    fun exitTest() = withKopycatRest(port) { kopycat, _ ->
         kopycatClient.exit()
         assertFalse(kopycat.isTopModulePresented)
         assertFalse(kopycat.isGdbServerPresented)
@@ -349,16 +351,16 @@ class KopycatRestProtocolUnitTest {
     }
 
     @Test
-    fun metaInfoTest() = withKopycatRest { kopycat, _ ->
+    fun metaInfoTest() = withKopycatRest(port) { kopycat, _ ->
         makeTestDevice(kopycat)
         kopycatClient.save("snapshotUnitTest", "test comment")
-        val meta = kopycatClient.getSnapshotMetaInfo("snapshotUnitTest.zip")
+        val meta = kopycatClient.getSnapshotMetaInfo("snapshotUnitTest")
         assertEquals(meta.comment, "test comment")
-        assertEquals(meta.entry, 0x1000)
+        assertEquals(meta.entry, 0x1000u)
     }
 
     @Test
-    fun openTest() = withKopycatRest { kopycat, _ ->
+    fun openTest() = withKopycatRest(port) { kopycat, _ ->
         registryClient.module.create(null, defaultModuleName)
         registryClient.instantiate(defaultModuleName, "core", "TestCore", "cores", mapOf("frequency" to 1))
         registryClient.instantiate(defaultModuleName, "dbg", "TestDebugger", "cores")

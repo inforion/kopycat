@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,53 +25,69 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.hardware.registers
 
-import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
-import ru.inforion.lab403.kopycat.cores.x86.enums.CR0
-import ru.inforion.lab403.kopycat.cores.x86.enums.CR4
+import ru.inforion.lab403.common.extensions.clr
+import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
+import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.enums.CTRLR
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
 
-class CTRLBank(core: x86Core) : ARegistersBank<x86Core, CTRLR>(core, CTRLR.values(), bits = 32) {
-    override val name: String = "Control Registers"
+class CTRLBank(val core: x86Core) : ARegistersBankNG<x86Core>("Control Registers", CTRLR.values().size, 64) {
 
-    var cr0 by valueOf(x86Register.CTRLR.cr0)
-    var cr1 by valueOf(x86Register.CTRLR.cr1)
-    var cr2 by valueOf(x86Register.CTRLR.cr2)
-    var cr3 by valueOf(x86Register.CTRLR.cr3)
-    var cr4 by valueOf(x86Register.CTRLR.cr4)
+    inner class CR0 : Register("cr0", 0) {
+        var pe by bitOf(0)
+        var mp by bitOf(1)
+        var em by bitOf(2)
+        var ts by bitOf(3)
+        var et by bitOf(4)
+        var ne by bitOf(5)
+        var wp by bitOf(16)
+        var am by bitOf(18)
+        var nw by bitOf(29)
+        var cd by bitOf(30)
+        var pg by bitOf(31)
+    }
 
-    var vpe by bitOf(x86Register.CTRLR.cr0, CR0.PE.bit)
-    var vmp by bitOf(x86Register.CTRLR.cr0, CR0.MP.bit)
-    var vem by bitOf(x86Register.CTRLR.cr0, CR0.EM.bit)
-    var vts by bitOf(x86Register.CTRLR.cr0, CR0.TS.bit)
-    var vet by bitOf(x86Register.CTRLR.cr0, CR0.ET.bit)
-    var vne by bitOf(x86Register.CTRLR.cr0, CR0.NE.bit)
-    var vwp by bitOf(x86Register.CTRLR.cr0, CR0.WP.bit)
-    var vam by bitOf(x86Register.CTRLR.cr0, CR0.AM.bit)
-    var vnw by bitOf(x86Register.CTRLR.cr0, CR0.NW.bit)
-    var vcd by bitOf(x86Register.CTRLR.cr0, CR0.CD.bit)
-    var vpg by bitOf(x86Register.CTRLR.cr0, CR0.PG.bit)
+    inner class CR3 : Register("cr3", 3) {
 
-    var vpme by bitOf(x86Register.CTRLR.cr4, CR4.VME.bit)
-    var vpvi by bitOf(x86Register.CTRLR.cr4, CR4.PVI.bit)
-    var vtsd by bitOf(x86Register.CTRLR.cr4, CR4.TSD.bit)
-    var vde by bitOf(x86Register.CTRLR.cr4, CR4.DE.bit)
-    var vpse by bitOf(x86Register.CTRLR.cr4, CR4.PSE.bit)
-    var vpae by bitOf(x86Register.CTRLR.cr4, CR4.PAE.bit)
-    var vmce by bitOf(x86Register.CTRLR.cr4, CR4.MCE.bit)
-    var vpge by bitOf(x86Register.CTRLR.cr4, CR4.PGE.bit)
-    var vpce by bitOf(x86Register.CTRLR.cr4, CR4.PCE.bit)
-    var vosfxsr by bitOf(x86Register.CTRLR.cr4, CR4.OSFXSR.bit)
-    var vosxmmexcpt by bitOf(x86Register.CTRLR.cr4, CR4.OSXMMEXCPT.bit)
-    var vvmxe by bitOf(x86Register.CTRLR.cr4, CR4.VMXE.bit)
-    var vsmxe by bitOf(x86Register.CTRLR.cr4, CR4.SMXE.bit)
-    var vfsgsbase by bitOf(x86Register.CTRLR.cr4, CR4.FSGSBASE.bit)
-    var vpcide by bitOf(x86Register.CTRLR.cr4, CR4.PCIDE.bit)
-    var vosxsave by bitOf(x86Register.CTRLR.cr4, CR4.OSXSAVE.bit)
-    var vsmep by bitOf(x86Register.CTRLR.cr4, CR4.SMEP.bit)
-    var vsmap by bitOf(x86Register.CTRLR.cr4, CR4.SMAP.bit)
-    var vpke by bitOf(x86Register.CTRLR.cr4, CR4.PKE.bit)
+        val PML4Address: ULong get() = value clr 11..0
+
+        override var value: ULong
+            get() = super.value
+            set(value) {
+                AOperand.log.fine { "[${core.pc.hex}] CR3 register changed to ${value.hex} -> paging cache invalidated!" }
+                super.value = value
+                core.mmu.invalidatePagingCache()
+            }
+    }
+
+    inner class CR4 : Register("cr4", 4) {
+        var vme by bitOf(0)
+        var pvi by bitOf(1)
+        var tsd by bitOf(2)
+        var de by bitOf(3)
+        var pse by bitOf(4)
+        var pae by bitOf(5)
+        var mce by bitOf(6)
+        var pge by bitOf(7)
+        var pce by bitOf(8)
+        var osfxsr by bitOf(9)
+        var osxmmexcpt by bitOf(10)
+        var vmxe by bitOf(13)
+        var smxe by bitOf(14)
+        var fsgsbase by bitOf(16)
+        var pcide by bitOf(17)
+        var osxsave by bitOf(18)
+        var smep by bitOf(20)
+        var smap by bitOf(21)
+        var pke by bitOf(22)
+    }
+
+    val cr0 = CR0()
+    val cr1 = Register("cr1", 1)
+    val cr2 = Register("cr2", 2)
+    val cr3 = CR3()
+    val cr4 = CR4()
 }

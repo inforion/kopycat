@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,6 +33,7 @@ import ru.inforion.lab403.kopycat.cores.ppc.enums.systems.embedded.eOEA_Embedded
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 import ru.inforion.lab403.kopycat.modules.cores.PPCCoreEmbedded
+import java.util.*
 
 abstract class PPCRegister_Embedded(
         reg: Int,
@@ -43,19 +44,19 @@ abstract class PPCRegister_Embedded(
     override fun toString() = when (rtyp) {
         Regtype.Embedded -> first<eOEA_Embedded> { it.id == reg }.name
         else -> super.toString()
-    }.toLowerCase()
+    }.lowercase()
 
     sealed class OEAext(id: Int) : PPCRegister_Embedded(id, Regtype.Embedded) {
-        override fun value(core: PPCCore): Long = core.cpu.sprRegs.readIntern(reg)
-        override fun value(core: PPCCore, data: Long) = core.cpu.sprRegs.writeIntern(reg, data)
+        override fun value(core: PPCCore): ULong = core.cpu.sprRegs.readIntern(reg)
+        override fun value(core: PPCCore, data: ULong) = core.cpu.sprRegs.writeIntern(reg, data)
 
         open class REG_DBG_DENIED(id: Int) : OEAext(id) {
             override fun value(core: PPCCore) = denied_read(reg)
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_READ(id: Int) : OEAext(id) {
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_WRITE(id: Int) : OEAext(id) {
@@ -76,13 +77,13 @@ abstract class PPCRegister_Embedded(
         //Waiting for read point
         object TCR : OEAext(eOEA_Embedded.TCR.id) {
 
-            override fun value(core: PPCCore): Long {
+            override fun value(core: PPCCore): ULong {
                 log.warning { "Warning: read from TCR" }
                 //TODO("Catch for read")
                 return super.value(core)
             }
 
-            override fun value(core: PPCCore , data: Long) {
+            override fun value(core: PPCCore , data: ULong) {
                 super.value(core, data)
                 (core as PPCCoreEmbedded).timebase.operateTCR(data)
             }
@@ -91,7 +92,7 @@ abstract class PPCRegister_Embedded(
 
         // Timer status register
         object TSR : REG_DBG_WRITE(eOEA_Embedded.TSR.id) {
-            override fun value(core: PPCCore, data: Long) {
+            override fun value(core: PPCCore, data: ULong) {
                 //TODO: replace to "value":
                 val oldData = core.cpu.sprRegs.readIntern(reg)
                 super.value(core, oldData and data)
@@ -99,7 +100,7 @@ abstract class PPCRegister_Embedded(
         }
 
         object DECAR : OEAext(eOEA_Embedded.DECAR.id) {
-            override fun value(core: PPCCore): Long = throw GeneralException("DECAR can't be read")
+            override fun value(core: PPCCore): ULong = throw GeneralException("DECAR can't be read")
         }
     }
 }

@@ -78,7 +78,7 @@
       "library": "memory",
       "params": {
         "size": "0x00050000",
-        "data:Resource": "binaries/mips.bin"
+        "data:resource": "binaries/mips.bin"
       }
     },
 
@@ -96,7 +96,7 @@
 
   "reset": [
     "val rom = module[\"rom\"] as ROM",
-    "rom.outb(0x308, fwMode.asULong)"
+    "rom.outb(0x308u, fwMode.ulong_z)"
   ],
 
   // Plugin connection between components

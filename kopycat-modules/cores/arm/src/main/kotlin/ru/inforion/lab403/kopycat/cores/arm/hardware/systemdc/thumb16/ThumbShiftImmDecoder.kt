@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb16
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.arm.DecodeImmShift
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.enums.ShiftType
@@ -41,7 +42,7 @@ class ThumbShiftImmDecoder(
         val type: ShiftType,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 flags: Boolean,
                 rd: ARMRegister,
@@ -49,13 +50,13 @@ class ThumbShiftImmDecoder(
                 imm5: Immediate<AARMCore>,
                 shiftN: Int,
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val rd = gpr(data[2..0].asInt)
-        val rm = gpr(data[5..3].asInt)
+    override fun decode(data: ULong): AARMInstruction {
+        val rd = gpr(data[2..0].int)
+        val rm = gpr(data[5..3].int)
         val imm5 = Immediate<AARMCore>(data[10..6])
         val setFlag = !core.cpu.InITBlock()
-        val (_, shiftN) = DecodeImmShift(type.id, imm5.value(core))
+        val (_, shiftN) = DecodeImmShift(type.id.ulong, imm5.value(core))
 
-        return constructor(core, data, Condition.AL, setFlag, rd, rm, imm5, shiftN.asInt, 2)
+        return constructor(core, data, Condition.AL, setFlag, rd, rm, imm5, shiftN.int, 2)
     }
 }

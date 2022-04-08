@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.arm.hardware.registers
 
 import ru.inforion.lab403.kopycat.cores.arm.enums.StackPointer
-import ru.inforion.lab403.kopycat.cores.arm.hardware.processors.AARMCPU
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
@@ -34,7 +33,7 @@ import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 
 
-class GPRBank(val cpu: AARMCPU) : ARegistersBankNG<AARMCore>(
+class GPRBank(val core: AARMCore) : ARegistersBankNG<AARMCore>(
         "General purpose registers", 16, 32) {
 
     val r0 = Register("r0", 0)
@@ -52,25 +51,25 @@ class GPRBank(val cpu: AARMCPU) : ARegistersBankNG<AARMCore>(
     val r12 = Register("r12", 12)
 
     inner class SP : Register("sp", 13) {
-        internal var main = 0L
-        internal var process = 0L
+        internal var main = 0uL
+        internal var process = 0uL
 
-        override var value: Long
-            get() = when (cpu.StackPointerSelect()) {
+        override var value: ULong
+            get() = when (core.cpu.StackPointerSelect()) {
                 StackPointer.Process -> process and mask
                 StackPointer.Main -> main and mask
             }
 
             set(value) {
-                when (cpu.StackPointerSelect()) {
+                when (core.cpu.StackPointerSelect()) {
                     StackPointer.Process -> process = value and mask
                     StackPointer.Main -> main = value and mask
                 }
             }
 
         override fun reset() {
-            main = 0
-            process = 0
+            main = 0u
+            process = 0u
         }
 
         override fun serialize(ctxt: GenericSerializer) = storeValues("main" to main, "process" to process)

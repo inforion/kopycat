@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems.interfaces
 
-import ru.inforion.lab403.common.extensions.asByte
-import ru.inforion.lab403.common.extensions.asUInt
-import ru.inforion.lab403.common.extensions.convertToBytes
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
-import java.nio.file.attribute.BasicFileAttributes
+import ru.inforion.lab403.kopycat.veos.filesystems.attributes.PosixVeosFileAttributes
 import java.nio.file.attribute.PosixFileAttributes
 
 interface IBasicFile: IAutoSerializable, IConstructorSerializable {
@@ -42,11 +40,11 @@ interface IBasicFile: IAutoSerializable, IConstructorSerializable {
 
     fun write(data: ByteArray): Unit = throw NotImplementedError("write() not implemented for $this")
 
-    fun write(string: String): Unit = write(string.convertToBytes())
+    fun write(string: String): Unit = write(string.bytes)
 
-    fun write(byte: Int): Unit = write(byteArrayOf(byte.asByte))
+    fun write(byte: Int): Unit = write(byteArrayOf(byte.byte))
 
-    fun write(char: Char): Unit = write(char.asUInt)
+    fun write(char: Char): Unit = write(char.int_z8)
 
     fun available() = 0
 

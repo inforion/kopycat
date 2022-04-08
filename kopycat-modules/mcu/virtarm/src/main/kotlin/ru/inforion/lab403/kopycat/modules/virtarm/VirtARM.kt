@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,17 +26,20 @@
 package ru.inforion.lab403.kopycat.modules.virtarm
 
 import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.common.extensions.toFile
-import ru.inforion.lab403.common.proposal.emptyInputStream
+import ru.inforion.lab403.common.extensions.toFileInputStream
+import ru.inforion.lab403.common.extensions.emptyInputStream
 import ru.inforion.lab403.kopycat.auxiliary.NANDGen
 import ru.inforion.lab403.kopycat.auxiliary.NANDPart
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
+import ru.inforion.lab403.kopycat.cores.base.debug.impl.GCCSymbolTranslator.Companion.toGCCSymbolTranslator
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.NAND_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.UART_MASTER_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.UART_SLAVE_BUS_SIZE
+import ru.inforion.lab403.kopycat.modules.common.NS16550
 import ru.inforion.lab403.kopycat.modules.cores.arm1176jzs.ARM1176JZS
 import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
@@ -90,10 +93,10 @@ class VirtARM(
             parent,
             name,
             tty,
-            bootloaderContentPath.toFile().inputStream(),
-            kernelContentPath.toFile().inputStream(),
-            filesystemContentPath.toFile().inputStream(),
-            kernelSymbolsPath?.toFile()?.inputStream(),
+            bootloaderContentPath.toFileInputStream(),
+            kernelContentPath.toFileInputStream(),
+            filesystemContentPath.toFileInputStream(),
+            kernelSymbolsPath?.toFileInputStream(),
             bootloaderCmd)
 
     inner class Buses : ModuleBuses(this) {
@@ -116,8 +119,8 @@ class VirtARM(
             "nand",
             NANDGen.Manufacturer.MICRON,
             NANDGen.NANDID.NAND_64MiB_1_8V_8_bit_set,
-            32,
-            2048,
+            32u,
+            2048u,
             true)
 
     val nor = RAM(this, "NOR", 0x0004_0000, bootloaderContent)
@@ -132,7 +135,7 @@ class VirtARM(
 
     private val dbg = ARMDebugger(this, "dbg")
 
-    val uart = NS16550(this, "serial")
+    val uart = NS16550(this, "serial", Datatype.DWORD)
     val term = UartSerialTerminal(this, "term", tty)
 
     init {
@@ -143,22 +146,22 @@ class VirtARM(
 
         if (kernelSymbols != null) {
             log.config { "Loading GCC map-file..." }
-            arm1176jzs.info.loadGCCMapFile(kernelSymbols)
+            arm1176jzs.info.translator = kernelSymbols.toGCCSymbolTranslator()
         }
 
-        arm1176jzs.ports.mem.connect(buses.mem, 0x0000_0000L)
-        nor.ports.mem.connect(buses.mem, 0x0000_0000L)
-        kern.ports.mem.connect(buses.mem, 0x0100_0000L)
-        sram.ports.mem.connect(buses.mem, 0x2000_0000L)
-        ddr0.ports.mem.connect(buses.mem, 0x9000_0000L)
+        arm1176jzs.ports.mem.connect(buses.mem, 0x0000_0000uL)
+        nor.ports.mem.connect(buses.mem, 0x0000_0000uL)
+        kern.ports.mem.connect(buses.mem, 0x0100_0000uL)
+        sram.ports.mem.connect(buses.mem, 0x2000_0000uL)
+        ddr0.ports.mem.connect(buses.mem, 0x9000_0000uL)
         //ddr1.ports.mem.connect(buses.mem, 0x0800_0000L)
         dbg.ports.breakpoint.connect(arm1176jzs.buses.virt)
         dbg.ports.reader.connect(arm1176jzs.buses.virt)
 
-        timer.ports.mem.connect(buses.mem, 0x8021_0000L)
-        timer.ports.irq.connect(buses.irq, 0)
+        timer.ports.mem.connect(buses.mem, 0x8021_0000uL)
+        timer.ports.irq.connect(buses.irq, 0u)
 
-        nandCtrl.ports.mem.connect(buses.mem, 0x8024_0000L)
+        nandCtrl.ports.mem.connect(buses.mem, 0x8024_0000uL)
         nandCtrl.ports.nand.connect(buses.nand)
 
         nand.ports.nand.connect(buses.nand)
@@ -171,16 +174,16 @@ class VirtARM(
 
         nand.load(dump)
 
-        vic.ports.mem.connect(buses.mem, 0x8006_0000L)
+        vic.ports.mem.connect(buses.mem, 0x8006_0000uL)
         vic.ports.irq.connect(buses.irq)
 
         // Term to rx and tx
         term.ports.term_m.connect(buses.rx_bus)
         term.ports.term_s.connect(buses.tx_bus)
 
-        uart.ports.mem.connect(buses.mem, 0x8023_0000L)
+        uart.ports.mem.connect(buses.mem, 0x8023_0000uL)
         uart.ports.tx.connect(buses.tx_bus)
         uart.ports.rx.connect(buses.rx_bus)
-        uart.ports.irq.connect(buses.irq, 1)
+        uart.ports.irq.connect(buses.irq, 1u)
     }
 }

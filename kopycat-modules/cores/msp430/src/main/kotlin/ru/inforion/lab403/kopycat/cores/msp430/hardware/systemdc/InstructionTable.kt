@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.msp430.hardware.systemdc
 
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.interfaces.ITableEntry
 
 
@@ -32,8 +33,8 @@ import ru.inforion.lab403.kopycat.interfaces.ITableEntry
 class InstructionTable(
         private val rows: Int,
         private val cols: Int,
-        private val getRow: (Long) -> Long,
-        private val getCol: (Long) -> Long,
+        private val getRow: (ULong) -> ULong,
+        private val getCol: (ULong) -> ULong,
         vararg entries: ITableEntry?) : ITableEntry {
 
     private val table = entries.copyOf()
@@ -52,9 +53,9 @@ class InstructionTable(
         return table[index(row, col)]
     }
 
-    fun lookup(data: Long): ITableEntry? {
-        val row = getRow(data).toInt()
-        val col = getCol(data).toInt()
+    fun lookup(data: ULong): ITableEntry? {
+        val row = getRow(data).int
+        val col = getCol(data).int
         val entry = this[row, col]
         return if (entry is InstructionTable) entry.lookup(data) else entry
     }

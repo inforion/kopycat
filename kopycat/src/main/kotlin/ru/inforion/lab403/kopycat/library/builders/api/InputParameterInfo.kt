@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.library.builders.api
 
+import ru.inforion.lab403.common.extensions.ifNotNull
+import ru.inforion.lab403.kopycat.library.availableTypeMap
+import ru.inforion.lab403.kopycat.library.name
 import ru.inforion.lab403.kopycat.settings
+import kotlin.reflect.KType
 
 /**
  * {EN}
@@ -44,24 +48,23 @@ import ru.inforion.lab403.kopycat.settings
  * Map<String, [InputParameterInfo]> (имя к дата классу (value, type)).
  * {RU}
  */
-data class InputParameterInfo constructor(val name: String, val value: Any?, val type: String?) {
+data class InputParameterInfo constructor(val name: String, val value: Any?, val type: KType?) {
     companion object {
-        private val availableTypes = settings.availableTypes.map { it.toLowerCase() }
-
-        fun fromKeyValue(key: String, value: Any?): InputParameterInfo {
+        fun fromKeyValue(key: String, value: Any?, desc: String): InputParameterInfo {
             val tokens = key.replace(" ", "").split(":")
 
             val name = tokens.first()
-            val type = tokens.getOrNull(1)
+            val type = tokens.getOrNull(1) ifNotNull {
+                availableTypeMap[this] ?: error(
+                    "Incorrect parameter '${name}' and type '${this}' definition for $desc" +
+                            "\nUse only parameter name (for example 'data') or parameter name and type (for example 'data:String')" +
+                            "\nAvailable types is: ${settings.availableTypes.joinToString(separator = ", ") { it.name }}\n"
+                )
+            }
 
             return InputParameterInfo(name, value, type)
         }
     }
 
-    val isTypeValid get() = type == null || type.toLowerCase() in availableTypes
-
-    infix fun fits(other: ModuleParameterInfo): Boolean {
-        val typesEqual = if (type != null) type.toLowerCase() == other.type.toLowerCase() else true
-        return name == other.name && typesEqual
-    }
+    infix fun fits(other: ModuleParameterInfo) = name == other.name && (type == other.type || type == null)
 }

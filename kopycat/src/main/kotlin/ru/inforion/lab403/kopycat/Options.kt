@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,10 @@
  */
 package ru.inforion.lab403.kopycat
 
-import ru.inforion.lab403.common.extensions.argparse.ApplicationOptions
-import ru.inforion.lab403.common.extensions.argparse.choices
-import ru.inforion.lab403.common.extensions.argparse.flag
-import ru.inforion.lab403.common.extensions.argparse.variable
-import ru.inforion.lab403.common.logging.ALL
+import ru.inforion.lab403.common.argparse.ApplicationOptions
+import ru.inforion.lab403.common.argparse.flag
+import ru.inforion.lab403.common.argparse.variable
 import ru.inforion.lab403.common.logging.Levels
-import ru.inforion.lab403.common.logging.LogLevel
-import ru.inforion.lab403.common.logging.logLevel
-import java.util.logging.Level
 
 class Options : ApplicationOptions("kopycat", "virtualization platform") {
     val userModulesPath: String? by variable("-u", "--modules",
@@ -54,10 +49,20 @@ class Options : ApplicationOptions("kopycat", "virtualization platform") {
     val snapshotsDir: String? by variable("-w", "--snapshots-dir",
             "Snapshots directory path (default path to store and load snapshots)")
 
+    val traceable: Boolean by flag(
+        "-trc", "--traceable",
+        "Set the top module traceable if it is not",
+        false)
+
     val gdbPort: Int? by variable("-g", "--gdb-port",
             "GDB server port (if not specified then not started)")
     val restPort: Int? by variable("-r", "--rest",
-            "REST server port. If null - Commander will work")
+            "REST server port. If null - REST protocol will not work")
+    val rpcAddress: String? by variable("--rpc",
+        help = "RPC server host:port. If null - RPC protocol will not work")
+
+    val gdbPacketSize: Int by variable("-gps", "--gdb-packet-size",
+        "GDB server packet size") { 0x4000 }
 
     val gdbBinaryProto: Boolean by flag("-gb", "--gdb-bin-proto",
             "GDB server enabled binary protocol", false)

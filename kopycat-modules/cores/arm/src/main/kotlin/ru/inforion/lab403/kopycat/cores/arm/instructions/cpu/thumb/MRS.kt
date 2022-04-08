@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,35 +37,34 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class MRS(cpu: AARMCore,
-          opcode: Long,
+          opcode: ULong,
           cond: Condition,
           val rd: ARMRegister,
-          private val SYSm: Long):
+          private val SYSm: ULong):
         AARMInstruction(cpu, Type.VOID, cond, opcode, rd) {
     override val mnem = "MRS"
 
     val result = ARMVariable(Datatype.WORD)
     override fun execute() {
         when (SYSm[7..3]) {
-            0b00000L -> {
-                if (SYSm[0] == 1L)
+            0b00000uL -> {
+                if (SYSm[0] == 1uL)
                     rd.value(core, core.cpu.sregs.ipsr.value[8..0])
-                if (SYSm[1] == 1L)
+                if (SYSm[1] == 1uL)
                     rd.value(core, rd.value(core) clr 24)
-                if (SYSm[0] == 0L){
+                if (SYSm[0] == 0uL){
                     val result = rd.value(core) or (core.cpu.sregs.apsr.value[31..27] shl 27)
                     rd.value(core, result)
                 }
             }
-            0b00001L -> {
+            0b00001uL -> {
                 if (core.cpu.CurrentModeIsPrivileged()) {
                     when (SYSm[2..0]) {
-                        0b000L -> {
+                        0b000uL -> {
                             rd.value(core, core.cpu.regs.sp.main)
                         }
-                        0b001L -> {
+                        0b001uL -> {
                             rd.value(core, core.cpu.regs.sp.process)
                         }
                         else -> {
@@ -74,16 +73,16 @@ class MRS(cpu: AARMCore,
                     }
                 }
             }
-            0b00010L -> {
+            0b00010uL -> {
                 if (core.cpu.CurrentModeIsPrivileged()) {
                     when (SYSm[2..0]) {
-                        0b000L -> {
+                        0b000uL -> {
                             if(core.cpu.CurrentModeIsPrivileged() && core.cpu.spr.primask.pm)
                                 rd.value(core, rd.value(core) set 0)
                             else
                                 rd.value(core, rd.value(core) clr 0)
                         }
-                        0b100L -> {
+                        0b100uL -> {
                             if(core.cpu.spr.control.npriv)
                                 rd.value(core, rd.value(core) set 0)
                             else

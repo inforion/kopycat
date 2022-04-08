@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,15 +36,13 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * MOVT rd, rs, cc
  */
 class movt(core: MipsCore,
-           data: Long,
+           data: ULong,
            rd: MipsRegister,
            rs: MipsRegister,
            cc: MipsImmediate) : RdRsCcInsn(core, data, Type.VOID, rd, rs, cc) {
 
     override val mnem = "movt"
 
-    override fun execute() {
-        throw GeneralException("Sorry, but I don't know how to execute this instruction!")
-    }
+    override fun execute(): Unit = throw GeneralException("Sorry, but I don't know how to execute this instruction!")
 }
 

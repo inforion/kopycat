@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.base.operands
 
 import ru.inforion.lab403.common.extensions.WRONGI
-import ru.inforion.lab403.common.extensions.toULong
+import ru.inforion.lab403.common.extensions.ulong_s
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Access.READ
@@ -36,10 +36,10 @@ import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Type.NEAR
 open class Near<in T: AGenericCore>(val offset: Int, dtyp: Datatype, num: Int = WRONGI) :
         AOperand<T>(NEAR, READ, VOID, num, dtyp) {
 
-    override fun value(core: T): Long = offset.toULong()
+    override fun value(core: T): ULong = offset.ulong_s
     override fun toString(): String = "%08X".format(offset)
 
-    final override fun value(core: T, data: Long): Unit = throw UnsupportedOperationException("Can't write to near value")
+    final override fun value(core: T, data: ULong): Unit = throw UnsupportedOperationException("Can't write to near value")
 
     override fun equals(other: Any?): Boolean =
             other is Near<*> &&

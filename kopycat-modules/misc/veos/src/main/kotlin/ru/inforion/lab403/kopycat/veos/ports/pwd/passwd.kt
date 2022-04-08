@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,11 +28,11 @@ package ru.inforion.lab403.kopycat.veos.ports.pwd
 import ru.inforion.lab403.kopycat.veos.api.pointers.StructPointer
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
-class passwd(sys: System, address: Long) : StructPointer(sys, address) {
+class passwd(sys: System, address: ULong) : StructPointer(sys, address) {
     companion object {
         const val sizeOf = 0x1C
 
-        fun nullPtr(sys: System) = passwd(sys, 0)
+        fun nullPtr(sys: System) = passwd(sys, 0u)
 
         fun allocate(sys: System) = passwd(sys, sys.allocateClean(sizeOf))
     }

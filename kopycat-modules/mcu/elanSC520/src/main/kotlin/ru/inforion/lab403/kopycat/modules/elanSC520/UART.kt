@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -58,9 +58,9 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
     private var baudClockValue = 0
     private var isBaudRateConnected = false
 
-    val UARTxTHR_RBR = object : Register(ports.io, 0x00F8, BYTE, "UART${id}THR_RBR") {
-        override fun beforeRead(from: MasterPort, ea: Long): Boolean = !isBaudRateConnected
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = !isBaudRateConnected
+    val UARTxTHR_RBR = object : Register(ports.io, 0x00F8u, BYTE, "UART${id}THR_RBR") {
+        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = !isBaudRateConnected
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = !isBaudRateConnected
 
         var THR by wfield(7..0)
         val RBR by rfield(7..0)
@@ -69,10 +69,10 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
 
 //        val buf = StringBuffer()
 
-        override fun read(ea: Long, ss: Int, size: Int): Long = 0
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            print(value.toChar())
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            print(value.char)
 //            val ch = value.toChar()
 //            buf.append(ch)
 //            if (ch == '\n' || buf.length > 64) {
@@ -83,31 +83,31 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
         }
     }
 
-    val UARTxBCDL = object : Register(ports.io, 0x00F8, BYTE, "UART${id}BCDL") {
-        override fun beforeRead(from: MasterPort, ea: Long): Boolean = isBaudRateConnected
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = isBaudRateConnected
+    val UARTxBCDL = object : Register(ports.io, 0x00F8u, BYTE, "UART${id}BCDL") {
+        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = isBaudRateConnected
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = isBaudRateConnected
 
-        override fun read(ea: Long, ss: Int, size: Int): Long = baudClockValue[7..0].asULong
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = baudClockValue[7..0].ulong_z
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            baudClockValue = baudClockValue.insert(data.asInt, 7..0)
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            baudClockValue = baudClockValue.insert(data.int, 7..0)
         }
     }
 
-    val UARTxBCDH = object : Register(ports.io, 0x00F9, BYTE, "UART${id}BCDH") {
-        override fun beforeRead(from: MasterPort, ea: Long): Boolean = isBaudRateConnected
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = isBaudRateConnected
+    val UARTxBCDH = object : Register(ports.io, 0x00F9u, BYTE, "UART${id}BCDH") {
+        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = isBaudRateConnected
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = isBaudRateConnected
 
-        override fun read(ea: Long, ss: Int, size: Int): Long = baudClockValue[15..8].asULong
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = baudClockValue[15..8].ulong_z
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            baudClockValue = baudClockValue.insert(data.asInt, 15..8)
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            baudClockValue = baudClockValue.insert(data.int, 15..8)
         }
     }
 
-    val UARTxINTENB = object : Register(ports.io, 0x00F9, BYTE, "UART${id}INTENB", level = Level.FINEST) {
-        override fun beforeRead(from: MasterPort, ea: Long): Boolean = !isBaudRateConnected
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = !isBaudRateConnected
+    val UARTxINTENB = object : Register(ports.io, 0x00F9u, BYTE, "UART${id}INTENB", level = Level.FINEST) {
+        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = !isBaudRateConnected
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = !isBaudRateConnected
 
         val Reserved by reserved(7..4)
         val EMSI by rwbit(3)
@@ -116,9 +116,9 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
         val ERDAI by rwbit(0)
     }
 
-    val UARTxINTID_FCR = Register(ports.io, 0x00FA, BYTE, "UART${id}INTID_FCR", level = Level.FINEST)
+    val UARTxINTID_FCR = Register(ports.io, 0x00FAu, BYTE, "UART${id}INTID_FCR", level = Level.FINEST)
 
-    val UARTxLCR = object : Register(ports.io, 0x00FB, BYTE, "UART${id}LCR", level = Level.FINEST) {
+    val UARTxLCR = object : Register(ports.io, 0x00FBu, BYTE, "UART${id}LCR", level = Level.FINEST) {
         val DLAB by rwbit(7)
         val SB by rwbit(6)
         val SP by rwbit(5)
@@ -126,15 +126,15 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
         val PENB by rwbit(3)
         val STP by rwbit(2)
         val WLS by rwfield(1..0)
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            isBaudRateConnected = DLAB.toBool()
+            isBaudRateConnected = DLAB.truth
         }
     }
 
-    val UARTxMCR = Register(ports.io, 0x00FC, BYTE, "UART${id}MCR")
+    val UARTxMCR = Register(ports.io, 0x00FCu, BYTE, "UART${id}MCR")
 
-    val UARTxLSR = object : Register(ports.io, 0x00FD, BYTE, "UART${id}LSR", level = Level.FINEST) {
+    val UARTxLSR = object : Register(ports.io, 0x00FDu, BYTE, "UART${id}LSR", level = Level.FINEST) {
         val ERR_IN_FIFO by rbit(7)
         var TEMT by rbit(6, initial = 1)
         var THRE by rbit(5, initial = 1)
@@ -144,19 +144,19 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
         val OE by rbit(1)
         val DR by rbit(0)
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             TEMT = 1
             THRE = 1
             return super.read(ea, ss, size)
         }
     }
 
-    val UARTxMSR = Register(ports.io, 0x00FE, BYTE, "UART${id}MSR")
-    val UARTxSCRATCH = Register(ports.io, 0x00FF, BYTE, "UART${id}SCRATCH")
+    val UARTxMSR = Register(ports.io, 0x00FEu, BYTE, "UART${id}MSR")
+    val UARTxSCRATCH = Register(ports.io, 0x00FFu, BYTE, "UART${id}SCRATCH")
 
-    val UARTxCTL = Register(ports.mmcr, 0x0000, BYTE, "UART${id}CTL")
-    val UARTxSTA = Register(ports.mmcr, 0x0001, BYTE, "UART${id}STA")
-    val UARTxFCRSHAD = Register(ports.mmcr, 0x0002, BYTE, "UART${id}FCRSHAD")
+    val UARTxCTL = Register(ports.mmcr, 0x0000u, BYTE, "UART${id}CTL")
+    val UARTxSTA = Register(ports.mmcr, 0x0001u, BYTE, "UART${id}STA")
+    val UARTxFCRSHAD = Register(ports.mmcr, 0x0002u, BYTE, "UART${id}FCRSHAD")
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
         return super.serialize(ctxt) + mapOf(

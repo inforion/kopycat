@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,26 +28,38 @@ package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.mips.enums.GPR
+import ru.inforion.lab403.kopycat.cores.mips.enums.InstructionSet
+import ru.inforion.lab403.kopycat.cores.mips.enums.InstructionSet.*
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.GPRBank
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.HWRBank
-import ru.inforion.lab403.kopycat.cores.mips.hardware.systemdc.MipsSystemDecoder
+import ru.inforion.lab403.kopycat.cores.mips.hardware.systemdc.Mips16SystemDecoder
+import ru.inforion.lab403.kopycat.cores.mips.hardware.systemdc.Mips32SystemDecoder
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsInstruction, GPR>(mips, name) {
 
+    companion object {
+        const val INVALID_DELAY_JUMP_ADDRESS = ULONG_MAX
+    }
+
     inner class BranchController: ICoreUnit {
         override val name: String = "Branch Controller"
 
         private var delayedJumpInsnRemain = 0
 
-        var delayedJumpAddress = WRONGL
+        var delayedJumpAddress: ULong = INVALID_DELAY_JUMP_ADDRESS
             private set
 
         var hasDelayedJump = false
+            private set
+
+        var hasChangeIsa = NONE
             private set
 
         val isDelaySlot get() = hasDelayedJump && delayedJumpInsnRemain == 0
@@ -55,33 +67,39 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
         override fun reset() {
             super.reset()
             delayedJumpInsnRemain = 0
-            delayedJumpAddress = WRONGL
+            delayedJumpAddress = INVALID_DELAY_JUMP_ADDRESS
+            hasChangeIsa = NONE
         }
 
         fun validate() {
             if (hasDelayedJump) throw GeneralException("Branch found in the delay slot: ${pc.hex8}")
         }
 
-        fun setIp(ea: Long) {
-            pc = ea
+        fun setIp(ea: ULong) {
+            pc = ea clr 0
             delayedJumpInsnRemain = 0
-            delayedJumpAddress = WRONGL
+            delayedJumpAddress = INVALID_DELAY_JUMP_ADDRESS
             hasDelayedJump = false
+            val change = hasChangeIsa
+            if (change != NONE)
+                iset = change
+            hasChangeIsa = NONE
         }
 
-        fun schedule(ea: Long, delay: Int = 1) {
-            delayedJumpAddress = ea
+        fun schedule(ea: ULong, delay: Int = 1, changeIsa: InstructionSet = NONE) {
+            delayedJumpAddress = if (ea == INVALID_DELAY_JUMP_ADDRESS) ea else ea like Datatype.DWORD
             delayedJumpInsnRemain = delay
             hasDelayedJump = true
+            hasChangeIsa = changeIsa
         }
 
-        fun nop(delay: Int = 1) = schedule(-1, delay)
-        fun jump(ea: Long) = schedule(ea, delay = 0)
+        fun nop(delay: Int = 1) = schedule(INVALID_DELAY_JUMP_ADDRESS, delay)
+        fun jump(ea: ULong) = schedule(ea, delay = 0)
 
-        fun processIp(size: Int): Long {
+        fun processIp(size: UInt): ULong {
             if (hasDelayedJump) {
                 if (delayedJumpInsnRemain == 0) {
-                    if (delayedJumpAddress == WRONGL) {
+                    if (delayedJumpAddress == INVALID_DELAY_JUMP_ADDRESS) {
                         hasDelayedJump = false
                         pc += size
                     } else {
@@ -106,20 +124,21 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
                 "hasDelayedJump" to hasDelayedJump.toString())
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            delayedJumpAddress = (snapshot["delayedJumpAddress"] as String).hexAsULong
-            delayedJumpInsnRemain = (snapshot["delayedJumpInsnRemain"] as String).hexAsUInt
-            hasDelayedJump = (snapshot["hasDelayedJump"] as String).toBoolean()
+            delayedJumpAddress = (snapshot["delayedJumpAddress"] as String).ulongByHex
+            delayedJumpInsnRemain = (snapshot["delayedJumpInsnRemain"] as String).intByHex
+            hasDelayedJump = (snapshot["hasDelayedJump"] as String).bool
         }
     }
 
-    override fun reg(index: Int): Long = regs.read(index)
-    override fun reg(index: Int, value: Long) = regs.write(index, value)
+    override fun reg(index: Int): ULong = regs.read(index)
+    override fun reg(index: Int, value: ULong) = regs.write(index, value)
     override fun count() = regs.count
-    override fun flags(): Long = 0
+    override fun flags(): ULong = 0u
 
     val bigEndianCPU = 0
 
-    val decoder = MipsSystemDecoder(mips)
+    val mips32decoder = Mips32SystemDecoder(mips)
+    val mips16decoder = Mips16SystemDecoder(mips)
     val branchCntrl = BranchController()
 
     val regs = GPRBank()
@@ -128,42 +147,49 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
 
     val sgprs = Array(mips.countOfShadowGPR) { GPRBank() }
 
-    var hi: Long = 0
-        get() = field and 0xFFFFFFFF
+    var hi: ULong = 0u
+        get() = field mask 32
         set(value) {
-            field = value and 0xFFFFFFFF
+            field = value mask 32
         }
-    var lo: Long = 0
-        get() = field and 0xFFFFFFFF
+    var lo: ULong = 0u
+        get() = field mask 32
         set(value) {
-            field = value and 0xFFFFFFFF
+            field = value mask 32
         }
 
-    var status: Long = 0
+    var status: ULong = 0u
         private set
-    override var pc: Long = 0
+
+    override var pc: ULong = 0u
     var llbit: Int = 0
+
+    var iset = MIPS32
 
     override fun reset() {
         branchCntrl.reset()
         regs.reset()
-        hi = 0
-        lo = 0
-        status = 0
-        pc = 0xBFC00000
+        hi = 0u
+        lo = 0u
+        status = 0u
+        pc = 0xBFC00000u
     }
 
-    private fun fetch(pc: Long): Long = core.fetch(pc, 0 ,4)
+    private fun fetch(pc: ULong): ULong = core.fetch(pc, 0 ,4)
 
     override fun decode() {
         val data = fetch(pc)
-        insn = decoder.decode(data, pc)
+        insn = when (iset) {
+            MIPS32 -> mips32decoder.decode(data, pc)
+            MIPS16 -> mips16decoder.decode(data, pc)
+            NONE -> error("Instruction set can't be NONE")
+        }
         insn.ea = pc
     }
 
     override fun execute(): Int {
         insn.execute()
-        branchCntrl.processIp(insn.size)
+        branchCntrl.processIp(insn.size.uint)
         return 1  // TODO: get from insn.execute()
     }
 
@@ -174,25 +200,23 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
         append(regs.stringify())
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return super.serialize(ctxt) + mapOf(
-                "hi" to hi.hex8,
-                "lo" to lo.hex8,
-                "status" to status.hex8,
-                "pc" to pc.hex8,
-                "llbit" to llbit.toString(),
-                "regs" to regs.serialize(ctxt),
-                "branchCntrl" to branchCntrl.serialize(ctxt))
-    }
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + mapOf(
+            "hi" to hi.hex8,
+            "lo" to lo.hex8,
+            "status" to status.hex8,
+            "pc" to pc.hex8,
+            "llbit" to llbit.toString(),
+            "regs" to regs.serialize(ctxt),
+            "branchCntrl" to branchCntrl.serialize(ctxt))
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
-        hi = (snapshot["hi"] as String).hexAsULong
-        lo = (snapshot["lo"] as String).hexAsULong
-        status = (snapshot["status"] as String).hexAsULong
-        pc = (snapshot["pc"] as String).hexAsULong
-        llbit = (snapshot["llbit"] as String).toInt()
+        hi = (snapshot["hi"] as String).ulongByHex
+        lo = (snapshot["lo"] as String).ulongByHex
+        status = (snapshot["status"] as String).ulongByHex
+        pc = (snapshot["pc"] as String).ulongByHex
+        llbit = (snapshot["llbit"] as String).intByDec
         regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
         branchCntrl.deserialize(ctxt, snapshot["branchCntrl"] as Map<String, String>)
     }

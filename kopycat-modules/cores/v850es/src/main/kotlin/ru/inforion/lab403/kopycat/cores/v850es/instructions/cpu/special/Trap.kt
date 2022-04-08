@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.v850es.instructions.cpu.special
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.v850es.instructions.AV850ESInstruction
@@ -40,11 +41,11 @@ class Trap(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
     // Format X - imm
     override fun execute() {
         // insnSize add in CPU execute
-        if(op1.value(core) <= 0x1F) {
-            core.cpu.cregs.eipc = core.cpu.regs.pc + size
+        if(op1.value(core) <= 0x1Fu) {
+            core.cpu.cregs.eipc = core.cpu.regs.pc + size.uint
             core.cpu.cregs.eipsw = core.cpu.cregs.psw
 
-            val prefix = if (op1.value(core) <= 0xF) 0x40L else 0x50
+            val prefix = if (op1.value(core) <= 0xFu) 0x40uL else 0x50uL
             // Exception code of non-maskable interrupt (NMI)
             val fecc = core.cpu.cregs.ecr[31..16]
             // Exception code of exception or maskable interrupt
@@ -54,7 +55,7 @@ class Trap(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
             core.cpu.flags.ep = true
             core.cpu.flags.id = true
 
-            core.cpu.regs.pc = prefix - size
+            core.cpu.regs.pc = prefix - size.uint
         } else throw GeneralException("Wrong vector value on TRAP operation!")
     }
 }

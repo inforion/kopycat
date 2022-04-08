@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -60,22 +60,22 @@ class GPIOxModule(val register: GPIOx.RegisterType) : Module(null, "GPIOx_test_m
     val gpio = GPIOx(this, "gpio", 1)
 
     val pins = object : Area(controller.ports.pin_output, "GPIO_INPUT", ACCESS.I_W) {
-        override fun fetch(ea: Long, ss: Int, size: Int): Long = TODO("not implemented... never be")
-        override fun read(ea: Long, ss: Int, size: Int): Long = 0L
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun fetch(ea: ULong, ss: Int, size: Int): ULong = TODO("not implemented... never be")
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = 0uL
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             log.info { "gpio send output signal [${value.hex4}]" }
         }
     }
 
-    fun memWrite(ea: Long, value: Long) = controller.ports.mem.write(ea, 0, 0, value)
-    fun memRead(ea: Long) = controller.ports.mem.read(ea, 0, 0)
+    fun memWrite(ea: ULong, value: ULong) = controller.ports.mem.write(ea, 0, 0, value)
+    fun memRead(ea: ULong) = controller.ports.mem.read(ea, 0, 0)
 
-    fun ioWrite(value: Long) = controller.ports.pin_input.write(0, 0, 0, value)
+    fun ioWrite(value: ULong) = controller.ports.pin_input.write(0u, 0, 0, value)
 
     fun writeLockValues() {
-        memWrite(GPIOx.RegisterType.LCKR.offset, 0b0000_0000_0000_0001__0000_0000_0000_0011)
-        memWrite(GPIOx.RegisterType.LCKR.offset, 0b0000_0000_0000_0000__0000_0000_0000_0011)
-        memWrite(GPIOx.RegisterType.LCKR.offset, 0b0000_0000_0000_0001__0000_0000_0000_0011)
+        memWrite(GPIOx.RegisterType.LCKR.offset, 0b0000_0000_0000_0001__0000_0000_0000_0011u)
+        memWrite(GPIOx.RegisterType.LCKR.offset, 0b0000_0000_0000_0000__0000_0000_0000_0011u)
+        memWrite(GPIOx.RegisterType.LCKR.offset, 0b0000_0000_0000_0001__0000_0000_0000_0011u)
     }
 
     fun setLock() {
@@ -83,7 +83,7 @@ class GPIOxModule(val register: GPIOx.RegisterType) : Module(null, "GPIOx_test_m
         memRead(GPIOx.RegisterType.LCKR.offset)
     }
 
-    fun write(value: Long) = memWrite(register.offset, value)
+    fun write(value: ULong) = memWrite(register.offset, value)
     fun read() = memRead(register.offset)
 
     init {

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.system
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.string.AStringInstruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class Outsw(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>):
@@ -45,10 +47,10 @@ class Outsw(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: 
         val data = src.value(core)
 
         var pos = src.reg.value(core)
-        if (!x86Register.eflags.df(core))
-            pos += src.dtyp.bytes
+        if (!core.cpu.flags.df)
+            pos += src.dtyp.bytes.uint
         else
-            pos -= src.dtyp.bytes
+            pos -= src.dtyp.bytes.uint
 
         src.reg.value(core, pos)
 

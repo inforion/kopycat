@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.common
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -41,13 +42,11 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder.LITTLE_ENDIAN
 import java.util.*
-import java.util.logging.Level
 import java.util.zip.GZIPInputStream
 import java.util.zip.ZipException
 
+
 @Suppress("MemberVisibilityCanBePrivate", "unused")
-
-
 class NAND constructor(
         parent: Module,
         name: String,
@@ -60,7 +59,7 @@ class NAND constructor(
         val pagesInBlock: Int = 64
 ): Module(parent, name) {
     companion object {
-        @Transient private val log = logger(Level.WARNING)
+        @Transient private val log = logger(WARNING)
     }
 
     constructor(parent: Module, name: String, id: String, blockCount: Int, colLen: Int, rowLen: Int, pageSize: Int, spareSize: Int, pagesInBlock: Int, bank1: InputStream, bank2: InputStream?) :
@@ -105,7 +104,7 @@ class NAND constructor(
     private val banks = arrayOf(allocate(0), allocate(0))
     private val devId = allocate(5).put(id.unhexlify())
 
-    private val dirtyPages = HashSet<Int>(totalSize / pageSize)
+    private val dirtyPages = HashSet<UInt>(totalSize / pageSize)
     private val pageMask = (pageSize - 1).inv()
     private val emptyPage = ByteArray(pageSize)
 
@@ -146,19 +145,19 @@ class NAND constructor(
         banks[number] = allocate(totalSize)
         var fs = FileInputStream(path)
         try {
-            GZIPInputStream(fs).readInto(banks[number])
+            GZIPInputStream(fs).readBufferData(banks[number])
         } catch (exc: ZipException) {
             fs.close()
             //why the hell fs.reset doesn't work??
             fs = FileInputStream(path)
-            fs.readInto(banks[number])
+            fs.readBufferData(banks[number])
             fs.close()
         }
     }
 
     private fun loadBank(stream: InputStream, number: Int) {
         banks[number] = allocate(totalSize)
-        stream.readInto(banks[number])
+        stream.readBufferData(banks[number])
     }
 
     private fun loadBank(stream: ByteBuffer, number: Int) {
@@ -240,18 +239,16 @@ class NAND constructor(
             }
         }
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return mapOf(
-                    "failed" to failed.toString(),
-                    "ready" to ready.toString(),
-                    "writeProtect" to writeProtect.toString()
-            )
-        }
+        override fun serialize(ctxt: GenericSerializer) = mapOf(
+                "failed" to failed.toString(),
+                "ready" to ready.toString(),
+                "writeProtect" to writeProtect.toString()
+        )
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            failed = (snapshot["failed"] as String).toInt()
-            ready = (snapshot["ready"] as String).toInt()
-            writeProtect = (snapshot["writeProtect"] as String).toInt()
+            failed = (snapshot["failed"] as String).intByDec
+            ready = (snapshot["ready"] as String).intByDec
+            writeProtect = (snapshot["writeProtect"] as String).intByDec
         }
     }
 
@@ -293,20 +290,20 @@ class NAND constructor(
     }
 
     private val regStatus = object : Register(ports.nand, NAND_STATUS, DWORD, "regStatus") {
-        override fun read(ea: Long, ss: Int, size: Int): Long = onWoofStatusRead()
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = onWoofStatusRead()
     }
 
     private val regData = object : Register(ports.nand, NAND_IO, DWORD,"regData") {
-        override fun read(ea: Long, ss: Int, size: Int): Long = onDataRead(size)
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) = onDataWrite(value, size)
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = onDataRead(size)
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = onDataWrite(value, size)
     }
 
     private val regCmd = object : Register(ports.nand, NAND_CMD, DWORD,"regCmd") {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) = onCommandWrite(value)
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = onCommandWrite(value)
     }
 
     private val regAddress = object : Register(ports.nand, NAND_ADDRESS, DWORD,"regAddress") {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) = onAddressWrite(value)
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = onAddressWrite(value)
     }
 
     private var state: Command = Command.NOP
@@ -318,25 +315,21 @@ class NAND constructor(
         address.reset()
     }
 
-    private fun toFailState(size: Int = 1): Long {
+    private fun toFailState(size: Int = 1): ULong {
         if (status.failed != 1) {
             log.warning { "%s <%s> error at %s address transient to failed state...".format(name, state, address) }
         }
         state = Command.NOP
         status.change(ready = 1, failed = 1)
         address.reset()
-        return bitMask(8 * size) // make FF..FF
+        return ubitMask64(8 * size) // make FF..FF
     }
 
-    private fun onWoofStatusRead(): Long {
-        return status.value.toULong()
-    }
+    private fun onWoofStatusRead() = status.value.ulong_z
 
-    private fun isExceeded(): Boolean {
-        return banks.first().remaining() == 0
-    }
+    private fun isExceeded() = banks.first().remaining() == 0
 
-    private fun onDataRead(size: Int): Long {
+    private fun onDataRead(size: Int): ULong {
         val result = when (state) {
             Command.READ_ID_INIT -> { // if (devId.remaining() == 0) toFailState(dtyp) else devId.get().toULong()
                 if (devId.remaining() == 0)
@@ -344,17 +337,17 @@ class NAND constructor(
                 else when (size) {
                     WORD.bytes -> when (mode) {
                         Mode.DUAL -> {
-                            val boo = devId.get().toULong()
+                            val boo = devId.byte.ulong_z
                             (boo shl 8) or boo
                         }
-                        Mode.SINGLE -> devId.get().toULong()
+                        Mode.SINGLE -> devId.byte.ulong_z
                     }
-                    BYTE.bytes -> devId.get().toULong()
+                    BYTE.bytes -> devId.byte.ulong_z
                     else -> toFailState(size)
                 }
             }
 
-            Command.READ_STATUS_EXECUTE -> status.value.toULong()
+            Command.READ_STATUS_EXECUTE -> status.value.ulong_z
 
             Command.READ_EXECUTE, Command.READ_RANDOM_EXECUTE ->
 
@@ -362,23 +355,23 @@ class NAND constructor(
                     toFailState(size)
                 } else when (size) {
                     DWORD.bytes -> when (mode) {
-                        Mode.SINGLE -> banks[0].int.toULong()
+                        Mode.SINGLE -> banks[0].int.ulong_z
                         Mode.DUAL -> {
                             val short0 = banks[0].short
                             val short1 = banks[1].short
-                            val b3 = short1[15..8].toULong()
-                            val b2 = short1[7..0].toULong()
-                            val b1 = short0[15..8].toULong()
-                            val b0 = short0[7..0].toULong()
+                            val b3 = short1[15..8].ulong_z
+                            val b2 = short1[7..0].ulong_z
+                            val b1 = short0[15..8].ulong_z
+                            val b0 = short0[7..0].ulong_z
                             (b3 shl 24) or (b1 shl 16) or (b2 shl 8) or b0
                         }
                     }
-                    WORD.bytes -> (banks[1].get().toULong() shl 8) or (banks[0].get().toULong())
-                    BYTE.bytes -> banks[0].get().toULong()
+                    WORD.bytes -> (banks[1].byte.ulong_z shl 8) or (banks[0].byte.ulong_z)
+                    BYTE.bytes -> banks[0].byte.ulong_z
                     else -> toFailState(size)
                 }
 
-            Command.NOP -> bitMask(8 * size) // make FF..FF
+            Command.NOP -> ubitMask64(8 * size) // make FF..FF
 
             else -> toFailState(size)
         }
@@ -389,36 +382,36 @@ class NAND constructor(
 
     private fun position(): Int = banks[0].position()
 
-    private fun onDataWrite(value: Long, size: Int) {
+    private fun onDataWrite(value: ULong, size: Int) {
         when (state) {
             Command.PAGE_PROGRAM_EXECUTE -> {
                 if (isExceeded()) {
                     toFailState(size)
                 } else when (size) {
                     BYTE.bytes -> {
-                        dirtyPages.add(position() and pageMask)
-                        banks[0].put(value[7..0].toByte())
+                        dirtyPages.add(position().uint and pageMask.uint)
+                        banks[0].byte(value[7..0].byte)
                     }
                     WORD.bytes -> {
-                        dirtyPages.add(position() and pageMask)
-                        banks[1].put(value[15..8].toByte())
-                        banks[0].put(value[7..0].toByte())
+                        dirtyPages.add(position().uint and pageMask.uint)
+                        banks[1].byte(value[15..8].byte)
+                        banks[0].byte(value[7..0].byte)
                     }
                     DWORD.bytes -> when (mode) {
                         Mode.SINGLE -> {
-                            dirtyPages.add(position() and pageMask)
-                            banks[0].putInt(value.toInt())
+                            dirtyPages.add(position().uint and pageMask.uint)
+                            banks[0].int(value.int)
                         }
                         Mode.DUAL -> {
-                            dirtyPages.add(position() and pageMask)
+                            dirtyPages.add(position().uint and pageMask.uint)
                             val b0 = value[7..0]
                             val b2 = value[15..8]
                             val b1 = value[23..16]
                             val b3 = value[31..24]
                             val short1 = (b3 shl 8) or b2
                             val short0 = (b1 shl 8) or b0
-                            banks[0].putShort(short0.toShort())
-                            banks[1].putShort(short1.toShort())
+                            banks[0].short(short0.short)
+                            banks[1].short(short1.short)
                         }
                     }
                     else -> toFailState(size)
@@ -428,7 +421,7 @@ class NAND constructor(
         }
     }
 
-    private fun onCommandWrite(value: Long) {
+    private fun onCommandWrite(value: ULong) {
         val lobyte = value[7..0]
         val hibyte = value[15..8]
 
@@ -437,12 +430,12 @@ class NAND constructor(
         log.finest { "%s <%s> command area written %02X".format(name, state, lobyte) }
 
         val oldState = state
-        state = Command.from(lobyte)
+        state = Command.from(lobyte.long)
 
         when (state) {
             Command.RESET_EXECUTE -> {
                 log.fine { "%s <%s> reset".format(name, state) }
-                registers.forEach { it.data = 0 }
+                registers.forEach { it.data = 0u }
                 state = Command.NOP
                 status.reset()
                 address.reset()
@@ -501,8 +494,8 @@ class NAND constructor(
 
     private fun limit(): Int = banks[0].limit()
 
-    private fun onAddressWrite(value: Long) {
-        val byte = value[7..0].toByte()
+    private fun onAddressWrite(value: ULong) {
+        val byte = value[7..0].byte
 
 //        log.finest { "%s <%s> address area written %02X".format(name, state, byte) }
 
@@ -517,7 +510,7 @@ class NAND constructor(
         when (state) {
             Command.READ_ID_INIT -> {
                 if (address.buffer.position() == 1) {
-                    address.latch { buf -> buf.get(0).toInt() }
+                    address.latch { buf -> buf.get(0).int_s }
                     devId.rewind()
                 }
             }
@@ -569,7 +562,7 @@ class NAND constructor(
             Command.BLOCK_ERASE_INIT -> {
                 if (address.buffer.position() == 2) {
                     address.latch { buf ->
-                        val row = buf.getShort(0).toUInt()
+                        val row = buf.getShort(0).int_z
                         row * (pageSize + spareSize)
                     }
                     if (address.value < 0 || address.value >= limit()) {
@@ -592,9 +585,9 @@ class NAND constructor(
     }
 
     private fun  getData(buf: ByteBuffer, len: Int, offset: Int = 0): Int = when(len) {
-        1 -> buf.get(offset).toUInt()
-        2 -> buf.getShort(offset).toUInt()
-        3 -> buf.get(offset).toUInt() or (buf.get(offset+1).toUInt() shl 8) or (buf.get(offset+2).toUInt() shl 16)
+        1 -> buf.get(offset).int_z
+        2 -> buf.getShort(offset).int_z
+        3 -> buf.get(offset).int_z or (buf.get(offset+1).int_z shl 8) or (buf.get(offset+2).int_z shl 16)
         4 -> buf.getInt(offset)
         else -> throw Exception("Wrong address len!")
     }
@@ -616,43 +609,36 @@ class NAND constructor(
             "nand1" to ctxt.storeBinary("nand1", banks[0]),
             "nand2" to ctxt.storeBinary("nand2", banks[1]))
 
-    @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
-        restoreCommon(ctxt, snapshot)
 
-        if (banks[0].limit() == 0)
-            banks[0] = allocate(totalSize)
-
-        if (!ctxt.loadBinary(snapshot, "nand1", banks[0]))
-            throw IllegalStateException("Can't load nand1!")
-
-        if (canBeDual && ctxt.isBinaryExists("nand2")) {
-            if (banks[1].limit() == 0)
-                banks[1] = allocate(totalSize)
-
-            ctxt.loadBinary(snapshot, "nand2", banks[1])
-        }
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun restore(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        restoreCommon(ctxt, snapshot)
-
-        ctxt.restoreBinary(snapshot, "nand1", banks[0], dirtyPages, pageSize)
-        if (canBeDual && ctxt.isBinaryExists("nand2")) {
-            ctxt.restoreBinary(snapshot, "nand2", banks[1], dirtyPages, pageSize)
-        }
-
-        dirtyPages.clear()
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    private fun restoreCommon(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         loadByteBuffer(snapshot, "devId", devId)
         canBeDual = loadValue(snapshot, "canBeDual") { false }
-        status.deserialize(ctxt, snapshot["status"] as Map<String, Any>)
-        address.deserialize(ctxt, snapshot["address"] as Map<String, Any>)
+        status.deserialize(ctxt, snapshot["status"].cast())
+        address.deserialize(ctxt, snapshot["address"].cast())
         state = loadEnum(snapshot, "state")
+
+        if (!ctxt.doRestore) {
+            if (banks[0].limit() == 0)
+                banks[0] = allocate(totalSize)
+
+            if (!ctxt.loadBinary(snapshot, "nand1", banks[0]))
+                throw IllegalStateException("Can't load nand1!")
+
+            if (canBeDual && ctxt.isBinaryExists("nand2")) {
+                if (banks[1].limit() == 0)
+                    banks[1] = allocate(totalSize)
+
+                ctxt.loadBinary(snapshot, "nand2", banks[1])
+            }
+        } else {
+            ctxt.restoreBinary(snapshot, "nand1", banks[0], dirtyPages, pageSize)
+
+            if (canBeDual && ctxt.isBinaryExists("nand2")) {
+                ctxt.restoreBinary(snapshot, "nand2", banks[1], dirtyPages, pageSize)
+            }
+
+            dirtyPages.clear()
+        }
     }
 }

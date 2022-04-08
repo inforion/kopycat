@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,5 +32,5 @@ import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 
 
 abstract class ADecoder<out T: AMSP430Instruction>(val core: MSP430Core): ITableEntry {
-    abstract fun decode(s: Long): T
+    abstract fun decode(s: ULong): T
 }

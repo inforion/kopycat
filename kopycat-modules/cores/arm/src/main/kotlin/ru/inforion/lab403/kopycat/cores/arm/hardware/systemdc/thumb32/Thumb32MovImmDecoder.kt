@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb32
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.ThumbExpandImm_C
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
@@ -42,7 +42,7 @@ object Thumb32MovImmDecoder {
             cpu: AARMCore,
             val constructor: (
                     cpu: AARMCore,
-                    opcode: Long,
+                    opcode: ULong,
                     cond: Condition,
                     setFlags: Boolean,
                     carry: Boolean,
@@ -51,21 +51,21 @@ object Thumb32MovImmDecoder {
                     size: Int
             ) -> AARMInstruction
     ) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
+        override fun decode(data: ULong): AARMInstruction {
             val cond = cond(data)
 
             val i = data[26]
-            val setFlags = data[20].toBool()
-            val rd = gpr(data[11..8].asInt)
+            val setFlags = data[20].truth
+            val rd = gpr(data[11..8].int)
             val imm3 = data[14..12]
             val imm8 = data[7..0]
 
-            val (imm32val, carry) = ThumbExpandImm_C((i shl 11) + (imm3 shl 8) + imm8, core.cpu.flags.c.asInt)
+            val (imm32val, carry) = ThumbExpandImm_C((i shl 11) + (imm3 shl 8) + imm8, core.cpu.flags.c.int)
 
             val imm32 = Immediate<AARMCore>(imm32val)
             if (rd.desc.id in 15..13) throw ARMHardwareException.Unpredictable
 
-            return constructor(core, data, cond, setFlags, carry.toBool(), rd, imm32, 4)
+            return constructor(core, data, cond, setFlags, carry.truth, rd, imm32, 4)
         }
     }
 
@@ -73,7 +73,7 @@ object Thumb32MovImmDecoder {
             cpu: AARMCore,
             val constructor: (
                     cpu: AARMCore,
-                    opcode: Long,
+                    opcode: ULong,
                     cond: Condition,
                     setFlags: Boolean,
                     carry: Boolean,
@@ -82,10 +82,10 @@ object Thumb32MovImmDecoder {
                     size: Int
             ) -> AARMInstruction
     ) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
+        override fun decode(data: ULong): AARMInstruction {
             val cond = cond(data)
 
-            val rd = gpr(data[11..8].asInt)
+            val rd = gpr(data[11..8].int)
             val imm4 = data[19..16]
             val i = data[26]
             val imm3 = data[14..12]

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory
 
+import ru.inforion.lab403.common.extensions.ushr
+import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.eax
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.edx
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.ax
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.dx
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -40,9 +38,19 @@ class Cdq(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "cdq"
 
     override fun execute() {
-        val operand1 = if (prefs.is16BitOperandMode) ax else eax
-        val operand2 = if (prefs.is16BitOperandMode) dx else edx
-        val sext = operand1.ssext(core)
-        operand2.value(core, sext shr operand1.dtyp.bits)
+        val operand1 = when {
+            prefs.is16BitOperandMode -> core.cpu.regs.ax
+            prefs.rexW -> core.cpu.regs.rax
+            else -> core.cpu.regs.eax
+        }.toOperand()
+
+        val operand2 = when {
+            prefs.is16BitOperandMode -> core.cpu.regs.dx
+            prefs.rexW -> core.cpu.regs.rdx
+            else -> core.cpu.regs.edx
+        }.toOperand()
+
+        val sext = operand1.usext(core)
+        operand2.value(core, sext ushr operand1.dtyp.bits)
     }
 }

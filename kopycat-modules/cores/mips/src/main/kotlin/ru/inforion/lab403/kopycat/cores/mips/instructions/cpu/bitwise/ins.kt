@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class ins(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         rt: MipsRegister,
         rs: MipsRegister,
         pos: MipsImmediate,
@@ -53,7 +53,7 @@ class ins(
             val inserted = vrt[msb - lsb..0]
             val low = vrs[lsb - 1..0]
             high.shl(msb + 1) or inserted.shl(lsb) or low
-        } else 0
+        } else 0u
     }
 
 }

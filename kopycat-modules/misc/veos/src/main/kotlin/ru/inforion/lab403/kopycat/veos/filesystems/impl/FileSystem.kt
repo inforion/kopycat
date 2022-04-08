@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,18 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems.impl
 
-import ru.inforion.lab403.common.extensions.convertToBytes
-import ru.inforion.lab403.common.extensions.div
-import ru.inforion.lab403.common.extensions.isNotTraverseDirectory
-import ru.inforion.lab403.common.extensions.toFile
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.attributes
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONoSuchFileOrDirectory
 import ru.inforion.lab403.kopycat.veos.filesystems.*
 import ru.inforion.lab403.kopycat.veos.filesystems.AccessFlags.Companion.toAccessFlags
+import ru.inforion.lab403.kopycat.veos.filesystems.attributes.veosAttributes
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IBasicFile
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import ru.inforion.lab403.kopycat.veos.kernel.System
@@ -143,11 +140,11 @@ class FileSystem(val sys: System): IAutoSerializable {
 
     fun write(fd: Int, data: ByteArray) = sys.ioSystem.write(fd, data)
 
-    fun write(fd: Int, string: String) = write(fd, string.convertToBytes())
+    fun write(fd: Int, string: String) = write(fd, string.bytes)
 
     fun close(fd: Int) = sys.ioSystem.close(fd)
 
-    fun seek(fd: Int, offset: Long, origin: Seek) {
+    fun seek(fd: Int, offset: ULong, origin: Seek) {
         val file = file(fd)
         val position = when (origin) {
             Seek.Begin -> offset
@@ -198,7 +195,7 @@ class FileSystem(val sys: System): IAutoSerializable {
     fun attributes(path: String): PosixFileAttributes {
         val file = concatPath(path)
         try {
-            return file.attributes()
+            return file.veosAttributes()
         } catch (error: IOException) {
             throw IONoSuchFileOrDirectory(path)
         }

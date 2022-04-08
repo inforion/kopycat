@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.msp430.hardware.systemdc.decoders
 
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Access.READ
@@ -35,10 +36,9 @@ import ru.inforion.lab403.kopycat.cores.msp430.operands.*
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 
 
-
 abstract class MSP430Decoder(core: MSP430Core) : ADecoder<AMSP430Instruction>(core) {
 
-    fun decodeFirstOp(aSrc : Int, regInd : Int, nextWord : Long, dtype : Datatype, insSize : Long) : MSP430Operand {
+    fun decodeFirstOp(aSrc: Int, regInd: Int, nextWord: ULong, dtype: Datatype, insSize: Int): MSP430Operand {
         val imm = MSP430Immediate(dtype, nextWord, true)
 
         return when (aSrc) {
@@ -48,11 +48,12 @@ abstract class MSP430Decoder(core: MSP430Core) : ADecoder<AMSP430Instruction>(co
             }
             0b01 -> when (regInd) {
                 MSP430GPR.r0.id -> MSP430Displacement(
-                        dtype,
-                        MSP430Register.gpr(Datatype.WORD, regInd),
-                        MSP430Immediate(dtype, nextWord - insSize + Datatype.WORD.bytes, true),
-                        READ,
-                        0)
+                    dtype,
+                    MSP430Register.gpr(Datatype.WORD, regInd),
+                    MSP430Immediate(dtype, nextWord - insSize + Datatype.WORD.bytes, true),
+                    READ,
+                    0
+                )
                 MSP430GPR.r2.id -> MSP430Memory(dtype, READ, nextWord)
                 MSP430GPR.r3.id -> one(dtype)
                 else -> MSP430Displacement(dtype, MSP430Register.gpr(Datatype.WORD, regInd), imm, READ, 0)
@@ -67,7 +68,13 @@ abstract class MSP430Decoder(core: MSP430Core) : ADecoder<AMSP430Instruction>(co
                 MSP430GPR.r0.id -> imm
                 MSP430GPR.r2.id -> eight(dtype)
                 MSP430GPR.r3.id -> negOne(dtype)
-                else -> MSP430Displacement(dtype, MSP430Register.gpr(Datatype.WORD, regInd), zero(dtype), READ, dtype.bytes)
+                else -> MSP430Displacement(
+                    dtype,
+                    MSP430Register.gpr(Datatype.WORD, regInd),
+                    zero(dtype),
+                    READ,
+                    dtype.bytes
+                )
             }
             else -> throw GeneralException("Incorrect optype (MSP430Decoder.kt)")
         }

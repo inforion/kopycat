@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ class ElfGnuHashTable(input: ByteBuffer, offset: Int)  : IHashTable {
         input.position(offset)
     }
 
-    val nbucket = input.int.also { assertMajorBit(it) } // TODO: as ULong?
+    val nbucket = input.int.also { assertMajorBit(it) } // TODO: as ULong ?
     val symbias = input.int.also { assertMajorBit(it) }
     val bitmask_nwords = input.int.also { require(it and (it - 1) == 0) } // Must be a power of 2
     val l_gnu_shift = input.int

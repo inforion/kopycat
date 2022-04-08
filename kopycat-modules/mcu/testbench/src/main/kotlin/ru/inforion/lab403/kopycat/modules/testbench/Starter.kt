@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.testbench
 
+import ru.inforion.lab403.kopycat.interfaces.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
 
@@ -38,28 +39,28 @@ object Starter {
         top.initializeAndResetAsTopInstance()
 
         // Write some instructions into memory
-        top.core.write(WORD, 0x0000_0000, 0x2003) // movs  r0, #3
-        top.core.write(WORD, 0x0000_0002, 0x2107) // movs  r1, #7
-        top.core.write(WORD, 0x0000_0004, 0x180A) // adds  r2, r1, r0
+        top.core.write(WORD, 0x0000_0000u, 0x2003u) // movs  r0, #3
+        top.core.write(WORD, 0x0000_0002u, 0x2107u) // movs  r1, #7
+        top.core.write(WORD, 0x0000_0004u, 0x180Au) // adds  r2, r1, r0
 
         // Setup program counter
         // Note, that we may use top.arm.cpu.pc but there is some caveat here
         // top.arm.cpu.pc just change PC but don't make flags changing (i.e. change core mode)
         // so be aware when change PC.
-        top.arm.cpu.BXWritePC(0x0000_0000)
+        top.arm.cpu.BXWritePC(0x0000_0000u)
 
         // Make a step
         top.arm.step()
-        assert(top.core.reg(0) == 3L)
+        assert(top.core.reg(0) == 3uL)
 
         // Make another step
         top.arm.step()
-        assert(top.core.reg(1) == 7L)
+        assert(top.core.reg(1) == 7uL)
 
         // And one more step
         top.arm.step()
-        assert(top.core.reg(2) == 10L)
+        assert(top.core.reg(2) == 10uL)
 
-        GDBServer(23946, true, binaryProtoEnabled = false).also { it.debuggerModule(top.debugger) }
+        GDBServer(23946).also { it.debuggerModule(top.debugger) }
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,17 +48,17 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val io = Slave("io", BUS16)
+        val io = Slave("io", BUS16.ulong)
     }
 
     override val ports = Ports()
 
-    private val RTC_IDX_DATA = object : ByteAccessRegister(ports.io, 0x70, WORD, "RTC_IDX_DATA") {
+    private val RTC_IDX_DATA = object : ByteAccessRegister(ports.io, 0x70u, WORD, "RTC_IDX_DATA") {
         var CMOSIDX by field(6..0)
         var CMOSDATA by field(15..8)
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            val byte = when (val index = CMOSIDX) {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            val byte = when (val index = CMOSIDX.int) {
                 0 -> RTCCURSEC
                 1 -> TODO("RTCALMSEC not implemented!")
                 2 -> RTCCURMIN
@@ -73,27 +73,27 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
                 11 -> RTCCTLB
                 12 -> RTCCTLC
                 13 -> RTCCTLD
-                else -> RTCCMOS[index].asUInt
+                else -> RTCCMOS[index].uint_z
             }
-            CMOSDATA = byte
+            CMOSDATA = byte.ulong_z
             log.warning { "RTC read $CMOSIDX -> $byte" }
             return super.read(ea, ss, size)
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
-            val off = offset(ea).asInt
+            val off = offset(ea).int
             if (off == 0 && size > 1 || off == 1) {
-                val byte = CMOSDATA
+                val byte = CMOSDATA.uint
                 log.warning { "RTC write $CMOSIDX -> $byte" }
-                when (val index = CMOSIDX) {
+                when (val index = CMOSIDX.int) {
                     0 -> RTCCURSEC = byte
-                    1 -> if (byte != 0) TODO("RTCALMSEC not implemented!")
+                    1 -> if (byte != 0u) TODO("RTCALMSEC not implemented!")
                     2 -> RTCCURMIN = byte
-                    3 -> if (byte != 0) TODO("RTCALMMIN not implemented!")
+                    3 -> if (byte != 0u) TODO("RTCALMMIN not implemented!")
                     4 -> RTCCURHR = byte
-                    5 -> if (byte != 0) TODO("RTCALMHR not implemented!")
+                    5 -> if (byte != 0u) TODO("RTCALMHR not implemented!")
                     6 -> RTCCURDOW = byte
                     7 -> RTCCURDOM = byte
                     8 -> RTCCURMON = byte
@@ -102,7 +102,7 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
                     11 -> RTCCTLB = byte
                     12 -> RTCCTLC = byte
                     13 -> RTCCTLD = byte
-                    else -> RTCCMOS[index] = byte.asByte
+                    else -> RTCCMOS[index] = byte.byte
                 }
             }
         }
@@ -111,9 +111,9 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
     private var date = DateTime(2000, 1, 1, 0, 0, 0)
 
     class DateRegister(val how: (date: DateTime) -> DateTime.Property) {
-        operator fun getValue(thisRef: RTC, property: KProperty<*>) = how(thisRef.date).get()
-        operator fun setValue(thisRef: RTC, property: KProperty<*>, value: Int) {
-            thisRef.date = how(thisRef.date).setCopy(value)
+        operator fun getValue(thisRef: RTC, property: KProperty<*>) = how(thisRef.date).get().uint
+        operator fun setValue(thisRef: RTC, property: KProperty<*>, value: UInt) {
+            thisRef.date = how(thisRef.date).setCopy(value.int)
             val year = thisRef.date.yearOfEra()
             if (year.get() < 2000)
                 thisRef.date = year.setCopy(2000)
@@ -121,14 +121,14 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
     }
 
     class ControlRegister(val index: Char) {
-        private var field: Int = 0
+        private var field: UInt = 0u
 
-        operator fun getValue(thisRef: RTC, property: KProperty<*>): Int {
+        operator fun getValue(thisRef: RTC, property: KProperty<*>): UInt {
             log.severe { "Read control reg $index -> ${field.hex}" }
             return field
         }
 
-        operator fun setValue(thisRef: RTC, property: KProperty<*>, value: Int) {
+        operator fun setValue(thisRef: RTC, property: KProperty<*>, value: UInt) {
             log.severe { "Written control reg $index -> ${value.hex}" }
             field = value
         }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,10 +27,7 @@ package ru.inforion.lab403.kopycat.modules.cores.device
 
 import org.junit.Assert
 import org.junit.Before
-import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.common.extensions.hexlify
-import ru.inforion.lab403.common.extensions.unhexlify
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
@@ -42,6 +39,7 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.device.operands.TestRegister
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.cores.base.operands.Memory as Mem
+import ru.inforion.lab403.kopycat.interfaces.*
 
 abstract class ATest: Module(null, "Test") {
     protected fun displacement(
@@ -49,18 +47,18 @@ abstract class ATest: Module(null, "Test") {
             off: Immediate<TestCore>,
             dtyp: Datatype = DWORD,
             access: AOperand.Access = ANY) = Displacement(dtyp, reg, off, access)
-    protected fun immediate(value: Long, dtyp: Datatype = DWORD): Immediate<TestCore> = Immediate(value, dtyp = dtyp)
+    protected fun immediate(value: ULong, dtyp: Datatype = DWORD): Immediate<TestCore> = Immediate(value, dtyp = dtyp)
     protected fun register(id: Int) = testCore.cpu.regs[id].toOperand()
-    protected fun memory(address: Long, dtyp: Datatype = DWORD, atyp: Datatype = DWORD) =
+    protected fun memory(address: ULong, dtyp: Datatype = DWORD, atyp: Datatype = DWORD) =
             Mem<TestCore>(dtyp, atyp, address, ANY)
-    protected fun error(value: Long, expected: Long, actual: Long, operand: String, test: String): String =
+    protected fun error(value: ULong, expected: ULong, actual: ULong, operand: String, test: String): String =
             "Operands $operand $test test expected ${expected.hex}, but got ${actual.hex} for test ${value.hex}"
     protected fun <T> assert(error: String, expected: T, actual: T) = Assert.assertEquals(error, expected, actual)
-    protected fun load(address: Long, size: Int): String = testCore.load(address, size).hexlify()
-    protected fun load(address: Long, dtyp: Datatype): Long = testCore.read(dtyp, address, 0)
-    protected fun store(address: Long, data: String)= testCore.store(address, data.unhexlify())
-    protected fun store(address: Long, data: Long, dtyp: Datatype = DWORD) = testCore.write(dtyp, address, data, 0)
-    protected fun regs(r0: Long = 0,  r1: Long = 0) {
+    protected fun load(address: ULong, size: Int): String = testCore.load(address, size).hexlify()
+    protected fun load(address: ULong, dtyp: Datatype): ULong = testCore.read(dtyp, address, 0)
+    protected fun store(address: ULong, data: String)= testCore.store(address, data.unhexlify())
+    protected fun store(address: ULong, data: ULong, dtyp: Datatype = DWORD) = testCore.write(dtyp, address, data, 0)
+    protected fun regs(r0: ULong = 0u,  r1: ULong = 0u) {
         testCore.cpu.regs.r0.value = r0;
         testCore.cpu.regs.r1.value = r1
     }
@@ -80,8 +78,8 @@ abstract class ATest: Module(null, "Test") {
         testCore.reset()
     }
 
-    var address = 0L
-    var value = 0L
-    var actual = 0L
-    var expected = 0L
+    var address = 0uL
+    var value = 0uL
+    var actual = 0uL
+    var expected = 0uL
 }

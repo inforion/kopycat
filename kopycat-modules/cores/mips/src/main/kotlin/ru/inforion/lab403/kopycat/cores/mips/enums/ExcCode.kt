@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,27 +27,27 @@ package ru.inforion.lab403.kopycat.cores.mips.enums
 
 
 
-enum class ExcCode(val id: Long) {
-    INT(0),         // Interrupt
-    MOD(1),         // TLB modification exception
-    TLBL_INVALID(2),     // TLB exception (load or instruction fetch)
-    TLBS_INVALID(3),     // TLB exception (store)
-    TLBL_MISS(2),        // TLB exception (load or instruction fetch)
-    TLBS_MISS(3),        // TLB exception (store)
-    ADEL(4),        // Address error exception (load or instruction fetch)
-    ADES(5),        // Address error exception (store)
-    IBE(6),         // Bus error exception (instruction fetch)
-    DBE(7),         // Bus error exception (data reference: load or store)
-    SYS(8),         // Syscall exception
-    BP(9),          // Breakpoint exception
-    RI(10),         // Reserved instruction exception
-    CPU(11),        // Coprocessor Unusable exception
-    OV(12),         // Arithmetic Overflow exception
-    TR(13),         // Trap exception
-    FPE(15),        // Floating point exception
-    C2E(18),        // Reserved for precise Coprocessor 2 exceptions
-    MDMX(22),       // Reserved for MDMX Unusable Exception in MIPS64 implementations.
-    WATCH(23),      // Reference to WatchHi/WatchLo address
-    MCHECK(24),     // Machine check
-    CACHEERR(30)    // Cache error
+enum class ExcCode(val id: ULong) {
+    INT(0u),         // Interrupt
+    MOD(1u),         // TLB modification exception
+    TLBL_INVALID(2u),     // TLB exception (load or instruction fetch)
+    TLBS_INVALID(3u),     // TLB exception (store)
+    TLBL_MISS(2u),        // TLB exception (load or instruction fetch)
+    TLBS_MISS(3u),        // TLB exception (store)
+    ADEL(4u),        // Address error exception (load or instruction fetch)
+    ADES(5u),        // Address error exception (store)
+    IBE(6u),         // Bus error exception (instruction fetch)
+    DBE(7u),         // Bus error exception (data reference: load or store)
+    SYS(8u),         // Syscall exception
+    BP(9u),          // Breakpoint exception
+    RI(10u),         // Reserved instruction exception
+    CPU(11u),        // Coprocessor Unusable exception
+    OV(12u),         // Arithmetic Overflow exception
+    TR(13u),         // Trap exception
+    FPE(15u),        // Floating point exception
+    C2E(18u),        // Reserved for precise Coprocessor 2 exceptions
+    MDMX(22u),       // Reserved for MDMX Unusable Exception in MIPS64 implementations.
+    WATCH(23u),      // Reference to WatchHi/WatchLo address
+    MCHECK(24u),     // Machine check
+    CACHEERR(30u)    // Cache error
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,13 +29,14 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.MHz
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
 
 
 
 class ARMBankTest: Module(null, "ARM Bank Test") {
-    private fun assert(expected: Long, actual: Long) {
+    private fun assert(expected: ULong, actual: ULong) {
         Assert.assertEquals(expected, actual)
     }
 
@@ -49,21 +50,22 @@ class ARMBankTest: Module(null, "ARM Bank Test") {
     }
 
     @Test fun test1() {
-        bank.ITSTATE = 0b1010_1010
+        bank.ITSTATE = 0b1010_1010u
         // initial mode for ARM is SVC mode CPSR[7..0] = 0x13
-        assert(0b0000_0100_0000_0000_1010_1000_0001_0011, arm.cpu.sregs.cpsr.value)
-        Assert.assertEquals(bank.ITSTATE, 0b1010_1010)
+        assert(0b0000_0100_0000_0000_1010_1000_0001_0011u, arm.cpu.sregs.cpsr.value)
+        Assert.assertEquals(bank.ITSTATE, 0b1010_1010uL)
     }
 
     @Test fun test2() {
-        bank.ge = 0b0110
-        bank.m  = 0b10011
-        bank.ITSTATE = 0b1110_0011
+        bank.ge = 0b0110u
+        bank.m  = 0b10011u
+        bank.ITSTATE = 0b1110_0011u
         bank.f  = true
-        assert(0b0000_0110_0000_0110_1110_0000_0101_0011, arm.cpu.sregs.cpsr.value)
-        Assert.assertEquals(bank.ge,0b0110)
-        Assert.assertEquals(bank.m, 0b10011)
-        Assert.assertEquals(bank.ITSTATE,0b1110_0011)
+        assert(0b0000_0110_0000_0110_1110_0000_0101_0011u, arm.cpu.sregs.cpsr.value)
+        assert(0b0000_0110_0000_0110_1110_0000_0101_0011u, arm.cpu.sregs.cpsr.value)
+        Assert.assertEquals(bank.ge,0b0110uL)
+        Assert.assertEquals(bank.m, 0b10011uL)
+        Assert.assertEquals(bank.ITSTATE,0b1110_0011uL)
         Assert.assertEquals(bank.f, true)
     }
 }

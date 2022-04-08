@@ -13,7 +13,7 @@ import org.jetbrains.dokka.gradle.DokkaTask
 
 applicationName = "kopycat"
 archivesBaseName = "kopycat"
-version = '0.3.30'
+version = '0.4.00'
 group = 'ru.inforion.lab403'
 applicationDefaultJvmArgs = [
         "-server",
@@ -40,11 +40,19 @@ dependencies {
     runtime group: 'org.jetbrains.kotlin', name: 'kotlin-scripting-compiler-embeddable'
     runtime group: 'org.jetbrains.kotlin', name: 'kotlin-compiler-embeddable'
 
-    // Third-party logging mute out
-    implementation group: 'org.slf4j', name: 'slf4j-nop', version: '1.7.30'
+    implementation group: 'com.github.inforion.common', name: 'argparse', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'reflection', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'scanner', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'utils', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'wsrpc', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'javalin', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'jline', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'krest', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'gson-json', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'network', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'intervalmap', version: kotlin_extensions_version
 
-    // REST server interface
-    implementation group: 'io.javalin', name: 'javalin', version: '3.11.0'
+    implementation "io.javalin:javalin:3.13.9"
 
     // Required for kotlin-compiler-embeddable or kotlin-scripting-compiler-embeddable
     implementation group: 'net.java.dev.jna', name: 'jna', version: '5.6.0'
@@ -55,21 +63,15 @@ dependencies {
     // Module libraries and registry runtime-loader
     implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'
 
-    // Interactive console
-    implementation group: 'org.jline', name: 'jline', version: '3.15.0'
-
     // Required to be here for VEOS idk why so, but if this line is put only in VEOS build.gradle Kopycat crashes in RT
     implementation group: 'gnu.getopt', name: 'java-getopt', version: '1.0.13'
 
-    testImplementation group: 'com.github.stefanbirkner', name: 'system-rules', version: '1.19.0'
+    testImplementation group: 'org.slf4j', name: 'slf4j-simple', version: '1.7.32'
 
 //    TODO: possible not required libraries, these lines will be removed after time-testing...
       // for ETHERNET modules, moved to according build.gradle
 //    implementation group: 'org.pcap4j', name: 'pcap4j-core', version: '1.8.2'
 //    implementation group: 'org.pcap4j', name: 'pcap4j-packetfactory-static', version: '1.8.2'
-      // License verification
-//    implementation group: 'com.github.oshi', name: 'oshi-core', version: '5.2.4'
-//    implementation 'com.auth0:java-jwt:3.8.0'
       // idk
 //    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
 }

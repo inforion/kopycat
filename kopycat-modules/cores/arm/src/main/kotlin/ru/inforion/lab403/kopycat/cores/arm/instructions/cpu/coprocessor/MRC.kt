@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor
 
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
@@ -36,7 +36,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 class MRC(cpu: AARMCore,
-          opcode: Long,
+          opcode: ULong,
           cond: Condition,
           val rd: ARMRegister,
           val opcode_1: Int,
@@ -57,10 +57,10 @@ class MRC(cpu: AARMCore,
                 rd.value(core, value)
             else {
                 // TODO: make it faster
-                core.cpu.sregs.apsr.n = value[31].toBool()
-                core.cpu.sregs.apsr.z = value[30].toBool()
-                core.cpu.sregs.apsr.c = value[29].toBool()
-                core.cpu.sregs.apsr.v = value[28].toBool()
+                core.cpu.sregs.apsr.n = value[31].truth
+                core.cpu.sregs.apsr.z = value[30].truth
+                core.cpu.sregs.apsr.c = value[29].truth
+                core.cpu.sregs.apsr.v = value[28].truth
             }
         }
 

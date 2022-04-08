@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asLong
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.Shift
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -38,9 +35,11 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+import ru.inforion.lab403.kopycat.interfaces.*
+
 
 class LDRSHr(cpu: AARMCore,
-             opcode: Long,
+             opcode: ULong,
              cond: Condition,
              val index: Boolean,
              val add: Boolean,
@@ -55,15 +54,15 @@ class LDRSHr(cpu: AARMCore,
     override val mnem = "LDRSH$mcnd"
 
     override fun execute() {
-        val offset = Shift(rm.value(core), 32, shiftT, shiftN, core.cpu.flags.c.asInt)
+        val offset = Shift(rm.value(core), 32, shiftT, shiftN, core.cpu.flags.c.int)
         val offsetAddress = rn.value(core) + if (add) offset else -offset
         val address = if (index) offsetAddress else rn.value(core)
 
         val data = core.inw(address like Datatype.DWORD)
 
         if (wback) rn.value(core, offsetAddress)
-        if(core.cpu.UnalignedSupport() || address[0] == 0L)
-            rt.value(core, signext(data, 16).asLong)
+        if(core.cpu.UnalignedSupport() || address[0] == 0uL)
+            rt.value(core, data.signextRenameMeAfter(15))
         else throw Unknown
     }
 }

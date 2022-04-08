@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,37 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Access.ANY
 import ru.inforion.lab403.kopycat.cores.base.operands.Memory
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ds
+import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
+import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import ru.inforion.lab403.kopycat.interfaces.*
 
-class x86Memory(dtyp: Datatype, addr: Long, override val ssr: x86Register = ds, access: Access = ANY) :
-        Memory<x86Core>(dtyp, DWORD, addr, access) {
-    override fun value(core: x86Core): Long = core.read(dtyp, effectiveAddress(core), ssr.reg)
-    override fun value(core: x86Core, data: Long): Unit = core.write(dtyp, effectiveAddress(core), data, ssr.reg)
+class x86Memory constructor(dtyp: Datatype, atyp: Datatype, addr: ULong, override val ssr: x86Register, access: Access = ANY) :
+        Memory<x86Core>(dtyp, atyp, addr, access) {
+
+    constructor(dtyp: Datatype, addr: ULong, prefixes: Prefixes) :
+            this(dtyp, prefixes.addrsize, addr, prefixes.ssr())
+
+    override fun effectiveAddress(core: x86Core) = addr like atyp
+
+    override fun value(core: x86Core): ULong = core.read(dtyp, effectiveAddress(core), ssr.reg).also {
+        require(dtyp.bytes <= 8) { "Can't read ${dtyp.bytes}" }
+    }
+    override fun value(core: x86Core, data: ULong): Unit = core.write(dtyp, effectiveAddress(core), data, ssr.reg).also {
+        require(dtyp.bytes <= 8) { "Can't read ${dtyp.bytes}" }
+    }
+
+    override fun toString() = buildString {
+        if (ssr.reg != SSR.DS.id)
+            append("$ssr:")
+        append("${dtyp}_%08X".format(addr.long))
+    }
 }

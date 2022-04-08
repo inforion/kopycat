@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.format
 
-import ru.inforion.lab403.common.extensions.asChar
-
+import ru.inforion.lab403.common.extensions.char
 
 class CharArrayPointer(val data: CharArray, private var i: Int = 0): ICharArrayPointer {
     override val hasRemaining get() = i < data.size
@@ -34,7 +33,7 @@ class CharArrayPointer(val data: CharArray, private var i: Int = 0): ICharArrayP
 
     override fun isNotEmpty() = data.isNotEmpty()
 
-    override val get get() = if (i < data.size) data[i] else 0.asChar
+    override val get get() = if (i < data.size) data[i] else 0.char
     override val offset get() = i
     override val copy get() = CharArrayPointer(data, i)
 

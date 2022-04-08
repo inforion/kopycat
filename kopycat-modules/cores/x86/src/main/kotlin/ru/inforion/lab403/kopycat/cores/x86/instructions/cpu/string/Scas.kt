@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.string
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor
@@ -50,13 +51,13 @@ class Scas(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
         val a1 = op1 as x86Register
         val a2 = op2 as x86Displacement
         val res = a1.value(core) - a2.value(core)
-        val result = Variable<x86Core>(0, op1.dtyp)
+        val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
         var pos = a2.reg.value(core)
-        if (!x86Register.eflags.df(core))
-            pos += a2.dtyp.bytes
+        if (!core.cpu.flags.df)
+            pos += a2.dtyp.bytes.uint
         else
-            pos -= a2.dtyp.bytes
+            pos -= a2.dtyp.bytes.uint
         FlagProcessor.processAddSubCmpFlag(core, result, op1, op2, true)
         a2.reg.value(core, pos)
     }

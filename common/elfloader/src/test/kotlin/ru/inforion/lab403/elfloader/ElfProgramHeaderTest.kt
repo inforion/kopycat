@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.elfloader
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.TestInstance
+import org.junit.Test
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.extensions.unhexlify
 import ru.inforion.lab403.elfloader.enums.ElfProgramHeaderFlag
@@ -35,8 +33,8 @@ import ru.inforion.lab403.elfloader.enums.ElfProgramHeaderType
 import ru.inforion.lab403.elfloader.headers.ElfProgramHeader
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.test.assertEquals
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class ElfProgramHeaderTest {
     companion object {
         val log = logger()
@@ -64,12 +62,12 @@ class ElfProgramHeaderTest {
 
     @Test
     fun testPHeaderVAddr() {
-        assertEquals(0x00010034, programHeader.vaddr)
+        assertEquals(0x00010034u, programHeader.vaddr)
     }
 
     @Test
     fun testPHeaderPAddr() {
-        assertEquals(0x00010034, programHeader.paddr)
+        assertEquals(0x00010034u, programHeader.paddr)
     }
 
     @Test

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.shift
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.SRType.SRType_LSR
 import ru.inforion.lab403.kopycat.cores.arm.Shift_C
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -39,9 +39,8 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class LSRi(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            private val setFlags: Boolean,
            val rd: ARMRegister,
@@ -53,7 +52,7 @@ class LSRi(cpu: AARMCore,
     private var result = ARMVariable(Datatype.DWORD)
 
     override fun execute() {
-        val (res, carry) = Shift_C(rm.value(core), 32, SRType_LSR, shiftN, core.cpu.flags.c.asInt)
+        val (res, carry) = Shift_C(rm.value(core), 32, SRType_LSR, shiftN, core.cpu.flags.c.int)
         result.value(core, res)
         if (rd.isProgramCounter(core)) core.cpu.ALUWritePC(result.value(core))
         else {

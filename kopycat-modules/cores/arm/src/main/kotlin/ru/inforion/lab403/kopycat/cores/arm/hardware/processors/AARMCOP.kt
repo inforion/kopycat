@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,15 +31,15 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 abstract class AARMCOP(core: AARMCore, name: String) : ACOP<AARMCOP, AARMCore>(core, name) {
 
-    open fun Coproc_SendOneWord(opc1: Int, opc2: Int, crn: Int, crm: Int, cp_num: Int, value: Long) {
+    open fun Coproc_SendOneWord(opc1: Int, opc2: Int, crn: Int, crm: Int, cp_num: Int, value: ULong) {
         throw NotImplementedError("Coproc_SendOneWord isn't implemented for this ARM arch")
     }
 
-    open fun Coproc_GetOneWord(opc1: Int, opc2: Int, crn: Int, crm: Int, cp_num: Int): Long {
+    open fun Coproc_GetOneWord(opc1: Int, opc2: Int, crn: Int, crm: Int, cp_num: Int): ULong {
         throw NotImplementedError("Coproc_SendOneWord isn't implemented for this ARM arch")
     }
 
-    open fun Coproc_SendTwoWords(word2: Long, word1: Long, cp_num: Int, opc1: Int, crm: Int) {
+    open fun Coproc_SendTwoWords(word2: ULong, word1: ULong, cp_num: Int, opc1: Int, crm: Int) {
         throw NotImplementedError("Coproc_SendTwoWords isn't implemented for this ARM arch")
     }
 

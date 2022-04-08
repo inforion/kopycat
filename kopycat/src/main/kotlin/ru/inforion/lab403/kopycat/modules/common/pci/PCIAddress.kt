@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,39 +25,37 @@
  */
 package ru.inforion.lab403.kopycat.modules.common.pci
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asULong
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.modules.*
 
-data class PCIAddress(
-        val bus: Int,
-        val device: Int,
-        val func: Int = 0,
-        val reg: Int = 0,
-        val enabled: Boolean = false
+data class PciAddress constructor(
+    val bus: Int,
+    val device: Int,
+    val func: Int,
+    val reg: Int = 0,
+    val enabled: Boolean = false
 ) {
     companion object {
-        fun fromBDF(bdf: Int) = PCIAddress(
-                bdf[PCI_BDF_BUS_RANGE],
-                bdf[PCI_BDF_DEVICE_RANGE],
-                bdf[PCI_BDF_FUNC_RANGE],
-                bdf[PCI_BDF_REG_RANGE] and 0xFC,  // last two bits of reg should be 0 from I/O port
-                bdf[PCI_BDF_ENA_BIT] == 1)
+        fun fromBusFuncDeviceReg(value: ULong) = PciAddress(
+            value[PCI_BDF_BUS_RANGE].int,
+            value[PCI_BDF_DEVICE_RANGE].int,
+            value[PCI_BDF_FUNC_RANGE].int,
+            value[PCI_BDF_REG_RANGE].int, // and 0xFC TODO: may be last two bits of reg should be 0 from I/O port
+            value[PCI_BDF_ENA_BIT].truth
+        )
 
-        fun fromPrefix(offset: Long) = fromBDF((offset ushr 32).asInt)
-    }
+        fun fromOffset(offset: ULong) = fromBusFuncDeviceReg(offset ushr 4)
+     }
 
-    val bdf = insert(bus, PCI_BDF_BUS_RANGE)
-            .insert(device, PCI_BDF_DEVICE_RANGE)
-            .insert(func, PCI_BDF_FUNC_RANGE)
-            .insert(reg, PCI_BDF_REG_RANGE)
+    val bdf get() = insert(bus, PCI_BDF_BUS_RANGE)
+        .insert(device, PCI_BDF_DEVICE_RANGE)
+        .insert(func, PCI_BDF_FUNC_RANGE)
+        .ulong_z
 
     /**
      * Prefix to place bus
      */
-    val prefix = bdf.asULong shl 32
+    val offset get() = (bdf shl 4) + reg
 
-    override fun toString() = "PCI[bus=$bus device=$device func=$func reg=$reg]"
+    override fun toString() = "PCI[bus=$bus device=$device func=$func reg=0x${reg.hex}]"
 }

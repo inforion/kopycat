@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.VOID
 import ru.inforion.lab403.kopycat.cores.mips.instructions.OpOffsetBaseInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
@@ -39,7 +39,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * CACHE op, offset(base)
  */
 class cache(core: MipsCore,
-            data: Long,
+            data: ULong,
             imm: MipsImmediate,
             off: MipsDisplacement) : OpOffsetBaseInsn(core, data, VOID, imm, off) {
 
@@ -55,40 +55,40 @@ class cache(core: MipsCore,
     override val mnem = "cache"
 
     override fun execute() {
-        val spramConfigEnabled = core.cop.regs.ErrCtl.value[28] == 1L
+        val spramConfigEnabled = core.cop.regs.ErrCtl.value[28] == 1uL
 
         if (spramConfigEnabled) {
             val opId = imm.value(core)
             val off = off.value(core)
 
-            when (opId.asInt) {
+            when (opId.int) {
                 Index_Invalidate_I -> {
                     log.severe { "[${core.pc.hex8}] Index_Invalidate_I not implemented!" }
-                    core.cop.regs.TagLo0.value = 0
+                    core.cop.regs.TagLo0.value = 0u
                 }
                 Index_Writeback_Inv_D -> {
                     log.severe { "[${core.pc.hex8}] Index_Writeback_Inv_D not implemented!" }
-                    core.cop.regs.TagLo2.value = 0
+                    core.cop.regs.TagLo2.value = 0u
                 }
 
                 Index_Load_Tag_I -> {
                     log.severe { "[${core.pc.hex8}] Index_Load_Tag_I not implemented TagLo0=${core.cop.regs.TagLo0.value.hex8}!" }
-                    core.cop.regs.TagLo0.value = 0
+                    core.cop.regs.TagLo0.value = 0u
                 }
 
                 Index_Load_Tag_D -> {
                     log.severe { "[${core.pc.hex8}] Index_Load_Tag_D not implemented TagLo2=${core.cop.regs.TagLo2.value.hex8}!" }
-                    core.cop.regs.TagLo2.value = 0
+                    core.cop.regs.TagLo2.value = 0u
                 }
 
                 Index_Store_Tag_I -> {
                     log.severe { "[${core.pc.hex8}] Index_Store_Tag_I not implemented TagLo0=${core.cop.regs.TagLo0.value.hex8}!" }
-                    core.cop.regs.TagLo0.value = 0
+                    core.cop.regs.TagLo0.value = 0u
                 }
 
                 Index_Store_Tag_D -> {
                     log.severe { "[${core.pc.hex8}] Index_Store_Tag_D not implemented TagLo2=${core.cop.regs.TagLo2.value.hex8}!" }
-                    core.cop.regs.TagLo2.value = 0
+                    core.cop.regs.TagLo2.value = 0u
                 }
             }
         }

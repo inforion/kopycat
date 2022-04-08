@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,6 @@ class Fwait(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "fwait"
 
     override fun execute() {
-        log.warning { "I don't know what to do with insn $mnem" }
+//        log.warning { "I don't know what to do with insn $mnem" }
     }
 }

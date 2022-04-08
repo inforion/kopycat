@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.msp430.operands
 
-import ru.inforion.lab403.common.extensions.bitMask
 import ru.inforion.lab403.common.extensions.first
+import ru.inforion.lab403.common.extensions.ubitMask64
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
@@ -41,14 +41,14 @@ import ru.inforion.lab403.kopycat.cores.msp430.enums.MSP430GPR as eGPR
 
 abstract class MSP430Register(
         reg: Int,
-        access: AOperand.Access = ANY) :
+        access: Access = ANY) :
         ARegister<MSP430Core>(reg, access, WORD) {
 
 
     override fun toString(): String = first<eGPR> { it.id == reg }.regName
 
     companion object {
-        val byteMask = bitMask(BYTE.msb..BYTE.lsb)
+        val byteMask = ubitMask64(BYTE.msb..BYTE.lsb)
 
         fun gpr(dtype : Datatype, id: Int): MSP430Register {
 
@@ -97,8 +97,8 @@ abstract class MSP430Register(
     }
 
     sealed class GPRB(id: Int) : MSP430Register(id) {
-        override fun value(core: MSP430Core, data: Long) = core.cpu.regs.writeIntern(reg, data and byteMask)
-        override fun value(core: MSP430Core): Long = core.cpu.regs.readIntern(reg) and byteMask
+        override fun value(core: MSP430Core, data: ULong) = core.cpu.regs.writeIntern(reg, data and byteMask)
+        override fun value(core: MSP430Core) = core.cpu.regs.readIntern(reg) and byteMask
 
         object r0l : GPRB(eGPR.r0.id)
         object r1l : GPRB(eGPR.r1.id)
@@ -119,8 +119,8 @@ abstract class MSP430Register(
     }
 
     sealed class GPR(id: Int) : MSP430Register(id) {
-        override fun value(core: MSP430Core, data: Long) = core.cpu.regs.writeIntern(reg, data)
-        override fun value(core: MSP430Core): Long = core.cpu.regs.readIntern(reg)
+        override fun value(core: MSP430Core, data: ULong) = core.cpu.regs.writeIntern(reg, data)
+        override fun value(core: MSP430Core) = core.cpu.regs.readIntern(reg)
 
         object r0 : GPR(eGPR.r0.id)
         object r1 : GPR(eGPR.r1.id)

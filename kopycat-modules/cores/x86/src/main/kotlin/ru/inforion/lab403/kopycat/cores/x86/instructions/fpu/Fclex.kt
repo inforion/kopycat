@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,14 +36,14 @@ class Fclex(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "fclex"
 
     override fun execute() {
-        core.fpu.swr.b = false
-        core.fpu.swr.ie = false
-        core.fpu.swr.de = false
-        core.fpu.swr.xe = false
-        core.fpu.swr.oe = false
-        core.fpu.swr.ue = false
-        core.fpu.swr.pe = false
-        core.fpu.swr.sf = false
-        core.fpu.swr.es = false
+        core.fpu.fwr.FPUStatusWord.b = false
+        core.fpu.fwr.FPUStatusWord.ie = false
+        core.fpu.fwr.FPUStatusWord.de = false
+        core.fpu.fwr.FPUStatusWord.xe = false
+        core.fpu.fwr.FPUStatusWord.oe = false
+        core.fpu.fwr.FPUStatusWord.ue = false
+        core.fpu.fwr.FPUStatusWord.pe = false
+        core.fpu.fwr.FPUStatusWord.sf = false
+        core.fpu.fwr.FPUStatusWord.es = false
     }
 }

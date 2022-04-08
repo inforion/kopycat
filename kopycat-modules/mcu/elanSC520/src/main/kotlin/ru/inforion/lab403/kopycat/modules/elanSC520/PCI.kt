@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,22 +25,25 @@
  */
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
-import ru.inforion.lab403.kopycat.modules.common.pci.PCIHost
-import java.util.logging.Level
+import ru.inforion.lab403.kopycat.modules.BUS12
+import ru.inforion.lab403.kopycat.modules.common.pci.PciHost
 
 
-class PCI(parent: Module, name: String): PCIHost(parent, name) {
+class PCI(parent: Module, name: String): PciHost(parent, name) {
     companion object {
-        @Transient val log = logger(Level.FINER)
+        @Transient val log = logger(FINER)
     }
 
-    val HBCTL = Register(ports.mmcr, 0x60, WORD, "HBCTL")
-    val HBTGTIRQCTL = Register(ports.mmcr, 0x62, WORD, "HBTGTIRQCTL")
-    val HBTGTIRQSTA = Register(ports.mmcr, 0x64, WORD, "HBTGTIRQSTA")
-    val HBMSTIRQCTL = Register(ports.mmcr, 0x66, WORD, "HBMSTIRQCTL")
-    val HBMSTIRQSTA = Register(ports.mmcr, 0x68, WORD, "HBMSTIRQSTA")
-    val MSTINTADD = Register(ports.mmcr, 0x6C, WORD, "MSTINTADD")
+    val mmcr = ports.Slave("mmcr", BUS12)
+
+    val HBCTL = Register(mmcr, 0x60u, WORD, "HBCTL")
+    val HBTGTIRQCTL = Register(mmcr, 0x62u, WORD, "HBTGTIRQCTL")
+    val HBTGTIRQSTA = Register(mmcr, 0x64u, WORD, "HBTGTIRQSTA")
+    val HBMSTIRQCTL = Register(mmcr, 0x66u, WORD, "HBMSTIRQCTL")
+    val HBMSTIRQSTA = Register(mmcr, 0x68u, WORD, "HBMSTIRQSTA")
+    val MSTINTADD = Register(mmcr, 0x6Cu, WORD, "MSTINTADD")
 }

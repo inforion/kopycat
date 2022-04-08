@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,9 @@ import org.jline.reader.Completer
 import org.jline.reader.impl.completer.AggregateCompleter
 import org.jline.reader.impl.completer.StringsCompleter
 import org.jline.utils.AttributedString
+import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.proposal.kotlinScriptEngine
-import ru.inforion.lab403.common.proposal.stringify
+import ru.inforion.lab403.common.reflection.stringify
 import ru.inforion.lab403.kopycat.Kopycat
 import javax.script.ScriptContext.ENGINE_SCOPE
 import javax.script.ScriptEngine
@@ -41,33 +42,26 @@ class Kotlin(val kopycat: Kopycat) : AConsole("Kotlin") {
 
     private lateinit var engine: ScriptEngine
 
-    override fun onInitialize(): Boolean {
-        try {
-            engine = kotlinScriptEngine(
-                    "kopycat" to kopycat,
-                    "kc" to kopycat
-            ).apply {
-                eval("import kotlin.system.*")
-                eval("import ru.inforion.lab403.common.extensions.*")
-                eval("import ru.inforion.lab403.common.logging.*")
-                eval("import ru.inforion.lab403.common.proposal.*")
-                eval("fun exit(status: Int = 0) { exitProcess(status) }")
-            }
-        } catch (error: Throwable) {
-            error.printStackTrace()
-            return false
+    override fun onInitialize() = runCatching {
+        engine = kotlinScriptEngine(
+            "kopycat" to kopycat,
+            "kc" to kopycat
+        ).apply {
+            eval("import kotlin.system.*")
+            eval("import ru.inforion.lab403.common.extensions.*")
+            eval("fun exit(status: Int = 0) { exitProcess(status) }")
         }
-
-        return true
-    }
+    }.onFailure {
+        it.logStackTrace(log)
+    }.isSuccess
 
     override fun onReconfigure(): Boolean = true
 
     override fun onEval(statement: String) =
-            engine.runCatching { eval(statement) }
-                    .onSuccess { if (it != null) println(it) }
-                    .onFailure { println(it.message) }
-                    .isSuccess
+        engine.runCatching { eval(statement) }
+            .onSuccess { if (it != null) println(it) }
+            .onFailure { println(it); it.printStackTrace() }
+            .isSuccess
 
     override fun onExecute(statement: String): Result {
         val result = engine.eval(statement)

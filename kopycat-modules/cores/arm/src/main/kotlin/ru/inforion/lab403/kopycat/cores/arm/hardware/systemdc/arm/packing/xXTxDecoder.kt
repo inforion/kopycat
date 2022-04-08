@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.packing
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
@@ -39,22 +39,22 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 class xXTxDecoder(cpu: AARMCore,
                   val constructor: (
                           cpu: AARMCore,
-                          opcode: Long,
+                          opcode: ULong,
                           cond: Condition,
                           rd: ARMRegister,
                           rm: ARMRegister,
                           rotate: Immediate<AARMCore>,
                           size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
+    override fun decode(data: ULong): AARMInstruction {
         val cond = cond(data)
-        val rd = gpr(data[15..12].asInt)
-        val rm = gpr(data[3..0].asInt)
+        val rd = gpr(data[15..12].int)
+        val rm = gpr(data[3..0].int)
 
-        val rotate = when (data[11..10].asInt) {
-            0b01 -> Immediate(8, false)
-            0b10 -> Immediate(16, false)
-            0b11 -> Immediate(24, false)
-            else -> Immediate<AARMCore>(0, false)
+        val rotate = when (data[11..10].int) {
+            0b01 -> Immediate(8u, false)
+            0b10 -> Immediate(16u, false)
+            0b11 -> Immediate(24u, false)
+            else -> Immediate<AARMCore>(0u, false)
         }
 
         if (rd.isProgramCounter(core) || rm.isProgramCounter(core)) throw Unpredictable

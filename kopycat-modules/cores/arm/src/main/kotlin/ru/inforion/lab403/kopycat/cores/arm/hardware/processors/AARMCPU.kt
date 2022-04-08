@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,9 @@
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.clr
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.set
 import ru.inforion.lab403.kopycat.cores.arm.enums.*
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.*
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
@@ -37,7 +40,6 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MCR
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.coprocessor.MRC
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
 import ru.inforion.lab403.kopycat.serializer.loadValue
@@ -54,12 +56,12 @@ abstract class AARMCPU(
         val haveVirtExt: Boolean = false
 ) : ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>(arm, name) {
     // TODO: index <-> reg is ambiguous
-    override fun reg(index: Int): Long = regs.read(index)
-    override fun reg(index: Int, value: Long) = regs.write(index, value)
+    override fun reg(index: Int): ULong = regs.read(index)
+    override fun reg(index: Int, value: ULong) = regs.write(index, value)
     override fun count() = regs.count
     override fun flags() = sregs.cpsr.value
 
-    override var pc: Long
+    override var pc: ULong
         get() = regs.pc.value
         set(value) { regs.pc.value = value }
 
@@ -84,28 +86,28 @@ abstract class AARMCPU(
 
     protected var pipelineRefillRequired = false
 
-    fun BranchTo(address: Long, refill: Boolean) {
+    fun BranchTo(address: ULong, refill: Boolean) {
         if (refill) pipelineRefillRequired = true
         pc = address
     }
 
-    fun BadMode(mode: Long) = when(mode) {
-        0b10000L -> false               // User mode
-        0b10001L -> false               // FIQ mode
-        0b10010L -> false               // IRQ mode
-        0b10011L -> false               // Supervisor mode
-        0b10110L -> !haveSecurityExt    // Monitor mode
-        0b10111L -> false               // Abort mode
-        0b11010L -> !haveVirtExt        // Hyp mode
-        0b11011L -> false               // Undefined mode
-        0b11111L -> false               // System mode
+    fun BadMode(mode: ULong) = when(mode) {
+        0b10000uL -> false               // User mode
+        0b10001uL -> false               // FIQ mode
+        0b10010uL -> false               // IRQ mode
+        0b10011uL -> false               // Supervisor mode
+        0b10110uL -> !haveSecurityExt    // Monitor mode
+        0b10111uL -> false               // Abort mode
+        0b11010uL -> !haveVirtExt        // Hyp mode
+        0b11011uL -> false               // Undefined mode
+        0b11111uL -> false               // System mode
         else -> true
     }
 
-    open fun BranchWritePC(address: Long, refill: Boolean = true) {
+    open fun BranchWritePC(address: ULong, refill: Boolean = true) {
         when (CurrentInstrSet()) {
             InstructionSet.ARM -> {
-                if (ArchVersion() < 6 && address[1..0] != 0L)
+                if (ArchVersion() < 6 && address[1..0] != 0uL)
                     throw ARMHardwareException.Unpredictable
                 BranchTo(address bzero 1..0, refill)
             }
@@ -114,23 +116,23 @@ abstract class AARMCPU(
         }
     }
 
-    open fun BXWritePC(address: Long, refill: Boolean = true) {
+    open fun BXWritePC(address: ULong, refill: Boolean = true) {
         if (CurrentInstrSet() == InstructionSet.THUMB_EE) {
             TODO("Not implemented")
         } else when {
-            address[0] == 1L -> {
+            address[0] == 1uL -> {
                 SelectInstrSet(InstructionSet.THUMB)
                 BranchTo(address clr 0, refill)
             }
-            address[1] == 0L -> {
+            address[1] == 0uL -> {
                 SelectInstrSet(InstructionSet.ARM)
                 BranchTo(address, refill)
             }
-            address[1..0] == 0b10L -> throw ARMHardwareException.Unpredictable
+            address[1..0] == 0b10uL -> throw ARMHardwareException.Unpredictable
         }
     }
 
-    open fun LoadWritePC(address: Long) {
+    open fun LoadWritePC(address: ULong) {
         if (ArchVersion() >= 5) {
             BXWritePC(address)
         } else {
@@ -138,14 +140,14 @@ abstract class AARMCPU(
         }
     }
 
-    open fun ALUWritePC(address: Long) {
+    open fun ALUWritePC(address: ULong) {
         if (ArchVersion() >= 7 && CurrentInstrSet() == InstructionSet.ARM)
             BXWritePC(address)
         else
             BranchWritePC(address)
     }
 
-    open fun CurrentInstrSet() = InstructionSet.from(status.ISETSTATE.asInt)
+    open fun CurrentInstrSet() = InstructionSet.from(status.ISETSTATE.int)
 
     open fun CurrentModeIsPrivileged() = false
 
@@ -153,7 +155,7 @@ abstract class AARMCPU(
 
     open fun SelectInstrSet(target: InstructionSet) {
         if (target != InstructionSet.CURRENT)
-            status.ISETSTATE = target.code.asLong
+            status.ISETSTATE = target.code.ulong_z
     }
 
     open fun StackPointerSelect() = StackPointer.Main
@@ -166,52 +168,52 @@ abstract class AARMCPU(
 
     fun CurrentModeIsHyp(): Boolean {
         if (BadMode(status.m)) throw ARMHardwareException.Unpredictable
-        return status.m == 0b11010L // Hyp mode
+        return status.m == 0b11010uL // Hyp mode
     }
 
     fun CurrentModeIsNotUser(): Boolean {
         if (BadMode(status.m)) throw ARMHardwareException.Unpredictable
-        return status.m != 0b10000L // Not user mode
+        return status.m != 0b10000uL // Not user mode
     }
 
     fun CurrentModeIsUserOrSystem(): Boolean {
         if (BadMode(sregs.cpsr.m))
             throw ARMHardwareException.Unpredictable
         return when (sregs.cpsr.m) {
-            0b10000L, 0b11111L -> true // User mode, System mode
+            0b10000uL, 0b11111uL -> true // User mode, System mode
             else -> false // Other modes
         }
     }
 
     fun UnalignedSupport(): Boolean = true
 
-    fun PCStoreValue(): Long = pc
+    fun PCStoreValue(): ULong = pc
 
-    fun IsSecure() = !haveSecurityExt || !ser.scr.ns || status.m == 0b10110L // Monitor mode
+    fun IsSecure() = !haveSecurityExt || !ser.scr.ns || status.m == 0b10110uL // Monitor mode
 
     fun CurrentCond() = insn.cond
 
     // ec: 6 bits
     // hsrString: 25 bits
-    fun WriteHSR(ec: Long, hsrString: Long) {
-        var hsrValue = 0L
+    fun WriteHSR(ec: ULong, hsrString: ULong) {
+        var hsrValue = 0uL
         hsrValue = hsrValue.insert(ec, 31..26)
 
         // HSR.IL not valid for unknown reasons (0x00), Prefetch Aborts (0x20, 0x21), and Data
         // Aborts (0x24, 0x25) for which the ISS information is not valid.
         val cond = when(ec) {
-            0x00L, 0x20L, 0x21L -> true
-            0x24L, 0x25L -> hsrString[24] == 1L
+            0x00uL, 0x20uL, 0x21uL -> true
+            0x24uL, 0x25uL -> hsrString[24] == 1uL
             else -> false
         }
         if (cond && insn.size == 4)
             hsrValue = hsrValue.set(25)
 
         // Condition code valid for EC[5:4] nonzero
-        if (ec[5..4] == 0L && ec[3..0] != 0L) {
+        if (ec[5..4] == 0uL && ec[3..0] != 0uL) {
             if (CurrentInstrSet() == InstructionSet.ARM) {
                 hsrValue = hsrValue.set(24)
-                hsrValue = hsrValue.insert(CurrentCond().opcode.toLong(), 23..20)
+                hsrValue = hsrValue.insert(CurrentCond().opcode.ulong_z, 23..20)
             } else
                 throw NotImplementedError("IMPLEMENTATION_DEFINED")
             hsrValue = hsrValue.insert(hsrString[19..0], 19..0)
@@ -222,13 +224,13 @@ abstract class AARMCPU(
     }
 
     fun ITAdvance() {
-        if (status.ITSTATE[2..0] == 0b000L)
-            status.ITSTATE = 0L
+        if (status.ITSTATE[2..0] == 0b000uL)
+            status.ITSTATE = 0uL
         else
             status.ITSTATE.insert(status.ITSTATE[4..0] shl 1, 4..0)
     }
 
-    fun EnterHypMode(new_spsr_value: Long, prefered_exceptn_return: Long, vect_offset: Int) {
+    fun EnterHypMode(new_spsr_value: ULong, prefered_exceptn_return: ULong, vect_offset: UInt) {
         TODO("Not implemented")
 //        status.m = 0b11010
 //        sregs.spsr = new_spsr_value
@@ -239,11 +241,11 @@ abstract class AARMCPU(
         //...
     }
 
-    fun ExcVectorBase(): Long {
+    fun ExcVectorBase(): ULong {
         return when {
-            vmsa.sctlr.v -> 0xFFFF_0000 // Hivecs selected, base = 0xFFFF0000
+            vmsa.sctlr.v -> 0xFFFF_0000u // Hivecs selected, base = 0xFFFF0000
             haveSecurityExt -> ser.vbar.value
-            else -> 0L
+            else -> 0uL
         }
     }
 
@@ -254,36 +256,36 @@ abstract class AARMCPU(
         // respectively from the address of the current instruction into the required address of
         // the next instruction, the SVC instruction having size 2bytes for Thumb or 4 bytes for ARM.
         ITAdvance()
-        val new_lr_value = pc + 4//if (status.t) pc - 2 else pc - 4
+        val new_lr_value = pc + 4u//if (status.t) pc - 2 else pc - 4
         val new_spsr_value = sregs.cpsr.value
-        val vect_offset = 8
+        val vect_offset = 8u
 
         // Check whether to take exception to Hyp mode
         // if in Hyp mode then stay in Hyp mode
-        val take_to_hyp = (haveVirtExt && haveSecurityExt && ser.scr.ns && status.m == 0b11010L)
+        val take_to_hyp = (haveVirtExt && haveSecurityExt && ser.scr.ns && status.m == 0b11010uL)
         // if HCR.TGE is set to 1, take to Hyp mode through Hyp Trap vector
         val route_to_hyp = (haveVirtExt && haveSecurityExt && !IsSecure() && ver.hcr.tge &&
-                status.m == 0b10000L) // User mode
+                status.m == 0b10000uL) // User mode
         // if HCR.TGE == '1' and in a Non-secure PL1 mode, the effect is UNPREDICTABLE
 
         val preferred_exceptn_return = new_lr_value
         when {
             take_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, vect_offset)
-            route_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, 20)
+            route_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, 20u)
             else -> {
                 // Enter Supervisor ('10011') mode, and ensure Secure state if initially in Monitor
                 // ('10110') mode. This affects the Banked versions of various registers accessed later
                 // in the code.
-                if (status.m == 0b10110L)
+                if (status.m == 0b10110uL)
                     ser.scr.ns = false
-                status.m = 0b10011
+                status.m = 0b10011u
 
                 // Write return information to registers, and make further CPSR changes: IRQs disabled,
                 // IT state reset, instruction set and endianness set to SCTLR-configured values.
                 sregs.spsr.value = new_spsr_value
                 regs.lr.value = new_lr_value
                 status.i = true
-                status.ITSTATE = 0L
+                status.ITSTATE = 0uL
                 status.j = false; status.t = vmsa.sctlr.te
                 status.ENDIANSTATE = vmsa.sctlr.ee
 
@@ -295,11 +297,11 @@ abstract class AARMCPU(
 
 
     // immediate: 16 bits
-    fun CallSupervisor(immediate: Long) {
+    fun CallSupervisor(immediate: ULong) {
         if (CurrentModeIsHyp() ||
                 (haveVirtExt && !IsSecure() && !CurrentModeIsNotUser() && ver.hcr.tge)) {
             val hsrString = if (CurrentCond() == AL) immediate else throw ARMHardwareException.Unknown
-            WriteHSR(0b010001L, hsrString)
+            WriteHSR(0b010001uL, hsrString)
         }
         throw ARMHardwareException.CVCException
     }
@@ -339,7 +341,7 @@ abstract class AARMCPU(
 
             // Check against HSTR for PL1 accesses
             if (haveSecurityExt && haveVirtExt && !IsSecure() && !CurrentModeIsHyp()
-                    && CrNnum != 14 && ver.hstr.value[CrNnum].toBool())
+                    && CrNnum != 14 && ver.hstr.value[CrNnum].truth)
                 TODO("Not implemented")
 
             // Check for TIDCP as a coarse-grain check for PL1 accesses
@@ -355,7 +357,7 @@ abstract class AARMCPU(
 
 
     // See B1.3.3
-    fun CPSRWriteByInstr(value: Long, bytemask: Int, is_excpt_return: Boolean) {
+    fun CPSRWriteByInstr(value: ULong, bytemask: Int, is_excpt_return: Boolean) {
         val privileged = CurrentModeIsNotUser()
         val nmfi = vmsa.sctlr.nmfi
 
@@ -373,18 +375,18 @@ abstract class AARMCPU(
         if (bytemask[1] == 1) {
             if (is_excpt_return)
                 sregs.cpsr.bits15_10 = value[15..10] // IT<7:2> execution state bits
-            sregs.cpsr.ENDIANSTATE = value[9].toBool() // E bit is user-writable
+            sregs.cpsr.ENDIANSTATE = value[9].truth // E bit is user-writable
             if (privileged && (IsSecure() || ser.scr.aw || haveVirtExt))
-                sregs.cpsr.a = value[8].toBool() // A interrupt mask
+                sregs.cpsr.a = value[8].truth // A interrupt mask
         }
 
         if (bytemask[0] == 1) {
             if (privileged)
-                sregs.cpsr.i = value[7].toBool() // I interrupt mask
-            if (privileged && (!nmfi || value[6] == 0L) && (IsSecure() || ser.scr.fw || haveVirtExt))
-                sregs.cpsr.f = value[6].toBool() // F interrupt mask
+                sregs.cpsr.i = value[7].truth // I interrupt mask
+            if (privileged && (!nmfi || value[6] == 0uL) && (IsSecure() || ser.scr.fw || haveVirtExt))
+                sregs.cpsr.f = value[6].truth // F interrupt mask
             if (is_excpt_return)
-                sregs.cpsr.t = value[5].toBool() // T execution state bit
+                sregs.cpsr.t = value[5].truth // T execution state bit
             if (privileged)
                 if (BadMode(value[4..0]))
                     throw ARMHardwareException.Unpredictable
@@ -393,16 +395,16 @@ abstract class AARMCPU(
                     // Non-secure state. These are Monitor mode ('10110'), and FIQ mode ('10001')
                     // if the Security Extensions have reserved it. The definition of UNPREDICTABLE
                     // does not permit the resulting behavior to be a security hole.
-                    if (!IsSecure() && value[4..0] == 0b10110L) throw ARMHardwareException.Unpredictable
-                    if (!IsSecure() && value[4..0] == 0b10001L && ser.nsacr.rfr)
+                    if (!IsSecure() && value[4..0] == 0b10110uL) throw ARMHardwareException.Unpredictable
+                    if (!IsSecure() && value[4..0] == 0b10001uL && ser.nsacr.rfr)
                         throw ARMHardwareException.Unpredictable
                     // There is no Hyp mode ('11010') in Secure state, so that is UNPREDICTABLE
-                    if (!ser.scr.ns && value[4..0] == 0b11010L) throw ARMHardwareException.Unpredictable
+                    if (!ser.scr.ns && value[4..0] == 0b11010uL) throw ARMHardwareException.Unpredictable
                     // Cannot move into Hyp mode directly from a Non-secure PL1 mode
-                    if (!IsSecure() && sregs.cpsr.m != 0b11010L && value[4..0] == 0b11010L)
+                    if (!IsSecure() && sregs.cpsr.m != 0b11010uL && value[4..0] == 0b11010uL)
                         throw ARMHardwareException.Unpredictable
                     // Cannot move out of Hyp mode with this function except on an exception return
-                    if (sregs.cpsr.m == 0b11010L && value[4..0] != 0b11010L && !is_excpt_return)
+                    if (sregs.cpsr.m == 0b11010uL && value[4..0] != 0b11010uL && !is_excpt_return)
                         throw ARMHardwareException.Unpredictable
                     sregs.cpsr.m = value[4..0] // CPSR<4:0>, mode bits
                 }
@@ -410,7 +412,7 @@ abstract class AARMCPU(
     }
 
     // See B1.3.3
-    fun SPSRWriteByInstr(value: Long, bytemask: Int) {
+    fun SPSRWriteByInstr(value: ULong, bytemask: Int) {
         if (CurrentModeIsUserOrSystem()) throw ARMHardwareException.Unpredictable
 
         if (bytemask[3] == 1)
@@ -441,17 +443,17 @@ abstract class AARMCPU(
         // of the current instruction plus 8. For an asynchronous abort, the PC and CPSR are
         // considered to have already moved on to their values for the instruction following
         // the instruction boundary at which the exception occurred.
-        val new_lr_value = (if (sregs.cpsr.t) pc + 4 else pc) + 8
+        val new_lr_value = (if (sregs.cpsr.t) pc + 4u else pc) + 8u
         val new_spsr_value = sregs.cpsr.value
-        val vect_offset = 16
-        val preferred_exceptn_return = new_lr_value - 8
+        val vect_offset = 16u
+        val preferred_exceptn_return = new_lr_value - 8u
 
         // Determine whether this is an external abort to be routed to Monitor mode.
         val route_to_monitor = haveSecurityExt && ser.scr.ea /*&& IsExternalAbort()*/
 
         // Check whether to take exception to Hyp mode
         // if in Hyp mode then stay in Hyp mode
-        val take_to_hyp = haveVirtExt && haveSecurityExt && ser.scr.ns && sregs.cpsr.m == 0b11010L
+        val take_to_hyp = haveVirtExt && haveSecurityExt && ser.scr.ns && sregs.cpsr.m == 0b11010uL
         // otherwise, check whether to take to Hyp mode through Hyp Trap vector
         // TODO: It's too much
         val route_to_hyp = (haveVirtExt && haveSecurityExt && !IsSecure() /*&&
@@ -466,18 +468,18 @@ abstract class AARMCPU(
             route_to_monitor ->  {
                 // Ensure Secure state if initially in Monitor mode. This affects the Banked
                 // versions of various registers accessed later in the code
-                if (sregs.cpsr.m == 0b10110L) ser.scr.ns = false
+                if (sregs.cpsr.m == 0b10110uL) ser.scr.ns = false
 //            EnterMonitorMode(new_spsr_value, new_lr_value, vect_offset)
             }
             take_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, vect_offset)
-            route_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, 20)
+            route_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, 20u)
             else -> {
                 // Handle in Abort mode. Ensure Secure state if initially in Monitor mode. This
                 // affects the Banked versions of various registers accessed later in the code
-                if (haveSecurityExt && sregs.cpsr.m == 0b10110L)
+                if (haveSecurityExt && sregs.cpsr.m == 0b10110uL)
                     ser.scr.ns = false
 
-                sregs.cpsr.m = 0b10111 // Abort mode
+                sregs.cpsr.m = 0b10111u // Abort mode
 
                 // Write return information to registers, and make further CPSR changes:
                 // IRQs disabled, other interrupts disabled if appropriate,
@@ -487,7 +489,7 @@ abstract class AARMCPU(
                 sregs.cpsr.i = true
                 if (!haveSecurityExt || haveVirtExt || !ser.scr.ns || ser.scr.aw)
                     sregs.cpsr.a = true
-                sregs.cpsr.ITSTATE = 0b00000000
+                sregs.cpsr.ITSTATE = 0b00000000u
                 sregs.cpsr.j = false
                 sregs.cpsr.t = vmsa.sctlr.te // TE=0: ARM, TE=1: Thumb
                 sregs.cpsr.ENDIANSTATE = vmsa.sctlr.ee // EE=0: little-endian, EE=1: big-endian
@@ -583,16 +585,16 @@ abstract class AARMCPU(
         // of the instruction boundary at which the interrupt occurred plus 4. For this
         // purpose, the PC and CPSR are considered to have already moved on to their values
         // for the instruction following that boundary.
-        val new_lr_value = (if (sregs.cpsr.t) pc else pc - 4) + 4 + 4
+        val new_lr_value = (if (sregs.cpsr.t) pc else pc - 4u) + 4u + 4u
         val new_spsr_value = sregs.cpsr.value
-        val vect_offset = 24
+        val vect_offset = 24u
 
         // Determine whether IRQs are routed to Monitor mode.
         val route_to_monitor = haveSecurityExt && ser.scr.irq
 
         // Determine whether IRQs are routed to Hyp mode.
         val route_to_hyp = (haveVirtExt && haveSecurityExt && !ser.scr.irq && ver.hcr.imo && !IsSecure())
-                || sregs.cpsr.m == 0b11010L
+                || sregs.cpsr.m == 0b11010uL
 
         if (route_to_monitor) {
             // Ensure Secure state if initially in Monitor ('10110') mode. This affects
@@ -608,8 +610,8 @@ abstract class AARMCPU(
         } else {
             // Handle in IRQ mode. Ensure Secure state if initially in Monitor mode. This
             // affects the Banked versions of various registers accessed later in the code.
-            if (sregs.cpsr.m == 0b10110L) ser.scr.ns = false
-            sregs.cpsr.m = 0b10010 // IRQ mode
+            if (sregs.cpsr.m == 0b10110uL) ser.scr.ns = false
+            sregs.cpsr.m = 0b10010u // IRQ mode
 
             // Write return information to registers, and make further CPSR changes:
             // IRQs disabled, IT state reset, instruction set and endianness set to
@@ -621,7 +623,7 @@ abstract class AARMCPU(
 
             if (!haveSecurityExt || haveVirtExt || !ser.scr.ns || ser.scr.aw)
                 sregs.cpsr.a = true
-            sregs.cpsr.ITSTATE = 0b00000000
+            sregs.cpsr.ITSTATE = 0b00000000u
             sregs.cpsr.j = false
             sregs.cpsr.t = vmsa.sctlr.te // TE=0: ARM, TE=1: Thumb
             sregs.cpsr.ENDIANSTATE = vmsa.sctlr.ee // EE=0: little-endian, EE=1: big-endian
@@ -642,17 +644,17 @@ abstract class AARMCPU(
         // current PC minus 0 for Thumb or 4 for ARM, to change the PC offsets of 4 or 8
         // respectively from the address of the current instruction into the required address
         // of the current instruction plus 4.
-        val new_lr_value = (if (sregs.cpsr.t) pc else pc - 4) + 8
+        val new_lr_value = (if (sregs.cpsr.t) pc else pc - 4u) + 8u
         val new_spsr_value = sregs.cpsr.value
-        val vect_offset = 12
-        val preferred_exceptn_return = new_lr_value - 4
+        val vect_offset = 12u
+        val preferred_exceptn_return = new_lr_value - 4u
 
         // Determine whether this is an external abort to be routed to Monitor mode.
         val route_to_monitor = haveSecurityExt && ser.scr.ea /*&& IsExternalAbort()*/
 
         // Check whether to take exception to Hyp mode
         // if in Hyp mode then stay in Hyp mode
-        val take_to_hyp = haveVirtExt && haveSecurityExt && ser.scr.ns && sregs.cpsr.m == 0b11010L
+        val take_to_hyp = haveVirtExt && haveSecurityExt && ser.scr.ns && sregs.cpsr.m == 0b11010uL
         // otherwise, check whether to take to Hyp mode through Hyp Trap vector
         // TODO: It's too much
         val route_to_hyp = (haveVirtExt && haveSecurityExt && !IsSecure() /*&&
@@ -667,18 +669,18 @@ abstract class AARMCPU(
             route_to_monitor ->  {
                 // Ensure Secure state if initially in Monitor mode. This affects the Banked
                 // versions of various registers accessed later in the code
-                if (sregs.cpsr.m == 0b10110L) ser.scr.ns = false
+                if (sregs.cpsr.m == 0b10110uL) ser.scr.ns = false
 //            EnterMonitorMode(new_spsr_value, new_lr_value, vect_offset)
             }
             take_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, vect_offset)
-            route_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, 20)
+            route_to_hyp -> EnterHypMode(new_spsr_value, preferred_exceptn_return, 20u)
             else -> {
                 // Handle in Abort mode. Ensure Secure state if initially in Monitor mode. This
                 // affects the Banked versions of various registers accessed later in the code
-                if (haveSecurityExt && sregs.cpsr.m == 0b10110L)
+                if (haveSecurityExt && sregs.cpsr.m == 0b10110uL)
                     ser.scr.ns = false
 
-                sregs.cpsr.m = 0b10111 // Abort mode
+                sregs.cpsr.m = 0b10111u // Abort mode
 
                 // Write return information to registers, and make further CPSR changes:
                 // IRQs disabled, other interrupts disabled if appropriate,
@@ -688,7 +690,7 @@ abstract class AARMCPU(
                 sregs.cpsr.i = true
                 if (!haveSecurityExt || haveVirtExt || !ser.scr.ns || ser.scr.aw)
                     sregs.cpsr.a = true
-                sregs.cpsr.ITSTATE = 0b00000000
+                sregs.cpsr.ITSTATE = 0b00000000u
                 sregs.cpsr.j = false
                 sregs.cpsr.t = vmsa.sctlr.te // TE=0: ARM, TE=1: Thumb
                 sregs.cpsr.ENDIANSTATE = vmsa.sctlr.ee // EE=0: little-endian, EE=1: big-endian
@@ -699,11 +701,11 @@ abstract class AARMCPU(
 
     inline fun BigEndian() = status.ENDIANSTATE
 
-    val regs = GPRBank(this)
+    val regs = GPRBank(arm)
 
     val banking = ProcessorMode.values().map { RegistersBanking(it) }.toTypedArray()
 
-    val sregs = PSRBank(this)
+    val sregs = PSRBank(arm)
 
     inline val flags get() = sregs.apsr
     inline val status get() = sregs.cpsr

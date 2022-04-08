@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.stack
 
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -41,17 +41,17 @@ class Popa(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         val edi = x86utils.pop(core, prefs.opsize, prefs)
         val esi = x86utils.pop(core, prefs.opsize, prefs)
         val ebp = x86utils.pop(core, prefs.opsize, prefs)
-        x86Register.gpr(prefs.opsize, x86GPR.ESP).plus(core, prefs.opsize.bytes)
+        core.cpu.regs.gpr(x86GPR.RSP, prefs.opsize).value += prefs.opsize.bytes.ulong_z
         val ebx = x86utils.pop(core, prefs.opsize, prefs)
         val edx = x86utils.pop(core, prefs.opsize, prefs)
         val ecx = x86utils.pop(core, prefs.opsize, prefs)
         val eax = x86utils.pop(core, prefs.opsize, prefs)
-        x86Register.gpr(prefs.opsize, x86GPR.EDI).value(core, edi)
-        x86Register.gpr(prefs.opsize, x86GPR.ESI).value(core, esi)
-        x86Register.gpr(prefs.opsize, x86GPR.EBP).value(core, ebp)
-        x86Register.gpr(prefs.opsize, x86GPR.EBX).value(core, ebx)
-        x86Register.gpr(prefs.opsize, x86GPR.EDX).value(core, edx)
-        x86Register.gpr(prefs.opsize, x86GPR.ECX).value(core, ecx)
-        x86Register.gpr(prefs.opsize, x86GPR.EAX).value(core, eax)
+        core.cpu.regs.gpr(x86GPR.RDI, prefs.opsize).value = edi
+        core.cpu.regs.gpr(x86GPR.RSI, prefs.opsize).value = esi
+        core.cpu.regs.gpr(x86GPR.RBP, prefs.opsize).value = ebp
+        core.cpu.regs.gpr(x86GPR.RBX, prefs.opsize).value = ebx
+        core.cpu.regs.gpr(x86GPR.RDX, prefs.opsize).value = edx
+        core.cpu.regs.gpr(x86GPR.RCX, prefs.opsize).value = ecx
+        core.cpu.regs.gpr(x86GPR.RAX, prefs.opsize).value = eax
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
-import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -39,11 +38,16 @@ import ru.inforion.lab403.kopycat.serializer.storeValues
  * Абстрактный класс CPU.
  * {RU}
  */
+@Suppress("INAPPLICABLE_JVM_NAME")
 abstract class ACPU<
         U: ACPU<U, R, I, E>,  // Recursive generic resolution
         R: ACore<R, U, *>,
         I: AInstruction<R>,
-        E: Enum<E>>(core: R, name: String, val busSize: Long = BUS32) : Module(core, name) {
+        E: Enum<E>>(
+    core: R,
+    name: String,
+    val busSize: ULong = BUS32
+) : Module(core, name) {
 
     inner class Ports : ModulePorts(this) {
         val mem = Master("mem", busSize)
@@ -54,12 +58,16 @@ abstract class ACPU<
     /**
      * {RU}Получить значение регистра общего назначения по его индексу{RU}
      */
-    abstract fun reg(index: Int): Long
+    // TODO: for Jython scripts work correctly -> delete this after JB fix mangling hell
+    @JvmName("reg")
+    abstract fun reg(index: Int): ULong
 
     /**
      * {RU}Задать значение регистра общего назначения по его индексу{RU}
      */
-    abstract fun reg(index: Int, value: Long)
+    // TODO: for Jython scripts work correctly -> delete this after JB fix mangling hell
+    @JvmName("reg")
+    abstract fun reg(index: Int, value: ULong)
 
     /**
      * {RU}Получить общее количество регистров общего назначения{RU}
@@ -74,8 +82,9 @@ abstract class ACPU<
     /**
      * {RU}Метод возвращает текущее значение регистра флагов{RU}
      */
-    @ExperimentalWarning
-    open fun flags(): Long = throw NotImplementedError("The flags are not implemented")
+    // TODO: for Jython scripts work correctly -> delete this after JB fix mangling hell
+    @JvmName("flags")
+    open fun flags(): ULong = throw NotImplementedError("The flags are not implemented")
 
     /**
      * {RU}Счётчик команд{RU}
@@ -89,7 +98,9 @@ abstract class ACPU<
      * NOTE: Try not to use it for hardware description (especially when CPU has it own program counter register)
      * {EN}
      */
-    abstract var pc: Long
+    // TODO: for Jython scripts work correctly -> delete this after JB fix mangling hell
+    @get:JvmName("getPc")
+    abstract var pc: ULong
 
     abstract fun decode()
 
@@ -140,10 +151,13 @@ abstract class ACPU<
         fault = false
     }
 
-    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+        require(!fault) { "Can't serialize faulty CPU because this can't be run anymore" }
+        return super.serialize(ctxt) + storeValues(
             "halted" to halted,
             "faulty" to fault,
             "callOccurred" to callOccurred)
+    }
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -151,5 +165,6 @@ abstract class ACPU<
         fault = loadValue(snapshot, "faulty")  { false }
         callOccurred = loadValue(snapshot, "callOccurred") { false }
         exception = null
+        require(!fault) { "Deserialized CPU in faulty state and can't be run anymore" }
     }
 }

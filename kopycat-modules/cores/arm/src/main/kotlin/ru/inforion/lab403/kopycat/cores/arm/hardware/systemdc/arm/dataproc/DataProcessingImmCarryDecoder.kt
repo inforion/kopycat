@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.dataproc
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.find
-import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.arm.ARMExpandImm_C
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
@@ -41,19 +39,19 @@ class DataProcessingImmCarryDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 setFlags: Boolean,
                 rd: ARMRegister,
                 rn: ARMRegister,
                 imm32:Immediate<AARMCore>,
                 carry: Boolean) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rn = gpr(data[19..16].asInt)
-        val rd = gpr(data[15..12].asInt)
-        val setFlags = data[20] == 1L
-        val (imm32val, carry) = ARMExpandImm_C(data[11..0], core.cpu.flags.c.asInt)
+    override fun decode(data: ULong): AARMInstruction {
+        val cond = find { it.opcode == data[31..28].int } ?: Condition.AL
+        val rn = gpr(data[19..16].int)
+        val rd = gpr(data[15..12].int)
+        val setFlags = data[20] == 1uL
+        val (imm32val, carry) = ARMExpandImm_C(data[11..0], core.cpu.flags.c.int)
         val imm32 = Immediate<AARMCore>(imm32val)
         return constructor(core, data, cond, setFlags, rd, rn, imm32, carry == 1)
     }

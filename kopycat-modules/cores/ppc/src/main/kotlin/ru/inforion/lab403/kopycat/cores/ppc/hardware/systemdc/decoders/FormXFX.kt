@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.decoders
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
@@ -36,10 +37,10 @@ class FormXFX(core: PPCCore,
             val construct:  (PPCCore, Int, Array<AOperand<PPCCore>>) -> APPCInstruction
 ) : APPCDecoder(core) {
 
-    override fun decode(s: Long): APPCInstruction {
+    override fun decode(s: ULong): APPCInstruction {
 
-        val rS = PPCRegister.gpr(s[25..21].toInt())
-        val field = s[20..11].toInt()
+        val rS = PPCRegister.gpr(s[25..21].int)
+        val field = s[20..11].int
 
         return construct(core,
                 field,

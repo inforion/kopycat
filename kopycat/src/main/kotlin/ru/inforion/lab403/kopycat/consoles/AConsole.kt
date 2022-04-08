@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -112,7 +112,7 @@ abstract class AConsole(name: String): Thread(name) {
                     } catch (error: Exception) {
                         // TODO: Make configurable print stack trace
                         // log.severe { "Unexpected exception occurred during command execution..." }
-                        // error.printStackTrace()
+                        // error.logStackTrace(log)
                         qOutput.put(Result(-1, error.toString()))
                     }
                 }

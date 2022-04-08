@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,92 +26,93 @@
 package ru.inforion.lab403.kopycat.cores.base.operands
 
 import org.junit.Test
-import ru.inforion.lab403.common.extensions.asLong
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.modules.cores.device.ATest
 
 class MemoryTest: ATest() {
-    private fun error(value: Long, expected: Long, actual: Long, test: String): String =
+    private fun error(value: ULong, expected: ULong, actual: ULong, test: String): String =
             error(value, expected, actual, "memory", test)
 
     @Test fun test1_1() {
-        address = 0x8_AB56
-        value = 0xDEAD_BEEF
+        address = 0x8_AB56u
+        value = 0xDEAD_BEEFu
         store(address, value)
-        expected = 0xDEAD_BEEF
+        expected = 0xDEAD_BEEFu
         actual = memory(address).value(testCore)
         assert(error(address, expected, actual, "value"), expected, actual)
     }
 
     @Test fun test1_2() {
-        address = 0x8_AB56
-        value = 0xDEAD_BEEF
+        address = 0x8_AB56u
+        value = 0xDEAD_BEEFu
         store(address, value)
-        expected = 1
-        actual = memory(address, atyp = WORD).isZero(testCore).asLong
+        expected = 1u
+        actual = memory(address, atyp = WORD).isZero(testCore).ulong
         assert(error(address, expected, actual, "value"), expected, actual)
     }
 
     @Test fun test2_1() {
-        address = 0x8_AB56
-        value = 0x4A78
+        address = 0x8_AB56u
+        value = 0x4A78u
         store(address, value)
-        actual = memory(address).ssext(testCore)
-        expected = 0x4A78L
+        actual = memory(address).usext(testCore)
+        expected = 0x4A78uL
         assert(error(value, expected, actual, "ssext"), expected, actual)
     }
 
     @Test fun test2_2() {
-        address = 0x8_AB56
-        value = 0x4A78
+        address = 0x8_AB56u
+        value = 0x4A78u
         store(address, value)
-        actual = memory(address).usext(testCore)
-        expected = 0x4A78
+        actual = memory(address).value(testCore)
+        expected = 0x4A78u
         assert(error(value, expected, actual, "usext"), expected, actual)
     }
 
     @Test fun test2_3() {
-        address = 0x8_AB56
-        value = 0x4A78
+        address = 0x8_AB56u
+        value = 0x4A78u
         store(address, value)
         actual = memory(address).zext(testCore)
-        expected = 0x4A78
+        expected = 0x4A78u
         assert(error(value, expected, actual, "zext"), expected, actual)
     }
 
     @Test fun test2_4() {
-        address = 0x8_AB56
-        value = 0x4A78
+        address = 0x8_AB56u
+        value = 0x4A78u
         store(address, value)
-        actual = memory(address).bit(testCore, 6).asLong
-        expected = 1
+        actual = memory(address).bit(testCore, 6).ulong_z
+        expected = 1u
         assert(error(value, expected, actual, "bit"), expected, actual)
     }
 
     @Test fun test2_5() {
-        address = 0x8_AB56
-        value = 0x4A78
+        address = 0x8_AB56u
+        value = 0x4A78u
         store(address, value)
-        actual = memory(address).msb(testCore).asLong
-        expected = 0
+        actual = memory(address).msb(testCore).ulong_z
+        expected = 0u
         assert(error(value, expected, actual, "msb"), expected, actual)
     }
 
     @Test fun test2_6() {
-        address = 0x8_AB56
-        value = 0x4A78
+        address = 0x8_AB56u
+        value = 0x4A78u
         store(address, value)
-        actual = memory(address).lsb(testCore).asLong
-        expected = 0
+        actual = memory(address).lsb(testCore).ulong_z
+        expected = 0u
         assert(error(value, expected, actual, "lsb"), expected, actual)
     }
 
     @Test fun test2_7() {
-        address = 0x8_AB56
-        value = 0x4A78
+        address = 0x8_AB56u
+        value = 0x4A78u
         store(address, value)
-        actual = memory(address).lsb(testCore).asLong
-        expected = 0
+        actual = memory(address).lsb(testCore).ulong_z
+        expected = 0u
         assert(error(value, expected, actual, "lsb"), expected, actual)
     }
 }

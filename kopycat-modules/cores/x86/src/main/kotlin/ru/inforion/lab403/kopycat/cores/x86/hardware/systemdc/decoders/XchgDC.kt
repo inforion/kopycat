@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,10 +28,10 @@ package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
+
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory.Xchg
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -44,8 +44,8 @@ class XchgDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0x86 -> arrayOf(rm.r8, rm.m8)
             0x87 -> arrayOf(rm.mpref, rm.rpref)
             0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97 -> arrayOf(
-                    x86Register.gpr(prefs.opsize, 0),
-                    x86Register.gpr(prefs.opsize, opcode % 0x90))
+                    xax(prefs.opsize),
+                    gprr(opcode % 0x90, prefs.rexB, prefs.opsize))
             else -> throw GeneralException("Incorrect opcode in decoder")
         }
         return Xchg(core, s.data, prefs, *ops)

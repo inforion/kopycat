@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +23,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("PropertyName", "PropertyName", "unused")
+
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
+import ru.inforion.lab403.common.logging.ALL
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -38,7 +41,7 @@ import java.util.logging.Level
 
 class TIM18(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        @Transient private val log = logger(Level.ALL)
+        @Transient private val log = logger(ALL)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -47,13 +50,9 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
     }
     override val ports = Ports()
 
-    private val counter = object : SystemClock.PeriodicalTimer("STK") {
-        override fun trigger() {
-            super.trigger()
-        }
-    }
+    private val counter = SystemClock.PeriodicalTimer("STK")
 
-    private inner class TIMx_CR1_TYP : Register(ports.mem, 0x00, WORD, "TIMx_CR1", 0x0000) {
+    private inner class TIMx_CR1_TYP : Register(ports.mem, 0x00u, WORD, "TIMx_CR1", 0x0000u) {
         var CKD  by field(9..8)
         var ARPE by bit(7)
         var CMS  by field(6..5)
@@ -64,7 +63,7 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var CEN  by bit(0)
     }
 
-    private inner class TIMx_CR2_TYP : Register(ports.mem, 0x04, WORD, "TIMx_CR2", 0x0000) {
+    private inner class TIMx_CR2_TYP : Register(ports.mem, 0x04u, WORD, "TIMx_CR2", 0x0000u) {
         var OIS4  by bit(15)
         var OIS3N by bit(13)
         var OIS3  by bit(12)
@@ -79,7 +78,7 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var CCPS  by bit(0)
     }
 
-    private inner class TIMx_SMCR_TYP : Register(ports.mem, 0x08, WORD, "TIMx_SMCR", 0x0000) {
+    private inner class TIMx_SMCR_TYP : Register(ports.mem, 0x08u, WORD, "TIMx_SMCR", 0x0000u) {
         var ETP  by bit(15)
         var ECE  by bit(14)
         var ETPS by field(13..12)
@@ -89,7 +88,7 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var SMS  by field(2..0)
     }
 
-    private inner class TIMx_DIER_TYP : Register(ports.mem, 0x0C, WORD, "TIMx_DIER", 0x0000) {
+    private inner class TIMx_DIER_TYP : Register(ports.mem, 0x0Cu, WORD, "TIMx_DIER", 0x0000u) {
         var TDE   by bit(14)
         var COMDE by bit(13)
         var CC4DE by bit(12)
@@ -107,7 +106,7 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var UIE   by bit(0)
     }
 
-    private inner class TIMx_SR_TYP : Register(ports.mem, 0x10, WORD, "TIMx_SR", 0x0000) {
+    private inner class TIMx_SR_TYP : Register(ports.mem, 0x10u, WORD, "TIMx_SR", 0x0000u) {
         var CC4OF by bit(12)
         var CC3OF by bit(11)
         var CC2OF by bit(10)
@@ -122,7 +121,7 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var UIF   by bit(0)
     }
 
-    private inner class TIMx_EGR_TYP : Register(ports.mem, 0x14, WORD, "TIMx_EGR", 0x0000) {
+    private inner class TIMx_EGR_TYP : Register(ports.mem, 0x14u, WORD, "TIMx_EGR", 0x0000u) {
         var BG    by bit(7)
         var TG    by bit(6)
         var COMG  by bit(5)
@@ -133,7 +132,7 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var UG    by bit(0)
     }
 
-    private inner class TIMx_CCMR1_TYP : Register(ports.mem, 0x18, WORD, "TIMx_CCMR1", 0x0000) {
+    private inner class TIMx_CCMR1_TYP : Register(ports.mem, 0x18u, WORD, "TIMx_CCMR1", 0x0000u) {
         var OC2CE by bit(15)
         var OC2M  by field(14..12)
         var OC2PE by bit(11)
@@ -151,7 +150,7 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var IC1PSC by field(3..2)
     }
 
-    private inner class TIMx_CCMR2_TYP : Register(ports.mem, 0x1C, WORD, "TIMx_CCMR2", 0x0000) {
+    private inner class TIMx_CCMR2_TYP : Register(ports.mem, 0x1Cu, WORD, "TIMx_CCMR2", 0x0000u) {
         var OC4CE by bit(15)
         var OC4M  by field(14..12)
         var OC4PE by bit(11)
@@ -169,7 +168,7 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var IC3PSC by field(3..2)
     }
 
-    private inner class TIMx_CCER_TYP : Register(ports.mem, 0x20, WORD, "TIMx_CCER", 0x0000) {
+    private inner class TIMx_CCER_TYP : Register(ports.mem, 0x20u, WORD, "TIMx_CCER", 0x0000u) {
         var CC4P  by bit(13)
         var CC4E  by bit(12)
         var CC3NP by bit(11)
@@ -186,39 +185,39 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var CC1E  by bit(0)
     }
 
-    private inner class TIMx_CNT_TYP : Register(ports.mem, 0x24, WORD, "TIMx_CNT", 0x0000) {
+    private inner class TIMx_CNT_TYP : Register(ports.mem, 0x24u, WORD, "TIMx_CNT", 0x0000u) {
         var CNT by field(15..0)
     }
 
-    private inner class TIMx_PSC_TYP : Register(ports.mem, 0x28, WORD, "TIMx_PSC", 0x0000) {
+    private inner class TIMx_PSC_TYP : Register(ports.mem, 0x28u, WORD, "TIMx_PSC", 0x0000u) {
         var PSC by field(15..0)
     }
 
-    private inner class TIMx_ARR_TYP : Register(ports.mem, 0x2C, WORD, "TIMx_ARR", 0xFFFF) {
+    private inner class TIMx_ARR_TYP : Register(ports.mem, 0x2Cu, WORD, "TIMx_ARR", 0xFFFFu) {
         var ARR by field(15..0)
     }
 
-    private inner class TIMx_RCR_TYP : Register(ports.mem, 0x30, WORD, "TIMx_RCR", 0x0000) {
+    private inner class TIMx_RCR_TYP : Register(ports.mem, 0x30u, WORD, "TIMx_RCR", 0x0000u) {
         var REP by field(7..0)
     }
 
-    private inner class TIMx_CCR1_TYP : Register(ports.mem, 0x34, WORD, "TIMx_CCR1", 0x0000) {
+    private inner class TIMx_CCR1_TYP : Register(ports.mem, 0x34u, WORD, "TIMx_CCR1", 0x0000u) {
         var CCR1 by field(15..0)
     }
 
-    private inner class TIMx_CCR2_TYP : Register(ports.mem, 0x38, WORD, "TIMx_CCR2", 0x0000) {
+    private inner class TIMx_CCR2_TYP : Register(ports.mem, 0x38u, WORD, "TIMx_CCR2", 0x0000u) {
         var CCR2 by field(15..0)
     }
 
-    private inner class TIMx_CCR3_TYP : Register(ports.mem, 0x3C, WORD, "TIMx_CCR3", 0x0000) {
+    private inner class TIMx_CCR3_TYP : Register(ports.mem, 0x3Cu, WORD, "TIMx_CCR3", 0x0000u) {
         var CCR3 by field(15..0)
     }
 
-    private inner class TIMx_CCR4_TYP : Register(ports.mem, 0x40, WORD, "TIMx_CCR4", 0x0000) {
+    private inner class TIMx_CCR4_TYP : Register(ports.mem, 0x40u, WORD, "TIMx_CCR4", 0x0000u) {
         var CCR4 by field(15..0)
     }
 
-    private inner class TIMx_BDTR_TYP : Register(ports.mem, 0x44, WORD, "TIMx_BDTR", 0x0000) {
+    private inner class TIMx_BDTR_TYP : Register(ports.mem, 0x44u, WORD, "TIMx_BDTR", 0x0000u) {
         var MOE  by bit(15)
         var AOE  by bit(14)
         var BKP  by bit(13)
@@ -229,12 +228,12 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
         var DTG  by field(7..0)
     }
 
-    private inner class TIMx_DCR_TYP : Register(ports.mem, 0x48, WORD, "TIMx_DCR", 0x0000) {
+    private inner class TIMx_DCR_TYP : Register(ports.mem, 0x48u, WORD, "TIMx_DCR", 0x0000u) {
         var DBL by field(12..8)
         var DBA by field(4..0)
     }
 
-    private inner class TIMx_DMAR_TYP : Register(ports.mem, 0x4C, DWORD, "TIMx_DMAR", 0x0000) {
+    private inner class TIMx_DMAR_TYP : Register(ports.mem, 0x4Cu, DWORD, "TIMx_DMAR", 0x0000u) {
         var DMAB by field(31..0)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,12 +31,11 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.ARM
-
+import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.*
 
 
 class BLXr(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            val rm: ARMRegister,
            size: Int): AARMInstruction(cpu, Type.VOID, cond, opcode, rm, size = size) {
@@ -46,11 +45,11 @@ class BLXr(cpu: AARMCore,
         val pc = core.cpu.pc
         val target = rm.value(core)
         if (core.cpu.CurrentInstrSet() == ARM) {
-            val nextInstrAddr = pc - 4
+            val nextInstrAddr = pc - 4u
             core.cpu.regs.lr.value = nextInstrAddr
         } else {
-            val nextInstrAddr = pc - 2
-            core.cpu.regs.lr.value = cat(nextInstrAddr[31..1], 1, 0)
+            val nextInstrAddr = pc - 2u
+            core.cpu.regs.lr.value = cat(nextInstrAddr[31..1], 1u, 0)
         }
         core.cpu.BXWritePC(target)
     }

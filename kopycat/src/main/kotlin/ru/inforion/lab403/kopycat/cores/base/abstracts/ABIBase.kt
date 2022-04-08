@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
@@ -58,59 +59,58 @@ abstract class ABIBase(val bits: Int, val bigEndian: Boolean, val types: Types =
         ArgType.Pointer -> types.pointer
     }
 
-    abstract var stackPointerValue: Long
-    abstract val returnValue: Long
-    abstract var programCounterValue: Long
-    abstract var returnAddressValue: Long
+    abstract var stackPointerValue: ULong
+    abstract val returnValue: ULong
+    abstract var programCounterValue: ULong
+    abstract var returnAddressValue: ULong
 
-    abstract fun setReturnValue(value: Long, type: Datatype = gprDatatype, instance: ABIBase = this)
-    open fun setReturnValue(value: Long, type: ArgType, instance: ABIBase = this) =
+    abstract fun setReturnValue(value: ULong, type: Datatype = gprDatatype, instance: ABIBase = this)
+    open fun setReturnValue(value: ULong, type: ArgType, instance: ABIBase = this) =
             setReturnValue(value, type.asCType, instance)
 
     abstract val regArguments: List<Int>
     abstract val gprDatatype: Datatype
     abstract val sizetDatatype: Datatype
     abstract val minimumStackAlignment: Int
-    open val stackArgsOffset: Long = 0
+    open val stackArgsOffset: ULong = 0u
 
     open fun ret() {
         programCounterValue = returnAddressValue
     }
 
-    abstract fun readRegister(index: Int): Long
-    abstract fun writeRegister(index: Int, value: Long)
+    abstract fun readRegister(index: Int): ULong
+    abstract fun writeRegister(index: Int, value: ULong)
 
-    abstract fun readStack(offset: Long, type: Datatype): Long
-    abstract fun writeStack(offset: Long, type: Datatype, value: Long)
+    abstract fun readStack(offset: ULong, type: Datatype): ULong
+    abstract fun writeStack(offset: ULong, type: Datatype, value: ULong)
 
 
-    open fun pop(type: Datatype = types.int, alignment: Int = type.bytes) =
-            readStack(0, type).also { stackPointerValue += alignment }
+    open fun pop(type: Datatype = types.int, alignment: UInt = type.bytes.uint) =
+            readStack(0u, type).also { stackPointerValue += alignment }
 
-    open fun push(value: Long, type: Datatype = types.int, alignment: Int = type.bytes) {
+    open fun push(value: ULong, type: Datatype = types.int, alignment: UInt = type.bytes.uint) {
         stackPointerValue -= alignment
-        writeStack(0, type, value)
+        writeStack(0u, type, value)
     }
 
-    open fun getAlignment(args: Iterable<Datatype>) = (args.map { it.bytes } + minimumStackAlignment).maxOf { it }
+    open fun getAlignment(args: Iterable<Datatype>) = (args.map { it.bytes } + minimumStackAlignment).maxOf { it }.uint
 
-    open fun getArg(index: Int, type: Datatype, alignment: Int = type.bytes, instance: ABIBase = this) =
+    open fun getArg(index: Int, type: Datatype, alignment: UInt = type.bytes.uint, instance: ABIBase = this): ULong =
             if (index < regArguments.size) {
                 if (type.bits > bits)
                     throw NotImplementedError("Override this function for ${type.bits}-bit arguments")
                 instance.readRegister(regArguments[index]) like type
-            }
-            else
-                instance.readStack(stackArgsOffset + (index - regArguments.size) * alignment, type)
+            } else
+                instance.readStack(stackArgsOffset + (index - regArguments.size).uint * alignment, type)
 
-    open fun getArgs(args: Iterable<Datatype>, instance: ABIBase = this): Array<Long> {
+    open fun getArgs(args: Iterable<Datatype>, instance: ABIBase = this): Array<ULong> {
         val alignment = getAlignment(args)
         return args.mapIndexed { i, it -> getArg(i, it, alignment, instance) }.toTypedArray()
     }
 
     open fun getCArgs(args: Array<ArgType>) = getArgs(args.map { it.asCType})
 
-    open fun setArg(index: Int, type: Datatype, value: Long, push: Boolean, alignment: Int = type.bytes, instance: ABIBase = this) {
+    open fun setArg(index: Int, type: Datatype, value: ULong, push: Boolean, alignment: UInt = type.bytes.uint, instance: ABIBase = this) {
         when {
             index < regArguments.size -> {
                 if (type.bits > bits)
@@ -118,19 +118,19 @@ abstract class ABIBase(val bits: Int, val bigEndian: Boolean, val types: Types =
                 instance.writeRegister(regArguments[index], value like type)
             }
             push -> instance.push(value, type)
-            else -> instance.writeStack(stackArgsOffset + (index - regArguments.size) * alignment, type, value)
+            else -> instance.writeStack(stackArgsOffset + (index - regArguments.size).uint * alignment, type, value)
         }
     }
 
-    open fun setArgs(args: Iterable<Pair<Datatype, Long>>, push: Boolean, instance: ABIBase = this) {
+    open fun setArgs(args: Iterable<Pair<Datatype, ULong>>, push: Boolean, instance: ABIBase = this) {
         val alignment = getAlignment(args.map { it.first })
         args.forEachIndexed { i, it -> setArg(i, it.first, it.second, push, alignment, instance) }
     }
 
-    open fun setArgs(args: Array<Long>, push: Boolean, instance: ABIBase = this) =
+    open fun setArgs(args: Array<ULong>, push: Boolean, instance: ABIBase = this) =
             setArgs(args.map { types.int to it }, push, instance)
 
-    open fun setCArgs(args: Iterable<Pair<ArgType, Long>>, push: Boolean) =
+    open fun setCArgs(args: Iterable<Pair<ArgType, ULong>>, push: Boolean) =
             setArgs(args.map { (k, v) -> k.asCType to v }, push)
 
 }

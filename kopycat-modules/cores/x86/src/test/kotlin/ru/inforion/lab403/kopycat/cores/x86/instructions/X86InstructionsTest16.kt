@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,11 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions
 
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.MHz
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.x86.config.Generation
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -37,14 +40,14 @@ import kotlin.test.assertTrue
 
 
 class X86InstructionsTest16: AX86InstructionTest() {
-    override val x86 = x86Core(this, "x86Core", 400.MHz, x86Core.Generation.Am5x86, 1.0)
+    override val x86 = x86Core(this, "x86Core", 400.MHz, Generation.Am5x86, 1.0)
     override val ram0 = RAM(this, "ram0", 0xFFF_FFFF)
     override val ram1 = RAM(this, "ram1", 0x1_0000)
     init {
         x86.ports.mem.connect(buses.mem)
         x86.ports.io.connect(buses.io)
-        ram0.ports.mem.connect(buses.mem, 0)
-        ram1.ports.mem.connect(buses.io, 0)
+        ram0.ports.mem.connect(buses.mem, 0u)
+        ram1.ports.mem.connect(buses.io, 0u)
         initializeAndResetAsTopInstance()
     }
 
@@ -58,220 +61,220 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun addTestALi8() {
         val instruction = "add AL, 0x69"
-        gprRegisters(eax = 0x25)
+        gprRegisters(eax = 0x25u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x8E)
+        assertGPRRegisters(eax = 0x8Eu)
     }
 
     @Test fun addTestAXi16() {
         val instruction = "add AX, 0x7ABA"
-        gprRegisters(eax = 0x2222)
+        gprRegisters(eax = 0x2222u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x9CDC)
+        assertGPRRegisters(eax = 0x9CDCu)
     }
 
     @Test fun addTestEAXi32() {
         val instruction = "add EAX, 0x58AA7ABA"
-        gprRegisters(eax = 0xCAFE_BABA)
+        gprRegisters(eax = 0xCAFE_BABAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x23A9_3574)
+        assertGPRRegisters(eax = 0x23A9_3574u)
     }
 
     @Test fun addTestr8i8() {
         val instruction = "add CL, 0x58"
-        gprRegisters(ecx = 0xBA)
+        gprRegisters(ecx = 0xBAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x12)
+        assertGPRRegisters(ecx = 0x12u)
     }
 
     @Test fun addTestr16i16() {
         val instruction = "add CX, 0xBCDE"
-        gprRegisters(ecx = 0x4323)
+        gprRegisters(ecx = 0x4323u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x1)
+        assertGPRRegisters(ecx = 0x1u)
     }
 
     @Test fun addTestr32i32() {
         val instruction = "add EDX, 0xABCDEF12"
-        gprRegisters(edx = 0xDEAD_BABA)
+        gprRegisters(edx = 0xDEAD_BABAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x8A7B_A9CC)
+        assertGPRRegisters(edx = 0x8A7B_A9CCu)
     }
 
     @Test fun addTestr16i8() {
         val instruction = "add CX, 0xDE"
-        gprRegisters(ecx = 0x4322)
+        gprRegisters(ecx = 0x4322u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4400)
+        assertGPRRegisters(ecx = 0x4400u)
     }
 
     @Test fun addTestr32i8() {
         val instruction = "add EDX, 0x12"
-        gprRegisters(edx = 0xDEAD_BABA)
+        gprRegisters(edx = 0xDEAD_BABAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xDEAD_BACC)
+        assertGPRRegisters(edx = 0xDEAD_BACCu)
     }
 
     @Test fun addTestm8i8() {
         val instruction = "add BYTE [EAX+0xFF], 0xBA"
-        store(startAddress + 0xF0FF, 0xCA, Datatype.BYTE)
-        gprRegisters(eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0xCAu, Datatype.BYTE)
+        gprRegisters(eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0x84, Datatype.BYTE)
-        assertGPRRegisters(eax = 0xF000)
+        assertMemory(startAddress + 0xF0FFu, 0x84u, Datatype.BYTE)
+        assertGPRRegisters(eax = 0xF000u)
     }
 
     @Test fun addTestm16i16() {
         val instruction = "add WORD [EDX+0x5678], 0x4322"
-        store(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        gprRegisters(edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        gprRegisters(edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xFDEC, Datatype.WORD)
-        assertGPRRegisters(edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xFDECu, Datatype.WORD)
+        assertGPRRegisters(edx = 0x6790u)
     }
 
     @Test fun addTestm32i32() {
         val instruction = "add DWORD [EDX+0x5678], 0x12344322"
-        store(startAddress + 0xBE08, 0xFAAA_BACA, Datatype.DWORD)
-        gprRegisters(edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xFAAA_BACAu, Datatype.DWORD)
+        gprRegisters(edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xCDE_FDEC, Datatype.DWORD)
-        assertGPRRegisters(edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xCDE_FDECu, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x6790u)
     }
 
     @Test fun addTestm16i8() {
         val instruction = "add WORD [EDX+0x5678], 0x22"
-        store(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        gprRegisters(edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        gprRegisters(edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xBAEC, Datatype.WORD)
-        assertGPRRegisters(edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xBAECu, Datatype.WORD)
+        assertGPRRegisters(edx = 0x6790u)
     }
 
     @Test fun addTestm32i8() {
         val instruction = "add DWORD [EDX+0x5678], 0x22"
-        store(startAddress + 0xBE08, 0xFAAA_BACA, Datatype.DWORD)
-        gprRegisters(edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xFAAA_BACAu, Datatype.DWORD)
+        gprRegisters(edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xFAAA_BAEC, Datatype.DWORD)
-        assertGPRRegisters(edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xFAAA_BAECu, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x6790u)
     }
 
     @Test fun addTestr8r8() {
         val instruction = "add CL, DH"
-        gprRegisters(ecx = 0xBA, edx = 0xFA00)
+        gprRegisters(ecx = 0xBAu, edx = 0xFA00u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xB4, edx = 0xFA00)
+        assertGPRRegisters(ecx = 0xB4u, edx = 0xFA00u)
     }
 
     @Test fun addTestr16r16() {
         val instruction = "add CX, DX"
-        gprRegisters(ecx = 0x4322, edx = 0x6790)
+        gprRegisters(ecx = 0x4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xAAB2, edx = 0x6790)
+        assertGPRRegisters(ecx = 0xAAB2u, edx = 0x6790u)
     }
 
     @Test fun addTestr32r32() {
         val instruction = "add EDX, EBX"
-        gprRegisters(edx = 0xDEAD_BABA, ebx = 0xABCD_EF12)
+        gprRegisters(edx = 0xDEAD_BABAu, ebx = 0xABCD_EF12u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x8A7B_A9CC, ebx = 0xABCD_EF12)
+        assertGPRRegisters(edx = 0x8A7B_A9CCu, ebx = 0xABCD_EF12u)
     }
 
     @Test fun addTestm8r8() {
         val instruction = "add BYTE [EAX+0xFF], BL"
-        store(startAddress + 0xF0FF, 0xCA, Datatype.BYTE)
-        gprRegisters(ebx = 0xBA, eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0xCAu, Datatype.BYTE)
+        gprRegisters(ebx = 0xBAu, eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0x84, Datatype.BYTE)
-        assertGPRRegisters(eax = 0xF000, ebx = 0xBA)
+        assertMemory(startAddress + 0xF0FFu, 0x84u, Datatype.BYTE)
+        assertGPRRegisters(eax = 0xF000u, ebx = 0xBAu)
     }
 
     @Test fun addTestm16r16() {
         val instruction = "add WORD [EDX+0x5678], CX"
-        store(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        gprRegisters(ecx = 0x4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        gprRegisters(ecx = 0x4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xFDEC, Datatype.WORD)
-        assertGPRRegisters(ecx = 0x4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xFDECu, Datatype.WORD)
+        assertGPRRegisters(ecx = 0x4322u, edx = 0x6790u)
     }
 
     @Test fun addTestm32r32() {
         val instruction = "add DWORD [EDX+0x5678], ECX"
-        store(startAddress + 0xBE08, 0xFAAA_BACA, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xFAAA_BACAu, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xCDE_FDEC, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xCDE_FDECu, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
     }
 
     @Test fun addTestr8m8() {
         val instruction = "add BL, BYTE [EAX+0xFF]"
-        store(startAddress + 0xF0FF, 0xCA, Datatype.BYTE)
-        gprRegisters(ebx = 0xBA, eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0xCAu, Datatype.BYTE)
+        gprRegisters(ebx = 0xBAu, eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0xCA, Datatype.BYTE)
-        assertGPRRegisters(eax = 0xF000, ebx = 0x84)
+        assertMemory(startAddress + 0xF0FFu, 0xCAu, Datatype.BYTE)
+        assertGPRRegisters(eax = 0xF000u, ebx = 0x84u)
     }
 
     @Test fun addTestr16m16() {
         val instruction = "add CX, WORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        gprRegisters(ecx = 0x4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        gprRegisters(ecx = 0x4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        assertGPRRegisters(ecx = 0xFDEC, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        assertGPRRegisters(ecx = 0xFDECu, edx = 0x6790u)
     }
 
     @Test fun addTestr32m32() {
         val instruction = "add ECX, DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xFAAA_BACA, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xFAAA_BACAu, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xFAAA_BACA, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0xCDE_FDEC, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xFAAA_BACAu, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0xCDE_FDECu, edx = 0x6790u)
     }
 
     @Test fun addTestFlags1() {
         val instruction = "add EDX, EBX"
-        gprRegisters(edx = 0xDEAD_BABA, ebx = 0xABCD_EF12)
+        gprRegisters(edx = 0xDEAD_BABAu, ebx = 0xABCD_EF12u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x8A7B_A9CC, ebx = 0xABCD_EF12)
+        assertGPRRegisters(edx = 0x8A7B_A9CCu, ebx = 0xABCD_EF12u)
 
         assertFlagRegisters(pf = true, sf = true, cf = true)
     }
 
     @Test fun addTestFlags2() {
         val instruction = "add EBX, DWORD [EAX+0xFF]"
-        store(startAddress + 0xF0FF, 0x57AE_129D, Datatype.DWORD)
-        gprRegisters(ebx = 0xA851_ED63, eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0x57AE_129Du, Datatype.DWORD)
+        gprRegisters(ebx = 0xA851_ED63u, eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0x57AE_129D, Datatype.DWORD)
-        assertGPRRegisters(eax = 0xF000, ebx = 0)
+        assertMemory(startAddress + 0xF0FFu, 0x57AE_129Du, Datatype.DWORD)
+        assertGPRRegisters(eax = 0xF000u, ebx = 0u)
 
         assertFlagRegisters(zf = true, pf = true, af = true, cf = true)
     }
@@ -281,12 +284,12 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun adcTestr16m16() {
         val instruction = "adc ECX, DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xBACA_BACA, Datatype.DWORD)
-        gprRegisters(ecx = 0x8423_7322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xBACA_BACAu, Datatype.DWORD)
+        gprRegisters(ecx = 0x8423_7322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xBACA_BACA, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0x3EEE_2DEC, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xBACA_BACAu, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0x3EEE_2DECu, edx = 0x6790u)
         assertFlagRegisters(cf = true, of = true)
     }
 
@@ -295,21 +298,21 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun sbbTestr32r32() {
         val instruction = "sbb BL, BYTE [EAX+0xFF]"
-        store(startAddress + 0xF0FF, 0xCA, Datatype.BYTE)
-        gprRegisters(ebx = 0xBA, eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0xCAu, Datatype.BYTE)
+        gprRegisters(ebx = 0xBAu, eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0xCA, Datatype.BYTE)
-        assertGPRRegisters(eax = 0xF000, ebx = 0xF0)
+        assertMemory(startAddress + 0xF0FFu, 0xCAu, Datatype.BYTE)
+        assertGPRRegisters(eax = 0xF000u, ebx = 0xF0u)
     }
 
     @Test fun sbbTestFlag() {
         val instruction = "sbb EAX, EDX"
         flagRegisters(cf = true)
-        gprRegisters(edx = 0xFA_56BA, eax = 0xD458_963B)
+        gprRegisters(edx = 0xFA_56BAu, eax = 0xD458_963Bu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xD35E_3F80, edx = 0xFA_56BA)
+        assertGPRRegisters(eax = 0xD35E_3F80u, edx = 0xFA_56BAu)
         assertFlagRegisters(sf = true)
     }
 
@@ -318,10 +321,10 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun subTestr32i8() {
         val instruction = "sub EDX, 0x12"
-        gprRegisters(edx = 0xDEAD_BABA)
+        gprRegisters(edx = 0xDEAD_BABAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xDEAD_BAA8)
+        assertGPRRegisters(edx = 0xDEAD_BAA8u)
         assertFlagRegisters(sf = true)
     }
 
@@ -330,10 +333,10 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun andTestAXi16() {
         val instruction = "and AX, 0xA5A5"
-        gprRegisters(eax = 0x1723)
+        gprRegisters(eax = 0x1723u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x521)
+        assertGPRRegisters(eax = 0x521u)
         assertFlagRegisters(pf = true)
     }
 
@@ -342,12 +345,12 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun orTestm16r16() {
         val instruction = "or WORD [EDX+0x5678], CX"
-        store(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        gprRegisters(ecx = 0x4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        gprRegisters(ecx = 0x4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xFBEA, Datatype.WORD)
-        assertGPRRegisters(ecx = 0x4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xFBEAu, Datatype.WORD)
+        assertGPRRegisters(ecx = 0x4322u, edx = 0x6790u)
         assertFlagRegisters(sf = true)
     }
 
@@ -356,12 +359,12 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun xorTestr32m32() {
         val instruction = "xor ECX, DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xFAAA_BACA, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xFAAA_BACAu, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xFAAA_BACA, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0xE89E_F9E8, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xFAAA_BACAu, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0xE89E_F9E8u, edx = 0x6790u)
         assertFlagRegisters(sf = true, pf = true)
     }
 
@@ -369,29 +372,29 @@ class X86InstructionsTest16: AX86InstructionTest() {
     // FOR ARITHMETICAL INSTRUCTIONS SAME DECODER
 
     @Test fun cmpTestr8imm8() {
-        val instruction = "cmp BH, 0xA"
-        gprRegisters(ebx = 0xA00)
+        val instruction = "cmp BH, 0x0A"
+        gprRegisters(ebx = 0xA00u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0xA00)
+        assertGPRRegisters(ebx = 0xA00u)
         assertFlagRegisters(zf = true, pf = true)
     }
 
     @Test fun cmpTestFlags1() {
-        val instruction = "cmp ECX, 0x100"
-        gprRegisters(ecx = 0xA0)
+        val instruction = "cmp ECX, 0x0100"
+        gprRegisters(ecx = 0xA0u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xA0)
+        assertGPRRegisters(ecx = 0xA0u)
         assertFlagRegisters(sf = true, pf = true, cf = true)
     }
 
     @Test fun cmpTestFlags2() {
-        val instruction = "cmp ECX, 0x100"
-        gprRegisters(ecx = 0x8000_0000)
+        val instruction = "cmp ECX, 0x0100"
+        gprRegisters(ecx = 0x8000_0000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x8000_0000)
+        assertGPRRegisters(ecx = 0x8000_0000u)
         assertFlagRegisters(of = true, pf = true)
     }
 
@@ -399,39 +402,39 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun aaaTest1() {
         val instruction = "aaa "
-        gprRegisters(eax = 0x111A)
+        gprRegisters(eax = 0x111Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x1200)
+        assertGPRRegisters(eax = 0x1200u)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun aaaTest2() {
         val instruction = "aaa "
         flagRegisters(af = true)
-        gprRegisters(eax = 0x5514)
+        gprRegisters(eax = 0x5514u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x560A)
+        assertGPRRegisters(eax = 0x560Au)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun aaaTest3() {
         val instruction = "aaa "
         flagRegisters(af = true)
-        gprRegisters(eax = 0x551A)
+        gprRegisters(eax = 0x551Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x5600)
+        assertGPRRegisters(eax = 0x5600u)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun aaaTest4() {
         val instruction = "aaa "
-        gprRegisters(eax = 0x5514)
+        gprRegisters(eax = 0x5514u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x5504)
+        assertGPRRegisters(eax = 0x5504u)
         assertFlagRegisters(af = false, cf = false)
     }
 
@@ -439,39 +442,39 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun aasTest1() {
         val instruction = "aas "
-        gprRegisters(eax = 0x111A)
+        gprRegisters(eax = 0x111Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x1004)
+        assertGPRRegisters(eax = 0x1004u)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun aasTest2() {
         val instruction = "aas "
         flagRegisters(af = true)
-        gprRegisters(eax = 0x5514)
+        gprRegisters(eax = 0x5514u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x540E)
+        assertGPRRegisters(eax = 0x540Eu)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun aasTest3() {
         val instruction = "aas "
         flagRegisters(af = true)
-        gprRegisters(eax = 0x551A)
+        gprRegisters(eax = 0x551Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x5404)
+        assertGPRRegisters(eax = 0x5404u)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun aasTest4() {
         val instruction = "aas "
-        gprRegisters(eax = 0x5514)
+        gprRegisters(eax = 0x5514u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x5504)
+        assertGPRRegisters(eax = 0x5504u)
         assertFlagRegisters(af = false, cf = false)
     }
 
@@ -479,39 +482,39 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun daaTest1() {
         val instruction = "daa "
-        gprRegisters(eax = 0x111A)
+        gprRegisters(eax = 0x111Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x1120)
+        assertGPRRegisters(eax = 0x1120u)
         assertFlagRegisters(af = true)
     }
 
     @Test fun daaTest2() {
         val instruction = "daa "
         flagRegisters(af = true)
-        gprRegisters(eax = 0xFB)
+        gprRegisters(eax = 0xFBu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x61)
+        assertGPRRegisters(eax = 0x61u)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun daaTest3() {
         val instruction = "daa "
         flagRegisters(af = true, cf = true)
-        gprRegisters(eax = 0x5511)
+        gprRegisters(eax = 0x5511u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x5577)
+        assertGPRRegisters(eax = 0x5577u)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun daaTest4() {
         val instruction = "daa "
-        gprRegisters(eax = 0x55A4)
+        gprRegisters(eax = 0x55A4u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x5504)
+        assertGPRRegisters(eax = 0x5504u)
         assertFlagRegisters(af = false, cf = true)
     }
 
@@ -519,39 +522,39 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun dasTest1() {
         val instruction = "das "
-        gprRegisters(eax = 0x111A)
+        gprRegisters(eax = 0x111Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x1114)
+        assertGPRRegisters(eax = 0x1114u)
         assertFlagRegisters(af = true)
     }
 
     @Test fun dasTest2() {
         val instruction = "das "
         flagRegisters(af = true)
-        gprRegisters(eax = 0xFB)
+        gprRegisters(eax = 0xFBu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x95)
+        assertGPRRegisters(eax = 0x95u)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun dasTest3() {
         val instruction = "das "
         flagRegisters(af = true, cf = true)
-        gprRegisters(eax = 0x5511)
+        gprRegisters(eax = 0x5511u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x55AB)
+        assertGPRRegisters(eax = 0x55ABu)
         assertFlagRegisters(af = true, cf = true)
     }
 
     @Test fun dasTest4() {
         val instruction = "das "
-        gprRegisters(eax = 0x55A4)
+        gprRegisters(eax = 0x55A4u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x5544)
+        assertGPRRegisters(eax = 0x5544u)
         assertFlagRegisters(af = false, cf = true)
     }
 
@@ -559,48 +562,48 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun decTestm8() {
         val instruction = "dec DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xCA, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xCAu, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xC9, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xC9u, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
     }
 
     @Test fun decTestm16() {
         val instruction = "dec DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xCAC1, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xCAC1u, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xCAC0, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xCAC0u, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
     }
 
     @Test fun decTestm32() {
         val instruction = "dec DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xFACC_CAC1, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xFACC_CAC1u, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xFACC_CAC0, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xFACC_CAC0u, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
     }
 
     @Test fun decTestr16() {
         val instruction = "dec CX"
-        gprRegisters(ecx = 0x4322)
+        gprRegisters(ecx = 0x4322u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4321)
+        assertGPRRegisters(ecx = 0x4321u)
     }
 
     @Test fun decTestr32() {
         val instruction = "dec ECX"
-        gprRegisters(ecx = 0x8000_0000)
+        gprRegisters(ecx = 0x8000_0000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x7FFF_FFFF)
+        assertGPRRegisters(ecx = 0x7FFF_FFFFu)
         assertFlagRegisters(of = true, af = true, pf = true)
     }
 
@@ -608,58 +611,58 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun divTestr8() {
         val instruction = "div CL"
-        gprRegisters(ecx = 0xB, eax = 0x76)
+        gprRegisters(ecx = 0xBu, eax = 0x76u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xB, eax = 0x080A)
+        assertGPRRegisters(ecx = 0xBu, eax = 0x080Au)
     }
 
     @Test fun divTestr16() {
         val instruction = "div CX"
-        gprRegisters(eax = 0x253B, ecx = 0x8E)
+        gprRegisters(eax = 0x253Bu, ecx = 0x8Eu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x8E, edx = 0x0011, eax = 0x0043)
+        assertGPRRegisters(ecx = 0x8Eu, edx = 0x0011u, eax = 0x0043u)
     }
 
     @Test fun divTestr32() {
         val instruction = "div ECX"
-        gprRegisters(edx = 0x33_5D25, eax = 0x9380_A2F4, ecx = 0x9E_1247)
+        gprRegisters(edx = 0x33_5D25u, eax = 0x9380_A2F4u, ecx = 0x9E_1247u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x9E_1247, edx = 0x82_1DC7, eax = 0x532F_52EB)
+        assertGPRRegisters(ecx = 0x9E_1247u, edx = 0x82_1DC7u, eax = 0x532F_52EBu)
     }
 
     @Test fun divTestm8() {
         val instruction = "div BYTE [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x0B, Datatype.BYTE)
-        gprRegisters(edx = 0x51F3, eax = 0x76)
+        store(startAddress + 0x8452u, 0x0Bu, Datatype.BYTE)
+        gprRegisters(edx = 0x51F3u, eax = 0x76u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x51F3, eax = 0x080A)
+        assertGPRRegisters(edx = 0x51F3u, eax = 0x080Au)
     }
 
     @Test fun divTestm16() {
         val instruction = "div WORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x008E, Datatype.WORD)
-        gprRegisters(eax = 0x253B, ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x008Eu, Datatype.WORD)
+        gprRegisters(eax = 0x253Bu, ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x0011, eax = 0x0043, ebx = 0x51F3)
+        assertGPRRegisters(edx = 0x0011u, eax = 0x0043u, ebx = 0x51F3u)
     }
 
     @Test fun divTestm32() {
         val instruction = "div DWORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x9E_1247, Datatype.DWORD)
-        gprRegisters(edx = 0x33_5D25, eax = 0x9380_A2F4, ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x9E_1247u, Datatype.DWORD)
+        gprRegisters(edx = 0x33_5D25u, eax = 0x9380_A2F4u, ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x82_1DC7, eax = 0x532F_52EB, ebx = 0x51F3)
+        assertGPRRegisters(edx = 0x82_1DC7u, eax = 0x532F_52EBu, ebx = 0x51F3u)
     }
 
     @Test fun divTestr8Zero() {
         val instruction = "div CL"
-        gprRegisters(ecx = 0, eax = 0x5)
+        gprRegisters(ecx = 0u, eax = 0x5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
         assertTrue { x86.cpu.exception is x86HardwareException.DivisionByZero }
@@ -667,7 +670,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun divTestr8Overflow() {
         val instruction = "div CL"
-        gprRegisters(ecx = 0x10, eax = 0x1000)
+        gprRegisters(ecx = 0x10u, eax = 0x1000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
         assertTrue { x86.cpu.exception is x86HardwareException.Overflow }
@@ -675,7 +678,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun divTestr16Overflow() {
         val instruction = "div CX"
-        gprRegisters(ecx = 0x10, eax = 0, edx = 0x10)
+        gprRegisters(ecx = 0x10u, eax = 0u, edx = 0x10u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
         assertTrue { x86.cpu.exception is x86HardwareException.Overflow }
@@ -683,7 +686,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun divTestr32Overflow() {
         val instruction = "div ECX"
-        gprRegisters(ecx = 0x10, eax = 0, edx = 0x10)
+        gprRegisters(ecx = 0x10u, eax = 0u, edx = 0x10u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
         assertTrue { x86.cpu.exception is x86HardwareException.Overflow }
@@ -693,58 +696,58 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun idivTestr8() {
         val instruction = "idiv CL"
-        gprRegisters(ecx = 0xB, eax = 0xFF86)
+        gprRegisters(ecx = 0xBu, eax = 0xFF86u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xB, eax = 0xFFF5)
+        assertGPRRegisters(ecx = 0xBu, eax = 0xFFF5u)
     }
 
     @Test fun idivTestr16() {
         val instruction = "idiv CX"
-        gprRegisters(eax = 0x253B, ecx = 0x8E)
+        gprRegisters(eax = 0x253Bu, ecx = 0x8Eu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x8E, edx = 0x0011, eax = 0x0043)
+        assertGPRRegisters(ecx = 0x8Eu, edx = 0x0011u, eax = 0x0043u)
     }
 
     @Test fun idivTestr32() {
         val instruction = "idiv ECX"
-        gprRegisters(edx = 0xFFCC_A2DA, eax = 0x6D01_7AD3, ecx = 0x9E_1247)
+        gprRegisters(edx = 0xFFCC_A2DAu, eax = 0x6D01_7AD3u, ecx = 0x9E_1247u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x9E_1247, edx = 0, eax = 0xACD0_AD15)
+        assertGPRRegisters(ecx = 0x9E_1247u, edx = 0u, eax = 0xACD0_AD15u)
     }
 
     @Test fun idivTestm8() {
         val instruction = "idiv BYTE [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x0B, Datatype.BYTE)
-        gprRegisters(edx = 0x51F3, eax = 0xFF86)
+        store(startAddress + 0x8452u, 0x0Bu, Datatype.BYTE)
+        gprRegisters(edx = 0x51F3u, eax = 0xFF86u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x51F3, eax = 0xFFF5)
+        assertGPRRegisters(edx = 0x51F3u, eax = 0xFFF5u)
     }
 
     @Test fun idivTestm16() {
         val instruction = "idiv WORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x008E, Datatype.WORD)
-        gprRegisters(eax = 0x253B, ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x008Eu, Datatype.WORD)
+        gprRegisters(eax = 0x253Bu, ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x0011, eax = 0x0043, ebx = 0x51F3)
+        assertGPRRegisters(edx = 0x0011u, eax = 0x0043u, ebx = 0x51F3u)
     }
 
     @Test fun idivTestm32() {
         val instruction = "idiv DWORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x9E_1247, Datatype.DWORD)
-        gprRegisters(edx = 0xFFCC_A2DA, eax = 0x6D01_7AD3, ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x9E_1247u, Datatype.DWORD)
+        gprRegisters(edx = 0xFFCC_A2DAu, eax = 0x6D01_7AD3u, ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0, eax = 0xACD0_AD15, ebx = 0x51F3)
+        assertGPRRegisters(edx = 0u, eax = 0xACD0_AD15u, ebx = 0x51F3u)
     }
 
     @Test fun idivTestr8Zero() {
         val instruction = "idiv CL"
-        gprRegisters(ecx = 0, eax = 0x5)
+        gprRegisters(ecx = 0u, eax = 0x5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
         assertTrue { x86.cpu.exception is x86HardwareException.DivisionByZero }
@@ -754,144 +757,144 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun imulTestr8() {
         val instruction = "imul BL"
-        gprRegisters(eax = 0x16, ebx = 0x3A)
+        gprRegisters(eax = 0x16u, ebx = 0x3Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0x3A, eax = 0x04FC)
+        assertGPRRegisters(ebx = 0x3Au, eax = 0x04FCu)
     }
 
     @Test fun imulTestr16() {
         val instruction = "imul BX"
-        gprRegisters(eax = 0x253B, ebx = 0x51F3)
+        gprRegisters(eax = 0x253Bu, ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x0BEB, eax = 0x0201, ebx = 0x51F3)
+        assertGPRRegisters(edx = 0x0BEBu, eax = 0x0201u, ebx = 0x51F3u)
     }
 
     @Test fun imulTestr32() {
         val instruction = "imul EBX"
-        gprRegisters(ebx = 0x4FCC_A2DA, eax = 0x6D01_7AD3)
+        gprRegisters(ebx = 0x4FCC_A2DAu, eax = 0x6D01_7AD3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x21FA_976C, eax = 0xC020_1DAE, ebx = 0x4FCC_A2DA)
+        assertGPRRegisters(edx = 0x21FA_976Cu, eax = 0xC020_1DAEu, ebx = 0x4FCC_A2DAu)
     }
 
     @Test fun imulTestm8() {
         val instruction = "imul BYTE [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x3A, Datatype.BYTE)
-        gprRegisters(edx = 0x51F3, eax = 0x16)
+        store(startAddress + 0x8452u, 0x3Au, Datatype.BYTE)
+        gprRegisters(edx = 0x51F3u, eax = 0x16u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x04FC, edx = 0x51F3)
+        assertGPRRegisters(eax = 0x04FCu, edx = 0x51F3u)
     }
 
     @Test fun imulTestm16() {
         val instruction = "imul WORD [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x51F3, Datatype.WORD)
-        gprRegisters(eax = 0x253B, edx = 0x51F3)
+        store(startAddress + 0x8452u, 0x51F3u, Datatype.WORD)
+        gprRegisters(eax = 0x253Bu, edx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x0BEB, eax = 0x0201)
+        assertGPRRegisters(edx = 0x0BEBu, eax = 0x0201u)
     }
 
     @Test fun imulTestm32() {
         val instruction = "imul DWORD [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x4FCC_A2DA, Datatype.DWORD)
-        gprRegisters(eax = 0x6D01_7AD3, edx = 0x51F3)
+        store(startAddress + 0x8452u, 0x4FCC_A2DAu, Datatype.DWORD)
+        gprRegisters(eax = 0x6D01_7AD3u, edx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x21FA_976C, eax = 0xC020_1DAE)
+        assertGPRRegisters(edx = 0x21FA_976Cu, eax = 0xC020_1DAEu)
     }
 
     @Test fun imulTestr16m16() {
         val instruction = "imul AX, WORD [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x51F3, Datatype.WORD)
-        gprRegisters(eax = 0x253B, edx = 0x51F3)
+        store(startAddress + 0x8452u, 0x51F3u, Datatype.WORD)
+        gprRegisters(eax = 0x253Bu, edx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x51F3, eax = 0x0201)
+        assertGPRRegisters(edx = 0x51F3u, eax = 0x0201u)
     }
 
     @Test fun imulTestr32m32() {
         val instruction = "imul EAX, DWORD [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x4FCC_A2DA, Datatype.DWORD)
-        gprRegisters(eax = 0x6D01_7AD3, edx = 0x51F3)
+        store(startAddress + 0x8452u, 0x4FCC_A2DAu, Datatype.DWORD)
+        gprRegisters(eax = 0x6D01_7AD3u, edx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x51F3, eax = 0xC020_1DAE)
+        assertGPRRegisters(edx = 0x51F3u, eax = 0xC020_1DAEu)
     }
 
     @Test fun imulTestr32r32imm32() {
-        val instruction = "imul EAX, ECX, 0x62FA1C"
-        gprRegisters(ecx = 0x6D01_7AD3, eax = 0x1)
+        val instruction = "imul EAX, ECX, 0x0062FA1C"
+        gprRegisters(ecx = 0x6D01_7AD3u, eax = 0x1u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x6D01_7AD3, eax = 0x62E1_7D14)
+        assertGPRRegisters(ecx = 0x6D01_7AD3u, eax = 0x62E1_7D14u)
     }
 
     // TEST INC INSTRUCTION
 
     @Test fun incTestm8() {
         val instruction = "inc DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xCA, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xCAu, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xCB, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xCBu, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
     }
 
     @Test fun incTestm16() {
         val instruction = "inc DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xCAC1, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xCAC1u, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xCAC2, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xCAC2u, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
     }
 
     @Test fun incTestm32() {
         val instruction = "inc DWORD [EDX+0x5678]"
-        store(startAddress + 0xBE08, 0xFACC_CAC1, Datatype.DWORD)
-        gprRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xFACC_CAC1u, Datatype.DWORD)
+        gprRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xFACC_CAC2, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0x1234_4322, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xFACC_CAC2u, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0x1234_4322u, edx = 0x6790u)
     }
 
     @Test fun incTestr16() {
         val instruction = "inc CX"
-        gprRegisters(ecx = 0x4322)
+        gprRegisters(ecx = 0x4322u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4323)
+        assertGPRRegisters(ecx = 0x4323u)
     }
 
     @Test fun incTestr32() {
         val instruction = "inc ECX"
-        gprRegisters(ecx = 0x4322_FA11)
+        gprRegisters(ecx = 0x4322_FA11u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4322_FA12)
+        assertGPRRegisters(ecx = 0x4322_FA12u)
     }
 
     @Test fun incTestFlag1() {
         val instruction = "inc ECX"
-        gprRegisters(ecx = 0xFFFF_FFFF)
+        gprRegisters(ecx = 0xFFFF_FFFFu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0)
+        assertGPRRegisters(ecx = 0u)
         assertFlagRegisters(zf = true, af = true, pf = true)
     }
 
     @Test fun incTestFlag2() {
         val instruction = "inc ECX"
-        gprRegisters(ecx = 0x7FFF_FFFF)
+        gprRegisters(ecx = 0x7FFF_FFFFu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x8000_0000)
+        assertGPRRegisters(ecx = 0x8000_0000u)
         assertFlagRegisters(of = true, af = true, pf = true, sf = true)
     }
 
@@ -899,64 +902,64 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun mulTestr8() {
         val instruction = "mul CL"
-        gprRegisters(ecx = 0xB, eax = 0x76)
+        gprRegisters(ecx = 0xBu, eax = 0x76u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xB, eax = 0x0512)
+        assertGPRRegisters(ecx = 0xBu, eax = 0x0512u)
     }
 
     @Test fun mulTestr16() {
         val instruction = "mul CX"
-        gprRegisters(eax = 0x253B, ecx = 0x8E)
+        gprRegisters(eax = 0x253Bu, ecx = 0x8Eu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x8E, edx = 0x0014, eax = 0xA6BA)
+        assertGPRRegisters(ecx = 0x8Eu, edx = 0x0014u, eax = 0xA6BAu)
     }
 
     @Test fun mulTestr32() {
         val instruction = "mul ECX"
-        gprRegisters(edx = 0x33_5D25, eax = 0x9380_A2F4, ecx = 0x9E_1247)
+        gprRegisters(edx = 0x33_5D25u, eax = 0x9380_A2F4u, ecx = 0x9E_1247u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x9E_1247, edx = 0x5B_13EC, eax = 0x86BA_59AC)
+        assertGPRRegisters(ecx = 0x9E_1247u, edx = 0x5B_13ECu, eax = 0x86BA_59ACu)
     }
 
     @Test fun mulTestm8() {
         val instruction = "mul BYTE [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x0B, Datatype.BYTE)
-        gprRegisters(edx = 0x51F3, eax = 0x76)
+        store(startAddress + 0x8452u, 0x0Bu, Datatype.BYTE)
+        gprRegisters(edx = 0x51F3u, eax = 0x76u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x51F3, eax = 0x0512)
+        assertGPRRegisters(edx = 0x51F3u, eax = 0x0512u)
         assertFlagRegisters(of = true, cf = true)
     }
 
     @Test fun mulTestFlags() {
         val instruction = "mul BYTE [EDX+0x325F]"
-        store(startAddress + 0x8452, 0xB, Datatype.BYTE)
-        gprRegisters(edx = 0x51F3, eax = 0x6)
+        store(startAddress + 0x8452u, 0xBu, Datatype.BYTE)
+        gprRegisters(edx = 0x51F3u, eax = 0x6u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x51F3, eax = 0x42)
+        assertGPRRegisters(edx = 0x51F3u, eax = 0x42u)
         assertFlagRegisters()
     }
 
     @Test fun mulTestm16() {
         val instruction = "mul WORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x008E, Datatype.WORD)
-        gprRegisters(eax = 0x253B, ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x008Eu, Datatype.WORD)
+        gprRegisters(eax = 0x253Bu, ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x0014, eax = 0xA6BA, ebx = 0x51F3)
+        assertGPRRegisters(edx = 0x0014u, eax = 0xA6BAu, ebx = 0x51F3u)
     }
 
     @Test fun mulTestm32() {
         val instruction = "mul DWORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x9E_1247, Datatype.DWORD)
-        gprRegisters(edx = 0x33_5D25, eax = 0x9380_A2F4, ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x9E_1247u, Datatype.DWORD)
+        gprRegisters(edx = 0x33_5D25u, eax = 0x9380_A2F4u, ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x5B_13EC, eax = 0x86BA_59AC, ebx = 0x51F3)
+        assertGPRRegisters(edx = 0x5B_13ECu, eax = 0x86BA_59ACu, ebx = 0x51F3u)
         assertFlagRegisters(of = true, cf = true)
     }
 
@@ -964,58 +967,58 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun negTestr8() {
         val instruction = "neg CL"
-        gprRegisters(ecx = 0xB)
+        gprRegisters(ecx = 0xBu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xF5)
+        assertGPRRegisters(ecx = 0xF5u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun negTestr16() {
         val instruction = "neg CX"
-        gprRegisters(ecx = 0x8E57)
+        gprRegisters(ecx = 0x8E57u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x71A9)
+        assertGPRRegisters(ecx = 0x71A9u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun negTestr32() {
         val instruction = "neg ECX"
-        gprRegisters(ecx = 0x9380_A2F4)
+        gprRegisters(ecx = 0x9380_A2F4u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x6C7F_5D0C)
+        assertGPRRegisters(ecx = 0x6C7F_5D0Cu)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun negTestm8() {
         val instruction = "neg BYTE [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x0B, Datatype.BYTE)
-        gprRegisters(edx = 0x51F3)
+        store(startAddress + 0x8452u, 0x0Bu, Datatype.BYTE)
+        gprRegisters(edx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0xF5, Datatype.BYTE)
+        assertMemory(startAddress + 0x8452u, 0xF5u, Datatype.BYTE)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun negTestm16() {
         val instruction = "neg WORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x008E, Datatype.WORD)
-        gprRegisters(ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x008Eu, Datatype.WORD)
+        gprRegisters(ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0xFF72, Datatype.WORD)
+        assertMemory(startAddress + 0x8452u, 0xFF72u, Datatype.WORD)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun negTestm32() {
         val instruction = "neg DWORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x9E_1247, Datatype.DWORD)
-        gprRegisters(ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x9E_1247u, Datatype.DWORD)
+        gprRegisters(ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0xFF61_EDB9, Datatype.DWORD)
+        assertMemory(startAddress + 0x8452u, 0xFF61_EDB9u, Datatype.DWORD)
         assertFlagRegisters(cf = true)
     }
 
@@ -1023,63 +1026,63 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun notTestr8() {
         val instruction = "not CL"
-        gprRegisters(ecx = 0xB)
+        gprRegisters(ecx = 0xBu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xF4)
+        assertGPRRegisters(ecx = 0xF4u)
     }
 
     @Test fun notTestr16() {
         val instruction = "not CX"
-        gprRegisters(ecx = 0x8E57)
+        gprRegisters(ecx = 0x8E57u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x71A8)
+        assertGPRRegisters(ecx = 0x71A8u)
     }
 
     @Test fun notTestr32() {
         val instruction = "not ECX"
-        gprRegisters(ecx = 0x9380_A2F4)
+        gprRegisters(ecx = 0x9380_A2F4u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x6C7F_5D0B)
+        assertGPRRegisters(ecx = 0x6C7F_5D0Bu)
     }
 
     @Test fun notTestm8() {
         val instruction = "not BYTE [EDX+0x325F]"
-        store(startAddress + 0x8452, 0x0B, Datatype.BYTE)
-        gprRegisters(edx = 0x51F3)
+        store(startAddress + 0x8452u, 0x0Bu, Datatype.BYTE)
+        gprRegisters(edx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0xF4, Datatype.BYTE)
+        assertMemory(startAddress + 0x8452u, 0xF4u, Datatype.BYTE)
     }
 
     @Test fun notTestm16() {
         val instruction = "not WORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x008E, Datatype.WORD)
-        gprRegisters(ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x008Eu, Datatype.WORD)
+        gprRegisters(ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0xFF71, Datatype.WORD)
+        assertMemory(startAddress + 0x8452u, 0xFF71u, Datatype.WORD)
     }
 
     @Test fun notTestm32() {
         val instruction = "not DWORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x9E_1247, Datatype.DWORD)
-        gprRegisters(ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x9E_1247u, Datatype.DWORD)
+        gprRegisters(ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0xFF61_EDB8, Datatype.DWORD)
+        assertMemory(startAddress + 0x8452u, 0xFF61_EDB8u, Datatype.DWORD)
     }
 
     // TEST BSF INSTRUCTION
 
     @Test fun bsfTestr16r16() {
         val instruction = "bsf CX, BX"
-        gprRegisters(ecx = 0x8E57, ebx = 0x800)
+        gprRegisters(ecx = 0x8E57u, ebx = 0x800u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0x800, ecx = 0xB)
+        assertGPRRegisters(ebx = 0x800u, ecx = 0xBu)
         assertFlagRegisters()
     }
 
@@ -1092,32 +1095,32 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun bsfTestr16m16() {
         val instruction = "bsf CX, WORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x8000, Datatype.WORD)
-        gprRegisters(ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x8000u, Datatype.WORD)
+        gprRegisters(ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0x8000, Datatype.WORD)
-        assertGPRRegisters(ebx = 0x51F3, ecx = 0xF)
+        assertMemory(startAddress + 0x8452u, 0x8000u, Datatype.WORD)
+        assertGPRRegisters(ebx = 0x51F3u, ecx = 0xFu)
     }
 
     @Test fun bsfTestr32m32() {
         val instruction = "bsf ECX, DWORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x40_1240, Datatype.DWORD)
-        gprRegisters(ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x40_1240u, Datatype.DWORD)
+        gprRegisters(ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0x40_1240, Datatype.DWORD)
-        assertGPRRegisters(ebx = 0x51F3, ecx = 0x6)
+        assertMemory(startAddress + 0x8452u, 0x40_1240u, Datatype.DWORD)
+        assertGPRRegisters(ebx = 0x51F3u, ecx = 0x6u)
     }
 
     // TEST BSR INSTRUCTION
 
     @Test fun bsrTestr16r16() {
         val instruction = "bsr CX, BX"
-        gprRegisters(ecx = 0x8E57, ebx = 0x800)
+        gprRegisters(ecx = 0x8E57u, ebx = 0x800u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0x800, ecx = 0xB)
+        assertGPRRegisters(ebx = 0x800u, ecx = 0xBu)
         assertFlagRegisters()
     }
 
@@ -1130,32 +1133,32 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun bsrTestr16m16() {
         val instruction = "bsr CX, WORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x8000, Datatype.WORD)
-        gprRegisters(ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x8000u, Datatype.WORD)
+        gprRegisters(ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0x8000, Datatype.WORD)
-        assertGPRRegisters(ebx = 0x51F3, ecx = 0xF)
+        assertMemory(startAddress + 0x8452u, 0x8000u, Datatype.WORD)
+        assertGPRRegisters(ebx = 0x51F3u, ecx = 0xFu)
     }
 
     @Test fun bsrTestr32m32() {
         val instruction = "bsr ECX, DWORD [EBX+0x325F]"
-        store(startAddress + 0x8452, 0x40_1240, Datatype.DWORD)
-        gprRegisters(ebx = 0x51F3)
+        store(startAddress + 0x8452u, 0x40_1240u, Datatype.DWORD)
+        gprRegisters(ebx = 0x51F3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0x8452, 0x40_1240, Datatype.DWORD)
-        assertGPRRegisters(ebx = 0x51F3, ecx = 0x16)
+        assertMemory(startAddress + 0x8452u, 0x40_1240u, Datatype.DWORD)
+        assertGPRRegisters(ebx = 0x51F3u, ecx = 0x16u)
     }
 
     // TEST BT INSTRUCTION
 
     @Test fun btTestr16r16() {
         val instruction = "bt CX, BX"
-        gprRegisters(ecx = 0x8E57, ebx = 0xF)
+        gprRegisters(ecx = 0x8E57u, ebx = 0xFu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0xF, ecx = 0x8E57)
+        assertGPRRegisters(ebx = 0xFu, ecx = 0x8E57u)
         assertFlagRegisters(cf = true)
     }
 
@@ -1167,20 +1170,20 @@ class X86InstructionsTest16: AX86InstructionTest() {
     }
 
     @Test fun btTestr16i8() {
-        val instruction = "bt CX, 0xC"
-        gprRegisters(ecx = 0x124F)
+        val instruction = "bt CX, 0x0C"
+        gprRegisters(ecx = 0x124Fu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x124F)
+        assertGPRRegisters(ecx = 0x124Fu)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun btTestr32i8() {
         val instruction = "bt EBX, 0x18"
-        gprRegisters(ebx = 0x2008_DAB2)
+        gprRegisters(ebx = 0x2008_DAB2u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0x2008_DAB2)
+        assertGPRRegisters(ebx = 0x2008_DAB2u)
         assertFlagRegisters()
     }
 
@@ -1188,10 +1191,10 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun btrTestr16r16() {
         val instruction = "btr CX, BX"
-        gprRegisters(ecx = 0x8E57, ebx = 0xF)
+        gprRegisters(ecx = 0x8E57u, ebx = 0xFu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0xF, ecx = 0xE57)
+        assertGPRRegisters(ebx = 0xFu, ecx = 0xE57u)
         assertFlagRegisters(cf = true)
     }
 
@@ -1203,20 +1206,20 @@ class X86InstructionsTest16: AX86InstructionTest() {
     }
 
     @Test fun btrTestr16i8() {
-        val instruction = "btr CX, 0xC"
-        gprRegisters(ecx = 0x124F)
+        val instruction = "btr CX, 0x0C"
+        gprRegisters(ecx = 0x124Fu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x24F)
+        assertGPRRegisters(ecx = 0x24Fu)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun btrTestr32i8() {
         val instruction = "btr EBX, 0x18"
-        gprRegisters(ebx = 0x2008_DAB2)
+        gprRegisters(ebx = 0x2008_DAB2u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0x2008_DAB2)
+        assertGPRRegisters(ebx = 0x2008_DAB2u)
         assertFlagRegisters()
     }
 
@@ -1224,37 +1227,37 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun btsTestr16r16() {
         val instruction = "bts CX, BX"
-        gprRegisters(ecx = 0x8E57, ebx = 0xF)
+        gprRegisters(ecx = 0x8E57u, ebx = 0xFu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0xF, ecx = 0x8E57)
+        assertGPRRegisters(ebx = 0xFu, ecx = 0x8E57u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun btsTestr32r32() {
         val instruction = "bts ECX, EBX"
-        gprRegisters(ecx = 0x2)
+        gprRegisters(ecx = 0x2u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x3)
+        assertGPRRegisters(ecx = 0x3u)
         assertFlagRegisters()
     }
 
     @Test fun btsTestr16i8() {
-        val instruction = "bts CX, 0xC"
-        gprRegisters(ecx = 0x124F)
+        val instruction = "bts CX, 0x0C"
+        gprRegisters(ecx = 0x124Fu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x124F)
+        assertGPRRegisters(ecx = 0x124Fu)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun btsTestr32i8() {
         val instruction = "bts EBX, 0x18"
-        gprRegisters(ebx = 0x2008_DAB2)
+        gprRegisters(ebx = 0x2008_DAB2u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ebx = 0x2108_DAB2)
+        assertGPRRegisters(ebx = 0x2108_DAB2u)
         assertFlagRegisters()
     }
 
@@ -1262,501 +1265,501 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun testTestALi8() {
         val instruction = "test AL, 0x69"
-        gprRegisters(eax = 0x25)
+        gprRegisters(eax = 0x25u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x25)
+        assertGPRRegisters(eax = 0x25u)
         assertFlagRegisters(sf = false, zf = false, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestAXi16() {
         val instruction = "test AX, 0x7ABA"
-        gprRegisters(eax = 0x2222)
+        gprRegisters(eax = 0x2222u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x2222)
+        assertGPRRegisters(eax = 0x2222u)
         assertFlagRegisters(sf = false, zf = false, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestEAXi32() {
         val instruction = "test EAX, 0xD8AA7ABA"
-        gprRegisters(eax = 0xCAFE_BABA)
+        gprRegisters(eax = 0xCAFE_BABAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xCAFE_BABA)
+        assertGPRRegisters(eax = 0xCAFE_BABAu)
         assertFlagRegisters(sf = true, zf = false, pf = false, cf = false, of = false)
     }
 
     @Test fun testTestr8i8() {
         val instruction = "test CL, 0xA7"
-        gprRegisters(ecx = 0x58)
+        gprRegisters(ecx = 0x58u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x58)
+        assertGPRRegisters(ecx = 0x58u)
         assertFlagRegisters(sf = false, zf = true, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestr16i16() {
         val instruction = "test CX, 0xBCDE"
-        gprRegisters(ecx = 0x4323)
+        gprRegisters(ecx = 0x4323u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4323)
+        assertGPRRegisters(ecx = 0x4323u)
         assertFlagRegisters(sf = false, zf = false, pf = false, cf = false, of = false)
     }
 
     @Test fun testTestr32i32() {
         val instruction = "test EDX, 0xABCDEF12"
-        gprRegisters(edx = 0xDEAD_BABA)
+        gprRegisters(edx = 0xDEAD_BABAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xDEAD_BABA)
+        assertGPRRegisters(edx = 0xDEAD_BABAu)
         assertFlagRegisters(sf = true, zf = false, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestm8i8() {
         val instruction = "test BYTE [EAX+0xFF], 0xA7"
-        store(startAddress + 0xF0FF, 0x58, Datatype.BYTE)
-        gprRegisters(eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0x58u, Datatype.BYTE)
+        gprRegisters(eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0x58, Datatype.BYTE)
+        assertMemory(startAddress + 0xF0FFu, 0x58u, Datatype.BYTE)
         assertFlagRegisters(sf = false, zf = true, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestm16i16() {
         val instruction = "test WORD [EDX+0x5678], 0xBCDE"
-        store(startAddress + 0xBE08, 0x4323, Datatype.WORD)
-        gprRegisters(edx = 0x6790)
+        store(startAddress + 0xBE08u, 0x4323u, Datatype.WORD)
+        gprRegisters(edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0x4323, Datatype.WORD)
+        assertMemory(startAddress + 0xBE08u, 0x4323u, Datatype.WORD)
         assertFlagRegisters(sf = false, zf = false, pf = false, cf = false, of = false)
     }
 
     @Test fun testTestm32i32() {
         val instruction = "test DWORD [EDX+0x5678], 0xABCDEF12"
-        store(startAddress + 0xBE08, 0xDEAD_BABA, Datatype.DWORD)
-        gprRegisters(edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xDEAD_BABAu, Datatype.DWORD)
+        gprRegisters(edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xDEAD_BABA, Datatype.DWORD)
-        assertGPRRegisters(edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xDEAD_BABAu, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x6790u)
         assertFlagRegisters(sf = true, zf = false, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestr8r8() {
         val instruction = "test CL, DH"
-        gprRegisters(ecx = 0x58, edx = 0xA700)
+        gprRegisters(ecx = 0x58u, edx = 0xA700u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x58, edx = 0xA700)
+        assertGPRRegisters(ecx = 0x58u, edx = 0xA700u)
         assertFlagRegisters(sf = false, zf = true, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestr16r16() {
         val instruction = "test CX, DX"
-        gprRegisters(ecx = 0x4323, edx = 0xBCDE)
+        gprRegisters(ecx = 0x4323u, edx = 0xBCDEu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4323, edx = 0xBCDE)
+        assertGPRRegisters(ecx = 0x4323u, edx = 0xBCDEu)
         assertFlagRegisters(sf = false, zf = false, pf = false, cf = false, of = false)
     }
 
     @Test fun testTestr32r32() {
         val instruction = "test EDX, EBX"
-        gprRegisters(edx = 0xDEAD_BABA, ebx = 0xABCD_EF12)
+        gprRegisters(edx = 0xDEAD_BABAu, ebx = 0xABCD_EF12u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xDEAD_BABA, ebx = 0xABCD_EF12)
+        assertGPRRegisters(edx = 0xDEAD_BABAu, ebx = 0xABCD_EF12u)
         assertFlagRegisters(sf = true, zf = false, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestm8r8() {
         val instruction = "test BYTE [EAX+0xFF], DH"
-        store(startAddress + 0xF0FF, 0x58, Datatype.BYTE)
-        gprRegisters(edx = 0xA700, eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0x58u, Datatype.BYTE)
+        gprRegisters(edx = 0xA700u, eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0x58, Datatype.BYTE)
-        assertGPRRegisters(edx = 0xA700, eax = 0xF000)
+        assertMemory(startAddress + 0xF0FFu, 0x58u, Datatype.BYTE)
+        assertGPRRegisters(edx = 0xA700u, eax = 0xF000u)
         assertFlagRegisters(sf = false, zf = true, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestm16r16() {
         val instruction = "test WORD [EDX+0x5678], CX"
-        store(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        gprRegisters(ecx = 0xFABA, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        gprRegisters(ecx = 0xFABAu, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        assertGPRRegisters(ecx = 0xFABA, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        assertGPRRegisters(ecx = 0xFABAu, edx = 0x6790u)
         assertFlagRegisters(sf = true, zf = false, pf = false, cf = false, of = false)
     }
 
     @Test fun testTestm32r32() {
         val instruction = "test DWORD [EDX+0x5678], ECX"
-        store(startAddress + 0xBE08, 0xDEAD_BABA, Datatype.DWORD)
-        gprRegisters(ecx = 0xABCD_EF12, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xDEAD_BABAu, Datatype.DWORD)
+        gprRegisters(ecx = 0xABCD_EF12u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xDEAD_BABA, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0xABCD_EF12, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xDEAD_BABAu, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0xABCD_EF12u, edx = 0x6790u)
         assertFlagRegisters(sf = true, zf = false, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestr8m() {
         val instruction = "test BYTE [EAX+0xFF], DH"
-        store(startAddress + 0xF0FF, 0x58, Datatype.BYTE)
-        gprRegisters(edx = 0xA700, eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0x58u, Datatype.BYTE)
+        gprRegisters(edx = 0xA700u, eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0x58, Datatype.BYTE)
-        assertGPRRegisters(edx = 0xA700, eax = 0xF000)
+        assertMemory(startAddress + 0xF0FFu, 0x58u, Datatype.BYTE)
+        assertGPRRegisters(edx = 0xA700u, eax = 0xF000u)
         assertFlagRegisters(sf = false, zf = true, pf = true, cf = false, of = false)
     }
 
     @Test fun testTestr16m16() {
         val instruction = "test WORD [EDX+0x5678], CX"
-        store(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        gprRegisters(ecx = 0xFABA, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        gprRegisters(ecx = 0xFABAu, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xBACA, Datatype.WORD)
-        assertGPRRegisters(ecx = 0xFABA, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xBACAu, Datatype.WORD)
+        assertGPRRegisters(ecx = 0xFABAu, edx = 0x6790u)
         assertFlagRegisters(sf = true, zf = false, pf = false, cf = false, of = false)
     }
 
     @Test fun testTestr32m32() {
         val instruction = "test DWORD [EDX+0x5678], ECX"
-        store(startAddress + 0xBE08, 0xDEAD_BABA, Datatype.DWORD)
-        gprRegisters(ecx = 0xABCD_EF12, edx = 0x6790)
+        store(startAddress + 0xBE08u, 0xDEAD_BABAu, Datatype.DWORD)
+        gprRegisters(ecx = 0xABCD_EF12u, edx = 0x6790u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBE08, 0xDEAD_BABA, Datatype.DWORD)
-        assertGPRRegisters(ecx = 0xABCD_EF12, edx = 0x6790)
+        assertMemory(startAddress + 0xBE08u, 0xDEAD_BABAu, Datatype.DWORD)
+        assertGPRRegisters(ecx = 0xABCD_EF12u, edx = 0x6790u)
         assertFlagRegisters(sf = true, zf = false, pf = true, cf = false, of = false)
     }
 
     // TEST RCL INSTRUCTION
 
     @Test fun rclTestr81() {
-        val instruction = "rcl DH, 0x1"
-        gprRegisters(edx = 0x2500)
+        val instruction = "rcl DH, 0x01"
+        gprRegisters(edx = 0x2500u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x4B00)
+        assertGPRRegisters(edx = 0x4B00u)
         assertFlagRegisters(cf = false, of = false)
     }
 
     @Test fun rclTestr8CL() {
         val instruction = "rcl DH, CL"
-        gprRegisters(edx = 0x2500, ecx = 3)
+        gprRegisters(edx = 0x2500u, ecx = 3u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x2C00, ecx = 3)
+        assertGPRRegisters(edx = 0x2C00u, ecx = 3u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun rclTestr8imm8() {
-        val instruction = "rcl DH, 0x4"
-        gprRegisters(edx = 0x2500)
+        val instruction = "rcl DH, 0x04"
+        gprRegisters(edx = 0x2500u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x5900)
+        assertGPRRegisters(edx = 0x5900u)
         assertFlagRegisters(cf = false)
     }
 
     @Test fun rclTestr161() {
-        val instruction = "rcl CX, 0x1"
-        gprRegisters(ecx = 0xA513)
+        val instruction = "rcl CX, 0x01"
+        gprRegisters(ecx = 0xA513u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4A27)
+        assertGPRRegisters(ecx = 0x4A27u)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun rclTestr16CL() {
         val instruction = "rcl DX, CL"
-        gprRegisters(edx = 0xA513, ecx = 0xFA)
+        gprRegisters(edx = 0xA513u, ecx = 0xFAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x4D4A, ecx = 0xFA)
+        assertGPRRegisters(edx = 0x4D4Au, ecx = 0xFAu)
     }
 
     @Test fun rclTestr16imm8() {
-        val instruction = "rcl DX, 0x4"
-        gprRegisters(edx = 0x2500)
+        val instruction = "rcl DX, 0x04"
+        gprRegisters(edx = 0x2500u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x5009)
+        assertGPRRegisters(edx = 0x5009u)
         assertFlagRegisters(cf = false)
     }
 
     @Test fun rclTestr321() {
-        val instruction = "rcl ECX, 0x1"
-        gprRegisters(ecx = 0xA513_FFC5)
+        val instruction = "rcl ECX, 0x01"
+        gprRegisters(ecx = 0xA513_FFC5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4A27_FF8A)
+        assertGPRRegisters(ecx = 0x4A27_FF8Au)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun rclTestr32CL() {
         val instruction = "rcl EDX, CL"
         flagRegisters(cf = true)
-        gprRegisters(edx = 0x22_A513, ecx = 0xFA)
+        gprRegisters(edx = 0x22_A513u, ecx = 0xFAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x4E00_454A, ecx = 0xFA)
+        assertGPRRegisters(edx = 0x4E00_454Au, ecx = 0xFAu)
     }
 
     @Test fun rclTestr32imm8() {
-        val instruction = "rcl EDX, 0x2"
-        gprRegisters(edx = 0xFF00_0000)
+        val instruction = "rcl EDX, 0x02"
+        gprRegisters(edx = 0xFF00_0000u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xFC00_0003)
+        assertGPRRegisters(edx = 0xFC00_0003u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun rclTestm81() {
-        val instruction = "rcl BYTE [EDX+0xFA12], 0x1"
-        store(startAddress + 0xFF45, 0x25, Datatype.BYTE)
-        gprRegisters(edx = 0x533)
+        val instruction = "rcl BYTE [EDX+0xFA12], 0x01"
+        store(startAddress + 0xFF45u, 0x25u, Datatype.BYTE)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x4B, Datatype.BYTE)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0x4Bu, Datatype.BYTE)
+        assertGPRRegisters(edx = 0x533u)
         assertFlagRegisters(cf = false, of = false)
     }
 
     @Test fun rclTestm8CL() {
         val instruction = "rcl BYTE [EDX+0xFA12], CL"
-        store(startAddress + 0xFF45, 0x25, Datatype.BYTE)
-        gprRegisters(edx = 0x533, ecx = 3)
+        store(startAddress + 0xFF45u, 0x25u, Datatype.BYTE)
+        gprRegisters(edx = 0x533u, ecx = 3u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x2C, Datatype.BYTE)
-        assertGPRRegisters(edx = 0x533, ecx = 3)
+        assertMemory(startAddress + 0xFF45u, 0x2Cu, Datatype.BYTE)
+        assertGPRRegisters(edx = 0x533u, ecx = 3u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun rclTestm8imm8() {
-        val instruction = "rcl BYTE [EDX+0xFA12], 0x4"
-        store(startAddress + 0xFF45, 0x25, Datatype.BYTE)
-        gprRegisters(edx = 0x533)
+        val instruction = "rcl BYTE [EDX+0xFA12], 0x04"
+        store(startAddress + 0xFF45u, 0x25u, Datatype.BYTE)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x59, Datatype.BYTE)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0x59u, Datatype.BYTE)
+        assertGPRRegisters(edx = 0x533u)
         assertFlagRegisters(cf = false)
     }
 
     @Test fun rclTestm161() {
-        val instruction = "rcl WORD [EDX+0xFA12], 0x1"
-        store(startAddress + 0xFF45, 0xA513, Datatype.WORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "rcl WORD [EDX+0xFA12], 0x01"
+        store(startAddress + 0xFF45u, 0xA513u, Datatype.WORD)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x4A27, Datatype.WORD)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0x4A27u, Datatype.WORD)
+        assertGPRRegisters(edx = 0x533u)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun rclTestm16CL() {
         val instruction = "rcl WORD [EDX+0xFA12], CL"
-        store(startAddress + 0xFF45, 0xA513, Datatype.WORD)
-        gprRegisters(edx = 0x533, ecx = 0xFA)
+        store(startAddress + 0xFF45u, 0xA513u, Datatype.WORD)
+        gprRegisters(edx = 0x533u, ecx = 0xFAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533, ecx = 0xFA)
-        assertMemory(startAddress + 0xFF45, 0x4D4A, Datatype.WORD)
+        assertGPRRegisters(edx = 0x533u, ecx = 0xFAu)
+        assertMemory(startAddress + 0xFF45u, 0x4D4Au, Datatype.WORD)
     }
 
     @Test fun rclTestm16imm8() {
-        val instruction = "rcl WORD [EDX+0xFA12], 0x4"
-        store(startAddress + 0xFF45, 0x2500, Datatype.WORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "rcl WORD [EDX+0xFA12], 0x04"
+        store(startAddress + 0xFF45u, 0x2500u, Datatype.WORD)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x5009, Datatype.WORD)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0x5009u, Datatype.WORD)
+        assertGPRRegisters(edx = 0x533u)
         assertFlagRegisters(cf = false)
     }
 
     @Test fun rclTestm321() {
-        val instruction = "rcl DWORD [EDX+0xFA12], 0x1"
-        store(startAddress + 0xFF45, 0xA513_FFC5, Datatype.DWORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "rcl DWORD [EDX+0xFA12], 0x01"
+        store(startAddress + 0xFF45u, 0xA513_FFC5u, Datatype.DWORD)
+        gprRegisters(edx = 0x533u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533)
-        assertMemory(startAddress + 0xFF45, 0x4A27_FF8A, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x533u)
+        assertMemory(startAddress + 0xFF45u, 0x4A27_FF8Au, Datatype.DWORD)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun rclTestm32CL() {
         val instruction = "rcl DWORD [EDX+0xFA12], CL"
-        store(startAddress + 0xFF45, 0x22_A513, Datatype.DWORD)
+        store(startAddress + 0xFF45u, 0x22_A513u, Datatype.DWORD)
         flagRegisters(cf = true)
-        gprRegisters(edx = 0x533, ecx = 0xFA)
+        gprRegisters(edx = 0x533u, ecx = 0xFAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x4E00_454A, Datatype.DWORD)
-        assertGPRRegisters(edx = 0x533, ecx = 0xFA)
+        assertMemory(startAddress + 0xFF45u, 0x4E00_454Au, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x533u, ecx = 0xFAu)
     }
 
     @Test fun rclTestm32imm8() {
-        val instruction = "rcl DWORD [EDX+0xFA12], 0x2"
-        store(startAddress + 0xFF45, 0xFF00_0000, Datatype.DWORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "rcl DWORD [EDX+0xFA12], 0x02"
+        store(startAddress + 0xFF45u, 0xFF00_0000u, Datatype.DWORD)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533)
-        assertMemory(startAddress + 0xFF45, 0xFC00_0003, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x533u)
+        assertMemory(startAddress + 0xFF45u, 0xFC00_0003u, Datatype.DWORD)
         assertFlagRegisters(cf = true)
     }
 
     // TEST RCR INSTRUCTION
 
     @Test fun rcrTestr81() {
-        val instruction = "rcr DH, 0x1"
-        gprRegisters(edx = 0x2500)
+        val instruction = "rcr DH, 0x01"
+        gprRegisters(edx = 0x2500u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x9200)
+        assertGPRRegisters(edx = 0x9200u)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun rcrTestr16CL() {
         val instruction = "rcr DX, CL"
-        gprRegisters(edx = 0xA513, ecx = 0xFA)
+        gprRegisters(edx = 0xA513u, ecx = 0xFAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x89A9, ecx = 0xFA)
+        assertGPRRegisters(edx = 0x89A9u, ecx = 0xFAu)
     }
 
     @Test fun rcrTestr32imm8() {
-        val instruction = "rcr EDX, 0x2"
-        gprRegisters(edx = 0xFF00_0000)
+        val instruction = "rcr EDX, 0x02"
+        gprRegisters(edx = 0xFF00_0000u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x7FC0_0000)
+        assertGPRRegisters(edx = 0x7FC0_0000u)
         flagRegisters(of = true)
     }
 
     @Test fun rcrTestm8CL() {
         val instruction = "rcr BYTE [EDX+0xFA12], CL"
-        store(startAddress + 0xFF45, 0x25, Datatype.BYTE)
-        gprRegisters(edx = 0x533, ecx = 3)
+        store(startAddress + 0xFF45u, 0x25u, Datatype.BYTE)
+        gprRegisters(edx = 0x533u, ecx = 3u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x64, Datatype.BYTE)
-        assertGPRRegisters(edx = 0x533, ecx = 3)
+        assertMemory(startAddress + 0xFF45u, 0x64u, Datatype.BYTE)
+        assertGPRRegisters(edx = 0x533u, ecx = 3u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun rcrTestm161() {
-        val instruction = "rcr WORD [EDX+0xFA12], 0x1"
-        store(startAddress + 0xFF45, 0xA513, Datatype.WORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "rcr WORD [EDX+0xFA12], 0x01"
+        store(startAddress + 0xFF45u, 0xA513u, Datatype.WORD)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0xD289, Datatype.WORD)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0xD289u, Datatype.WORD)
+        assertGPRRegisters(edx = 0x533u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun rcrTestm32imm8() {
-        val instruction = "rcr DWORD [EDX+0xFA12], 0x2"
-        store(startAddress + 0xFF45, 0xFF00_0000, Datatype.DWORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "rcr DWORD [EDX+0xFA12], 0x02"
+        store(startAddress + 0xFF45u, 0xFF00_0000u, Datatype.DWORD)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533)
-        assertMemory(startAddress + 0xFF45, 0x7FC0_0000, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x533u)
+        assertMemory(startAddress + 0xFF45u, 0x7FC0_0000u, Datatype.DWORD)
         assertFlagRegisters()
     }
 
     // TEST ROL INSTRUCTION
 
     @Test fun rolTestr8imm8() {
-        val instruction = "rol DH, 0x4"
-        gprRegisters(edx = 0x2500)
+        val instruction = "rol DH, 0x04"
+        gprRegisters(edx = 0x2500u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x5200)
+        assertGPRRegisters(edx = 0x5200u)
         assertFlagRegisters(cf = false)
     }
 
     @Test fun rolTestr16CL() {
         val instruction = "rol DX, CL"
-        gprRegisters(edx = 0xA513, ecx = 0xFA)
+        gprRegisters(edx = 0xA513u, ecx = 0xFAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x4E94, ecx = 0xFA)
+        assertGPRRegisters(edx = 0x4E94u, ecx = 0xFAu)
     }
 
     @Test fun rolTestr321() {
-        val instruction = "rol ECX, 0x1"
-        gprRegisters(ecx = 0xA513_FFC5)
+        val instruction = "rol ECX, 0x01"
+        gprRegisters(ecx = 0xA513_FFC5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x4A27_FF8B)
+        assertGPRRegisters(ecx = 0x4A27_FF8Bu)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun rolTestm8CL() {
         val instruction = "rol BYTE [EDX+0xFA12], CL"
-        store(startAddress + 0xFF45, 0x25, Datatype.BYTE)
-        gprRegisters(edx = 0x533, ecx = 3)
+        store(startAddress + 0xFF45u, 0x25u, Datatype.BYTE)
+        gprRegisters(edx = 0x533u, ecx = 3u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x29, Datatype.BYTE)
-        assertGPRRegisters(edx = 0x533, ecx = 3)
+        assertMemory(startAddress + 0xFF45u, 0x29u, Datatype.BYTE)
+        assertGPRRegisters(edx = 0x533u, ecx = 3u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun rolTestm161() {
-        val instruction = "rol WORD [EDX+0xFA12], 0x1"
-        store(startAddress + 0xFF45, 0xA513, Datatype.WORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "rol WORD [EDX+0xFA12], 0x01"
+        store(startAddress + 0xFF45u, 0xA513u, Datatype.WORD)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x4A27, Datatype.WORD)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0x4A27u, Datatype.WORD)
+        assertGPRRegisters(edx = 0x533u)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun rolTestm32imm8() {
-        val instruction = "rol DWORD [EDX+0xFA12], 0x2"
-        store(startAddress + 0xFF45, 0xFF00_0000, Datatype.DWORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "rol DWORD [EDX+0xFA12], 0x02"
+        store(startAddress + 0xFF45u, 0xFF00_0000u, Datatype.DWORD)
+        gprRegisters(edx = 0x533u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533)
-        assertMemory(startAddress + 0xFF45, 0xFC00_0003, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x533u)
+        assertMemory(startAddress + 0xFF45u, 0xFC00_0003u, Datatype.DWORD)
         assertFlagRegisters(cf = true)
     }
 
@@ -1764,197 +1767,197 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun rorTestr8CL() {
         val instruction = "ror DH, CL"
-        gprRegisters(edx = 0x2500, ecx = 3)
+        gprRegisters(edx = 0x2500u, ecx = 3u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xA400, ecx = 3)
+        assertGPRRegisters(edx = 0xA400u, ecx = 3u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun rorTestr161() {
-        val instruction = "ror CX, 0x1"
-        gprRegisters(ecx = 0xA513)
+        val instruction = "ror CX, 0x01"
+        gprRegisters(ecx = 0xA513u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xD289)
+        assertGPRRegisters(ecx = 0xD289u)
         assertFlagRegisters(cf = true)
     }
 
     @Test fun rorTestr321() {
-        val instruction = "ror ECX, 0x1"
-        gprRegisters(ecx = 0x2513_FFC5)
+        val instruction = "ror ECX, 0x01"
+        gprRegisters(ecx = 0x2513_FFC5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x9289_FFE2)
+        assertGPRRegisters(ecx = 0x9289_FFE2u)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun rorTestm8imm8() {
-        val instruction = "ror BYTE [EDX+0xFA12], 0x4"
-        store(startAddress + 0xFF45, 0x25, Datatype.BYTE)
-        gprRegisters(edx = 0x533)
+        val instruction = "ror BYTE [EDX+0xFA12], 0x04"
+        store(startAddress + 0xFF45u, 0x25u, Datatype.BYTE)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x52, Datatype.BYTE)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0x52u, Datatype.BYTE)
+        assertGPRRegisters(edx = 0x533u)
     }
 
     @Test fun rorTestm16CL() {
         val instruction = "ror WORD [EDX+0xFA12], CL"
-        store(startAddress + 0xFF45, 0xA513, Datatype.WORD)
-        gprRegisters(edx = 0x533, ecx = 0xFA)
+        store(startAddress + 0xFF45u, 0xA513u, Datatype.WORD)
+        gprRegisters(edx = 0x533u, ecx = 0xFAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533, ecx = 0xFA)
-        assertMemory(startAddress + 0xFF45, 0x44E9, Datatype.WORD)
+        assertGPRRegisters(edx = 0x533u, ecx = 0xFAu)
+        assertMemory(startAddress + 0xFF45u, 0x44E9u, Datatype.WORD)
     }
 
     @Test fun rorTestm321() {
-        val instruction = "ror DWORD [EDX+0xFA12], 0x1"
-        store(startAddress + 0xFF45, 0xA513_FFC4, Datatype.DWORD)
-        gprRegisters(edx = 0x533)
+        val instruction = "ror DWORD [EDX+0xFA12], 0x01"
+        store(startAddress + 0xFF45u, 0xA513_FFC4u, Datatype.DWORD)
+        gprRegisters(edx = 0x533u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533)
-        assertMemory(startAddress + 0xFF45, 0x5289_FFE2, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x533u)
+        assertMemory(startAddress + 0xFF45u, 0x5289_FFE2u, Datatype.DWORD)
         assertFlagRegisters(of = true)
     }
 
     // TEST SAL/SHL INSTRUCTION
 
     @Test fun salShlTestr81() {
-        val instruction = "shl DH, 0x1"
-        gprRegisters(edx = 0xA500)
+        val instruction = "shl DH, 0x01"
+        gprRegisters(edx = 0xA500u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x4A00)
+        assertGPRRegisters(edx = 0x4A00u)
         assertFlagRegisters(cf = true, of = true)
     }
 
     @Test fun salShlTestr8CL() {
         val instruction = "shl DH, CL"
-        gprRegisters(edx = 0x2500, ecx = 3)
+        gprRegisters(edx = 0x2500u, ecx = 3u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x2800, ecx = 3)
+        assertGPRRegisters(edx = 0x2800u, ecx = 3u)
         assertFlagRegisters(cf = true, pf = true)
     }
 
     @Test fun salShlTestr161() {
-        val instruction = "shl CX, 0x1"
-        gprRegisters(ecx = 0x8000)
+        val instruction = "shl CX, 0x01"
+        gprRegisters(ecx = 0x8000u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0)
+        assertGPRRegisters(ecx = 0u)
         assertFlagRegisters(zf = true, pf = true, cf = true, of = true)
     }
 
     @Test fun salShlTestr16CL() {
         val instruction = "shl BX, CL"
-        gprRegisters(ebx = 0x8000, ecx = 0x454E_ABFF)
+        gprRegisters(ebx = 0x8000u, ecx = 0x454E_ABFFu)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x454E_ABFF)
+        assertGPRRegisters(ecx = 0x454E_ABFFu)
         assertFlagRegisters(zf = true, pf = true)
     }
 
     // TEST SAR INSTRUCTION
 
     @Test fun sarTestr321() {
-        val instruction = "sar ECX, 0x1"
-        gprRegisters(ecx = 0x2513_FFC5)
+        val instruction = "sar ECX, 0x01"
+        gprRegisters(ecx = 0x2513_FFC5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x1289_FFE2)
+        assertGPRRegisters(ecx = 0x1289_FFE2u)
         assertFlagRegisters(cf = true, pf = true)
     }
 
     @Test fun sarTestm8imm8() {
-        val instruction = "sar BYTE [EDX+0xFA12], 0x4"
-        store(startAddress + 0xFF45, 0xFF, Datatype.BYTE)
-        gprRegisters(edx = 0x533)
+        val instruction = "sar BYTE [EDX+0xFA12], 0x04"
+        store(startAddress + 0xFF45u, 0xFFu, Datatype.BYTE)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0xFF, Datatype.BYTE)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0xFFu, Datatype.BYTE)
+        assertGPRRegisters(edx = 0x533u)
         assertFlagRegisters(cf = true, pf = true, sf = true)
     }
 
     @Test fun sarTestm32CL() {
         val instruction = "sar DWORD [EDX+0xFA12], CL"
-        store(startAddress + 0xFF45, 0xA513_FFC4, Datatype.DWORD)
-        gprRegisters(edx = 0x533, ecx = 0xF7)
+        store(startAddress + 0xFF45u, 0xA513_FFC4u, Datatype.DWORD)
+        gprRegisters(edx = 0x533u, ecx = 0xF7u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533, ecx = 0xF7)
-        assertMemory(startAddress + 0xFF45, 0xFFFF_FF4A, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x533u, ecx = 0xF7u)
+        assertMemory(startAddress + 0xFF45u, 0xFFFF_FF4Au, Datatype.DWORD)
         assertFlagRegisters(sf = true)
     }
 
     @Test fun sarTestr16CL() {
         val instruction = "sar AX, CL"
-        gprRegisters(ecx = 0x10, eax = 0x656D)
+        gprRegisters(ecx = 0x10u, eax = 0x656Du)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x10, eax = 0x0)
+        assertGPRRegisters(ecx = 0x10u, eax = 0x0u)
         assertFlagRegisters(cf = false, pf = true, zf = true)
     }
 
     @Test fun sarTestr16CLFlag() {
         val instruction = "sar AL, CL"
-        gprRegisters(ecx = 0x10, eax = 0xFF)
+        gprRegisters(ecx = 0x10u, eax = 0xFFu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x10, eax = 0xFF)
+        assertGPRRegisters(ecx = 0x10u, eax = 0xFFu)
         assertFlagRegisters(cf = true, pf = true, sf = true)
     }
 
     // TEST SHR INSTRUCTION
 
     @Test fun shrTestr321() {
-        val instruction = "shr ECX, 0x1"
-        gprRegisters(ecx = 0x2513_FFC5)
+        val instruction = "shr ECX, 0x01"
+        gprRegisters(ecx = 0x2513_FFC5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0x1289_FFE2)
+        assertGPRRegisters(ecx = 0x1289_FFE2u)
         assertFlagRegisters(cf = true, pf = true)
     }
 
     @Test fun shrTestm8imm8() {
-        val instruction = "shr BYTE [EDX+0xFA12], 0x4"
-        store(startAddress + 0xFF45, 0xFF, Datatype.BYTE)
-        gprRegisters(edx = 0x533)
+        val instruction = "shr BYTE [EDX+0xFA12], 0x04"
+        store(startAddress + 0xFF45u, 0xFFu, Datatype.BYTE)
+        gprRegisters(edx = 0x533u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xFF45, 0x0F, Datatype.BYTE)
-        assertGPRRegisters(edx = 0x533)
+        assertMemory(startAddress + 0xFF45u, 0x0Fu, Datatype.BYTE)
+        assertGPRRegisters(edx = 0x533u)
         assertFlagRegisters(cf = true, pf = true)
     }
 
     @Test fun shrTestm32CL() {
         val instruction = "shr DWORD [EDX+0xFA12], CL"
-        store(startAddress + 0xFF45, 0xA5C3_FFC4, Datatype.DWORD)
-        gprRegisters(edx = 0x533, ecx = 0xF7)
+        store(startAddress + 0xFF45u, 0xA5C3_FFC4u, Datatype.DWORD)
+        gprRegisters(edx = 0x533u, ecx = 0xF7u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x533, ecx = 0xF7)
-        assertMemory(startAddress + 0xFF45, 0x0000_014B, Datatype.DWORD)
+        assertGPRRegisters(edx = 0x533u, ecx = 0xF7u)
+        assertMemory(startAddress + 0xFF45u, 0x0000_014Bu, Datatype.DWORD)
         assertFlagRegisters(cf = true, pf = true)
     }
 
     @Test fun shrTestr16CL() {
         val instruction = "shr AX, CL"
-        gprRegisters(ecx = 0xE5, eax = 0x656D)
+        gprRegisters(ecx = 0xE5u, eax = 0x656Du)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(ecx = 0xE5, eax = 0x32B)
+        assertGPRRegisters(ecx = 0xE5u, eax = 0x32Bu)
         assertFlagRegisters(cf = false, pf = true)
     }
 
@@ -1962,64 +1965,64 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun cdqTestEAXNegative() {
         val instruction = "cdq "
-        gprRegisters(eax = 0xFFAC_FFC5)
+        gprRegisters(eax = 0xFFAC_FFC5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xFFAC_FFC5, edx = 0xFFFF_FFFF)
+        assertGPRRegisters(eax = 0xFFAC_FFC5u, edx = 0xFFFF_FFFFu)
     }
 
     @Test fun cdqTestEAXPositive() {
         val instruction = "cdq "
-        gprRegisters(eax = 0x60AC_FFC5)
+        gprRegisters(eax = 0x60AC_FFC5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x60AC_FFC5)
+        assertGPRRegisters(eax = 0x60AC_FFC5u)
     }
 
     // TEST CWDE INSTRUCTION
 
     @Test fun cwdeTestAXNegative() {
         val instruction = "cwde "
-        gprRegisters(eax = 0xFFC5)
+        gprRegisters(eax = 0xFFC5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xFFFF_FFC5)
+        assertGPRRegisters(eax = 0xFFFF_FFC5u)
     }
 
     @Test fun cwdeTestAXPositive() {
         val instruction = "cwde "
-        gprRegisters(eax = 0x60AC)
+        gprRegisters(eax = 0x60ACu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x60AC)
+        assertGPRRegisters(eax = 0x60ACu)
     }
 
     // TEST LEA INSTRUCTION
 
     @Test fun leaTestr16m16() {
         val instruction = "lea AX, [0xFC54]"
-        val insnString =  "lea ax, word_0000fc54"
+        val insnString =  "lea ax, word [0xFC54]"
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xFC54, esp = 0x1000)
+        assertGPRRegisters(eax = 0xFC54u, esp = 0x1000u)
     }
 
     @Test fun leaTestr16m32() {
         val instruction = "lea EAX, [ECX + 0xFC54]"
         val insnString =  "lea eax, DWORD [ECX+0xFC54]"
-        gprRegisters(ecx = 0xFFA0_1425)
+        gprRegisters(ecx = 0xFFA0_1425u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(ecx = 0xFFA0_1425, eax = 0xFFA1_1079)
+        assertGPRRegisters(ecx = 0xFFA0_1425u, eax = 0xFFA1_1079u)
     }
 
     @Test fun leaTestr16p32() {
         val instruction = "lea EAX, [ECX + 8 * EBX + 4]"
-        val insnString =  "lea eax, DWORD[ECX+8*EBX0x4]"
-        gprRegisters(ecx = 0xFFA0_1425, ebx = 0x1F8A)
+        val insnString =  "lea eax, DWORD[ECX+8*EBX+0x04]"
+        gprRegisters(ecx = 0xFFA0_1425u, ebx = 0x1F8Au)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(ecx = 0xFFA0_1425, eax = 0xFFA1_1079, ebx = 0x1F8A)
+        assertGPRRegisters(ecx = 0xFFA0_1425u, eax = 0xFFA1_1079u, ebx = 0x1F8Au)
     }
 
     // TEST LSL INSTRUCTION
@@ -2027,245 +2030,245 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun lslTestr16m16() {
         val instruction = "lsl AX, BX"
         val insnString =  "lsl ax, bx"
-        gprRegisters(ebx = 0xBABA)
+        gprRegisters(ebx = 0xBABAu)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(ebx = 0xBABA)
+        assertGPRRegisters(ebx = 0xBABAu)
     }
 
     // TEST LDS INSTRUCTION
 
     @Test fun ldsTestr16m16() {
         val instruction = "lds AX, [0xFC54]"
-        val insnString =  "lds ax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA, Datatype.DWORD)
+        val insnString =  "lds ax, fword [0xfc54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABAu, Datatype.DWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA, esp = 0x1000)
-        assertSegmentRegisters(cs = 0x8, ds = 0xFACA, ss = 0x8)
+        assertGPRRegisters(eax = 0xBABAu, esp = 0x1000u)
+        assertSegmentRegisters(cs = 0x8u, ds = 0xFACAu, ss = 0x8u)
     }
 
     @Test fun ldsTestr16m32() {
         val instruction = "lds EAX, [0xFC54]"
-        val insnString =  "lds eax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA_CABA, Datatype.FWORD)
+        val insnString =  "lds eax, fword [0xfc54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABA_CABAu, Datatype.FWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA_CABA, esp = 0x1000)
-        assertSegmentRegisters(cs = 0x8, ds = 0xFACA, ss = 0x8)
+        assertGPRRegisters(eax = 0xBABA_CABAu, esp = 0x1000u)
+        assertSegmentRegisters(cs = 0x8u, ds = 0xFACAu, ss = 0x8u)
     }
 
     // TEST LES INSTRUCTION
 
     @Test fun lesTestr16m16() {
         val instruction = "les AX, [0xFC54]"
-        val insnString =  "les ax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA, Datatype.DWORD)
+        val insnString =  "les ax, fword [0xFC54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABAu, Datatype.DWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA, esp = 0x1000)
-        assertSegmentRegisters(ds = 0x8, cs = 0x8, es = 0xFACA, ss = 0x8)
+        assertGPRRegisters(eax = 0xBABAu, esp = 0x1000u)
+        assertSegmentRegisters(ds = 0x8u, cs = 0x8u, es = 0xFACAu, ss = 0x8u)
     }
 
     @Test fun lesTestr16m32() {
         val instruction = "les EAX, [0xFC54]"
-        val insnString =  "les eax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA_CABA, Datatype.FWORD)
+        val insnString =  "les eax, FWORD [0xFC54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABA_CABAu, Datatype.FWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA_CABA, esp = 0x1000)
-        assertSegmentRegisters(ds = 0x8, cs = 0x8, es = 0xFACA, ss = 0x8)
+        assertGPRRegisters(eax = 0xBABA_CABAu, esp = 0x1000u)
+        assertSegmentRegisters(ds = 0x8u, cs = 0x8u, es = 0xFACAu, ss = 0x8u)
     }
 
     // TEST LFS INSTRUCTION
 
     @Test fun lfsTestr16m16() {
         val instruction = "lfs AX, [0xFC54]"
-        val insnString =  "lfs ax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA, Datatype.DWORD)
+        val insnString =  "lfs ax, FWORD [0xFC54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABAu, Datatype.DWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA, esp = 0x1000)
-        assertSegmentRegisters(ds = 0x8, cs = 0x8, fs = 0xFACA, ss = 0x8)
+        assertGPRRegisters(eax = 0xBABAu, esp = 0x1000u)
+        assertSegmentRegisters(ds = 0x8u, cs = 0x8u, fs = 0xFACAu, ss = 0x8u)
     }
 
     @Test fun lfsTestr16m32() {
         val instruction = "lfs EAX, [0xFC54]"
-        val insnString =  "lfs eax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA_CABA, Datatype.FWORD)
+        val insnString =  "lfs eax, FWORD [0xFC54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABA_CABAu, Datatype.FWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA_CABA, esp = 0x1000)
-        assertSegmentRegisters(ds = 0x8, cs = 0x8, fs = 0xFACA, ss = 0x8)
+        assertGPRRegisters(eax = 0xBABA_CABAu, esp = 0x1000u)
+        assertSegmentRegisters(ds = 0x8u, cs = 0x8u, fs = 0xFACAu, ss = 0x8u)
     }
 
     // TEST LFS INSTRUCTION
 
     @Test fun lgsTestr16m16() {
         val instruction = "lgs AX, [0xFC54]"
-        val insnString =  "lgs ax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA, Datatype.DWORD)
+        val insnString =  "lgs ax, FWORD [0xFC54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABAu, Datatype.DWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA, esp = 0x1000)
-        assertSegmentRegisters(ds = 0x8, cs = 0x8, gs = 0xFACA, ss = 0x8)
+        assertGPRRegisters(eax = 0xBABAu, esp = 0x1000u)
+        assertSegmentRegisters(ds = 0x8u, cs = 0x8u, gs = 0xFACAu, ss = 0x8u)
     }
 
     @Test fun lgsTestr16m32() {
         val instruction = "lgs EAX, [0xFC54]"
-        val insnString =  "lgs eax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA_CABA, Datatype.FWORD)
+        val insnString =  "lgs eax, FWORD [0xFC54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABA_CABAu, Datatype.FWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA_CABA, esp = 0x1000)
-        assertSegmentRegisters(ds = 0x8, cs = 0x8, gs = 0xFACA, ss = 0x8)
+        assertGPRRegisters(eax = 0xBABA_CABAu, esp = 0x1000u)
+        assertSegmentRegisters(ds = 0x8u, cs = 0x8u, gs = 0xFACAu, ss = 0x8u)
     }
 
     // TEST LSS INSTRUCTION
 
     @Test fun lssTestr16m16() {
         val instruction = "lss AX, [0xFC54]"
-        val insnString =  "lss ax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA, Datatype.DWORD)
+        val insnString =  "lss ax, FWORD [0xFC54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABAu, Datatype.DWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA, esp = 0x1000)
-        assertSegmentRegisters(ds = 0x8, cs = 0x8, ss = 0xFACA)
+        assertGPRRegisters(eax = 0xBABAu, esp = 0x1000u)
+        assertSegmentRegisters(ds = 0x8u, cs = 0x8u, ss = 0xFACAu)
     }
 
     @Test fun lssTestr16m32() {
         val instruction = "lss EAX, [0xFC54]"
-        val insnString =  "lss eax, FWORD_0000FC54"
-        store(startAddress + 0xFC54, 0xFACA_BABA_CABA, Datatype.FWORD)
+        val insnString =  "lss eax, FWORD [0xFC54]"
+        store(startAddress + 0xFC54u, 0xFACA_BABA_CABAu, Datatype.FWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBABA_CABA, esp = 0x1000)
-        assertSegmentRegisters(ds = 0x8, cs = 0x8, ss = 0xFACA)
+        assertGPRRegisters(eax = 0xBABA_CABAu, esp = 0x1000u)
+        assertSegmentRegisters(ds = 0x8u, cs = 0x8u, ss = 0xFACAu)
     }
 
     // TEST POP/PUSH INSTRUCTION
 
     @Test fun pushPopTestr16() {
         val instructionPush = "push AX"
-        gprRegisters(eax = 0x60AC)
+        gprRegisters(eax = 0x60ACu)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0x60AC, esp = 0xFFFE)
+        assertGPRRegisters(eax = 0x60ACu, esp = 0xFFFEu)
 
         val instructionPop = "pop BX"
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertGPRRegisters(eax = 0x60AC, ebx = 0x60AC)
+        assertGPRRegisters(eax = 0x60ACu, ebx = 0x60ACu)
     }
 
     @Test fun pushPopTestr32() {
         val instructionPush = "push EAX"
-        gprRegisters(eax = 0xFFA8_60AC)
+        gprRegisters(eax = 0xFFA8_60ACu)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0xFFA8_60AC, esp = 0xFFFC)
+        assertGPRRegisters(eax = 0xFFA8_60ACu, esp = 0xFFFCu)
 
         val instructionPop = "pop EBX"
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertGPRRegisters(eax = 0xFFA8_60AC, ebx = 0xFFA8_60AC)
+        assertGPRRegisters(eax = 0xFFA8_60ACu, ebx = 0xFFA8_60ACu)
     }
 
     @Test fun pushPopTestimm8r16() {
         val instructionPush = "push 0x16"
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(esp = 0xFFE)
+        assertGPRRegisters(esp = 0xFFEu)
 
         val instructionPop = "pop BX"
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertGPRRegisters(ebx = 0x16, esp = 0x1000)
+        assertGPRRegisters(ebx = 0x16u, esp = 0x1000u)
     }
 
     @Test fun pushPopTestimm16m16() {
         val instructionPush = "push 0x60AC"
-        store(startAddress + 0xF540, 0xFACA, Datatype.WORD)
-        gprRegisters(esp = 0xF000, edx = 0xDA41)
+        store(startAddress + 0xF540u, 0xFACAu, Datatype.WORD)
+        gprRegisters(esp = 0xF000u, edx = 0xDA41u)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(edx = 0xDA41, esp = 0xEFFE)
+        assertGPRRegisters(edx = 0xDA41u, esp = 0xEFFEu)
 
         val instructionPop = "pop WORD [EDX+0x1AFF]"
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertMemory(startAddress + 0xF540, 0x60AC, Datatype.WORD)
+        assertMemory(startAddress + 0xF540u, 0x60ACu, Datatype.WORD)
     }
 
     @Test fun pushPopTestm16DS() {
         val instructionPush = "push WORD [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0xFACA, Datatype.WORD)
-        gprRegisters(edx = 0xDA41, esp = 0xF000)
+        store(startAddress + 0xF540u, 0xFACAu, Datatype.WORD)
+        gprRegisters(edx = 0xDA41u, esp = 0xF000u)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(edx = 0xDA41, esp = 0xEFFE)
+        assertGPRRegisters(edx = 0xDA41u, esp = 0xEFFEu)
 
         val instructionPop = "pop FS"
-        store(startAddress + 0xF540, 0xFACA, Datatype.WORD)
+        store(startAddress + 0xF540u, 0xFACAu, Datatype.WORD)
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertSegmentRegisters(cs = 0x8, ds = 0x8, ss = 0x8, fs = 0xFACA)
+        assertSegmentRegisters(cs = 0x8u, ds = 0x8u, ss = 0x8u, fs = 0xFACAu)
     }
 
     @Test fun pushPopTestGSr32() {
         val instructionPush = "push GS"
-        gprRegisters(esp = 0xF000)
-        segmentRegisters(gs = 0xABBA)
+        gprRegisters(esp = 0xF000u)
+        segmentRegisters(gs = 0xABBAu)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(esp = 0xEFFE)
+        assertGPRRegisters(esp = 0xEFFEu)
 
         val instructionPop = "pop EAX"
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertGPRRegisters(esp = 0xF002, eax = 0xABBA)
+        assertGPRRegisters(esp = 0xF002u, eax = 0xABBAu)
     }
 
     // TEST POPA/PUSHA INSTRUCTION
 
     @Test fun pushaPopaTest() {
         val instructionPush = "pusha "
-        gprRegisters(eax = 0xFF01, ebx = 0xFF02, ecx = 0xFF03, edx = 0xFF04,
-                     esp = 0xF000, ebp = 0xFF05, esi = 0xFF06, edi = 0xFF07)
+        gprRegisters(eax = 0xFF01u, ebx = 0xFF02u, ecx = 0xFF03u, edx = 0xFF04u,
+                     esp = 0xF000u, ebp = 0xFF05u, esi = 0xFF06u, edi = 0xFF07u)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0xFF01, ebx = 0xFF02, ecx = 0xFF03, edx = 0xFF04,
-                           ebp = 0xFF05, esi = 0xFF06, edi = 0xFF07, esp = 0xEFF0)
+        assertGPRRegisters(eax = 0xFF01u, ebx = 0xFF02u, ecx = 0xFF03u, edx = 0xFF04u,
+                           ebp = 0xFF05u, esi = 0xFF06u, edi = 0xFF07u, esp = 0xEFF0u)
 
         val instructionPop = "popa "
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertGPRRegisters(eax = 0xFF01, ebx = 0xFF02, ecx = 0xFF03, edx = 0xFF04,
-                           esp = 0xF000, ebp = 0xFF05, esi = 0xFF06, edi = 0xFF07)
+        assertGPRRegisters(eax = 0xFF01u, ebx = 0xFF02u, ecx = 0xFF03u, edx = 0xFF04u,
+                           esp = 0xF000u, ebp = 0xFF05u, esi = 0xFF06u, edi = 0xFF07u)
     }
 
     // TEST POPF/PUSHF INSTRUCTION
 
     @Test fun pushfPopfTest() {
         val instructionPush = "pushf "
-        eflag(0x4221)
+        eflag(0x4221u)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertEflag(0x4221)
-        eflag(0)
+        assertEflag(0x4221u)
+        eflag(0u)
 
         val instructionPop = "popf "
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertEflag(0x4223)
+        assertEflag(0x4223u)
     }
 
     @Test fun pushfPopfTestGeneral1() {
         val instructionPush = "pushf "
         flagRegisters(vm = true)
-        eflag(0x4221)
+        eflag(0x4221u)
         iopl(2)
-        x86.cpu.cregs.cr0 = 0L
+        x86.cpu.cregs.cr0.value = 0uL
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
         assertTrue { x86.cpu.exception is x86HardwareException.GeneralProtectionFault }
@@ -2273,11 +2276,11 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun pushfPopfTestGeneral2() {
         val instructionPush = "pushf "
-        eflag(0x4221)
+        eflag(0x4221u)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertEflag(0x4221)
-        eflag(0)
+        assertEflag(0x4221u)
+        eflag(0u)
 
         val instructionPop = "popf "
         flagRegisters(vm = true)
@@ -2291,409 +2294,409 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun leaveTest() {
         val instructionPush = "push 0xCA16"
-        gprRegisters(esp = 0xF000)
-        execute(-3) { assemble(instructionPush) }
+        gprRegisters(esp = 0xF000u)
+        execute(-3uL) { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(esp = 0xEFFE)
+        assertGPRRegisters(esp = 0xEFFEu)
 
-        gprRegisters(esp = 0xB2AC, ebp = 0xEFFE)
+        gprRegisters(esp = 0xB2ACu, ebp = 0xEFFEu)
         val instructionLeave = "leave "
         execute { assemble(instructionLeave) }
         assertAssembly(instructionLeave)
-        assertGPRRegisters(ebp = 0xCA16, esp = 0xF000)
+        assertGPRRegisters(ebp = 0xCA16u, esp = 0xF000u)
     }
 
     // TEST ENTER INSTRUCTION
 
     @Test fun enterTest() {
-        val instructionLeave = "enter 0x82, 0x0"
+        val instructionLeave = "enter 0x82, 0x00"
         execute { assemble(instructionLeave) }
         assertAssembly(instructionLeave)
-        assertGPRRegisters(esp = 0xF7C, ebp = 0xFFE)
+        assertGPRRegisters(esp = 0xF7Cu, ebp = 0xFFEu)
     }
 
     // TEST MOVSX INSTRUCTION
 
     @Test fun movsxTestr16m8() {
         val instruction = "movsx AX, BYTE [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0x7A, Datatype.WORD)
-        gprRegisters(eax = 0xCAFF, edx = 0xDA41)
+        store(startAddress + 0xF540u, 0x7Au, Datatype.WORD)
+        gprRegisters(eax = 0xCAFFu, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x7A, edx = 0xDA41)
+        assertGPRRegisters(eax = 0x7Au, edx = 0xDA41u)
     }
 
     @Test fun movsxTestr32m8() {
         val instruction = "movsx EAX, BYTE [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0xFA, Datatype.WORD)
-        gprRegisters(eax = 0xCAFF, edx = 0xDA41)
+        store(startAddress + 0xF540u, 0xFAu, Datatype.WORD)
+        gprRegisters(eax = 0xCAFFu, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xFFFF_FFFA, edx = 0xDA41)
+        assertGPRRegisters(eax = 0xFFFF_FFFAu, edx = 0xDA41u)
     }
 
     @Test fun movsxTestr32r16() {
         val instruction = "movsx EAX, DX"
-        gprRegisters(eax = 0xACCA_CAFF, edx = 0xDA41)
+        gprRegisters(eax = 0xACCA_CAFFu, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xFFFF_DA41, edx = 0xDA41)
+        assertGPRRegisters(eax = 0xFFFF_DA41u, edx = 0xDA41u)
     }
 
     // TEST MOVZX INSTRUCTION
 
     @Test fun movzxTestr32m16() {
         val instruction = "movzx EAX, WORD [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0xFF7A, Datatype.WORD)
-        gprRegisters(eax = 0xFFFF_CAFF, edx = 0xDA41)
+        store(startAddress + 0xF540u, 0xFF7Au, Datatype.WORD)
+        gprRegisters(eax = 0xFFFF_CAFFu, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xFF7A, edx = 0xDA41)
+        assertGPRRegisters(eax = 0xFF7Au, edx = 0xDA41u)
     }
 
     @Test fun movzxTestr32r8() {
         val instruction = "movzx EAX, BL"
-        gprRegisters(eax = 0xCAFF, ebx = 0x3E52, edx = 0xDA41)
+        gprRegisters(eax = 0xCAFFu, ebx = 0x3E52u, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x52, edx = 0xDA41, ebx = 0x3E52)
+        assertGPRRegisters(eax = 0x52u, edx = 0xDA41u, ebx = 0x3E52u)
     }
 
     @Test fun movzxTestr16r8() {
         val instruction = "movzx AX, CL"
-        gprRegisters(eax = 0xACCA_CAFF, edx = 0xDA41, ecx = 0xF1)
+        gprRegisters(eax = 0xACCA_CAFFu, edx = 0xDA41u, ecx = 0xF1u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xACCA_00F1, ecx = 0xF1, edx = 0xDA41)
+        assertGPRRegisters(eax = 0xACCA_00F1u, ecx = 0xF1u, edx = 0xDA41u)
     }
 
     // TEST MOV INSTRUCTION
 
     @Test fun movTestr8m8() {
         val instruction = "mov AL, BYTE [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0x7A, Datatype.BYTE)
-        gprRegisters(eax = 0xCAFF, edx = 0xDA41)
+        store(startAddress + 0xF540u, 0x7Au, Datatype.BYTE)
+        gprRegisters(eax = 0xCAFFu, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xCA7A, edx = 0xDA41)
+        assertGPRRegisters(eax = 0xCA7Au, edx = 0xDA41u)
     }
 
     @Test fun movTestr16m16() {
         val instruction = "mov AX, WORD [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0xFF7A, Datatype.WORD)
-        gprRegisters(eax = 0xCAFF, edx = 0xDA41)
+        store(startAddress + 0xF540u, 0xFF7Au, Datatype.WORD)
+        gprRegisters(eax = 0xCAFFu, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xFF7A, edx = 0xDA41)
+        assertGPRRegisters(eax = 0xFF7Au, edx = 0xDA41u)
     }
 
     @Test fun movTestr32m32() {
         val instruction = "mov EAX, DWORD [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0xFFFF_FFFA, Datatype.DWORD)
-        gprRegisters(eax = 0xCAFF, edx = 0xDA41)
+        store(startAddress + 0xF540u, 0xFFFF_FFFAu, Datatype.DWORD)
+        gprRegisters(eax = 0xCAFFu, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xFFFF_FFFA, edx = 0xDA41)
+        assertGPRRegisters(eax = 0xFFFF_FFFAu, edx = 0xDA41u)
     }
 
     @Test fun movTestr8r8() {
         val instruction = "mov AL, DH"
-        gprRegisters(eax = 0xCA, edx = 0xDA00)
+        gprRegisters(eax = 0xCAu, edx = 0xDA00u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xDA, edx = 0xDA00)
+        assertGPRRegisters(eax = 0xDAu, edx = 0xDA00u)
     }
 
     @Test fun movTestr16r16() {
         val instruction = "mov AX, BX"
-        gprRegisters(eax = 0xCAFF, ebx = 0x3E52)
+        gprRegisters(eax = 0xCAFFu, ebx = 0x3E52u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x3E52, ebx = 0x3E52)
+        assertGPRRegisters(eax = 0x3E52u, ebx = 0x3E52u)
     }
 
     @Test fun movTestr32r32() {
         val instruction = "mov EAX, ECX"
-        gprRegisters(eax = 0xACCA_CAFF, ecx = 0xDA41_01F1)
+        gprRegisters(eax = 0xACCA_CAFFu, ecx = 0xDA41_01F1u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xDA41_01F1, ecx = 0xDA41_01F1)
+        assertGPRRegisters(eax = 0xDA41_01F1u, ecx = 0xDA41_01F1u)
     }
 
     @Test fun movTestr8imm8() {
         val instruction = "mov AL, 0xDA"
-        gprRegisters(eax = 0xCA)
+        gprRegisters(eax = 0xCAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xDA)
+        assertGPRRegisters(eax = 0xDAu)
     }
 
     @Test fun movTestr16imm16() {
         val instruction = "mov AX, 0x3E52"
-        gprRegisters(eax = 0xCAFF)
+        gprRegisters(eax = 0xCAFFu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x3E52)
+        assertGPRRegisters(eax = 0x3E52u)
     }
 
     @Test fun movTestr32imm32() {
         val instruction = "mov EAX, 0xDA4101F1"
-        gprRegisters(eax = 0xACCA_CAFF)
+        gprRegisters(eax = 0xACCA_CAFFu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xDA41_01F1)
+        assertGPRRegisters(eax = 0xDA41_01F1u)
     }
 
     @Test fun movTestm8imm8() {
         val instruction = "mov BYTE [EDX+0x10F7], 0xDA"
-        gprRegisters(edx = 0xACA1)
+        gprRegisters(edx = 0xACA1u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBD98, 0xDA, Datatype.BYTE)
-        assertGPRRegisters(edx = 0xACA1)
+        assertMemory(startAddress + 0xBD98u, 0xDAu, Datatype.BYTE)
+        assertGPRRegisters(edx = 0xACA1u)
     }
 
     @Test fun movTestm16imm16() {
         val instruction = "mov WORD [EDX+0x10F7], 0xA0DA"
-        gprRegisters(edx = 0xACA1)
+        gprRegisters(edx = 0xACA1u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBD98, 0xA0DA, Datatype.WORD)
-        assertGPRRegisters(edx = 0xACA1)
+        assertMemory(startAddress + 0xBD98u, 0xA0DAu, Datatype.WORD)
+        assertGPRRegisters(edx = 0xACA1u)
     }
 
     @Test fun movTestm32imm32() {
         val instruction = "mov DWORD [EDX+0x10F7], 0xFAC6A0DA"
-        gprRegisters(edx = 0xACA1)
+        gprRegisters(edx = 0xACA1u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBD98, 0xFAC6_A0DA, Datatype.DWORD)
-        assertGPRRegisters(edx = 0xACA1)
+        assertMemory(startAddress + 0xBD98u, 0xFAC6_A0DAu, Datatype.DWORD)
+        assertGPRRegisters(edx = 0xACA1u)
     }
 
     @Test fun movTestm8r8() {
         val instruction = "mov BYTE [EDX+0x10F7], AH"
-        gprRegisters(edx = 0xACA1, eax = 0xDA00)
+        gprRegisters(edx = 0xACA1u, eax = 0xDA00u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBD98, 0xDA, Datatype.BYTE)
-        assertGPRRegisters(edx = 0xACA1, eax = 0xDA00)
+        assertMemory(startAddress + 0xBD98u, 0xDAu, Datatype.BYTE)
+        assertGPRRegisters(edx = 0xACA1u, eax = 0xDA00u)
     }
 
     @Test fun movTestm16r16() {
         val instruction = "mov WORD [EDX+0x10F7], AX"
-        gprRegisters(edx = 0xACA1, eax = 0xA0DA)
+        gprRegisters(edx = 0xACA1u, eax = 0xA0DAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBD98, 0xA0DA, Datatype.WORD)
-        assertGPRRegisters(edx = 0xACA1, eax = 0xA0DA)
+        assertMemory(startAddress + 0xBD98u, 0xA0DAu, Datatype.WORD)
+        assertGPRRegisters(edx = 0xACA1u, eax = 0xA0DAu)
     }
 
     @Test fun movTestm32r32() {
         val instruction = "mov DWORD [EDX+0x10F7], EBX"
-        gprRegisters(edx = 0xACA1, ebx = 0xFAC6_A0DA)
+        gprRegisters(edx = 0xACA1u, ebx = 0xFAC6_A0DAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBD98, 0xFAC6_A0DA, Datatype.DWORD)
-        assertGPRRegisters(edx = 0xACA1, ebx = 0xFAC6_A0DA)
+        assertMemory(startAddress + 0xBD98u, 0xFAC6_A0DAu, Datatype.DWORD)
+        assertGPRRegisters(edx = 0xACA1u, ebx = 0xFAC6_A0DAu)
     }
 
     @Test fun movTestm16Sreg() {
         val instruction = "mov WORD [EDX+0x10F7], GS"
-        segmentRegisters(gs = 0xACFA)
-        gprRegisters(edx = 0xACA1)
+        segmentRegisters(gs = 0xACFAu)
+        gprRegisters(edx = 0xACA1u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xBD98, 0xACFA, Datatype.WORD)
-        assertGPRRegisters(edx = 0xACA1)
-        assertSegmentRegisters(gs = 0xACFA, ds = 0x8, ss = 0x8, cs = 0x8)
+        assertMemory(startAddress + 0xBD98u, 0xACFAu, Datatype.WORD)
+        assertGPRRegisters(edx = 0xACA1u)
+        assertSegmentRegisters(gs = 0xACFAu, ds = 0x8u, ss = 0x8u, cs = 0x8u)
     }
 
     @Test fun movTestr16Sreg() {
         val instruction = "mov DX, GS"
-        segmentRegisters(gs = 0xACFA)
-        gprRegisters(edx = 0xACA1)
+        segmentRegisters(gs = 0xACFAu)
+        gprRegisters(edx = 0xACA1u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xACFA)
-        assertSegmentRegisters(gs = 0xACFA, ds = 0x8, ss = 0x8, cs = 0x8)
+        assertGPRRegisters(edx = 0xACFAu)
+        assertSegmentRegisters(gs = 0xACFAu, ds = 0x8u, ss = 0x8u, cs = 0x8u)
     }
 
     @Test fun movTestSregm16() {
         val instruction = "mov FS, WORD [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0xFF7A, Datatype.WORD)
-        gprRegisters(edx = 0xDA41)
+        store(startAddress + 0xF540u, 0xFF7Au, Datatype.WORD)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xDA41)
-        assertSegmentRegisters(fs = 0xFF7A, ds = 0x8, ss = 0x8, cs = 0x8)
+        assertGPRRegisters(edx = 0xDA41u)
+        assertSegmentRegisters(fs = 0xFF7Au, ds = 0x8u, ss = 0x8u, cs = 0x8u)
     }
 
     @Test fun movTestSregr16() {
         val instruction = "mov FS, DX"
-        gprRegisters(edx = 0xFF7A)
+        gprRegisters(edx = 0xFF7Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xFF7A)
-        assertSegmentRegisters(fs = 0xFF7A, ds = 0x8, ss = 0x8, cs = 0x8)
+        assertGPRRegisters(edx = 0xFF7Au)
+        assertSegmentRegisters(fs = 0xFF7Au, ds = 0x8u, ss = 0x8u, cs = 0x8u)
     }
 
     // TEST XCHG INSTRUCTION
 
     @Test fun xchgTestm8r8() {
         val instruction = "xchg BH, BYTE [EDX+0x1AFF]"
-        store(startAddress + 0xF540, 0x7A, Datatype.BYTE)
-        gprRegisters(edx = 0xDA41, ebx = 0x6543)
+        store(startAddress + 0xF540u, 0x7Au, Datatype.BYTE)
+        gprRegisters(edx = 0xDA41u, ebx = 0x6543u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xDA41, ebx = 0x7A43)
-        assertMemory(startAddress + 0xF540, 0x65, Datatype.BYTE)
+        assertGPRRegisters(edx = 0xDA41u, ebx = 0x7A43u)
+        assertMemory(startAddress + 0xF540u, 0x65u, Datatype.BYTE)
     }
 
     @Test fun xchgTestr16r16() {
         val instruction = "xchg AX, DX"
-        gprRegisters(eax = 0xCAFF, edx = 0xDA41)
+        gprRegisters(eax = 0xCAFFu, edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xCAFF, eax = 0xDA41)
+        assertGPRRegisters(edx = 0xCAFFu, eax = 0xDA41u)
     }
 
     @Test fun xchgTestr32r32() {
         val instruction = "xchg EAX, EDX"
-        gprRegisters(eax = 0xFAFA_CAFF, edx = 0xBABA_DA41)
+        gprRegisters(eax = 0xFAFA_CAFFu, edx = 0xBABA_DA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(edx = 0xFAFA_CAFF, eax = 0xBABA_DA41)
+        assertGPRRegisters(edx = 0xFAFA_CAFFu, eax = 0xBABA_DA41u)
     }
 
     // TEST SETA INSTRUCTION
 
     @Test fun setaTestm8Posistive() {
         val instruction = "seta BYTE [EDX+0x1AFF]"
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setaTestm8Negative1() {
         val instruction = "seta BYTE [EDX+0x1AFF]"
         flagRegisters(zf = true)
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0u, Datatype.BYTE)
     }
 
     @Test fun setaTestm8Negative2() {
         val instruction = "seta BYTE [EDX+0x1AFF]"
         flagRegisters(cf = true)
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0u, Datatype.BYTE)
     }
 
     @Test fun setaTestm8Negative3() {
         val instruction = "seta BYTE [EDX+0x1AFF]"
         flagRegisters(zf = true, cf = true)
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0u, Datatype.BYTE)
     }
 
     // TEST SETB INSTRUCTION
 
     @Test fun setbTestm8Posistive() {
         val instruction = "setb BYTE [EDX+0x1AFF]"
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setbTestm8Negative() {
         val instruction = "setb BYTE [EDX+0x1AFF]"
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0u, Datatype.BYTE)
     }
 
     // TEST SETBE INSTRUCTION
 
     @Test fun setbeTestm8Posistive1() {
         val instruction = "setbe BYTE [EDX+0x1AFF]"
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         flagRegisters(zf = true, cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setbeTestm8Posistive2() {
         val instruction = "setbe BYTE [EDX+0x1AFF]"
         flagRegisters(zf = true)
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setbeTestm8Posistive3() {
         val instruction = "setbe BYTE [EDX+0x1AFF]"
         flagRegisters(cf = true)
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setbeTestm8Negative() {
         val instruction = "setbe BYTE [EDX+0x1AFF]"
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0u, Datatype.BYTE)
     }
 
     // TEST SETG INSTRUCTION
 
     @Test fun setgTestm8Posistive1() {
         val instruction = "setg BYTE [EDX+0x1AFF]"
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setgTestm8Posistive2() {
         val instruction = "setg BYTE [EDX+0x1AFF]"
         flagRegisters(sf = true, of = true)
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setgTestm8Negative1() {
         val instruction = "setg BYTE [EDX+0x1AFF]"
         flagRegisters(zf = true)
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0u, Datatype.BYTE)
     }
 
     @Test fun setgTestm8Negative2() {
         val instruction = "setg BYTE [EDX+0x1AFF]"
-        gprRegisters(edx = 0xDA41)
+        gprRegisters(edx = 0xDA41u)
         flagRegisters(sf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF540, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xF540u, 0u, Datatype.BYTE)
     }
 
     // TEST SETGE INSTRUCTION
@@ -2702,7 +2705,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "setge AH"
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x100, esp = 0x1000)
+        assertGPRRegisters(eax = 0x100u, esp = 0x1000u)
     }
 
     @Test fun setgeTestr8Posistive2() {
@@ -2710,7 +2713,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(sf = true, of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x100, esp = 0x1000)
+        assertGPRRegisters(eax = 0x100u, esp = 0x1000u)
     }
 
     @Test fun setgeTestr8Negative1() {
@@ -2718,7 +2721,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(sf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(esp = 0x1000)
+        assertGPRRegisters(esp = 0x1000u)
     }
 
     @Test fun setgeTestr8Negative2() {
@@ -2726,7 +2729,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(esp = 0x1000)
+        assertGPRRegisters(esp = 0x1000u)
     }
 
     // TEST SETL INSTRUCTION
@@ -2736,7 +2739,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(sf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x100, esp = 0x1000)
+        assertGPRRegisters(eax = 0x100u, esp = 0x1000u)
     }
 
     @Test fun setlTestr8Positive2() {
@@ -2744,14 +2747,14 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x100, esp = 0x1000)
+        assertGPRRegisters(eax = 0x100u, esp = 0x1000u)
     }
 
     @Test fun setlTestr8Negative1() {
         val instruction = "setl AH"
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(esp = 0x1000)
+        assertGPRRegisters(esp = 0x1000u)
     }
 
     @Test fun setlTestr8Negative2() {
@@ -2759,7 +2762,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(sf = true, of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(esp = 0x1000)
+        assertGPRRegisters(esp = 0x1000u)
     }
 
     // TEST SETLE INSTRUCTION
@@ -2769,7 +2772,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(sf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x100, esp = 0x1000)
+        assertGPRRegisters(eax = 0x100u, esp = 0x1000u)
     }
 
     @Test fun setleTestr8Positive2() {
@@ -2777,7 +2780,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x100, esp = 0x1000)
+        assertGPRRegisters(eax = 0x100u, esp = 0x1000u)
     }
 
     @Test fun setleTestr8Positive3() {
@@ -2785,7 +2788,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(zf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x100, esp = 0x1000)
+        assertGPRRegisters(eax = 0x100u, esp = 0x1000u)
     }
 
     @Test fun setleTestr8Positive4() {
@@ -2793,14 +2796,14 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(zf = true, sf = true, of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x100, esp = 0x1000)
+        assertGPRRegisters(eax = 0x100u, esp = 0x1000u)
     }
 
     @Test fun setleTestr8Negative1() {
         val instruction = "setle AH"
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(esp = 0x1000)
+        assertGPRRegisters(esp = 0x1000u)
     }
 
     @Test fun setleTestr8Negative2() {
@@ -2808,178 +2811,178 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(sf = true, of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(esp = 0x1000)
+        assertGPRRegisters(esp = 0x1000u)
     }
 
     // TEST SETNB INSTRUCTION
 
     @Test fun setnbTestm8Posistive() {
         val instruction = "setnb BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setnbTestm8Negative() {
         val instruction = "setnb BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST SETNE INSTRUCTION
 
     @Test fun setneTestm8Positive() {
         val instruction = "setne BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setneTestm8Negative() {
         val instruction = "setne BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(zf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST SETNO INSTRUCTION
 
     @Test fun setnoTestm8Posistive() {
         val instruction = "setno BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setnoTestm8Negative() {
         val instruction = "setno BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST SETNS INSTRUCTION
 
     @Test fun setnsTestm8Posistive() {
         val instruction = "setns BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setnsTestm8Negative() {
         val instruction = "setns BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(sf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST SETO INSTRUCTION
 
     @Test fun setoTestm8Positive() {
         val instruction = "seto BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(of = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setoTestm8Negative() {
         val instruction = "seto BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST SETPE INSTRUCTION
 
     @Test fun setpeTestm8Positive() {
         val instruction = "setpe BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(pf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setpeTestm8Negative() {
         val instruction = "setpe BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST SETPO INSTRUCTION
 
     @Test fun setpoTestm8Posistive() {
         val instruction = "setpo BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setpoTestm8Negative() {
         val instruction = "setpo BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(pf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST SETS INSTRUCTION
 
     @Test fun setsTestm8Positive() {
         val instruction = "sets BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(sf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setsTestm8Negative() {
         val instruction = "sets BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST SETZ INSTRUCTION
 
     @Test fun setzTestm8Positive() {
         val instruction = "setz BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         flagRegisters(zf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0x1, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0x1u, Datatype.BYTE)
     }
 
     @Test fun setzTestm8Negative() {
         val instruction = "setz BYTE [EDX+0x5FE9]"
-        gprRegisters(edx = 0x63C5)
+        gprRegisters(edx = 0x63C5u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xC3AE, 0, Datatype.BYTE)
+        assertMemory(startAddress + 0xC3AEu, 0u, Datatype.BYTE)
     }
 
     // TEST CALL INSTRUCTION
@@ -2987,64 +2990,64 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun callTestptr1616() {
         val instruction = "call 0x1234:0x5678" // 5 byte hex
         val insnString = "call 1234:00005678"
-        execute(0x5673) { assemble(instruction) }
+        execute(0x5673u) { assemble(instruction) }
         assertAssembly(insnString)
-        assertSegmentRegisters(ds = 0x8, ss = 0x8, cs = 0x1234)
+        assertSegmentRegisters(ds = 0x8u, ss = 0x8u, cs = 0x1234u)
     }
 
     @Test fun callTestptr1632() {
         val instruction = "call 0x1234: dword 0xAAC_5678" // 8 byte hex
         val insnString = "call 1234:0AAC5678"
-        execute(0xAAC_5670) { assemble(instruction) }
+        execute(0xAAC_5670u) { assemble(instruction) }
         assertAssembly(insnString)
-        assertSegmentRegisters(ds = 0x8, ss = 0x8, cs = 0x1234)
+        assertSegmentRegisters(ds = 0x8u, ss = 0x8u, cs = 0x1234u)
     }
 
     @Test fun callTestrel16() {
         val instruction = "call 0x5678"  // 3 byte hex
         val insnString = "call 0x5675"
-        execute(0x5675) { assemble(instruction) }
+        execute(0x5675u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
     @Test fun callTestrel32() {
         val instruction = "call dword 0xAAC_5678"  // 6 byte hex
         val insnString = "call 0xAAC5672"
-        execute(0xAAC_5672) { assemble(instruction) }
+        execute(0xAAC_5672u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
     @Test fun callTestr16() {
         val instruction = "call DX"  // 2 byte hex
-        gprRegisters(edx = 0x5678)
-        execute(0x5676) { assemble(instruction) }
+        gprRegisters(edx = 0x5678u)
+        execute(0x5676u) { assemble(instruction) }
         assertAssembly(instruction)
     }
 
     @Test fun callTestr32() {
         val instruction = "call EDX"  // 3 byte hex
-        gprRegisters(edx = 0xAAC_5678)
-        execute(0xAAC_5675) { assemble(instruction) }
+        gprRegisters(edx = 0xAAC_5678u)
+        execute(0xAAC_5675u) { assemble(instruction) }
         assertAssembly(instruction)
     }
 
     @Test fun callTestm1616() {
         val instruction = "call word far [cs: word 0xF540]" // 5 byte hex
         val insnString = "call 0008:00005678"
-        store(startAddress + 0xF540, 0x5678, Datatype.WORD)
-        store(startAddress + 0xF542, 0x0008, Datatype.WORD)
-        execute(0x5673) { assemble(instruction) }
+        store(startAddress + 0xF540u, 0x5678u, Datatype.WORD)
+        store(startAddress + 0xF542u, 0x0008u, Datatype.WORD)
+        execute(0x5673u) { assemble(instruction) }
         assertAssembly(insnString)
-        assertSegmentRegisters(ds = 0x8, ss = 0x8, cs = 0x08)
+        assertSegmentRegisters(ds = 0x8u, ss = 0x8u, cs = 0x08u)
     }
 
     @Test fun callTestm1632() {
         val instruction = "call dword far [fs: dword 0xF540]" // 9 byte hex
         val insnString = "call 0008:0AAC5678"
-        segmentRegisters(cs = 0x08, ds = 0x08, ss = 0x08, es = 0x08, fs = 0x8, gs = 0x08)
-        store(startAddress + 0xF540, 0xAAC_5678 , Datatype.DWORD)
-        store(startAddress + 0xF544, 0x0008 , Datatype.WORD)
-        execute(0xAAC_566F) { assemble(instruction) }
+        segmentRegisters(cs = 0x08u, ds = 0x08u, ss = 0x08u, es = 0x08u, fs = 0x8u, gs = 0x08u)
+        store(startAddress + 0xF540u, 0xAAC_5678u , Datatype.DWORD)
+        store(startAddress + 0xF544u, 0x0008u , Datatype.WORD)
+        execute(0xAAC_566Fu) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3053,64 +3056,64 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jmpTestptr1616() {
         val instruction = "jmp 0x1234:0x5678" // 5 byte hex
         val insnString = "jmp 1234:00005678"
-        execute(0x5673) { assemble(instruction) }
+        execute(0x5673u) { assemble(instruction) }
         assertAssembly(insnString)
-        assertSegmentRegisters(ds = 0x8, ss = 0x8, cs = 0x1234)
+        assertSegmentRegisters(ds = 0x8u, ss = 0x8u, cs = 0x1234u)
     }
 
     @Test fun jmpTestptr1632() {
         val instruction = "jmp 0x1234: dword 0xAAC_5678" // 8 byte hex
         val insnString = "jmp 1234:0AAC5678"
-        execute(0xAAC_5670) { assemble(instruction) }
+        execute(0xAAC_5670u) { assemble(instruction) }
         assertAssembly(insnString)
-        assertSegmentRegisters(ds = 0x8, ss = 0x8, cs = 0x1234)
+        assertSegmentRegisters(ds = 0x8u, ss = 0x8u, cs = 0x1234u)
     }
 
     @Test fun jmpTestrel16() {
         val instruction = "jmp 0x5678"  // 3 byte hex
         val insnString = "jmp 0x5675"
-        execute(0x5675) { assemble(instruction) }
+        execute(0x5675u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
     @Test fun jmpTestrel32() {
         val instruction = "jmp dword 0xAAC_5678"  // 6 byte hex
         val insnString = "jmp 0xAAC5672"
-        execute(0xAAC_5672) { assemble(instruction) }
+        execute(0xAAC_5672u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
     @Test fun jmpTestr16() {
         val instruction = "jmp DX"  // 2 byte hex
-        gprRegisters(edx = 0x5678)
-        execute(0x5676) { assemble(instruction) }
+        gprRegisters(edx = 0x5678u)
+        execute(0x5676u) { assemble(instruction) }
         assertAssembly(instruction)
     }
 
     @Test fun jmpTestr32() {
         val instruction = "jmp EDX"  // 3 byte hex
-        gprRegisters(edx = 0xAAC_5678)
-        execute(0xAAC_5675) { assemble(instruction) }
+        gprRegisters(edx = 0xAAC_5678u)
+        execute(0xAAC_5675u) { assemble(instruction) }
         assertAssembly(instruction)
     }
 
     @Test fun jmpTestm1616() {
         val instruction = "jmp word far [cs: word 0xF540]" // 5 byte hex
         val insnString = "jmp 0008:00005678"
-        store(startAddress + 0xF540, 0x5678, Datatype.WORD)
-        store(startAddress + 0xF542, 0x0008, Datatype.WORD)
-        execute(0x5673) { assemble(instruction) }
+        store(startAddress + 0xF540u, 0x5678u, Datatype.WORD)
+        store(startAddress + 0xF542u, 0x0008u, Datatype.WORD)
+        execute(0x5673u) { assemble(instruction) }
         assertAssembly(insnString)
-        assertSegmentRegisters(ds = 0x8, ss = 0x8, cs = 0x8)
+        assertSegmentRegisters(ds = 0x8u, ss = 0x8u, cs = 0x8u)
     }
 
     @Test fun jmpTestm1632() {
         val instruction = "jmp dword far [fs: dword 0xF540]" // 9 byte hex
         val insnString = "jmp 0008:0AAC5678"
-        segmentRegisters(cs = 0x08, ds = 0x08, ss = 0x08, es = 0x08, fs = 0x8, gs = 0x08)
-        store(startAddress + 0xF540, 0xAAC_5678, Datatype.DWORD)
-        store(startAddress + 0xF544, 0x0008, Datatype.WORD)
-        execute(0xAAC_566F) { assemble(instruction) }
+        segmentRegisters(cs = 0x08u, ds = 0x08u, ss = 0x08u, es = 0x08u, fs = 0x8u, gs = 0x08u)
+        store(startAddress + 0xF540u, 0xAAC_5678u, Datatype.DWORD)
+        store(startAddress + 0xF544u, 0x0008u, Datatype.WORD)
+        execute(0xAAC_566Fu) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3118,77 +3121,77 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun retTestNear16() {
         val instructionPush = "push AX"
-        gprRegisters(eax = 0x60AC, esp = 0xF000)
+        gprRegisters(eax = 0x60ACu, esp = 0xF000u)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0x60AC, esp = 0xEFFE)
+        assertGPRRegisters(eax = 0x60ACu, esp = 0xEFFEu)
 
         val instruction = "retn 0x0"
-        val insnString = "ret 0x0"
-        execute(0x60A8) { assemble(instruction) }
+        val insnString = "ret 0x00"
+        execute(0x60A8u) { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0x60AC, esp = 0xF000)
+        assertGPRRegisters(eax = 0x60ACu, esp = 0xF000u)
     }
 
     @Test fun retTestNear32() {
         val instructionPush = "push EAX"
-        gprRegisters(eax = 0xCAFF_60AC, esp = 0xF000)
+        gprRegisters(eax = 0xCAFF_60ACu, esp = 0xF000u)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0xCAFF_60AC, esp = 0xEFFC)
+        assertGPRRegisters(eax = 0xCAFF_60ACu, esp = 0xEFFCu)
 
         val instruction = "retf 0x0"
-        val insnString = "ret 0x0"
-        execute(0x60A7) { assemble(instruction) }
+        val insnString = "ret 0x00"
+        execute(0x60A7u) { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xCAFF_60AC, esp = 0xF000)
-        assertSegmentRegisters(ds = 0x8, ss = 0x8, cs = 0xCAFF)
+        assertGPRRegisters(eax = 0xCAFF_60ACu, esp = 0xF000u)
+        assertSegmentRegisters(ds = 0x8u, ss = 0x8u, cs = 0xCAFFu)
     }
 
     @Test fun retTestFar16() {
         val instructionPush = "push EAX"
-        gprRegisters(eax = 0x1111_2222, esp = 0xF000)
-        execute(-2) { assemble(instructionPush) }
+        gprRegisters(eax = 0x1111_2222u, esp = 0xF000u)
+        execute(-2uL) { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0x1111_2222, esp = 0xEFFC)
+        assertGPRRegisters(eax = 0x1111_2222u, esp = 0xEFFCu)
 
-        gprRegisters(eax = 0x0000_4444, esp = 0xEFFC)
+        gprRegisters(eax = 0x0000_4444u, esp = 0xEFFCu)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0x0000_4444, esp = 0xEFF8)
+        assertGPRRegisters(eax = 0x0000_4444u, esp = 0xEFF8u)
 
         val instruction = "retn 0x2"
-        val insnString = "ret 0x2"
-        execute(0x443F) { assemble(instruction) }
+        val insnString = "ret 0x02"
+        execute(0x443Fu) { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0x4444, esp = 0xEFFC)
+        assertGPRRegisters(eax = 0x4444u, esp = 0xEFFCu)
     }
 
     @Test fun retTestFar32() {
         val instructionPush = "push EAX"
-        gprRegisters(eax = 0x1111_2222, esp = 0xF000)
-        execute(-2) { assemble(instructionPush) }
+        gprRegisters(eax = 0x1111_2222u, esp = 0xF000u)
+        execute(-2uL) { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0x1111_2222, esp = 0xEFFC)
+        assertGPRRegisters(eax = 0x1111_2222u, esp = 0xEFFCu)
 
-        gprRegisters(eax = 0x5555_4444, esp = 0xEFFC)
+        gprRegisters(eax = 0x5555_4444u, esp = 0xEFFCu)
         execute { assemble(instructionPush) }
         assertAssembly(instructionPush)
-        assertGPRRegisters(eax = 0x5555_4444, esp = 0xEFF8)
+        assertGPRRegisters(eax = 0x5555_4444u, esp = 0xEFF8u)
 
-        gprRegisters(esp = 0xEFF8, eip = 2)
+        gprRegisters(esp = 0xEFF8u, eip = 2u)
         val instruction = "retf 0x2"
-        val insnString = "ret 0x2"
-        execute(0x443F) { assemble(instruction) }
+        val insnString = "ret 0x02"
+        execute(0x443Fu) { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(esp = 0xEFFE)
-        assertSegmentRegisters(ds = 0x8, ss = 0x8, cs = 0x5555)
+        assertGPRRegisters(esp = 0xEFFEu)
+        assertSegmentRegisters(ds = 0x8u, ss = 0x8u, cs = 0x5555u)
 
         segmentRegisters()
         val instructionPop = "pop EAX"
         execute { assemble(instructionPop) }
         assertAssembly(instructionPop)
-        assertGPRRegisters(eax = 0x1111, esp = 0xF002)
+        assertGPRRegisters(eax = 0x1111u, esp = 0xF002u)
     }
 
     // TEST JA INSTRUCTION
@@ -3196,7 +3199,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jaTestrel8Positive() {
         val instruction = "ja 0x78"  // 4 byte hex
         val insnString = "ja 0x0074"
-        execute(0x74) { assemble(instruction) }
+        execute(0x74u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3229,7 +3232,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jnbTestrel16Positive() {
         val instruction = "jnb 0x5678"  // 4 byte hex
         val insnString = "jnb 0x5674"
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3247,7 +3250,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jb 0x5678"  // 4 byte hex
         val insnString = "jb 0x5674"
         flagRegisters(cf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3271,7 +3274,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jbe 0x5678"  // 4 byte hex
         val insnString = "jbe 0x5674"
         flagRegisters(cf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3279,7 +3282,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jbe 0x5678"  // 4 byte hex
         val insnString = "jbe 0x5674"
         flagRegisters(zf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3287,7 +3290,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jbe 0x5678"  // 4 byte hex
         val insnString = "jbe 0x5674"
         flagRegisters(zf = true, cf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3297,7 +3300,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "je 0x5678"  // 4 byte hex
         val insnString = "je 0x5674"
         flagRegisters(zf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3313,7 +3316,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jgTestrel16Positive1() {
         val instruction = "jg 0x5678"  // 4 byte hex
         val insnString = "jg 0x5674"
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3321,7 +3324,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jg 0x78"  // 4 byte hex
         val insnString = "jg 0x0074"
         flagRegisters(sf = true, of = true)
-        execute(0x74) { assemble(instruction) }
+        execute(0x74u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3354,7 +3357,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jgeTestrel16Positive1() {
         val instruction = "jge 0x5678"  // 4 byte hex
         val insnString = "jge 0x5674"
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3362,7 +3365,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jge 0x5678"  // 4 byte hex
         val insnString = "jge 0x5674"
         flagRegisters(sf = true, of = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3388,7 +3391,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jl 0x5678"  // 4 byte hex
         val insnString = "jl 0x5674"
         flagRegisters(of = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3396,7 +3399,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jl 0x5678"  // 4 byte hex
         val insnString = "jl 0x5674"
         flagRegisters(sf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3421,7 +3424,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jle 0x5678"  // 4 byte hex
         val insnString = "jle 0x5674"
         flagRegisters(zf = true, of = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3429,7 +3432,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jle 0x5678"  // 4 byte hex
         val insnString = "jle 0x5674"
         flagRegisters(zf = true, sf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3437,7 +3440,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jle 0x5678"  // 4 byte hex
         val insnString = "jle 0x5674"
         flagRegisters(zf = true, of = true, sf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3445,7 +3448,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jle 0x5678"  // 4 byte hex
         val insnString = "jle 0x5674"
         flagRegisters(zf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3453,7 +3456,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jle 0x5678"  // 4 byte hex
         val insnString = "jle 0x5674"
         flagRegisters(of = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3461,7 +3464,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jle 0x5678"  // 4 byte hex
         val insnString = "jle 0x5674"
         flagRegisters(sf = true)
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3485,7 +3488,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jneTestrel16Positive() {
         val instruction = "jne 0x5678"  // 4 byte hex
         val insnString = "jne 0x5674"
-        execute(0x5674) { assemble(instruction) }
+        execute(0x5674u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3503,7 +3506,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jo 0xFAC4"  // 4 byte hex
         val insnString = "jo 0xFAC0"
         flagRegisters(of = true)
-        execute(0xFFFFFAC0) { assemble(instruction) }
+        execute(0xFAC0u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3519,7 +3522,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jnoTestrel16Positive() {
         val instruction = "jno 0xFAC4"  // 4 byte hex
         val insnString = "jno 0xFAC0"
-        execute(0xFFFFFAC0) { assemble(instruction) }
+        execute(0xFAC0u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3536,7 +3539,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jpoTestrel16Positive() {
         val instruction = "jpo 0xFAC4"  // 4 byte hex
         val insnString = "jpo 0xFAC0"
-        execute(0xFFFFFAC0) { assemble(instruction) }
+        execute(0xFAC0u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3553,7 +3556,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jnsTestrel16Positive() {
         val instruction = "jns 0xFAC4"  // 4 byte hex
         val insnString = "jns 0xFAC0"
-        execute(0xFFFFFAC0) { assemble(instruction) }
+        execute(0xFAC0u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3571,7 +3574,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "js 0xFAC4"  // 4 byte hex
         val insnString = "js 0xFAC0"
         flagRegisters(sf = true)
-        execute(0xFFFFFAC0) { assemble(instruction) }
+        execute(0xFAC0u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3587,14 +3590,14 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jecxzTestrel16Positive() {
         val instruction = "jecxz 0xC4"  // 3 byte hex
         val insnString = "jecxz 0x00C1"
-        execute(0xFFFF_FFC1) { assemble(instruction) }
+        execute(0xFFC1u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
     @Test fun jecxzTestrel16Negative() {
         val instruction = "jecxz 0x78"  // 3 byte hex
         val insnString = "jecxz 0x0075"
-        gprRegisters(ecx = 0xF000_0000)
+        gprRegisters(ecx = 0xF000_0000u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
     }
@@ -3604,22 +3607,22 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun jcxzTestrel16Positive1() {
         val instruction = "jcxz 0xC4"  // 2 byte hex
         val insnString = "jecxz 0x00C2"
-        execute(0xFFFF_FFC2) { assemble(instruction) }
+        execute(0xFFC2u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
     @Test fun jcxzTestrel16Positive2() {
         val instruction = "jcxz 0x78"  // 4 byte hex
         val insnString = "jecxz 0x0076"
-        gprRegisters(ecx = 0xF000_0000)
-        execute(0x76) { assemble(instruction) }
+        gprRegisters(ecx = 0xF000_0000u)
+        execute(0x76u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
     @Test fun jcxzTestrel16Negative() {
         val instruction = "jcxz 0x78"  // 4 byte hex
         val insnString = "jecxz 0x0076"
-        gprRegisters(ecx = 0xF000)
+        gprRegisters(ecx = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
     }
@@ -3630,7 +3633,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "jpe 0xFAC4"  // 4 byte hex
         val insnString = "jpe 0xFAC0"
         flagRegisters(pf = true)
-        execute(0xFFFFFAC0) { assemble(instruction) }
+        execute(0xFAC0u) { assemble(instruction) }
         assertAssembly(insnString)
     }
 
@@ -3652,7 +3655,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
     }
 
     @Test fun cliTestPe() {
-        x86Register.CTRLR.cr0.pe(x86, false)
+        x86.cpu.cregs.cr0.pe = false
         val instruction = "cli "
         flagRegisters(ifq = true)
         execute { assemble(instruction) }
@@ -3666,7 +3669,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "int 0xFA"
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertCopRegisters(int = true, irq = 0xFA)
+        assertCopRegisters(int = true, irq = 0xFAu)
     }
 
     // TEST INT3 INSTRUCTION
@@ -3675,7 +3678,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "int3 "
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertCopRegisters(int = true, irq = 3)
+        assertCopRegisters(int = true, irq = 3u)
     }
 
     // TEST LAHF INSTRUCTION
@@ -3685,17 +3688,17 @@ class X86InstructionsTest16: AX86InstructionTest() {
         flagRegisters(sf = true, af = true, pf = true, cf = true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x9700, esp = 0x1000)
+        assertGPRRegisters(eax = 0x9700u, esp = 0x1000u)
     }
 
     // TEST LAR INSTRUCTION
 
     @Test fun larTestr32r32() {
         val instruction = "lar ebx, eax"
-        gprRegisters(eax = 0x2, ebx = 0x907C_FAFA)
+        gprRegisters(eax = 0x2u, ebx = 0x907C_FAFAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x2, ebx = 0x0100)
+        assertGPRRegisters(eax = 0x2u, ebx = 0x0100u)
         assertFlagRegisters(zf = true)
     }
 
@@ -3710,7 +3713,7 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun stiTestPe() {
         val instruction = "sti "
-        x86Register.CTRLR.cr0.pe(x86, false)
+        x86.cpu.cregs.cr0.pe = false
         execute { assemble(instruction) }
         assertAssembly(instruction)
         assertFlagRegisters(ifq = true)
@@ -3721,11 +3724,11 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun lidtTestm48() {
         val instruction = "lidt [EAX+0xFF]"
         val insnString = "lidt fword [EAX+0xFF]"
-        store(startAddress + 0xF0FF, "CA110008FFAC")
-        gprRegisters(eax = 0xF000)
+        store(startAddress + 0xF0FFu, "CA110008FFAC")
+        gprRegisters(eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertCopRegisters(idtrBase = 0xFF0800, idtrLimit = 0x11CA, irq = -1)
+        assertCopRegisters(idtrBase = 0xFF0800u, idtrLimit = 0x11CAu, irq = -1uL)
     }
 
     // TEST LGDT INSTRUCTION
@@ -3733,75 +3736,75 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun lgdtTestm48() {
         val instruction = "lgdt [EAX+0xFF]"
         val insnString = "lgdt fword [EAX+0xFF]"
-        store(startAddress + 0xF0FF, "CA110008FFAC")
-        gprRegisters(eax = 0xF000)
+        store(startAddress + 0xF0FFu, "CA110008FFAC")
+        gprRegisters(eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertMMURegisters(gdtrBase = 0xFF0800, gdtrLimit = 0x11CA)
+        assertMMURegisters(gdtrBase = 0xFF0800u, gdtrLimit = 0x11CAu)
     }
 
     // TEST LLDT INSTRUCTION
 
     @Test fun lldtTestm16() {
         val instruction = "lldt word [EAX+0xFF]"
-        store(startAddress + 0xF0FF, 0x1A2A, Datatype.DWORD)
-        gprRegisters(eax = 0xF000)
+        store(startAddress + 0xF0FFu, 0x1A2Au, Datatype.DWORD)
+        gprRegisters(eax = 0xF000u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMMURegisters(gdtrBase = 0, gdtrLimit = 0x20, ldtr = 0x1A2A)
+        assertMMURegisters(gdtrBase = 0u, gdtrLimit = 0x20u, ldtr = 0x1A2Au)
     }
 
     @Test fun lldtTestr16() {
         val instruction = "lldt AX"
-        gprRegisters(eax = 0x1A2A)
+        gprRegisters(eax = 0x1A2Au)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMMURegisters(gdtrBase = 0, gdtrLimit = 0x20, ldtr = 0x1A2A)
+        assertMMURegisters(gdtrBase = 0u, gdtrLimit = 0x20u, ldtr = 0x1A2Au)
     }
 
     // TEST SIDT INSTRUCTION
 
     @Test fun sidtTestm48() {
         val instruction = "sidt [0xF0FF]"
-        val insnString = "sidt fword_0000f0ff"
-        store(startAddress + 0xF0FF, "CA110008FFAC")
-        copRegisters(idtrBase = 0xFF_CABA, idtrLimit = 0x1B7)
+        val insnString = "sidt fword [0xF0FF]"
+        store(startAddress + 0xF0FFu, "CA110008FFAC")
+        copRegisters(idtrBase = 0xFF_CABAu, idtrLimit = 0x1B7u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertMemory(startAddress + 0xF0FF, "B701BACAFF")
+        assertMemory(startAddress + 0xF0FFu, "B701BACAFF")
     }
 
     // TEST SGDT INSTRUCTION
 
     @Test fun sgdtTestm48() {
         val instruction = "sgdt [0xF0FF]"
-        val insnString = "sgdt fword_0000f0ff"
-        store(startAddress + 0xF0FF, "CA110008FFAC")
+        val insnString = "sgdt fword [0xF0FF]"
+        store(startAddress + 0xF0FFu, "CA110008FFAC")
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertMemory(startAddress + 0xF0FF, "2000000000")
+        assertMemory(startAddress + 0xF0FFu, "2000000000")
     }
 
     // TEST SLDT INSTRUCTION
 
     @Test fun sldtTestm16() {
         val instruction = "sldt word [EAX+0xFF]"
-        gprRegisters(eax = 0xF000)
-        mmuRegisters(gdtrLimit = 0x20, ldtr = 0x1234)
+        gprRegisters(eax = 0xF000u)
+        mmuRegisters(gdtrLimit = 0x20u, ldtr = 0x1234u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(startAddress + 0xF0FF, 0x1234, Datatype.WORD)
-        assertMMURegisters(gdtrBase = 0, gdtrLimit = 0x20, ldtr = 0x1234)
+        assertMemory(startAddress + 0xF0FFu, 0x1234u, Datatype.WORD)
+        assertMMURegisters(gdtrBase = 0u, gdtrLimit = 0x20u, ldtr = 0x1234u)
     }
 
     @Test fun sldtTestr16() {
         val instruction = "sldt AX"
-        gprRegisters(eax = 0x1A2A)
-        mmuRegisters(gdtrLimit = 0x20, ldtr = 0x1234)
+        gprRegisters(eax = 0x1A2Au)
+        mmuRegisters(gdtrLimit = 0x20u, ldtr = 0x1234u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x1234)
-        assertMMURegisters(gdtrBase = 0, gdtrLimit = 0x20, ldtr = 0x1234)
+        assertGPRRegisters(eax = 0x1234u)
+        assertMMURegisters(gdtrBase = 0u, gdtrLimit = 0x20u, ldtr = 0x1234u)
     }
 
     // TEST CLD INSTRUCTION
@@ -3827,128 +3830,119 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun inTest8imm8() {
         val instruction = "in al, 0x6A"
-        store(0x6A, 0xAC, Datatype.BYTE, true)
+        store(0x6Au, 0xACu, Datatype.BYTE, true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xAC, esp = 0x1000)
+        assertGPRRegisters(eax = 0xACu, esp = 0x1000u)
     }
 
     @Test fun inTest16imm8() {
         val instruction = "in ax, 0x6A"
-        store(0x6A, 0xACCA, Datatype.WORD, true)
+        store(0x6Au, 0xACCAu, Datatype.WORD, true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xACCA, esp = 0x1000)
+        assertGPRRegisters(eax = 0xACCAu, esp = 0x1000u)
     }
 
     @Test fun inTest32imm8() {
         val instruction = "in eax, 0xF0"
-        store(0xF0, 0x1234_ACCA, Datatype.DWORD, true)
+        store(0xF0u, 0x1234_ACCAu, Datatype.DWORD, true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x1234_ACCA, esp = 0x1000)
+        assertGPRRegisters(eax = 0x1234_ACCAu, esp = 0x1000u)
     }
 
     @Test fun inTest8DX() {
         val instruction = "in al, dx"
-        gprRegisters(edx = 0xF0FF)
-        store(0xF0FF, 0xAC, Datatype.BYTE, true)
+        gprRegisters(edx = 0xF0FFu)
+        store(0xF0FFu, 0xACu, Datatype.BYTE, true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xAC, edx = 0xF0FF)
+        assertGPRRegisters(eax = 0xACu, edx = 0xF0FFu)
     }
 
     @Test fun inTest16DX() {
         val instruction = "in ax, dx"
-        gprRegisters(edx = 0xF0FF)
-        store(0xF0FF, 0xBAAC, Datatype.WORD, true)
+        gprRegisters(edx = 0xF0FFu)
+        store(0xF0FFu, 0xBAACu, Datatype.WORD, true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xBAAC, edx = 0xF0FF)
+        assertGPRRegisters(eax = 0xBAACu, edx = 0xF0FFu)
     }
 
     @Test fun inTest32DX() {
         val instruction = "in eax, dx"
-        gprRegisters(edx = 0xF0FF)
-        store(0xF0FF, 0xFACA_BAAC, Datatype.DWORD, true)
+        gprRegisters(edx = 0xF0FFu)
+        store(0xF0FFu, 0xFACA_BAACu, Datatype.DWORD, true)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0xFACA_BAAC, edx = 0xF0FF)
+        assertGPRRegisters(eax = 0xFACA_BAACu, edx = 0xF0FFu)
     }
 
     // TEST OUT INSTRUCTION
 
     @Test fun outTest8imm8() {
         val instruction = "out 0x6A, al"
-        gprRegisters(eax = 0xAC)
+        gprRegisters(eax = 0xACu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(0x6A, 0xAC, Datatype.BYTE, true)
+        assertMemory(0x6Au, 0xACu, Datatype.BYTE, true)
     }
 
     @Test fun outTest16imm8() {
         val instruction = "out 0x6A, ax"
-        gprRegisters(eax = 0xACCA)
+        gprRegisters(eax = 0xACCAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(0x6A, 0xACCA, Datatype.WORD, true)
+        assertMemory(0x6Au, 0xACCAu, Datatype.WORD, true)
     }
 
     @Test fun outTest32imm8() {
         val instruction = "out 0x6A, eax"
-        gprRegisters(eax = 0xACCA_FACA)
+        gprRegisters(eax = 0xACCA_FACAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(0x6A, 0xACCA_FACA, Datatype.DWORD, true)
+        assertMemory(0x6Au, 0xACCA_FACAu, Datatype.DWORD, true)
     }
 
     @Test fun outTest8DX() {
         val instruction = "out dx, al"
-        gprRegisters(edx = 0xF0FF, eax = 0xAC)
+        gprRegisters(edx = 0xF0FFu, eax = 0xACu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(0xF0FF, 0xAC, Datatype.BYTE, true)
+        assertMemory(0xF0FFu, 0xACu, Datatype.BYTE, true)
     }
 
     @Test fun outTest16DX() {
         val instruction = "out dx, ax"
-        gprRegisters(edx = 0xF0FF, eax = 0xACDA)
+        gprRegisters(edx = 0xF0FFu, eax = 0xACDAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(0xF0FF, 0xACDA, Datatype.WORD, true)
+        assertMemory(0xF0FFu, 0xACDAu, Datatype.WORD, true)
     }
 
     @Test fun outTest32DX() {
         val instruction = "out dx, eax"
-        gprRegisters(edx = 0xF0FF, eax = 0x1122_ACDA)
+        gprRegisters(edx = 0xF0FFu, eax = 0x1122_ACDAu)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertMemory(0xF0FF, 0x1122_ACDA, Datatype.DWORD, true)
+        assertMemory(0xF0FFu, 0x1122_ACDAu, Datatype.DWORD, true)
     }
 
     // TEST CPUID INSTRUCTION
 
-    // Instruction not implemented
-    @Test fun cpuidTest1() {
-        val instruction = "cpuid "
-        gprRegisters(eax = 1, ebx = 0xF_ACAC, ecx = 0xDA61_45CA0)
-        execute { assemble(instruction) }
-        assertAssembly(instruction)
-        assertGPRRegisters(edx = 0x4F4)
-    }
-
     @Test fun cpuidTest0() {
         val instruction = "cpuid "
-        gprRegisters(ebx = 0xF_ACAC, ecx = 0xDA61_45CA0)
+        gprRegisters(ebx = 0xF_ACACu, ecx = 0xDA61_45CA0u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
-        assertGPRRegisters(eax = 0x1, ebx = 0x756e6547, edx = 0x49656e69, ecx = 0x6c65746e)
+        assertGPRRegisters(eax = 0x1u, ebx = 0x756e6547u, edx = 0x49656e69u, ecx = 0x6c65746eu)
     }
 
     // Instruction not implemented
     @Test fun cpuidTestGeneral() {
         val instruction = "cpuid "
-        gprRegisters(eax = 0x8, ebx = 0xF_ACAC, ecx = 0xDA61_45CA0)
+        gprRegisters(eax = 0x8u, ebx = 0xF_ACACu, ecx = 0xDA61_45CA0u)
         execute { assemble(instruction) }
         assertAssembly(instruction)
         assertTrue { x86.cpu.exception is GeneralException }
@@ -3959,26 +3953,26 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun inswTestInc() {
         val instruction = "insw "
         val insnString = "insw word [di], dx"
-        gprRegisters(edx = 0xF0FF, edi = 0xBABA)
-        segmentRegisters(es = 0x8)
-        store(0xF0FF, 0xFACA, Datatype.WORD, true)
+        gprRegisters(edx = 0xF0FFu, edi = 0xBABAu)
+        segmentRegisters(es = 0x8u)
+        store(0xF0FFu, 0xFACAu, Datatype.WORD, true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertMemory(startAddress + 0xBABA, 0xFACA, Datatype.WORD)
-        assertGPRRegisters(edx = 0xF0FF, edi = 0xBABC)
+        assertMemory(startAddress + 0xBABAu, 0xFACAu, Datatype.WORD)
+        assertGPRRegisters(edx = 0xF0FFu, edi = 0xBABCu)
     }
 
     @Test fun inswTestDec() {
         val instruction = "insw "
         val insnString = "insw word [di], dx"
-        gprRegisters(edx = 0xF0FF, edi = 0xBABA)
+        gprRegisters(edx = 0xF0FFu, edi = 0xBABAu)
         flagRegisters(df = true)
-        segmentRegisters(es = 0x8)
-        store(0xF0FF, 0xFACA, Datatype.WORD, true)
+        segmentRegisters(es = 0x8u)
+        store(0xF0FFu, 0xFACAu, Datatype.WORD, true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertMemory(startAddress + 0xBABA, 0xFACA, Datatype.WORD)
-        assertGPRRegisters(edx = 0xF0FF, edi = 0xBAB8)
+        assertMemory(startAddress + 0xBABAu, 0xFACAu, Datatype.WORD)
+        assertGPRRegisters(edx = 0xF0FFu, edi = 0xBAB8u)
     }
 
     // TEST LODS INSTRUCTION
@@ -3986,64 +3980,64 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun lodsTest8Inc() {
         val instruction = "lodsb"
         val insnString = "lods al, byte [si]"
-        store(startAddress + 0xBA22, 0xBB, Datatype.BYTE)
-        gprRegisters(esi = 0xBA22)
+        store(startAddress + 0xBA22u, 0xBBu, Datatype.BYTE)
+        gprRegisters(esi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBB, esi = 0xBA23)
+        assertGPRRegisters(eax = 0xBBu, esi = 0xBA23u)
     }
 
     @Test fun lodsTest8Dec() {
         val instruction = "lodsb"
         val insnString = "lods al, byte [si]"
-        store(startAddress + 0xBA22, 0xBB, Datatype.BYTE)
+        store(startAddress + 0xBA22u, 0xBBu, Datatype.BYTE)
         flagRegisters(df = true)
-        gprRegisters(esi = 0xBA22)
+        gprRegisters(esi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBB, esi = 0xBA21)
+        assertGPRRegisters(eax = 0xBBu, esi = 0xBA21u)
     }
 
     @Test fun lodsTest16Inc() {
         val instruction = "lodsw"
         val insnString = "lods ax, word [si]"
-        store(startAddress + 0xBA22, 0xBB01, Datatype.WORD)
-        gprRegisters(esi = 0xBA22)
+        store(startAddress + 0xBA22u, 0xBB01u, Datatype.WORD)
+        gprRegisters(esi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBB01, esi = 0xBA24)
+        assertGPRRegisters(eax = 0xBB01u, esi = 0xBA24u)
     }
 
     @Test fun lodsTest16Dec() {
         val instruction = "lodsw"
         val insnString = "lods ax, word [si]"
-        store(startAddress + 0xBA22, 0xBB01, Datatype.WORD)
+        store(startAddress + 0xBA22u, 0xBB01u, Datatype.WORD)
         flagRegisters(df = true)
-        gprRegisters(esi = 0xBA22)
+        gprRegisters(esi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBB01, esi = 0xBA20)
+        assertGPRRegisters(eax = 0xBB01u, esi = 0xBA20u)
     }
 
     @Test fun lodsTest32Inc() {
         val instruction = "lodsd"
         val insnString = "lods eax, dword [si]"
-        store(startAddress + 0xBA22, 0x12AB_BB01, Datatype.DWORD)
-        gprRegisters(esi = 0xBA22)
+        store(startAddress + 0xBA22u, 0x12AB_BB01u, Datatype.DWORD)
+        gprRegisters(esi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0x12AB_BB01, esi = 0xBA26)
+        assertGPRRegisters(eax = 0x12AB_BB01u, esi = 0xBA26u)
     }
 
     @Test fun lodsTest32Dec() {
         val instruction = "lodsd"
         val insnString = "lods eax, dword [si]"
-        store(startAddress + 0xBA22, 0x12AB_BB01, Datatype.DWORD)
+        store(startAddress + 0xBA22u, 0x12AB_BB01u, Datatype.DWORD)
         flagRegisters(df = true)
-        gprRegisters(esi = 0xBA22)
+        gprRegisters(esi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0x12AB_BB01, esi = 0xBA1E)
+        assertGPRRegisters(eax = 0x12AB_BB01u, esi = 0xBA1Eu)
     }
 
     // TEST MOVS INSTRUCTION
@@ -4051,70 +4045,70 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun movsTest8Inc() {
         val instruction = "movsb"
         val insnString = "movs byte es:[di], byte [si]"
-        store(startAddress + 0xBA22, 0xBB, Datatype.BYTE)
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
+        store(startAddress + 0xBA22u, 0xBBu, Datatype.BYTE)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(esi = 0xBA23, edi = 0xFACD)
-        assertMemory(startAddress + 0xFACC, 0xBB, Datatype.BYTE)
+        assertGPRRegisters(esi = 0xBA23u, edi = 0xFACDu)
+        assertMemory(startAddress + 0xFACCu, 0xBBu, Datatype.BYTE)
     }
 
     @Test fun movsTest8Dec() {
         val instruction = "movsb"
         val insnString = "movs byte es:[di], byte [si]"
-        store(startAddress + 0xBA22, 0xBB, Datatype.BYTE)
+        store(startAddress + 0xBA22u, 0xBBu, Datatype.BYTE)
         flagRegisters(df = true)
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(esi = 0xBA21, edi = 0xFACB)
-        assertMemory(startAddress + 0xFACC, 0xBB, Datatype.BYTE)
+        assertGPRRegisters(esi = 0xBA21u, edi = 0xFACBu)
+        assertMemory(startAddress + 0xFACCu, 0xBBu, Datatype.BYTE)
     }
 
     @Test fun movsTest16Inc() {
         val instruction = "movsw"
         val insnString = "movs word es:[di], word [si]"
-        store(startAddress + 0xBA22, 0xB0CC, Datatype.WORD)
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
+        store(startAddress + 0xBA22u, 0xB0CCu, Datatype.WORD)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(esi = 0xBA24, edi = 0xFACE)
-        assertMemory(startAddress + 0xFACC, 0xB0CC, Datatype.WORD)
+        assertGPRRegisters(esi = 0xBA24u, edi = 0xFACEu)
+        assertMemory(startAddress + 0xFACCu, 0xB0CCu, Datatype.WORD)
     }
 
     @Test fun movsTest16Dec() {
         val instruction = "movsw"
         val insnString = "movs word es:[di], word [si]"
-        store(startAddress + 0xBA22, 0xB0CC, Datatype.WORD)
+        store(startAddress + 0xBA22u, 0xB0CCu, Datatype.WORD)
         flagRegisters(df = true)
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(esi = 0xBA20, edi = 0xFACA)
-        assertMemory(startAddress + 0xFACC, 0xB0CC, Datatype.WORD)
+        assertGPRRegisters(esi = 0xBA20u, edi = 0xFACAu)
+        assertMemory(startAddress + 0xFACCu, 0xB0CCu, Datatype.WORD)
     }
 
     @Test fun movsTest32Inc() {
         val instruction = "movsd"
         val insnString = "movs dword es:[di], dword [si]"
-        store(startAddress + 0xBA22, 0x1234_B0CC, Datatype.DWORD)
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
+        store(startAddress + 0xBA22u, 0x1234_B0CCu, Datatype.DWORD)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(esi = 0xBA26, edi = 0xFAD0)
-        assertMemory(startAddress + 0xFACC, 0x1234_B0CC, Datatype.DWORD)
+        assertGPRRegisters(esi = 0xBA26u, edi = 0xFAD0u)
+        assertMemory(startAddress + 0xFACCu, 0x1234_B0CCu, Datatype.DWORD)
     }
 
     @Test fun movsTest32Dec() {
         val instruction = "movsd"
         val insnString = "movs dword es:[di], dword [si]"
-        store(startAddress + 0xBA22, 0x1234_B0CC, Datatype.DWORD)
+        store(startAddress + 0xBA22u, 0x1234_B0CCu, Datatype.DWORD)
         flagRegisters(df = true)
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(esi = 0xBA1E, edi = 0xFAC8)
-        assertMemory(startAddress + 0xFACC, 0x1234_B0CC, Datatype.DWORD)
+        assertGPRRegisters(esi = 0xBA1Eu, edi = 0xFAC8u)
+        assertMemory(startAddress + 0xFACCu, 0x1234_B0CCu, Datatype.DWORD)
     }
 
     // TEST STOS INSTRUCTION
@@ -4122,64 +4116,64 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun stosTest8Inc() {
         val instruction = "stosb"
         val insnString = "stos byte es:[di], al"
-        gprRegisters(eax = 0xBB, edi = 0xBA22)
+        gprRegisters(eax = 0xBBu, edi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBB, edi = 0xBA23)
-        assertMemory(startAddress + 0xBA22, 0xBB, Datatype.BYTE)
+        assertGPRRegisters(eax = 0xBBu, edi = 0xBA23u)
+        assertMemory(startAddress + 0xBA22u, 0xBBu, Datatype.BYTE)
     }
 
     @Test fun stosTest8Dec() {
         val instruction = "stosb"
         val insnString = "stos byte es:[di], al"
-        gprRegisters(eax = 0xBB, edi = 0xBA22)
+        gprRegisters(eax = 0xBBu, edi = 0xBA22u)
         flagRegisters(df = true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xBB, edi = 0xBA21)
-        assertMemory(startAddress + 0xBA22, 0xBB, Datatype.BYTE)
+        assertGPRRegisters(eax = 0xBBu, edi = 0xBA21u)
+        assertMemory(startAddress + 0xBA22u, 0xBBu, Datatype.BYTE)
     }
 
     @Test fun stosTest16Inc() {
         val instruction = "stosw"
         val insnString = "stos word es:[di], ax"
-        gprRegisters(eax = 0xAABB, edi = 0xBA22)
+        gprRegisters(eax = 0xAABBu, edi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xAABB, edi = 0xBA24)
-        assertMemory(startAddress + 0xBA22, 0xAABB, Datatype.WORD)
+        assertGPRRegisters(eax = 0xAABBu, edi = 0xBA24u)
+        assertMemory(startAddress + 0xBA22u, 0xAABBu, Datatype.WORD)
     }
 
     @Test fun stosTest16Dec() {
         val instruction = "stosw"
         val insnString = "stos word es:[di], ax"
-        gprRegisters(eax = 0xAABB, edi = 0xBA22)
+        gprRegisters(eax = 0xAABBu, edi = 0xBA22u)
         flagRegisters(df = true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xAABB, edi = 0xBA20)
-        assertMemory(startAddress + 0xBA22, 0xAABB, Datatype.WORD)
+        assertGPRRegisters(eax = 0xAABBu, edi = 0xBA20u)
+        assertMemory(startAddress + 0xBA22u, 0xAABBu, Datatype.WORD)
     }
 
     @Test fun stosTest32Inc() {
         val instruction = "stosd"
         val insnString = "stos dword es:[di], eax"
-        gprRegisters(eax = 0xFACA_AABB, edi = 0xBA22)
+        gprRegisters(eax = 0xFACA_AABBu, edi = 0xBA22u)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xFACA_AABB, edi = 0xBA26)
-        assertMemory(startAddress + 0xBA22, 0xFACA_AABB, Datatype.DWORD)
+        assertGPRRegisters(eax = 0xFACA_AABBu, edi = 0xBA26u)
+        assertMemory(startAddress + 0xBA22u, 0xFACA_AABBu, Datatype.DWORD)
     }
 
     @Test fun stosTest32Dec() {
         val instruction = "stosd"
         val insnString = "stos dword es:[di], eax"
-        gprRegisters(eax = 0xFACA_AABB, edi = 0xBA22)
+        gprRegisters(eax = 0xFACA_AABBu, edi = 0xBA22u)
         flagRegisters(df = true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
-        assertGPRRegisters(eax = 0xFACA_AABB, edi = 0xBA1E)
-        assertMemory(startAddress + 0xBA22, 0xFACA_AABB, Datatype.DWORD)
+        assertGPRRegisters(eax = 0xFACA_AABBu, edi = 0xBA1Eu)
+        assertMemory(startAddress + 0xBA22u, 0xFACA_AABBu, Datatype.DWORD)
     }
 
     // TEST CMPS INSTRUCTION
@@ -4187,88 +4181,88 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun cmpsTest8Inc() {
         val instruction = "cmpsb"
         val insnString = "cmps byte es:[di], byte [si]"
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
-        store(startAddress + 0xBA22, 0xA, Datatype.BYTE)
-        store(startAddress + 0xFACC, 0xA, Datatype.BYTE)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
+        store(startAddress + 0xBA22u, 0xAu, Datatype.BYTE)
+        store(startAddress + 0xFACCu, 0xAu, Datatype.BYTE)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(zf = true, pf = true)
-        assertGPRRegisters(esi = 0xBA23, edi = 0xFACD)
-        assertMemory(startAddress + 0xBA22, 0xA, Datatype.BYTE)
-        assertMemory(startAddress + 0xFACC, 0xA, Datatype.BYTE)
+        assertGPRRegisters(esi = 0xBA23u, edi = 0xFACDu)
+        assertMemory(startAddress + 0xBA22u, 0xAu, Datatype.BYTE)
+        assertMemory(startAddress + 0xFACCu, 0xAu, Datatype.BYTE)
     }
 
     @Test fun cmpsTest8Dec() {
         val instruction = "cmpsb"
         val insnString = "cmps byte es:[di], byte [si]"
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
         flagRegisters(df = true)
-        store(startAddress + 0xBA22, 0xA, Datatype.BYTE)
-        store(startAddress + 0xFACC, 0xA, Datatype.BYTE)
+        store(startAddress + 0xBA22u, 0xAu, Datatype.BYTE)
+        store(startAddress + 0xFACCu, 0xAu, Datatype.BYTE)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(zf = true, pf = true, df = true)
-        assertGPRRegisters(esi = 0xBA21, edi = 0xFACB)
-        assertMemory(startAddress + 0xBA22, 0xA, Datatype.BYTE)
-        assertMemory(startAddress + 0xFACC, 0xA, Datatype.BYTE)
+        assertGPRRegisters(esi = 0xBA21u, edi = 0xFACBu)
+        assertMemory(startAddress + 0xBA22u, 0xAu, Datatype.BYTE)
+        assertMemory(startAddress + 0xFACCu, 0xAu, Datatype.BYTE)
     }
 
     @Test fun cmpsTest16Inc() {
         val instruction = "cmpsw"
         val insnString = "cmps word es:[di], word [si]"
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
-        store(startAddress + 0xBA22, 0x100, Datatype.WORD)
-        store(startAddress + 0xFACC, 0xA0, Datatype.WORD)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
+        store(startAddress + 0xBA22u, 0x100u, Datatype.WORD)
+        store(startAddress + 0xFACCu, 0xA0u, Datatype.WORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(sf = true, pf = true, cf = true)
-        assertGPRRegisters(esi = 0xBA24, edi = 0xFACE)
-        assertMemory(startAddress + 0xBA22, 0x100, Datatype.WORD)
-        assertMemory(startAddress + 0xFACC, 0xA0, Datatype.WORD)
+        assertGPRRegisters(esi = 0xBA24u, edi = 0xFACEu)
+        assertMemory(startAddress + 0xBA22u, 0x100u, Datatype.WORD)
+        assertMemory(startAddress + 0xFACCu, 0xA0u, Datatype.WORD)
     }
 
     @Test fun cmpsTest16Dec() {
         val instruction = "cmpsw"
         val insnString = "cmps word es:[di], word [si]"
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
-        store(startAddress + 0xBA22, 0x100, Datatype.WORD)
-        store(startAddress + 0xFACC, 0xA0, Datatype.WORD)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
+        store(startAddress + 0xBA22u, 0x100u, Datatype.WORD)
+        store(startAddress + 0xFACCu, 0xA0u, Datatype.WORD)
         flagRegisters(df = true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(sf = true, pf = true, cf = true, df = true)
-        assertGPRRegisters(esi = 0xBA20, edi = 0xFACA)
-        assertMemory(startAddress + 0xBA22, 0x100, Datatype.WORD)
-        assertMemory(startAddress + 0xFACC, 0xA0, Datatype.WORD)
+        assertGPRRegisters(esi = 0xBA20u, edi = 0xFACAu)
+        assertMemory(startAddress + 0xBA22u, 0x100u, Datatype.WORD)
+        assertMemory(startAddress + 0xFACCu, 0xA0u, Datatype.WORD)
     }
 
     @Test fun cmpsTest32Inc() {
         val instruction = "cmpsd"
         val insnString = "cmps dword es:[di], dword [si]"
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
-        store(startAddress + 0xBA22, 0x100, Datatype.DWORD)
-        store(startAddress + 0xFACC, 0x8000_0000, Datatype.DWORD)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
+        store(startAddress + 0xBA22u, 0x100u, Datatype.DWORD)
+        store(startAddress + 0xFACCu, 0x8000_0000u, Datatype.DWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(of = true, pf = true)
-        assertGPRRegisters(esi = 0xBA26, edi = 0xFAD0)
-        assertMemory(startAddress + 0xBA22, 0x100, Datatype.DWORD)
-        assertMemory(startAddress + 0xFACC, 0x8000_0000, Datatype.DWORD)
+        assertGPRRegisters(esi = 0xBA26u, edi = 0xFAD0u)
+        assertMemory(startAddress + 0xBA22u, 0x100u, Datatype.DWORD)
+        assertMemory(startAddress + 0xFACCu, 0x8000_0000u, Datatype.DWORD)
     }
 
     @Test fun cmpsTest32Dec() {
         val instruction = "cmpsd"
         val insnString = "cmps dword es:[di], dword [si]"
-        gprRegisters(esi = 0xBA22, edi = 0xFACC)
-        store(startAddress + 0xBA22, 0x100, Datatype.DWORD)
-        store(startAddress + 0xFACC, 0x8000_0000, Datatype.DWORD)
+        gprRegisters(esi = 0xBA22u, edi = 0xFACCu)
+        store(startAddress + 0xBA22u, 0x100u, Datatype.DWORD)
+        store(startAddress + 0xFACCu, 0x8000_0000u, Datatype.DWORD)
         flagRegisters(df = true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(of = true, pf = true, df = true)
-        assertGPRRegisters(esi = 0xBA1E, edi = 0xFAC8)
-        assertMemory(startAddress + 0xBA22, 0x100, Datatype.DWORD)
-        assertMemory(startAddress + 0xFACC, 0x8000_0000, Datatype.DWORD)
+        assertGPRRegisters(esi = 0xBA1Eu, edi = 0xFAC8u)
+        assertMemory(startAddress + 0xBA22u, 0x100u, Datatype.DWORD)
+        assertMemory(startAddress + 0xFACCu, 0x8000_0000u, Datatype.DWORD)
     }
 
     // TEST SCAS INSTRUCTION
@@ -4276,91 +4270,91 @@ class X86InstructionsTest16: AX86InstructionTest() {
     @Test fun scassTest8Inc() {
         val instruction = "scasb"
         val insnString = "scas al, byte es:[di]"
-        gprRegisters(edi = 0xFACC, eax = 0xA)
-        store(startAddress + 0xFACC, 0xA, Datatype.BYTE)
+        gprRegisters(edi = 0xFACCu, eax = 0xAu)
+        store(startAddress + 0xFACCu, 0xAu, Datatype.BYTE)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(zf = true, pf = true)
-        assertGPRRegisters(edi = 0xFACD, eax = 0xA)
-        assertMemory(startAddress + 0xFACC, 0xA, Datatype.BYTE)
+        assertGPRRegisters(edi = 0xFACDu, eax = 0xAu)
+        assertMemory(startAddress + 0xFACCu, 0xAu, Datatype.BYTE)
     }
 
     @Test fun scasTest8Dec() {
         val instruction = "scasb"
         val insnString = "scas al, byte es:[di]"
-        gprRegisters(edi = 0xFACC, eax = 0xA)
+        gprRegisters(edi = 0xFACCu, eax = 0xAu)
         flagRegisters(df = true)
-        store(startAddress + 0xFACC, 0xA, Datatype.BYTE)
+        store(startAddress + 0xFACCu, 0xAu, Datatype.BYTE)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(zf = true, pf = true, df = true)
-        assertGPRRegisters(edi = 0xFACB, eax = 0xA)
-        assertMemory(startAddress + 0xFACC, 0xA, Datatype.BYTE)
+        assertGPRRegisters(edi = 0xFACBu, eax = 0xAu)
+        assertMemory(startAddress + 0xFACCu, 0xAu, Datatype.BYTE)
     }
 
     @Test fun scasTest16Inc() {
         val instruction = "scasw"
         val insnString = "scas ax, word es:[di]"
-        gprRegisters(edi = 0xFACC, eax = 0xA0)
-        store(startAddress + 0xFACC, 0x100, Datatype.WORD)
+        gprRegisters(edi = 0xFACCu, eax = 0xA0u)
+        store(startAddress + 0xFACCu, 0x100u, Datatype.WORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(sf = true, pf = true, cf = true)
-        assertGPRRegisters(edi = 0xFACE, eax = 0xA0)
-        assertMemory(startAddress + 0xFACC, 0x100, Datatype.WORD)
+        assertGPRRegisters(edi = 0xFACEu, eax = 0xA0u)
+        assertMemory(startAddress + 0xFACCu, 0x100u, Datatype.WORD)
     }
 
     @Test fun scasTest16Dec() {
         val instruction = "scasw"
         val insnString = "scas ax, word es:[di]"
-        gprRegisters(edi = 0xFACC, eax = 0xA0)
-        store(startAddress + 0xFACC, 0x100, Datatype.WORD)
+        gprRegisters(edi = 0xFACCu, eax = 0xA0u)
+        store(startAddress + 0xFACCu, 0x100u, Datatype.WORD)
         flagRegisters(df = true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(sf = true, pf = true, cf = true, df = true)
-        assertGPRRegisters(edi = 0xFACA, eax = 0xA0)
-        assertMemory(startAddress + 0xFACC, 0x100, Datatype.WORD)
+        assertGPRRegisters(edi = 0xFACAu, eax = 0xA0u)
+        assertMemory(startAddress + 0xFACCu, 0x100u, Datatype.WORD)
     }
 
     @Test fun scasTest32Inc() {
         val instruction = "scasd"
         val insnString = "scas eax, dword es:[di]"
-        gprRegisters(edi = 0xFACC, eax = 0x8000_0000)
-        store(startAddress + 0xFACC, 0x100, Datatype.DWORD)
+        gprRegisters(edi = 0xFACCu, eax = 0x8000_0000u)
+        store(startAddress + 0xFACCu, 0x100u, Datatype.DWORD)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(of = true, pf = true)
-        assertGPRRegisters(eax = 0x8000_0000, edi = 0xFAD0)
-        assertMemory(startAddress + 0xFACC, 0x100, Datatype.DWORD)
+        assertGPRRegisters(eax = 0x8000_0000u, edi = 0xFAD0u)
+        assertMemory(startAddress + 0xFACCu, 0x100u, Datatype.DWORD)
     }
 
     @Test fun scasTest32Dec() {
         val instruction = "scasd"
         val insnString = "scas eax, dword es:[di]"
-        gprRegisters(edi = 0xFACC, eax = 0x8000_0000)
-        store(startAddress + 0xFACC, 0x100, Datatype.DWORD)
+        gprRegisters(edi = 0xFACCu, eax = 0x8000_0000u)
+        store(startAddress + 0xFACCu, 0x100u, Datatype.DWORD)
         flagRegisters(df = true)
         execute { assemble(instruction) }
         assertAssembly(insnString)
         assertFlagRegisters(of = true, pf = true, df = true)
-        assertGPRRegisters(eax = 0x8000_0000, edi = 0xFAC8)
-        assertMemory(startAddress + 0xFACC, 0x100, Datatype.DWORD)
+        assertGPRRegisters(eax = 0x8000_0000u, edi = 0xFAC8u)
+        assertMemory(startAddress + 0xFACCu, 0x100u, Datatype.DWORD)
     }
 
     // TEST LOOP INSTRUCTION
 
     @Test fun loopTestJmp() {
-        gprRegisters(ecx = 0x2)
+        gprRegisters(ecx = 0x2u)
         val instructionLoop = "loop 0x3"
         val insnStringLoop = "loop 0x0001" // hex 2 byte
-        execute(1) { assemble(instructionLoop) }
+        execute(1u) { assemble(instructionLoop) }
         assertAssembly(insnStringLoop)
-        assertGPRRegisters(ecx = 0x1)
+        assertGPRRegisters(ecx = 0x1u)
     }
 
     @Test fun loopTestNoJmp() {
-        gprRegisters(ecx = 0x1)
+        gprRegisters(ecx = 0x1u)
         val instructionLoop = "loop 0x3"
         val insnStringLoop = "loop 0x0001" // hex 2 byte
         execute { assemble(instructionLoop) }
@@ -4368,57 +4362,57 @@ class X86InstructionsTest16: AX86InstructionTest() {
     }
 
     @Test fun loopnzTestPositive() {
-        gprRegisters(ecx = 0x2)
+        gprRegisters(ecx = 0x2u)
         val instructionLoop = "loopnz 0x3"
         val insnStringLoop = "loopnz 0x0001"
-        execute(1) { assemble(instructionLoop) }
+        execute(1u) { assemble(instructionLoop) }
         assertAssembly(insnStringLoop)
-        assertGPRRegisters(ecx = 0x1)
+        assertGPRRegisters(ecx = 0x1u)
     }
 
     @Test fun loopnzTestNegative() {
-        gprRegisters(ecx = 0x2)
+        gprRegisters(ecx = 0x2u)
         flagRegisters(zf = true)
         val instructionLoop = "loopnz 0x00FF"
         val insnStringLoop = "loopnz 0x00FD"
         execute { assemble(instructionLoop) }
         assertAssembly(insnStringLoop)
-        assertGPRRegisters(ecx = 0x1)
+        assertGPRRegisters(ecx = 0x1u)
     }
 
     @Test fun loopzTestPositive() {
-        gprRegisters(ecx = 0x2)
+        gprRegisters(ecx = 0x2u)
         flagRegisters(zf = true)
         val instructionLoop = "loopz 0x00FF"
         val insnStringLoop = "loopz 0x00FD"
-        execute(253) { assemble(instructionLoop) }
+        execute(253u) { assemble(instructionLoop) }
         assertAssembly(insnStringLoop)
-        assertGPRRegisters(ecx = 0x1)
+        assertGPRRegisters(ecx = 0x1u)
     }
 
     @Test fun loopzTestNegative() {
-        gprRegisters(ecx = 0x2)
+        gprRegisters(ecx = 0x2u)
         val instructionLoop = "loopz 0x00FF"
         val insnStringLoop = "loopz 0x00FD"
         execute { assemble(instructionLoop) }
         assertAssembly(insnStringLoop)
-        assertGPRRegisters(ecx = 0x1)
+        assertGPRRegisters(ecx = 0x1u)
     }
 
     // TEST IRET INSTRUCTION
 
     @Test fun iretTest1() {
         val instructionPushFlag = "push AX"
-        gprRegisters(eax = 0x887)
-        execute(-1) { assemble(instructionPushFlag) }
+        gprRegisters(eax = 0x887u)
+        execute(-1uL) { assemble(instructionPushFlag) }
         assertAssembly(instructionPushFlag)  // flags cf, pf, sf, of
-        assertGPRRegisters(eax = 0x887, esp = 0xFFFE)
+        assertGPRRegisters(eax = 0x887u, esp = 0xFFFEu)
 
         val instructionPushEipCs = "push EAX"
-        gprRegisters(eax = 0x3, esp = 0xFFFE)
+        gprRegisters(eax = 0x3u, esp = 0xFFFEu)
         execute { assemble(instructionPushEipCs) }
         assertAssembly(instructionPushEipCs)
-        assertGPRRegisters(eax = 0x3, esp = 0xFFFA)
+        assertGPRRegisters(eax = 0x3u, esp = 0xFFFAu)
 
         val instruction = "iret "
         execute { assemble(instruction) }
@@ -4428,16 +4422,16 @@ class X86InstructionsTest16: AX86InstructionTest() {
 
     @Test fun iretTest2() {
         val instructionPushFlag = "push AX"
-        gprRegisters(eax = 0x887)
-        execute(-1) { assemble(instructionPushFlag) }
+        gprRegisters(eax = 0x887u)
+        execute(-1uL) { assemble(instructionPushFlag) }
         assertAssembly(instructionPushFlag)  // flags cf, pf, sf, of
-        assertGPRRegisters(eax = 0x887, esp = 0xFFFE)
+        assertGPRRegisters(eax = 0x887u, esp = 0xFFFEu)
 
         val instructionPushEipCs = "push EAX"
-        gprRegisters(eax = 0x5_0003, esp = 0xFFFE)
+        gprRegisters(eax = 0x5_0003u, esp = 0xFFFEu)
         execute { assemble(instructionPushEipCs) }
         assertAssembly(instructionPushEipCs)
-        assertGPRRegisters(eax = 0x5_0003, esp = 0xFFFA)
+        assertGPRRegisters(eax = 0x5_0003u, esp = 0xFFFAu)
 
         val instruction = "iret "
         execute { assemble(instruction) }

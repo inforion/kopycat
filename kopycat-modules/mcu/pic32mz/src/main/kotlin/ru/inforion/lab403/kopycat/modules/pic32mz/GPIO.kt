@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,19 +36,19 @@ class GPIO(parent: Module, name: String) : Module(parent, name) {
 
     override val ports = Ports()
 
-    inner class PORT_REGISTER(offset: Long, name: String) :
+    inner class PORT_REGISTER(offset: ULong, name: String) :
             ComplexRegister(ports.mem, offset, "PORT_$name")
 
-    val ANSEL = PORT_REGISTER(0x0000, "ANSEL")
-    val TRIS = PORT_REGISTER(0x0010, "TRIS")
-    val PORT = PORT_REGISTER(0x0020, "PORT")
-    val LAT = PORT_REGISTER(0x0030, "LAT")
-    val ODC = PORT_REGISTER(0x0040, "ODC")
-    val CNPU = PORT_REGISTER(0x0050, "CNPU")
-    val CNPD = PORT_REGISTER(0x0060, "CNPD")
-    val CNCON = PORT_REGISTER(0x0070, "CNCON")
-    val CNEN = PORT_REGISTER(0x0080, "CNEN")
-    val CNSTAT = PORT_REGISTER(0x0090, "CNSTAT")
-    val CNNE = PORT_REGISTER(0x00A0, "CNNE")
-    val CNF = PORT_REGISTER(0x00B0, "CNF")
+    val ANSEL = PORT_REGISTER(0x0000u, "ANSEL")
+    val TRIS = PORT_REGISTER(0x0010u, "TRIS")
+    val PORT = PORT_REGISTER(0x0020u, "PORT")
+    val LAT = PORT_REGISTER(0x0030u, "LAT")
+    val ODC = PORT_REGISTER(0x0040u, "ODC")
+    val CNPU = PORT_REGISTER(0x0050u, "CNPU")
+    val CNPD = PORT_REGISTER(0x0060u, "CNPD")
+    val CNCON = PORT_REGISTER(0x0070u, "CNCON")
+    val CNEN = PORT_REGISTER(0x0080u, "CNEN")
+    val CNSTAT = PORT_REGISTER(0x0090u, "CNSTAT")
+    val CNNE = PORT_REGISTER(0x00A0u, "CNNE")
+    val CNF = PORT_REGISTER(0x00B0u, "CNF")
 }

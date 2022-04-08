@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,29 +25,30 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.operands
 
-import ru.inforion.lab403.common.extensions.WRONGI
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.QWORD
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Access.ANY
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Controls.VOID
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Type.VAR
 
-open class Variable<T: AGenericCore>(default: Long, dtyp: Datatype = DWORD) :
+open class Variable<T: AGenericCore>(default: ULong, dtyp: Datatype = DWORD) :
         AOperand<T>(VAR, ANY, VOID, WRONGI, dtyp) {
 
-    private var value: Long = default
+    private var value: ULong = default
     private var cf: Int = 0
-    private var ov: Int = 0
 
     // Override and finalize value() method to forbid remove carry flag
-    override fun value(core: T): Long = value like dtyp
-    override fun value(core: T, data: Long) {
+    override fun value(core: T): ULong = value like dtyp
+    // Maybe allow holding value unmasked?
+    // value(core)-method mask it anyway, so we can get carry on demand from unmasked value
+    // But we should check then other direct uses of `var value`
+    override fun value(core: T, data: ULong) {
         value = data like dtyp
-        cf = data[dtyp.bits].asInt
+        cf = data[dtyp.bits].int
     }
 
     /**
@@ -58,11 +59,11 @@ open class Variable<T: AGenericCore>(default: Long, dtyp: Datatype = DWORD) :
     // TODO: Add overflow flag support
     fun plus(core: T, op1: AOperand<T>, op2: AOperand<T>) = value(core, op1.value(core) + op2.value(core))
     fun plus(core: T, op1: AOperand<T>, op2: AOperand<T>, carry: Boolean) =
-            value(core, op1.value(core) + op2.value(core) + carry.asInt)
+            value(core, op1.value(core) + op2.value(core) + carry.uint)
 
     fun minus(core: T, op1: AOperand<T>, op2: AOperand<T>) = value(core, op1.value(core) - op2.value(core))
     fun minus(core: T, op1: AOperand<T>, op2: AOperand<T>, carry: Boolean) =
-            value(core, op1.value(core) - op2.value(core) - carry.asInt)
+            value(core, op1.value(core) - op2.value(core) - carry.uint)
 
     fun and(core: T, op1: AOperand<T>, op2: AOperand<T>) = value(core, op1.value(core) and op2.value(core))
     fun or(core: T, op1: AOperand<T>, op2: AOperand<T>) = value(core, op1.value(core) or op2.value(core))
@@ -106,27 +107,22 @@ open class Variable<T: AGenericCore>(default: Long, dtyp: Datatype = DWORD) :
      * NOTE: See carry() function
      * {EN}
      */
-    fun isCarry(core: T): Boolean = carry(core) == 1
+    fun isCarry(core: T): Boolean {
+        require(dtyp != QWORD) { "Use extended version of isCarry instead" }
+        return carry(core) == 1
+    }
 
-    /**
-     * {RU}
-     * Возвращает бит переполнения
-     * @return бит переполнения (overflow)
-     * {RU}
-     *
-     * {EN}Returns overflow bit{EN}
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun overflow(core: T): Int = ov
+    fun isCarry(core: T, op1: AOperand<T>, op2: AOperand<T>, isSubtract: Boolean) =
+        if (dtyp == QWORD) isCarry64(core, op1, op2, isSubtract) else isCarry(core)
 
-    /**
-     * {RU}Проверить установлен ли бит переполнения{RU}
-     *
-     * {EN}Check if overflow bit is set{EN}
-     */
-    fun isOverflow(core: T): Boolean = overflow(core) == 1
 
-    override fun toString(): String = if (value >= 0) "0x%X".format(value) else "-0x%X".format(value)
+    private fun isCarry64(core: T, op1: AOperand<T>, op2: AOperand<T>, isSubtract: Boolean): Boolean {
+        val a = op1.value(core)
+        val b = op2.value(core)
+        return if (isSubtract) a < b else (a >= -b) && b != 0uL
+    }
+
+    override fun toString(): String = if (value.long >= 0) "0x%X".format(value) else "-0x%X".format(value)
 
     /**
      * {EN}

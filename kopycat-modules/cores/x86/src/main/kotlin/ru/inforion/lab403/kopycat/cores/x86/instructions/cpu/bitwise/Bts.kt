@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
@@ -43,7 +43,7 @@ class Bts(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
     override fun execute() {
         val (a1, bitpos) = x86utils.bitBase(core, op1, op2, prefs)
         val cf = a1.bit(core, bitpos)
-        core.cpu.flags.cf = cf.toBool()
+        core.cpu.flags.cf = cf.truth
         a1.bit(core, bitpos, 1)
     }
 }

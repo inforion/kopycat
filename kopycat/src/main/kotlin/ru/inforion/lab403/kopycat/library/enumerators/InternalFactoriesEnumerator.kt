@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,17 +25,16 @@
  */
 package ru.inforion.lab403.kopycat.library.enumerators
 
-import org.reflections.util.ClasspathHelper
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.subtypesScan
+import ru.inforion.lab403.common.scanner.scanSubtypesOf
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.library.builders.ClassModuleFactoryBuilder
 import ru.inforion.lab403.kopycat.library.builders.api.IModuleFactoryBuilder
-import java.util.logging.Level
 
 class InternalFactoriesEnumerator(private val internalClassDirectory: String) : IFactoriesEnumerator {
     companion object {
-        @Transient val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
 
         val anonymousClassPattern = Regex("""\$.*\$""")
     }
@@ -43,8 +42,8 @@ class InternalFactoriesEnumerator(private val internalClassDirectory: String) : 
     private lateinit var builders: List<ClassModuleFactoryBuilder>
 
     override fun preload() {
-        builders = subtypesScan<Module>(internalClassDirectory)
-                .filter { it.name.startsWith(internalClassDirectory) && !it.name.contains(anonymousClassPattern)}
+        builders = internalClassDirectory.scanSubtypesOf<Module>()
+                .filter { it.name.startsWith(internalClassDirectory) && anonymousClassPattern !in it.name }
                 .map { ClassModuleFactoryBuilder(it) }
     }
 

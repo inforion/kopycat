@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,19 +25,19 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.veos.loader.peloader.enums.ImageFileMachine
 import ru.inforion.lab403.kopycat.veos.loader.peloader.headers.x32.ImageOptionalHeader32
 import ru.inforion.lab403.kopycat.veos.loader.peloader.interfaces.ImageOptionalHeader
 import java.nio.ByteBuffer
 
 class ImageNTHeader(input: ByteBuffer) {
-    val signature = input.int.asULong           /* "PE"\0\0 */	/* 0x00 */
+    val signature = input.int.ulong_z           /* "PE"\0\0 */	/* 0x00 */
     val fileHeader = ImageFileHeader(input)     /* 0x04 */
     val optionalHeader: ImageOptionalHeader   /* 0x18 */
 
     init {
-        require(signature == 0x4550L) { "PE signature check failed" }
+        require(signature == 0x4550uL) { "PE signature check failed" }
 
         optionalHeader = when (fileHeader.machine) {
             ImageFileMachine.I386 -> ImageOptionalHeader32(input)

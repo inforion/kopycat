@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,9 +41,9 @@ class Push(core: x86Core, opcode: ByteArray, prefs: Prefixes, val isSSR: Boolean
 
     override fun execute() {
         val data = if(op1 is Immediate)
-            op1.ssext(core) mask prefs.opsize.bits
+            op1.usext(core) mask prefs.opsize.bits
         else
             op1.value(core)
-        x86utils.push(core, data, op1.dtyp, prefs, isSSR = isSSR)
+        x86utils.push(core, data, prefs.opsize, prefs, isSSR = isSSR)
     }
 }

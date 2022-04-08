@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,8 +28,9 @@ package ru.inforion.lab403.kopycat.cores.ppc.exceptions
 
  
 interface IPPCExceptionHolder {
-    fun accessDataException(where: Long, write: Boolean): PPCHardwareException
-    fun accessInstructionException(where: Long): PPCHardwareException
-    fun tlbDataException(where: Long, write: Boolean, ea: Long, AS: Long): PPCHardwareException
-    fun tlbInstructionException(where: Long, ea: Long, AS: Long): PPCHardwareException
+    fun accessDataException(where: ULong, write: Boolean): PPCHardwareException
+    fun accessInstructionException(where: ULong): PPCHardwareException
+    fun tlbDataException(where: ULong, write: Boolean, ea: ULong, AS: ULong): PPCHardwareException
+    fun tlbInstructionException(where: ULong, ea: ULong, AS: ULong): PPCHardwareException
+    fun systemCallException(where: ULong): PPCHardwareException
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
+import ru.inforion.lab403.kopycat.interfaces.*
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
@@ -42,28 +42,31 @@ import kotlin.test.assertNull
 
 
 abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
+    companion object {
+        const val startAddress: ULong = 0u//x0001_0000
+    }
+
     abstract val x86: x86Core
     abstract val ram0: RAM
     abstract val ram1: RAM
     inner class Buses : ModuleBuses(this) {
         val mem = Bus("mem")
-        val io = Bus("io", BUS16)
+        val io = Bus("io", BUS16.ulong)
     }
     override val buses = Buses()
 
     abstract val mode: Long
     abstract val bitMode: ByteArray
 
-    var size = 0L
-    val startAddress: Long = 0//x0001_0000
+    private var size = 0uL
 
-    fun execute(offset: Long = 0, generator: () -> ByteArray) {
+    fun execute(offset: ULong = 0u, generator: () -> ByteArray) {
         val data = generator()
         x86.store(startAddress + size, data)
         x86.step()
-        println("%16s -> %s".format(data.hexlify(), x86.cpu.insn))
-        size += data.size + offset
-        if(size < 0) size = 0
+//        println("%16s -> %s".format(data.hexlify(), x86.cpu.insn))
+        size += data.size.uint + offset
+        if (size.long < 0) size = 0u
     }
 
     fun assemble(instruction: String): ByteArray {
@@ -82,86 +85,86 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
 
     fun assertAssembly(expected: String) {
         val disasm = x86.cpu.insn.toString()
-        val actual = disasm.splitWhitespaces().drop(2).joinToString(" ").toLowerCase()
-        Assert.assertEquals("Unexpected disassembly view!", expected.toLowerCase(), actual)
+        val actual = disasm.split(whitespaces).drop(2).joinToString(" ").lowercase()
+        Assert.assertEquals("Unexpected disassembly view!", expected.lowercase(), actual)
     }
 
-    private fun assertRegister(num: Int, expected: Long, actual: Long, type: String = "GPR") =
+    private fun assertRegister(num: Int, expected: ULong, actual: ULong, type: String = "GPR") =
             Assert.assertEquals("${x86.cpu.insn} -> " +
                     "$type $num error: 0x${expected.hex} != 0x${actual.hex}", expected, actual)
 
     private fun assertFlag(num: Int, expected: Boolean, actual: Boolean, type: String = "Flag") =
             Assert.assertEquals("${x86.cpu.insn} -> $type $num error: $expected != $actual", expected, actual)
 
-    fun assertGPRRegisters(eax: Long = 0, ecx: Long = 0, edx: Long = 0, ebx: Long = 0,
-                           esp: Long = 0, ebp: Long = 0, esi: Long = 0, edi: Long = 0) {
-        assertRegister(0, eax, x86.cpu.regs.eax)
-        assertRegister(1, ecx, x86.cpu.regs.ecx)
-        assertRegister(2, edx, x86.cpu.regs.edx)
-        assertRegister(3, ebx, x86.cpu.regs.ebx)
-        assertRegister(4, esp, x86.cpu.regs.esp)
-        assertRegister(5, ebp, x86.cpu.regs.ebp)
-        assertRegister(6, esi, x86.cpu.regs.esi)
-        assertRegister(7, edi, x86.cpu.regs.edi)
+    fun assertGPRRegisters(eax: ULong = 0u, ecx: ULong = 0u, edx: ULong = 0u, ebx: ULong = 0u,
+                           esp: ULong = 0u, ebp: ULong = 0u, esi: ULong = 0u, edi: ULong = 0u) {
+        assertRegister(0, eax, x86.cpu.regs.eax.value)
+        assertRegister(1, ecx, x86.cpu.regs.ecx.value)
+        assertRegister(2, edx, x86.cpu.regs.edx.value)
+        assertRegister(3, ebx, x86.cpu.regs.ebx.value)
+        assertRegister(4, esp, x86.cpu.regs.esp.value)
+        assertRegister(5, ebp, x86.cpu.regs.ebp.value)
+        assertRegister(6, esi, x86.cpu.regs.esi.value)
+        assertRegister(7, edi, x86.cpu.regs.edi.value)
     }
 
-    fun gprRegisters(eax: Long = 0, ecx: Long = 0, edx: Long = 0, ebx: Long = 0, esp: Long = 0,
-                     ebp: Long = 0, esi: Long = 0, edi: Long = 0, eip: Long = 0) {
-        x86.cpu.regs.eax = eax
-        x86.cpu.regs.ecx = ecx
-        x86.cpu.regs.edx = edx
-        x86.cpu.regs.ebx = ebx
-        x86.cpu.regs.esp = esp
-        x86.cpu.regs.ebp = ebp
-        x86.cpu.regs.esi = esi
-        x86.cpu.regs.edi = edi
-        x86.cpu.regs.eip = eip
+    fun gprRegisters(eax: ULong = 0u, ecx: ULong = 0u, edx: ULong = 0u, ebx: ULong = 0u, esp: ULong = 0u,
+                     ebp: ULong = 0u, esi: ULong = 0u, edi: ULong = 0u, eip: ULong = 0u) {
+        x86.cpu.regs.eax.value = eax
+        x86.cpu.regs.ecx.value = ecx
+        x86.cpu.regs.edx.value = edx
+        x86.cpu.regs.ebx.value = ebx
+        x86.cpu.regs.esp.value = esp
+        x86.cpu.regs.ebp.value = ebp
+        x86.cpu.regs.esi.value = esi
+        x86.cpu.regs.edi.value = edi
+        x86.cpu.regs.eip.value = eip
     }
 
-    fun mmuRegisters(gdtrBase: Long = 0, gdtrLimit: Long = 0, ldtr: Long = 0) {
+    fun mmuRegisters(gdtrBase: ULong = 0u, gdtrLimit: ULong = 0u, ldtr: ULong = 0u) {
         x86.mmu.gdtr.base  = gdtrBase
         x86.mmu.gdtr.limit = gdtrLimit
         x86.mmu.ldtr = ldtr
     }
 
-    fun copRegisters(idtrBase: Long = 0, idtrLimit: Long = 0) {
+    fun copRegisters(idtrBase: ULong = 0u, idtrLimit: ULong = 0u) {
         x86.cop.idtr.base  = idtrBase
         x86.cop.idtr.limit = idtrLimit
     }
 
-    fun assertCopRegisters(idtrBase: Long = 0, idtrLimit: Long = 0, int: Boolean = false, irq: Long = 0) {
+    fun assertCopRegisters(idtrBase: ULong = 0u, idtrLimit: ULong = 0u, int: Boolean = false, irq: ULong = 0u) {
         assertRegister(0, idtrBase,  x86.cop.idtr.base,  "Cop")
         assertRegister(1, idtrLimit, x86.cop.idtr.limit, "Cop")
         assertFlag(2, int, x86.cop.INT, "Cop")
-        assertRegister(3, irq, x86.cop.IRQ.toLong(), "Cop")
+        assertRegister(3, irq, x86.cop.IRQ.ulong_s, "Cop")
     }
 
-    fun assertMMURegisters(gdtrBase: Long = 0, gdtrLimit: Long = 0, ldtr: Long = 0) {
+    fun assertMMURegisters(gdtrBase: ULong = 0u, gdtrLimit: ULong = 0u, ldtr: ULong = 0u) {
         assertRegister(0, gdtrBase,  x86.mmu.gdtr.base,  "MMU")
         assertRegister(1, gdtrLimit, x86.mmu.gdtr.limit, "MMU")
         assertRegister(2, ldtr, x86.mmu.ldtr, "MMU")
     }
 
-    fun assertSegmentRegisters(cs: Long = 0x08, ds: Long = 0x08, ss: Long = 0x08, es: Long = 0x08, fs: Long = 0x08, gs: Long = 0x08) {
-        assertRegister(0, cs, x86.cpu.sregs.cs, "Segment")
-        assertRegister(1, ds, x86.cpu.sregs.ds, "Segment")
-        assertRegister(2, ss, x86.cpu.sregs.ss, "Segment")
-        assertRegister(3, es, x86.cpu.sregs.es, "Segment")
-        assertRegister(4, fs, x86.cpu.sregs.fs, "Segment")
-        assertRegister(5, gs, x86.cpu.sregs.gs, "Segment")
+    fun assertSegmentRegisters(cs: ULong = 0x08u, ds: ULong = 0x08u, ss: ULong = 0x08u, es: ULong = 0x08u, fs: ULong = 0x08u, gs: ULong = 0x08u) {
+        assertRegister(0, cs, x86.cpu.sregs.cs.value, "Segment")
+        assertRegister(1, ds, x86.cpu.sregs.ds.value, "Segment")
+        assertRegister(2, ss, x86.cpu.sregs.ss.value, "Segment")
+        assertRegister(3, es, x86.cpu.sregs.es.value, "Segment")
+        assertRegister(4, fs, x86.cpu.sregs.fs.value, "Segment")
+        assertRegister(5, gs, x86.cpu.sregs.gs.value, "Segment")
     }
 
-    fun segmentRegisters(cs: Long = 0x08, ds: Long = 0x08, ss: Long = 0x08, es: Long = 0x08, fs: Long = 0x08, gs: Long = 0x08) {
-        x86.cpu.sregs.cs = cs
-        x86.cpu.sregs.ds = ds
-        x86.cpu.sregs.ss = ss
-        x86.cpu.sregs.es = es
-        x86.cpu.sregs.fs = fs
-        x86.cpu.sregs.gs = gs
+    fun segmentRegisters(cs: ULong = 0x08u, ds: ULong = 0x08u, ss: ULong = 0x08u, es: ULong = 0x08u, fs: ULong = 0x08u, gs: ULong = 0x08u) {
+        x86.cpu.sregs.cs.value = cs
+        x86.cpu.sregs.ds.value = ds
+        x86.cpu.sregs.ss.value = ss
+        x86.cpu.sregs.es.value = es
+        x86.cpu.sregs.fs.value = fs
+        x86.cpu.sregs.gs.value = gs
 
-        x86.cpu.sregs.cs = 8
-        x86.cpu.sregs.ds = 8
-        x86.cpu.sregs.ss = 8
+        x86.cpu.sregs.cs.value = 8u
+        x86.cpu.sregs.ds.value = 8u
+        x86.cpu.sregs.ss.value = 8u
     }
 
     fun assertFlagRegisters(ac: Boolean = false, rf: Boolean = false, vm: Boolean = false, vif: Boolean = false,
@@ -173,7 +176,7 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         assertFlag(2, vm, x86.cpu.flags.vm)
         assertFlag(3, vif, x86.cpu.flags.vif)
         assertFlag(4, vip, x86.cpu.flags.vip)
-        assertFlag(5, id, x86.cpu.flags.id)
+        assertFlag(5, id, x86.cpu.flags.idq)
         assertFlag(6, cf, x86.cpu.flags.cf)
         assertFlag(7, pf, x86.cpu.flags.pf)
         assertFlag(8, af, x86.cpu.flags.af)
@@ -194,7 +197,7 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         x86.cpu.flags.vm = vm
         x86.cpu.flags.vif = vif
         x86.cpu.flags.vip = vip
-        x86.cpu.flags.id = id
+        x86.cpu.flags.idq = id
         x86.cpu.flags.cf = cf
         x86.cpu.flags.pf = pf
         x86.cpu.flags.af = af
@@ -206,32 +209,32 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         x86.cpu.flags.of = of
     }
 
-    fun eflag(eflags: Long = 0L) { x86.cpu.flags.eflags = eflags }
+    fun eflag(eflags: ULong = 0uL) { x86.cpu.flags.eflags.value = eflags }
 
-    fun assertEflag(eflags: Long = 0L) = assertRegister(0, eflags, x86.cpu.flags.eflags, "Flag")
+    fun assertEflag(eflags: ULong = 0uL) = assertRegister(0, eflags, x86.cpu.flags.eflags.value, "Flag")
 
-    fun iopl(iopl: Int = 0) { x86.cpu.flags.iopl = iopl }
+    fun iopl(iopl: Int = 0) { x86.cpu.flags.iopl = iopl.ulong_z }
 
-    fun assertIopl(iopl: Int = 0) = assertRegister(0, iopl.toLong(), x86.cpu.flags.iopl.toLong(), "Flag")
+    fun assertIopl(iopl: Int = 0) = assertRegister(0, iopl.ulong_z, x86.cpu.flags.iopl, "Flag")
 
 
-    fun load(address: Long, size: Int): String = x86.load(address, size).hexlify()
-    fun load(address: Long, dtyp: Datatype, io: Boolean = false): Long =
+    fun load(address: ULong, size: Int): String = x86.load(address, size).hexlify()
+    fun load(address: ULong, dtyp: Datatype, io: Boolean = false): ULong =
             if(io) x86.ports.io.read(dtyp, address, 0)
             else x86.read(dtyp, address, 0)
-    fun store(address: Long, data: String) = x86.store(address, data.unhexlify())
-    fun store(address: Long, data: Long, dtyp: Datatype, io: Boolean = false) =
+    fun store(address: ULong, data: String) = x86.store(address, data.unhexlify())
+    fun store(address: ULong, data: ULong, dtyp: Datatype, io: Boolean = false) =
             if(io) x86.ports.io.write(dtyp, address, data, 0)
             else x86.write(dtyp, address, data, 0)
 
-    fun assertMemory(address: Long, expected: String) {
+    fun assertMemory(address: ULong, expected: String) {
         assert(expected.length % 2 == 0)
         val size = expected.length / 2
         val actual = load(address, size)
         Assert.assertEquals("Memory 0x${address.hex8} error: $expected != $actual", expected, actual)
     }
 
-    fun assertMemory(address: Long, expected: Long, dtyp: Datatype, io: Boolean = false) {
+    fun assertMemory(address: ULong, expected: ULong, dtyp: Datatype, io: Boolean = false) {
         val actual = load(address, dtyp, io)
         Assert.assertEquals("Memory 0x${address.hex8} error: $expected != $actual", expected, actual)
     }
@@ -239,23 +242,23 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
     @Before
     fun resetTest() {
         x86.reset()
-        x86Register.CTRLR.cr0.pe(x86, true)
-        x86.store(0x8, bitMode)
-        x86.cpu.regs.eip = 0
-        x86.mmu.gdtr.base = 0
-        x86.mmu.gdtr.limit = 0x20
-        x86.cpu.sregs.cs = 8
-        x86.cpu.sregs.ds = 8
-        x86.cpu.sregs.ss = 8
-        x86.cpu.sregs.es = 8
-        x86.cpu.sregs.fs = 8
-        x86.cpu.sregs.gs = 8
-        x86.cpu.regs.esp = 0x1000
+        x86.cpu.cregs.cr0.pe = true
+        x86.store(0x8u, bitMode)
+        x86.cpu.regs.eip.value = 0u
+        x86.mmu.gdtr.base = 0u
+        x86.mmu.gdtr.limit = 0x20u
+        x86.cpu.sregs.cs.value = 8u
+        x86.cpu.sregs.ds.value = 8u
+        x86.cpu.sregs.ss.value = 8u
+        x86.cpu.sregs.es.value = 8u
+        x86.cpu.sregs.fs.value = 8u
+        x86.cpu.sregs.gs.value = 8u
+        x86.cpu.regs.esp.value = 0x1000u
     }
 
     @After
     fun checkPC() {
-        Assert.assertEquals("Program counter error: ${(size).hex8} != ${x86.cpu.regs.eip.hex8}",
-                size, x86.cpu.regs.eip)
+        Assert.assertEquals("Program counter error: ${size.hex8} != ${x86.cpu.regs.rip.value.hex8}",
+                size, x86.cpu.regs.rip.value)
     }
 }

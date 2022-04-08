@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,18 +36,18 @@ class Daa(core: x86Core, opcode: ByteArray, prefs: Prefixes): AX86Instruction(co
     override val mnem = "daa"
 
     override fun execute() {
-        var al = core.cpu.regs.al
-        if ((al and 0xF > 9) or core.cpu.flags.af){
-            al += 6
-            core.cpu.flags.cf = core.cpu.flags.cf or (al[8] != 0L)
+        var al = core.cpu.regs.al.value
+        if ((al and 0xFu > 9u) or core.cpu.flags.af){
+            al += 6u
+            core.cpu.flags.cf = core.cpu.flags.cf or (al[8] != 0uL)
             core.cpu.flags.af = true
         } else
             core.cpu.flags.af = false
-        if ((al and 0xF0 > 0x90) or core.cpu.flags.cf){
-            al += 0x60
+        if ((al and 0xF0u > 0x90u) or core.cpu.flags.cf){
+            al += 0x60u
             core.cpu.flags.cf = true
         } else
             core.cpu.flags.cf = false
-        core.cpu.regs.al = al
+        core.cpu.regs.al.value = al
     }
 }

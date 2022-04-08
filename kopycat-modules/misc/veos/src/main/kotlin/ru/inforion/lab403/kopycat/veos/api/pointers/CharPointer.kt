@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,20 +25,19 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.pointers
 
-import ru.inforion.lab403.common.extensions.asChar
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
  
-class CharPointer constructor(sys: System, address: Long) : Pointer<Char>(sys, address) {
+class CharPointer constructor(sys: System, address: ULong) : Pointer<Char>(sys, address) {
     companion object {
-        fun nullPtr(sys: System) = CharPointer(sys, 0)
+        fun nullPtr(sys: System) = CharPointer(sys, 0uL)
 
         fun allocate(sys: System, count: Int = 1) = CharPointer(sys, sys.allocateClean(count * sys.sizeOf.char))
     }
 
-    override fun get(index: Int) = sys.abi.readChar(address + index * sys.sizeOf.char).asChar
-    override fun set(index: Int, value: Char) = sys.abi.writeChar(address + index * sys.sizeOf.char, value.asULong)
+    override fun get(index: Int) = sys.abi.readChar(address + index * sys.sizeOf.char).char
+    override fun set(index: Int, value: Char) = sys.abi.writeChar(address + index * sys.sizeOf.char, value.ulong_z8)
     fun load(size: Int, offset: Int = 0) = sys.abi.readBytes(address + offset, size)
     fun store(data: ByteArray, offset: Int = 0) = sys.abi.writeBytes(address + offset, data)
 

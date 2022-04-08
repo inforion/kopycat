@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rstore
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toInt
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.Shift
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -36,11 +37,11 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class STRHr(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val index: Boolean,
             val add: Boolean,
@@ -55,10 +56,10 @@ class STRHr(cpu: AARMCore,
     override val mnem = "STRH$mcnd"
 
     override fun execute() {
-        val offset = Shift(rm.value(core), 32, shiftT, shiftN, core.cpu.flags.c.toInt())
+        val offset = Shift(rm.value(core), 32, shiftT, shiftN, core.cpu.flags.c.int)
         val offsetAddress = rn.value(core) + if (add) offset else -offset
         val address = if (index) offsetAddress else rn.value(core)
-        if(core.cpu.UnalignedSupport() || address[0] == 0L)
+        if(core.cpu.UnalignedSupport() || address[0] == 0uL)
             core.outw(address like Datatype.DWORD, rt.bits(core, 15..0))
         else throw Unknown
         if (wback) rn.value(core, offsetAddress)

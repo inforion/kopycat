@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,11 +38,11 @@ import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Type.IMM
  * {RU}Константный операнд инструкции{RU}
  */
 open class Immediate<in T: AGenericCore>(
-        val value: Long,
-        val signed: Boolean = false,
-        dtyp: Datatype = DWORD,
-        num: Int = WRONGI) :
-        AOperand<T>(IMM, READ, VOID, num, dtyp) {
+    val value: ULong,
+    val signed: Boolean = false,
+    dtyp: Datatype = DWORD,
+    num: Int = WRONGI
+) : AOperand<T>(IMM, READ, VOID, num, dtyp) {
 
     /**
      * {RU}
@@ -58,57 +58,43 @@ open class Immediate<in T: AGenericCore>(
      * Note: this isn't mean sign comparison (use cast toInt)
      * {EN}
      */
-    val ssext: Long get() = signext(value, dtyp.bits).asLong
+    val ssext: Long get() = value.signextRenameMeAfter(dtyp.msb).long
 
     /**
      * {RU}Возвращает расширенное знаковое представление Immediate operand
      *
-     * @see AOperand.sext
+     * @see AOperand.usext
      * @return расширенное знаковое представление Immediate operand
      * {RU}
      *
      * {EN}
      * Returns Java-UNSIGNED signed extension of Immediate operand
-     * see AOperand method sext(dev: T)
+     * see AOperand method usext(dev: T)
      * {EN}
      */
-    val usext: Long get() = signext(value, dtyp.bits).asULong
-
-    /**
-     * {RU}
-     * Возвращает дополненное нулями значение
-     *
-     * @see AOperand.zext
-     * @return дополненное нулями значение
-     * {RU}
-     *
-     * {EN}
-     * see AOperand method zext(dev: T)
-     * Get zero-extended long
-     * {EN}
-     */
-    val zext: Long get() = value like dtyp
+    val usext: ULong get() = value.signextRenameMeAfter(dtyp.msb)
 
     /**
      * {RU}Вернуть бит по его индексу{RU}
      */
-    fun bit(index: Int): Int = value[index].asInt
-    val msb: Int get() = bit(dtyp.msb)
-    val lsb: Int get() = bit(dtyp.lsb)
-    val isNegative: Boolean get() = msb == 1
-    val isNotNegative: Boolean get() = !isNegative
-    val isZero: Boolean get() = zext == 0L
-    val isNotZero: Boolean get() = !isZero
+    fun bit(index: Int) = value[index].int
+
+    val msb get() = bit(dtyp.msb)
+    val lsb get() = bit(dtyp.lsb)
+    val isNegative get() = msb == 1
+    val isNotNegative get() = !isNegative
+    val isZero get() = value == 0uL
+    val isNotZero get() = !isZero
 
     /**
      * {RU}Получить значение операнда{RU}
      */
-    override fun value(core: T): Long = value
+    override fun value(core: T): ULong = value
 
     /**
      * {RU}Установить значение операнда{RU}
      */
-    final override fun value(core: T, data: Long): Unit = throw UnsupportedOperationException("Can't write to immediate value")
+    final override fun value(core: T, data: ULong): Unit = throw UnsupportedOperationException("Can't write to immediate value")
 
     override fun equals(other: Any?): Boolean =
             other is Immediate<*> &&
@@ -124,12 +110,14 @@ open class Immediate<in T: AGenericCore>(
         return result
     }
 
-    override fun toString(): String = if (signed) {
-        if (isNotNegative) {
-            "0x%X".format(ssext)
-        } else {
-            // because java always format as unsigned
-            "-0x%X".format(-ssext)
+    override fun toString() = when {
+        signed -> when {
+            isNegative -> {
+                val value = -ssext like dtyp
+                "-0x${value.hex}"
+            }
+            else -> "0x${ssext.hex}"
         }
-    } else "0x%X".format(zext)
+        else -> "0x${value.hex}"
+    }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb16
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.BitCount
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
@@ -37,15 +37,15 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 class ThumbItDecoder(cpu: AARMCore,
                      private val constructor: (
                              cpu: AARMCore,
-                             opcode: Long,
+                             opcode: ULong,
                              cond: Condition,
-                             mask: Long,
-                             firstCond: Long,
+                             mask: ULong,
+                             firstCond: ULong,
                              size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
+    override fun decode(data: ULong): AARMInstruction {
         val mask = data[3..0]
         val firstCond = data[7..4]
-        if(firstCond == 0b1111L || (firstCond == 0b1110L && BitCount(mask.asInt) != 1)) throw Unpredictable
+        if(firstCond == 0b1111uL || (firstCond == 0b1110uL && BitCount(mask.int) != 1)) throw Unpredictable
         if(core.cpu.InITBlock()) throw Unpredictable
         return constructor(core, data, Condition.AL, mask, firstCond, 2)
     }

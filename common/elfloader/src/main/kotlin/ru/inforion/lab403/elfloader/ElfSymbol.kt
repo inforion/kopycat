@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,8 @@
  */
 package ru.inforion.lab403.elfloader
 
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.extensions.byte
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.toULong
 import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.elfloader.enums.ElfSectionHeaderIndex.*
 import ru.inforion.lab403.elfloader.enums.ElfSymbolTableBind.*
@@ -54,7 +52,7 @@ class ElfSymbol(
     val name: String
 
     // Value of associated symbol
-    var value: Long
+    var value: ULong
 
     // Associated size
     val size: Int
@@ -73,7 +71,7 @@ class ElfSymbol(
         input.position(offset)
 
         nameOffset = input.int
-        value = input.int.toULong()
+        value = input.int.ulong_z
         size = input.int
         val info = input.byte
         other = input.byte
@@ -90,7 +88,7 @@ class ElfSymbol(
                 ?: elfFile.middleString(stringTable, nameOffset)
                 ?: throw EBadStringTable("Not found offset in string table: 0x${nameOffset.hex8}")
 
-        infoBind = info.toInt() ushr 4
+        infoBind = info.int_z ushr 4
         when (infoBind) {
             STB_LOCAL.id -> log.finer { "Local symbol" }
             STB_GLOBAL.id -> log.finer { "Global symbol" }
@@ -99,7 +97,7 @@ class ElfSymbol(
             else -> throw EBadSymbol("Unknown symbol binding $infoBind")
         }
 
-        infoType = info.toInt() and 0xf
+        infoType = info.int_s and 0xf
         when (infoType) {
             STT_NOTYPE.id -> log.finer { "Symbol type isn't specified" }
             STT_OBJECT.id -> log.finer { "Symbol is a data object" }
@@ -117,7 +115,7 @@ class ElfSymbol(
             else -> throw EBadSymbol("Unknown symbol type")
         }
 
-        if (other.toInt() != 0)
+        if (other.int_z != 0)
             log.warning { "Field 'other' isn't zero -> $other" }
 
         when (shndx) {

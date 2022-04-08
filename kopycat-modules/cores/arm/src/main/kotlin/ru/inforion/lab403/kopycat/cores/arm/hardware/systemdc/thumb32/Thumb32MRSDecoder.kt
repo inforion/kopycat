@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb32
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.UInt
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
@@ -41,16 +41,16 @@ class Thumb32MRSDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 rd: ARMRegister,
-                SYSm: Long) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val rd = gpr(data[11..8].asInt)
+                SYSm: ULong) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
+    override fun decode(data: ULong): AARMInstruction {
+        val rd = gpr(data[11..8].int)
         val SYSm = data[7..0]
         val uintsysm = UInt(SYSm, 32)
         if (rd.desc.id in 13..15) throw Unpredictable
-        if (!((uintsysm in 0..3)||(uintsysm in 5..9)||(uintsysm == 16L)||(uintsysm == 20L))) throw Unpredictable
+        if (!((uintsysm in 0u..3u)||(uintsysm in 5u..9u)||(uintsysm == 16uL)||(uintsysm == 20uL))) throw Unpredictable
         return constructor(core, data, Condition.UN, rd, SYSm)
     }
 }

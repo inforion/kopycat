@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ class Addi(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
 
     // Format VI - reg1, reg2, imm
     override fun execute() {
-        val a3 = op3.usext(core)
+        val a3 = op3.value(core)
         val a1 = op1.value(core)
         val tmp = a1 + a3
         result.value(core, tmp)

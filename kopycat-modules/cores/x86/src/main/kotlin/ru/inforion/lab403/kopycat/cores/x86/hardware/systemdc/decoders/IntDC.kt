@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,6 +36,6 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 class IntDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
         val arg = s.imm8
-        return Int(core, s.data, prefs, *arrayOf(arg))
+        return Int(core, s.data, prefs, arg)
     }
 }

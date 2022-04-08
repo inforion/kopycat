@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,12 +42,12 @@ import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 class PPCCPU(val ppc: PPCCore, name: String, vararg systems: eSystem):
         ACPU<PPCCPU, PPCCore, APPCInstruction, eUISA>(ppc, name) {
 
-    override var pc : Long
+    override var pc : ULong
         get() = regs.PC
         set(value) { regs.PC = value }
 
-    override fun reg(index: Int): Long = regs[index].value(ppc)
-    override fun reg(index: Int, value: Long) = regs[index].value(ppc, value)
+    override fun reg(index: Int): ULong = regs[index].value(ppc)
+    override fun reg(index: Int, value: ULong) = regs[index].value(ppc, value)
     override fun count() = regs.count()
 
     val regs = UISABank(ppc)
@@ -76,10 +76,10 @@ class PPCCPU(val ppc: PPCCore, name: String, vararg systems: eSystem):
         super.reset()
         decoder.reset()
         regs.reset()
-        regs.PC = 0xFFFF_FFFC
+        regs.PC = 0xFFFF_FFFCu
 
         /*for (i: Int in 0..31)
-            regs.gpr(i).value(core as PPCCore, (0xFF00 or i).toLong())
+            regs.gpr(i).value(core as PPCCore, (0xFF00 or i).long)
         oeaRegs.MSR = 0x12345678
         regs.CR = 0x5555
         regs.LR = 0x6666
@@ -92,19 +92,19 @@ class PPCCPU(val ppc: PPCCore, name: String, vararg systems: eSystem):
     }
 
     override fun execute(): Int {
-        pc += 4
+        val lrBefore = regs.LR
+        pc += 4u
         insn.execute()
+        callOccurred = regs.LR != lrBefore
         return 1  // TODO: get from insn.execute()
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return mapOf(
-                "uisa" to regs.serialize(ctxt),
-                "vea" to veaRegs.serialize(ctxt),
-                "oea" to oeaRegs.serialize(ctxt),
-                "spr" to sprRegs.serialize(ctxt)
-        )
-    }
+    override fun serialize(ctxt: GenericSerializer) = mapOf(
+            "uisa" to regs.serialize(ctxt),
+            "vea" to veaRegs.serialize(ctxt),
+            "oea" to oeaRegs.serialize(ctxt),
+            "spr" to sprRegs.serialize(ctxt)
+    )
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {

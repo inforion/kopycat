@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,14 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.CTRLR.cr0
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.eflags
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -50,18 +48,28 @@ class Call(
 
     override fun execute() {
         if (!isFar) {
-            val ip = x86Register.gpr(op1.dtyp, x86GPR.EIP)
+            val ip = core.cpu.regs.gpr(x86GPR.RIP, op1.dtyp).toOperand()
             // order for 'offset' is important when call [esp + 0x48], see KC-752
-            val offset = if (isRelative) ip.value(core) + op1.ssext(core) else op1.value(core)
+            val offset = if (isRelative) ip.value(core) + op1.usext(core) else op1.value(core)
             x86utils.push(core, ip.value(core), op1.dtyp, prefs)
             ip.value(core, offset)
         } else {
-            val pe = cr0.pe(core)
-            val vm = eflags.vm(core)
+            val pe = core.cpu.cregs.cr0.pe
+            val vm = core.cpu.flags.vm
 
             //real-address or virtual-8086 mode
             if (!pe || (pe && vm)) {
-                TODO()
+                val cs = core.cpu.sregs.cs
+                val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+
+                x86utils.push(core, cs.value, prefs.opsize, prefs)
+                x86utils.push(core, ip.value, prefs.opsize, prefs)
+
+                val ss = x86utils.getSegmentSelector(core, op1)
+                val offset = op1.value(core)
+
+                cs.value = ss
+                ip.value = offset
             }
 
             //Protected mode, not virtual-8086 mode
@@ -82,14 +90,13 @@ class Call(
 //                    TypeTaskStateSegment -> TODO()
 //                    else -> TODO()
 //                }
-                val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
-//                x86utils.push(cpu, Register.cs.value(cpu), Register.cs.dtyp, prefs.is16BitAddressMode)
-//                x86utils.push(cpu, regip.value(cpu), regip.dtyp, prefs.is16BitAddressMode)
-                x86utils.push(core, cs.value(core), prefs.opsize, prefs)
-                x86utils.push(core, ip.value(core), prefs.opsize, prefs)
 
-                cs.value(core, ss)
-                ip.value(core, offset)
+                val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+                x86utils.push(core, core.cpu.sregs.cs.value, prefs.opsize, prefs)
+                x86utils.push(core, ip.value, prefs.opsize, prefs)
+
+                core.cpu.sregs.cs.value = ss
+                ip.value = offset
             }
         }
     }

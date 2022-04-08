@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -47,23 +48,23 @@ class GPBUS(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mmcr = Slave("mmcr", BUS12)
-        val io = Slave("io", BUS16)
+        val mmcr = Slave("mmcr", BUS12.ulong)
+        val io = Slave("io", BUS16.ulong)
     }
 
     override val ports = Ports()
 
-    val GPECHO = object : Register(ports.mmcr, 0xC00, BYTE, "GPECHO") {
+    val GPECHO = object : Register(ports.mmcr, 0xC00u, BYTE, "GPECHO") {
         var GP_ECHO_ENB by bit(0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             val bit = value[1]
             super.write(ea, ss, size, bit)
             if (GP_ECHO_ENB != 0) throw NotImplementedError()
         }
     }
 
-    val GPCSDW = object : Register(ports.mmcr , 0xC01, BYTE, "GPCSDW") {
+    val GPCSDW = object : Register(ports.mmcr , 0xC01u, BYTE, "GPCSDW") {
         var GPCS7_DW by bit(7)
         var GPCS6_DW by bit(6)
         var GPCS5_DW by bit(5)
@@ -74,7 +75,7 @@ class GPBUS(parent: Module, name: String) : Module(parent, name) {
         var GPCS0_DW by bit(0)
     }
 
-    val GPCSQUAL = object : Register(ports.mmcr , 0xC02, BYTE, "GPCSQUAL") {
+    val GPCSQUAL = object : Register(ports.mmcr , 0xC02u, BYTE, "GPCSQUAL") {
         var GPCS7_RW by field(15..14)
         var GPCS6_RW by field(13..12)
         var GPCS5_RW by field(11..10)
@@ -85,39 +86,39 @@ class GPBUS(parent: Module, name: String) : Module(parent, name) {
         var GPCS0_RW by field(1..0)
     }
 
-    val GPCSRT = object : Register(ports.mmcr , 0xC08, BYTE, "GPCSRT") {
+    val GPCSRT = object : Register(ports.mmcr , 0xC08u, BYTE, "GPCSRT") {
         var GPCS_RECOVR by field(7..0)
     }
 
-    val GPCSPW = object : Register(ports.mmcr , 0xC09, BYTE, "GPCSPW") {
+    val GPCSPW = object : Register(ports.mmcr , 0xC09u, BYTE, "GPCSPW") {
         var GPCS_WIDTH by field(7..0)
     }
 
-    val GPCSOFF = object : Register(ports.mmcr , 0xC0A, BYTE, "GPCSOFF") {
+    val GPCSOFF = object : Register(ports.mmcr , 0xC0Au, BYTE, "GPCSOFF") {
         var GPCS_WIDTH by field(7..0)
     }
 
-    val GPRDW = object : Register(ports.mmcr , 0xC0B, BYTE, "GPRDW") {
+    val GPRDW = object : Register(ports.mmcr , 0xC0Bu, BYTE, "GPRDW") {
         var GP_RD_WIDTH by field(7..0)
     }
 
-    val GPRDOFF = object : Register(ports.mmcr , 0xC0C, BYTE, "GPRDOFF") {
+    val GPRDOFF = object : Register(ports.mmcr , 0xC0Cu, BYTE, "GPRDOFF") {
         var GP_RD_OFF by field(7..0)
     }
 
-    val GPWRW = object : Register(ports.mmcr , 0xC0D, BYTE, "GPWRW") {
+    val GPWRW = object : Register(ports.mmcr , 0xC0Du, BYTE, "GPWRW") {
         var GP_WR_WIDTH by field(7..0)
     }
 
-    val GPWROFF = object : Register(ports.mmcr , 0xC0E, BYTE, "GPWROFF") {
+    val GPWROFF = object : Register(ports.mmcr , 0xC0Eu, BYTE, "GPWROFF") {
         var GP_WR_OFF by field(7..0)
     }
 
-    val GPALEW = object : Register(ports.mmcr , 0xC0F, BYTE, "GPALEW") {
+    val GPALEW = object : Register(ports.mmcr , 0xC0Fu, BYTE, "GPALEW") {
         var GP_ALE_WIDTH by field(7..0)
     }
 
-    val GPALEOFF = object : Register(ports.mmcr , 0xC10, BYTE, "GPALEOFF") {
+    val GPALEOFF = object : Register(ports.mmcr , 0xC10u, BYTE, "GPALEOFF") {
         var GP_ALE_OFF by field(7..0)
     }
 }

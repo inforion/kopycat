@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toULong
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.STORE
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
@@ -39,19 +38,15 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * SC rt, offset(base)
  */
 class sc(core: MipsCore,
-         data: Long,
+         data: ULong,
          rt: MipsRegister,
          off: MipsDisplacement) : RtOffsetInsn(core, data, Type.VOID, rt, off) {
 
-//    override val store = true
-//    override val dtyp = DWORD
-//    override val core = ProcType.CentralProc
-//    override val construct = ::sc
     override val mnem = "sc"
 
     override fun execute() {
         val vAddr = address
-        if (vAddr[1..0] != 0L)
+        if (vAddr[1..0] != 0uL)
             throw MemoryAccessError(core.pc, address, STORE, "ADES")
         if (core.cpu.llbit == 1)
             memword = vrt

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.find
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.logging.logger
@@ -600,11 +600,11 @@ class ARMDecoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
                     "not 1111, 11x, x" to coprocessorInstructions,
                     "    1111, xxx, x" to unconditional))
 
-    private val pass = NOP(cpu, 0, UN, 4)
+    private val pass = NOP(cpu, 0u, UN, 4)
 
-    override fun decode(data: Long): AARMInstruction {
-        val cbits = data[31..28].asInt
-        val cond = find<Condition> { it.opcode == cbits }?: Condition.AL
+    override fun decode(data: ULong): AARMInstruction {
+        val cbits = data[31..28].int
+        val cond = find { it.opcode == cbits } ?: Condition.AL
         return if (core.cpu.ConditionPassed(cond)) iset.lookup(data, core.cpu.pc).decode(data) else pass
     }
 }

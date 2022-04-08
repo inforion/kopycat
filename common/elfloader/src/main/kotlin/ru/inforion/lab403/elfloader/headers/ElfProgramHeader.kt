@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,6 @@ import ru.inforion.lab403.elfloader.enums.ElfProgramHeaderType
 import java.nio.ByteBuffer
 
 
-
 class ElfProgramHeader private constructor(input: ByteBuffer, val ind: Int) {
 
     companion object {
@@ -49,11 +48,11 @@ class ElfProgramHeader private constructor(input: ByteBuffer, val ind: Int) {
 
     val type = input.int
     val offset = input.int
-    val vaddr = input.int.toULong()
-    val paddr = input.int.toULong()
+    val vaddr = input.int.ulong_z
+    val paddr = input.int.ulong_z
     val filesz = input.int
     val memsz = input.int
-    val flags = input.int
+    val flags = input.uint
     val align = input.int
 
     init {
@@ -86,12 +85,12 @@ class ElfProgramHeader private constructor(input: ByteBuffer, val ind: Int) {
 //        }
 
         //Mask of unimplemented flags
-        if (flags and 0xFFFFFFF8.toInt() != 0)
-            TODO("Other segment flags isn't implemented: ${flags.sbits}")
+        if (flags and 0xFFFFFFF8u != 0u)
+            TODO("Other segment flags isn't implemented: ${flags.binary}")
 
-        val flagR = if (flags and PF_R.id != 0) "r" else "-"
-        val flagW = if (flags and PF_W.id != 0) "w" else "-"
-        val flagX = if (flags and PF_X.id != 0) "x" else "-"
+        val flagR = if (flags and PF_R.id != 0u) "r" else "-"
+        val flagW = if (flags and PF_W.id != 0u) "w" else "-"
+        val flagX = if (flags and PF_X.id != 0u) "x" else "-"
 
         log.info {
             val name = ElfProgramHeaderType.getNameById(type) ?: "unknown"

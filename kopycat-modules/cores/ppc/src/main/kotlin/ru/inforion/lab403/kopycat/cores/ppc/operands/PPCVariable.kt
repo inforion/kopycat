@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,4 +30,4 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 
-class PPCVariable(dtyp: Datatype, default: Long = 0) : Variable<PPCCore>(default, dtyp)
+class PPCVariable(dtyp: Datatype, default: ULong = 0u) : Variable<PPCCore>(default, dtyp)

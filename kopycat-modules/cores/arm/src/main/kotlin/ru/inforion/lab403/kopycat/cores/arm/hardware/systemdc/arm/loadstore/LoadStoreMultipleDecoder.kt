@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.loadstore
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.find
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -43,16 +43,16 @@ class LoadStoreMultipleDecoder(
         val isLoad: Boolean,
         private val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 wback: Boolean,
                 rn: ARMRegister,
                 registers: ARMRegisterList,
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rn = gpr(data[19..16].asInt)
-        val wback = data[21] == 1L
+    override fun decode(data: ULong): AARMInstruction {
+        val cond = find { it.opcode == data[31..28].int } ?: Condition.AL
+        val rn = gpr(data[19..16].int)
+        val wback = data[21] == 1uL
         val registers = list(data[15..0])
         if (rn.isProgramCounter(core) || registers.count < 1) throw ARMHardwareException.Unpredictable
         if (isLoad && wback && rn in registers && core.cpu.ArchVersion() >= 7) throw ARMHardwareException.Unpredictable

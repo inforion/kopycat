@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("NOTHING_TO_INLINE")
+
 package ru.inforion.lab403.common.proposal
 
 import java.io.File
 import java.nio.file.Files
-import java.nio.file.attribute.PosixFileAttributeView
+import java.nio.file.Path
+import java.nio.file.attribute.AclFileAttributeView
+import java.nio.file.attribute.BasicFileAttributes
+import java.nio.file.attribute.DosFileAttributes
 import java.nio.file.attribute.PosixFileAttributes
 
-fun File.attributes(): PosixFileAttributes =
-        Files.getFileAttributeView(toPath(), PosixFileAttributeView::class.java).readAttributes()
+inline fun <reified T: BasicFileAttributes> File.readAttribute(): T = Files.readAttributes(toPath(), T::class.java)
+
+inline fun <reified T: BasicFileAttributes> Path.readAttribute(): T = Files.readAttributes(this, T::class.java)
+
+inline fun Path.getAclFileAttributeView(): AclFileAttributeView =
+    Files.getFileAttributeView(this, AclFileAttributeView::class.java)
+
+inline fun Path.readDosAttribute() = readAttribute<DosFileAttributes>()
+
+inline fun Path.readPosixAttribute() = readAttribute<PosixFileAttributes>()

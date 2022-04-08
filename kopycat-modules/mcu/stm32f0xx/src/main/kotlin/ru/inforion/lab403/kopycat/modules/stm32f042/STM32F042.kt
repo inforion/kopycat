@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -80,10 +80,12 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
 
     override val buses = Buses()
 
-    private val cortex = CORTEXM0(this, "cortexm0")
-
+    // Creates ROM before CORTEXM0 because CORTEX require ROM memory for correct initialization
+    // and order of initialization correspond order of module definition
     private val rom = RAM(this, "rom", 0x8000, *parts)
     private val sram = RAM(this, "sram", 0x1800)
+
+    private val cortex = CORTEXM0(this, "cortexm0")
 
     private val usart1 = USARTx(this, "usart1", 1)
     private val usart2 = USARTx(this, "usart2", 2)
@@ -108,41 +110,41 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
 
     private fun sysInit() {
         cortex.ports.mem.connect(buses.mem)
-        rom.ports.mem.connect(buses.mem, 0x0800_0000)
-        sram.ports.mem.connect(buses.mem, 0x2000_0000)
+        rom.ports.mem.connect(buses.mem, 0x0800_0000u)
+        sram.ports.mem.connect(buses.mem, 0x2000_0000u)
     }
 
     private fun bootInit() {
         // TODO for version unknown https://youtrack.lab403.inforion.ru/issue/KC-1567
-        rom.ports.mem.connect(buses.mem, 0x0000_0000)
+        rom.ports.mem.connect(buses.mem, 0x0000_0000u)
     }
 
     private fun gpioInit() {
-        gpioa.ports.mem.connect(buses.mem, 0x4800_0000)
+        gpioa.ports.mem.connect(buses.mem, 0x4800_0000u)
         buses.connect(gpioa.ports.pin_input, ports.gpioa_in)
         buses.connect(gpioa.ports.pin_output, ports.gpioa_out)
 
-        gpiob.ports.mem.connect(buses.mem, 0x4800_0400)
+        gpiob.ports.mem.connect(buses.mem, 0x4800_0400u)
         buses.connect(gpiob.ports.pin_input, ports.gpiob_in)
         buses.connect(gpiob.ports.pin_output, ports.gpiob_out)
     }
 
     private fun miscInit() {
-        tim2.ports.mem.connect(buses.mem, 0x4000_0000)
-        tim3.ports.mem.connect(buses.mem, 0x4000_0400)
-        iwdg.ports.mem.connect(buses.mem, 0x4000_3000)
-        syscfg.ports.mem.connect(buses.mem, 0x4001_0000)
-        exti.ports.mem.connect(buses.mem, 0x4001_0400)
-        tim1.ports.mem.connect(buses.mem, 0x4001_2C00)
-        rcc.ports.mem.connect(buses.mem, 0x4002_1000)
-//        fmi.ports.mem.connect(buses.mem, 0x4002_2000)
-        flash.ports.mem.connect(buses.mem, 0x4002_2000)
-        tsc.ports.mem.connect(buses.mem, 0x4002_4000)
+        tim2.ports.mem.connect(buses.mem, 0x4000_0000u)
+        tim3.ports.mem.connect(buses.mem, 0x4000_0400u)
+        iwdg.ports.mem.connect(buses.mem, 0x4000_3000u)
+        syscfg.ports.mem.connect(buses.mem, 0x4001_0000u)
+        exti.ports.mem.connect(buses.mem, 0x4001_0400u)
+        tim1.ports.mem.connect(buses.mem, 0x4001_2C00u)
+        rcc.ports.mem.connect(buses.mem, 0x4002_1000u)
+//        fmi.ports.mem.connect(buses.mem, 0x4002_2000u)
+        flash.ports.mem.connect(buses.mem, 0x4002_2000u)
+        tsc.ports.mem.connect(buses.mem, 0x4002_4000u)
     }
 
     private fun usartInit() {
-        usart1.ports.mem.connect(buses.mem, 0x4001_3800)
-        usart2.ports.mem.connect(buses.mem, 0x4000_4400)
+        usart1.ports.mem.connect(buses.mem, 0x4001_3800u)
+        usart2.ports.mem.connect(buses.mem, 0x4000_4400u)
 
         buses.connect(ports.usart1_m, usart1.ports.usart_m)
         buses.connect(ports.usart1_s, usart1.ports.usart_s)
@@ -152,7 +154,7 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
     }
 
     private fun dmacInit() {
-        dmac.ports.mem.connect(buses.mem, 0x4002_0000)
+        dmac.ports.mem.connect(buses.mem, 0x4002_0000u)
         dmac.ports.io.connect(buses.mem)
         dmac.ports.drq.connect(buses.drq)
 
@@ -244,17 +246,17 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
     }
 
     private fun irqInit() {
-        dmac.ports.irq_ch1.connect(buses.irq, 9)
-        dmac.ports.irq_ch2_3.connect(buses.irq, 10)
-        dmac.ports.irq_ch4_5_6_7.connect(buses.irq, 11)
+        dmac.ports.irq_ch1.connect(buses.irq, 9u)
+        dmac.ports.irq_ch2_3.connect(buses.irq, 10u)
+        dmac.ports.irq_ch4_5_6_7.connect(buses.irq, 11u)
 
-        tim1.ports.irq_ut.connect(buses.irq, 13)
-        tim1.ports.irq_cc.connect(buses.irq, 14)
-        tim2.ports.irq_cc.connect(buses.irq, 15)
-        tim3.ports.irq_cc.connect(buses.irq, 16)
+        tim1.ports.irq_ut.connect(buses.irq, 13u)
+        tim1.ports.irq_cc.connect(buses.irq, 14u)
+        tim2.ports.irq_cc.connect(buses.irq, 15u)
+        tim3.ports.irq_cc.connect(buses.irq, 16u)
 
-        usart1.ports.irq_rx.connect(buses.irq, 27)
-        usart2.ports.irq_rx.connect(buses.irq, 28)
+        usart1.ports.irq_rx.connect(buses.irq, 27u)
+        usart2.ports.irq_rx.connect(buses.irq, 28u)
 
         cortex.ports.irq.connect(buses.irq)
     }

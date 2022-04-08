@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,37 +25,38 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AContext
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
 class x86Context(abi: x86ABI): AContext<x86Core>(abi) {
 
-    var eflags = 0L
-    override var returnAddressValue: Long = 0L
+    var eflags = 0uL
+    override var returnAddressValue: ULong = 0uL
 
     override fun save() {
         super.save()
-        eflags = abi.core.cpu.flags.eflags
+        eflags = abi.core.cpu.flags.eflags.value
         returnAddressValue = abi.returnAddressValue.also { abi.pop() }
     }
 
     override fun load() {
         super.load()
-        abi.core.cpu.flags.eflags = eflags
+        abi.core.cpu.flags.eflags.value = eflags
         abi.returnAddressValue = returnAddressValue
     }
 
-    override fun store(address: Long) {
+    override fun store(address: ULong) {
         abi.writeMemory(address, eflags, abi.gprDatatype)
-        abi.writeMemory(address + abi.gprDatatype.bytes, returnAddressValue, abi.gprDatatype)
-        super.store(address + abi.gprDatatype.bytes * 2)
+        abi.writeMemory(address + abi.gprDatatype.bytes.uint, returnAddressValue, abi.gprDatatype)
+        super.store(address + abi.gprDatatype.bytes.uint * 2u)
     }
 
-    override fun restore(address: Long) {
+    override fun restore(address: ULong) {
         eflags = abi.readMemory(address, abi.gprDatatype)
-        returnAddressValue = abi.readMemory(address + abi.gprDatatype.bytes, abi.gprDatatype)
-        super.restore(address + abi.gprDatatype.bytes * 2)
+        returnAddressValue = abi.readMemory(address + abi.gprDatatype.bytes.uint, abi.gprDatatype)
+        super.restore(address + abi.gprDatatype.bytes.uint * 2u)
     }
 
     override fun ret() {

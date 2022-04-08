@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.media
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -34,20 +34,19 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class UBFX(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            val rd: ARMRegister,
            val rn: ARMRegister,
-           private val widthMinus1: Long,
-           private val lsBit: Long):
+           private val widthMinus1: ULong,
+           private val lsBit: ULong):
         AARMInstruction(cpu, Type.VOID, cond, opcode, rd, rn) {
 
     override val mnem = "UBFX$mcnd"
     override fun execute() {
         val msBit = lsBit + widthMinus1
-        if(msBit <= 31) rd.value(core, rn.value(core)[msBit.asInt..lsBit.asInt])
+        if(msBit <= 31u) rd.value(core, rn.value(core)[msBit.int..lsBit.int])
         else throw Unpredictable
     }
 }

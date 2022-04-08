@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.arith
 
+import ru.inforion.lab403.common.extensions.bigint
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.edx
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.ax
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.dx
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -49,26 +49,32 @@ class Idiv(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
 
         when (op1.dtyp) {
             Datatype.BYTE -> {
-                val a1 = ax.ssext(core)
+                val a1 = core.cpu.regs.ax.toOperand().ssext(core)
                 val quotient = a1 / a2
                 val remainder = a1 % a2
-                core.cpu.regs.al = quotient
-                core.cpu.regs.ah = remainder
+                core.cpu.regs.al.value = quotient.ulong
+                core.cpu.regs.ah.value = remainder.ulong
             }
             Datatype.WORD -> {
 //                val a1 = cpu.regs.dx.shl(16) or cpu.regs.ax
-                val a1 = dx.ssext(core).shl(16) or core.cpu.regs.ax
+                val a1 = core.cpu.regs.dx.toOperand().ssext(core).shl(16) or core.cpu.regs.ax.value.long
                 val quotient = a1 / a2
                 val remainder = a1 % a2
-                core.cpu.regs.ax = quotient
-                core.cpu.regs.dx = remainder
+                core.cpu.regs.ax.value = quotient.ulong
+                core.cpu.regs.dx.value = remainder.ulong
             }
             Datatype.DWORD -> {
-                val a1 = edx.ssext(core).shl(32) or core.cpu.regs.eax
+                val a1 = core.cpu.regs.edx.toOperand().ssext(core).shl(32) or core.cpu.regs.eax.value.long
                 val quotient = a1 / a2
                 val remainder = a1 % a2
-                core.cpu.regs.eax = quotient
-                core.cpu.regs.edx = remainder
+                core.cpu.regs.eax.value = quotient.ulong
+                core.cpu.regs.edx.value = remainder.ulong
+            }
+            Datatype.QWORD -> {
+                val a1 = (core.cpu.regs.rdx.value.long.bigint shl 64) or core.cpu.regs.rax.value.bigint
+                val (quotient, remainder) = a1.divideAndRemainder(a2.bigint)
+                core.cpu.regs.rax.value = quotient.ulong
+                core.cpu.regs.rdx.value = remainder.ulong
             }
             else -> throw GeneralException("Wrong datatype!")
         }

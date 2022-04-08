@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@ import ru.inforion.lab403.elfloader.enums.ElfProgramHeaderFlag.*
 import ru.inforion.lab403.elfloader.enums.ElfSectionHeaderFlag.*
 
 
-
 class ElfAccess(val flags: Int) {
     val isRead = flags and 1 != 0
     val isWrite = flags and 2 != 0
@@ -37,17 +36,17 @@ class ElfAccess(val flags: Int) {
     val isLoad = flags and 8 != 0
 
     companion object {
-        fun fromSectionHeaderFlags(sflags: Int): ElfAccess {
-            val write = if (sflags and SHF_WRITE.id != 0) 2 else 0
-            val exec = if (sflags and SHF_EXECINSTR.id != 0) 4 else 0
-            val load = if (sflags and SHF_ALLOC.id != 0) 8 else 0
+        fun fromSectionHeaderFlags(sflags: UInt): ElfAccess {
+            val write = if (sflags and SHF_WRITE.id != 0u) 2 else 0
+            val exec = if (sflags and SHF_EXECINSTR.id != 0u) 4 else 0
+            val load = if (sflags and SHF_ALLOC.id != 0u) 8 else 0
             return ElfAccess(1 or write or exec or load)
         }
 
-        fun fromProgramHeaderFlags(pflags: Int): ElfAccess {
-            val read = if (pflags and PF_R.id != 0) 1 else 0
-            val write = if (pflags and PF_W.id != 0) 2 else 0
-            val exec = if (pflags and PF_X.id != 0) 4 else 0
+        fun fromProgramHeaderFlags(pflags: UInt): ElfAccess {
+            val read = if (pflags and PF_R.id != 0u) 1 else 0
+            val write = if (pflags and PF_W.id != 0u) 2 else 0
+            val exec = if (pflags and PF_X.id != 0u) 4 else 0
             return ElfAccess(read or write or exec or 8)
         }
         fun virtual(): ElfAccess = ElfAccess(0b1011)

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.media
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.UInt
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
@@ -41,16 +41,16 @@ class BitFieldOppDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 rd: ARMRegister,
                 ra: ARMRegister,
-                msBit: Long,
-                lsBit: Long) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
+                msBit: ULong,
+                lsBit: ULong) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
+    override fun decode(data: ULong): AARMInstruction {
         val cond = cond(data)
-        val rd = gpr(data[15..12].asInt)
-        val rn = gpr(data[3..0].asInt)
+        val rd = gpr(data[15..12].int)
+        val rn = gpr(data[3..0].int)
         val msBit = UInt(data[20..16], 32)
         val lsBit = UInt(data[11..7], 32)
 

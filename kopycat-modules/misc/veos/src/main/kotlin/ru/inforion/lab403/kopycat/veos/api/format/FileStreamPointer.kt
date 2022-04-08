@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.format
 
-import ru.inforion.lab403.common.extensions.asChar
+import ru.inforion.lab403.common.extensions.char
 import ru.inforion.lab403.kopycat.veos.VEOS
 
 
@@ -40,7 +40,7 @@ class FileStreamPointer(val os: VEOS<*>, val fd: Int) : ICharArrayConstPointer {
     override val get: Char get() {
         if (cache == null) {
             val data = os.filesystem.read(fd, 1)
-            cache = if (data.isEmpty()) 0.asChar else data.single().asChar
+            cache = if (data.isEmpty()) 0.char else data.single().char
         }
         return cache!!
     }

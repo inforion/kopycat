@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.string
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor
@@ -50,16 +51,16 @@ class Cmps(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
         val a1 = op1 as x86Displacement
         val a2 = op2 as x86Displacement
         val res = a1.value(core) - a2.value(core)
-        val result = Variable<x86Core>(0, op1.dtyp)
+        val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
         var pos1 = a1.reg.value(core)
         var pos2 = a2.reg.value(core)
-        if (!x86Register.eflags.df(core)) {
-            pos1 += a1.dtyp.bytes
-            pos2 += a2.dtyp.bytes
+        if (!core.cpu.flags.df) {
+            pos1 += a1.dtyp.bytes.uint
+            pos2 += a2.dtyp.bytes.uint
         } else {
-            pos1 -= a1.dtyp.bytes
-            pos2 -= a2.dtyp.bytes
+            pos1 -= a1.dtyp.bytes.uint
+            pos2 -= a2.dtyp.bytes.uint
         }
         FlagProcessor.processAddSubCmpFlag(core, result, op1, op2, true)
         a1.reg.value(core, pos1)

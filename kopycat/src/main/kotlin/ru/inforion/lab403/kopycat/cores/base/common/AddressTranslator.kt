@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.modules.BUS32
 
@@ -64,13 +66,15 @@ import ru.inforion.lab403.kopycat.modules.BUS32
 open class AddressTranslator(
         parent: Module,
         name: String,
-        val widthIn: Long = BUS32,
-        val widthOut: Long = BUS32) : Module(parent, name) {
+        val widthIn: ULong = BUS32,
+        val widthOut: ULong = BUS32
+) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
         val outp = Master("out", widthOut)
         val inp = Translator("in", outp, widthIn, this@AddressTranslator)
     }
 
+    @DontAutoSerialize
     final override val ports = Ports()
     /**
      * {RU}
@@ -95,5 +99,5 @@ open class AddressTranslator(
      * @return Translated address
      * {EN}
      */
-    open fun translate(ea: Long, ss: Int, size: Int, LorS: AccessAction): Long = ea
+    open fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong = ea
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.decoders
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.mips.enums.Designation
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ProcType
@@ -33,11 +33,20 @@ import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.interfaces.ITableEntry
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 abstract class ADecoder(val core: MipsCore): ITableEntry {
+
+    protected fun isExtended(data: ULong) = data[15..11] == 0b11110uL
+    protected fun getLowData(data: ULong) = if (isExtended(data)) data[31..16] else data
+
     protected fun gpr(id: Int) = core.cpu.regs[id].toOperand()
+    protected fun gpr16(id: Int): MipsRegister {
+        val realId = if (id < 2) id + 16 else id
+        return core.cpu.regs[realId].toOperand()
+    }
 
     protected fun cpr(id: Int, sel: Int) = core.cop.regs[id].toOperand()
 
@@ -46,13 +55,13 @@ abstract class ADecoder(val core: MipsCore): ITableEntry {
 
     protected fun hwr(id: Int) = core.cpu.hwrs[id].toOperand()
 
-    protected fun addr(value: Int) = MipsImmediate(value.asULong)
+    protected fun addr(value: ULong) = MipsImmediate(value)
 
-    protected fun imm(value: Long, signed: Boolean = false) = MipsImmediate(value, signed = signed)
+    protected fun imm(value: ULong, signed: Boolean = false) = MipsImmediate(value, signed = signed)
 
     protected fun near(value: Int) = MipsNear(value)
 
-    protected fun displ(dtyp: Datatype, base: Int, offset: Int) = MipsDisplacement(dtyp, gpr(base), addr(offset))
+    protected fun displ(dtyp: Datatype, base: Int, offset: ULong) = MipsDisplacement(dtyp, gpr(base), addr(offset))
 
     protected fun any(core: ProcType, designation: Designation, reg: Int, sel: Int) = when (core) {
         ProcType.CentralProc -> gpr(reg)
@@ -67,5 +76,5 @@ abstract class ADecoder(val core: MipsCore): ITableEntry {
         ProcType.ImplementSpecCop -> hwr(reg)
     }
 
-    abstract fun decode(data: Long): AMipsInstruction
+    abstract fun decode(data: ULong): AMipsInstruction
 }

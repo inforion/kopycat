@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,6 +49,7 @@ import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.logicInt.*
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.memBarier.sync
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.memSync.isync
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.memSync.lwarx
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.memSync.stwcxdot
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.procCtrl.*
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.rotateInt.rlwimix
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.rotateInt.rlwinmx
@@ -57,6 +58,7 @@ import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.slwx
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.srawix
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.srawx
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.shiftInt.srwx
+import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.storageCtrl.dcbf
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.storageCtrl.dcbst
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.storeInt.*
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.sysLink.sc
@@ -113,7 +115,7 @@ class PPCDecoderBase(core: PPCCore) : APPCSystemDecoder(core) {
     private val cmpbDc = FormX(core, ::cmpb)
     private val cmplDc = FormX(core, ::cmpl)
     private val cntlzwxDc = FormX(core, ::cntlzwx)
-    private val dcbfDc = null //FormX(core, ::dcbf)
+    private val dcbfDc = FormX(core, ::dcbf)
     private val dcbstDc = FormX(core, ::dcbst)
     private val dcbtDc = null //FormX(core, ::dcbt)
     private val dcbtstDc = null //FormX(core, ::dcbtst)
@@ -149,7 +151,7 @@ class PPCDecoderBase(core: PPCCore) : APPCSystemDecoder(core) {
     private val sthuxDc = FormX(core, ::sthux)
     private val sthxDc = FormX(core, ::sthx)
     private val stwbrxDc = FormX(core, ::stwbrx)
-    private val stwcxdotDc = null //FormX(core, ::stwcxdot)
+    private val stwcxdotDc = FormX(core, ::stwcxdot)
     private val stwuxDc = FormX(core, ::stwux)
     private val stwxDc = FormX(core, ::stwx)
     private val syncDc = FormX(core, ::sync)
@@ -301,8 +303,8 @@ class PPCDecoderBase(core: PPCCore) : APPCSystemDecoder(core) {
 
     override val baseOpcode = InstructionTable(
             8, 8,
-            { data: Long -> data[31..29] },
-            { data: Long -> data[28..26] },
+            { data -> data[31..29] },
+            { data -> data[28..26] },
             /////               0,0,0       0,0,1       0,1,0       0,1,1       1,0,0       1,0,1       1,1,0       1,1,1
             /*0,0,0*/  null,       null,       null,       twiDc,      null,       null,       null,       mulliDc,
             /*1,0,0*/           subficDc,   null,       cmpliDc,    cmpiDc,     addicDc,    addicdotDc, addiDc,     addisDc,

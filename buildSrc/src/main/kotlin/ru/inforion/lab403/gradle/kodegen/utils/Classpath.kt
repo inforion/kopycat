@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.gradle.kodegen.utils
 
-import com.fasterxml.jackson.annotation.JsonIgnore
 import ru.inforion.lab403.gradle.common.addClasspath
 import ru.inforion.lab403.gradle.common.className
 import ru.inforion.lab403.gradle.common.classpathToPath
@@ -40,7 +39,6 @@ data class Classpath(val pkg: String, val name: String) {
 
     constructor(classpath: String) : this(classpath.packageName(), classpath.className())
 
-    @JsonIgnore
     val full = pkg.addClasspath(name)
 
     override fun toString() = full

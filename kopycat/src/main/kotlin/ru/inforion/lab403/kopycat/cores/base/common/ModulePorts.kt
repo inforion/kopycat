@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import ru.inforion.lab403.common.extensions.asULong
-import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
@@ -44,7 +42,6 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
 import ru.inforion.lab403.kopycat.modules.BUS32
 import java.io.Serializable
-import kotlin.collections.set
 
 /**
  * {EN}
@@ -71,7 +68,11 @@ import kotlin.collections.set
  * то есть нельзя выполнять соединение внутрь другого модуля.
  * {RU}
  */
-open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>() {
+open class ModulePorts(val module: Module) {
+    private val container = Dictionary<String, ModulePorts.APort>()
+
+    operator fun get(name: String) = container[name]
+
     /**
      * {RU}Перечисление определяющее действие в случае не обнаружения примитива для заданного адреса{RU}
      */
@@ -91,7 +92,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
      * @param size размер адресного пространства каждого порта
      * {RU}
      */
-    fun proxies(count: Int, prefix: String, size: Long = BUS32) = Array(count) { Proxy("$prefix$it", size) }
+    fun proxies(count: Int, prefix: String, size: ULong = BUS32) = Array(count) { Proxy("$prefix$it", size) }
 
     /**
      * {RU}
@@ -102,7 +103,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
      * @param size размер адресного пространства каждого порта
      * {RU}
      */
-    fun slaves(count: Int, prefix: String, size: Long = BUS32) = Array(count) { Slave("$prefix$it", size) }
+    fun slaves(count: Int, prefix: String, size: ULong = BUS32) = Array(count) { Slave("$prefix$it", size) }
 
     /**
      * {RU}
@@ -113,10 +114,10 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
      * @param size размер адресного пространства каждого порта
      * {RU}
      */
-    fun masters(count: Int, prefix: String, size: Long = BUS32, onError: ErrorAction = EXCEPTION)
+    fun masters(count: Int, prefix: String, size: ULong = BUS32, onError: ErrorAction = EXCEPTION)
             = Array(count) { Master("$prefix$it", size, onError) }
 
-    internal fun hasWarnings(logging: Boolean) = values.map {
+    internal fun hasWarnings(logging: Boolean) = container.values.map {
         var hasWarnings = false
         if (it.hasOuterConnection) {
             if (logging)
@@ -134,7 +135,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
     /**
      * {EN}Port to bus connection (there is also similar class for bus to port connection in [ModuleBuses]){EN}
      */
-    data class Connection(val bus: Bus, val offset: Long): Serializable
+    data class Connection(val bus: Bus, val offset: ULong): Serializable
 
     class PortDefinitionError(message: String) : Exception(message)
 
@@ -150,7 +151,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
      * @param type тип порта ([Master], [Slave], [Proxy], [Translator])
      * {RU}
      */
-    abstract inner class APort(val name: String, val size: Long, val type: Type): Serializable {
+    abstract inner class APort(val name: String, val size: ULong, val type: Type): Serializable {
         val module = this@ModulePorts.module
 
         internal val outerConnections = mutableListOf<Connection>()
@@ -198,7 +199,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
          * то порт будет находится на шине со смещением 0x8000_0000
          * {RU}
          */
-        open fun connect(bus: Bus, offset: Long = 0) {
+        open fun connect(bus: Bus, offset: ULong = 0u) {
             ConnectionError.on(bus.module == module) {
                 "\nCan't connect port $this to bus $bus because these bus and port belong to the same module '$module'" +
                 "\nSuch a connection is only possible if port is Proxy port but $this is '$type'"
@@ -206,9 +207,9 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
             connectOuter(bus, offset)
         }
 
-        fun connect(vararg connection: Pair<Bus, Long>) = connection.forEach { connect(it.first, it.second) }
+        fun connect(vararg connection: Pair<Bus, ULong>) = connection.forEach { connect(it.first, it.second) }
 
-        fun connect(bus: Bus, vararg offsets: Long) = offsets.forEach { connect(bus, it) }
+        fun connect(bus: Bus, vararg offsets: ULong) = offsets.forEach { connect(bus, it) }
 
         /**
          * {EN}
@@ -246,11 +247,10 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
 
         override fun toString(): String {
             val sym = type.name[0]
-            val size = if (size <= 0xFFFF_FFFF) size.hex8 else "========"
-            return "$module:$name[${sym}x$size]"
+            return "$module:$name[${sym}x${size.hex}]"
         }
 
-        protected fun connectOuter(bus: Bus, offset: Long = 0) {
+        protected fun connectOuter(bus: Bus, offset: ULong = 0u) {
             val connection = outerConnections.find { it.bus == bus && it.offset == offset }
             ConnectionError.on(connection != null) {
                 "Port $this already has the same connection to $bus offset=${offset.hex}!"
@@ -283,10 +283,10 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
         }
 
         init {
-            errorIf(size <= 0) { "$this -> wrong bus size $size > 0" }
+            errorIf(size <= 0u) { "$this -> wrong bus size $size > 0" }
             errorIf(name in RESERVED_NAMES) { "$this -> bad port name: $name" }
-            errorIf(name in this@ModulePorts.keys) { "$this -> port name $name is duplicated in module $module" }
-            this@ModulePorts[name] = this@APort
+            errorIf(name in container) { "$this -> port name $name is duplicated in module $module" }
+            container[name] = this@APort
         }
     }
 
@@ -302,9 +302,9 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
      * @param onError определяет действие порта в том случае, если не было найдено никакого примитива для заданного адреса (по умолчанию выбрасывается исключение)
      * {RU}
      */
-    inner class Master constructor(name: String, size: Long = BUS32, val onError: ErrorAction = EXCEPTION) :
+    inner class Master constructor(name: String, size: ULong = BUS32, val onError: ErrorAction = EXCEPTION) :
             APort(name, size, Type.Master), IFetchReadWrite {
-        constructor(name: String, size: Int, onError: ErrorAction = EXCEPTION) : this(name, size.asULong, onError)
+        constructor(name: String, size: Int, onError: ErrorAction = EXCEPTION) : this(name, size.ulong_z, onError)
 
         /**
          * {RU}
@@ -318,8 +318,8 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
          * @return true - если найден регион или false - если нет.
          * {RU}
          */
-        fun access(ea: Long, ss: Int = 0, size: Int = 0, LorS: AccessAction = LOAD) =
-                find(this, ea, ss, size, LorS, 0) != null
+        fun access(ea: ULong, ss: Int = 0, size: Int = 0, LorS: AccessAction = LOAD) =
+                find(this, ea, ss, size, LorS, 0u) != null
 
         /**
          * {RU}
@@ -334,46 +334,46 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
          * @return область для чтения/записи или null, если не найдено
          * {RU}
          */
-        internal fun find(source: MasterPort, ea: Long, ss: Int, size: Int, LorS: AccessAction, value: Long): Entry? {
+        internal fun find(source: MasterPort, ea: ULong, ss: Int, size: Int, LorS: AccessAction, value: ULong): Entry? {
             val (bus, offset) = outerConnections.firstOrNull() ?: return null // exception will handle in outer function
             return bus.cache.find(source, ea + offset, ss, size, LorS, value)
         }
 
-        override fun beforeFetch(from: MasterPort, ea: Long): Boolean =
+        override fun beforeFetch(from: MasterPort, ea: ULong): Boolean =
                 throw IllegalAccessError("This method should not be called")
 
-        override fun beforeRead(from: MasterPort, ea: Long): Boolean =
+        override fun beforeRead(from: MasterPort, ea: ULong): Boolean =
                 throw IllegalAccessError("This method should not be called")
 
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean =
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean =
                 throw IllegalAccessError("This method should not be called")
 
-        override fun fetch(ea: Long, ss: Int, size: Int): Long {
-            val found = find(this, ea, ss, size, FETCH, 0)
-                    ?: throw MemoryAccessError(-1, ea, FETCH, "Nothing connected at $ss:${ea.hex8} port $this")
+        override fun fetch(ea: ULong, ss: Int, size: Int): ULong {
+            val found = find(this, ea, ss, size, FETCH, 0u)
+                    ?: throw MemoryAccessError(ULONG_MAX, ea, FETCH, "Nothing connected at $ss:${ea.hex16} port $this")
             return found.fetch(ss, size)
         }
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            val found = find(this, ea, ss, size, LOAD, 0) ?: return when (onError) {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            val found = find(this, ea, ss, size, LOAD, 0u) ?: return when (onError) {
                 EXCEPTION ->
-                    throw MemoryAccessError(-1, ea, LOAD, "Nothing connected at $ss:${ea.hex8} port $this")
+                    throw MemoryAccessError(ULONG_MAX, ea, LOAD, "Nothing connected at $ss:${ea.hex16} port $this")
                 LOGGING -> {
-                    log.severe { "LOAD ignored ea=$ss:${ea.hex8} port=$this result=0x00000000" }
-                    0
+                    log.severe { "LOAD ignored ea=$ss:${ea.hex16} port=$this result=0x00000000" }
+                    0u
                 }
-                else -> 0
+                else -> 0u
             }
 
             return found.read(ss, size)
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             val found = find(this, ea, ss, size, STORE, value) ?: return when (onError) {
                 EXCEPTION ->
-                    throw MemoryAccessError(-1, ea, STORE, "Nothing connected at $ss:${ea.hex8} port $this")
+                    throw MemoryAccessError(ULONG_MAX, ea, STORE, "Nothing connected at $ss:${ea.hex16} port $this")
                 LOGGING ->
-                    log.severe { "STORE ignored ea=$ss:${ea.hex8} port=$this value=0x${value.hex8}" }
+                    log.severe { "STORE ignored ea=$ss:${ea.hex16} port=$this value=0x${value.hex16}" }
                 else -> return
             }
             found.write(ss, size, value)
@@ -391,8 +391,8 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
      * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
      * {RU}
      */
-    inner class Slave constructor(name: String, size: Long = BUS32) : APort(name, size, Type.Slave) {
-        constructor(name: String, size: Int) : this(name, size.asULong)
+    inner class Slave constructor(name: String, size: ULong = BUS32) : APort(name, size, Type.Slave) {
+        constructor(name: String, size: Int) : this(name, size.ulong_z)
 
         /**
          * {RU}
@@ -450,15 +450,15 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
      * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
      * {RU}
      */
-    inner class Proxy constructor(name: String, size: Long = BUS32) : APort(name, size, Type.Proxy) {
-        constructor(name: String, size: Int) : this(name, size.asULong)
+    inner class Proxy constructor(name: String, size: ULong = BUS32) : APort(name, size, Type.Proxy) {
+        constructor(name: String, size: Int) : this(name, size.ulong_z)
 
         var innerBus: Bus? = null
             private set
 
-        override fun connect(bus: Bus, offset: Long) {
+        override fun connect(bus: Bus, offset: ULong) {
             // TODO: May be these checks should be in connectInner?
-            ConnectionError.on(offset != 0L) { "Error in connection $bus to $this, proxy port connection offset should be 0" }
+            ConnectionError.on(offset != 0uL) { "Error in connection $bus to $this, proxy port connection offset should be 0" }
             ConnectionError.on(bus.size != size) { "Size of inner bus $bus and port $this must be the same! [${bus.size.hex8} != ${size.hex8}]" }
 
             if (bus.module == module) {
@@ -471,7 +471,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
         override fun disconnect(bus: Bus) {
             if (bus == innerBus) {
                 innerBus = null
-                bus.onPortDisconnect(this, 0)
+                bus.onPortDisconnect(this, 0u)
             } else {
                 super.disconnect(bus)
             }
@@ -479,7 +479,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
 
         private fun connectInner(bus: Bus) {
             innerBus = bus
-            bus.onPortConnected(this, 0, ModuleBuses.ConnectionType.INNER)
+            bus.onPortConnected(this, 0u, ModuleBuses.ConnectionType.INNER)
         }
 
         /**
@@ -504,7 +504,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
     inner class Translator(
             name: String,
             val master: Master,
-            size: Long,
+            size: ULong,
             private val translator: AddressTranslator
     ) : APort(name, size, Type.Translator) {
         /**
@@ -522,7 +522,7 @@ open class ModulePorts(val module: Module): HashMap<String, ModulePorts.APort>()
          * @return BusCache.Entry в случае, если был найден примитив по другую сторону прокси порта, null - в случае, если не найден
          * {RU}
          */
-        internal fun find(source: MasterPort, ea: Long, ss: Int, size: Int, LorS: AccessAction, value: Long) =
+        internal fun find(source: MasterPort, ea: ULong, ss: Int, size: Int, LorS: AccessAction, value: ULong) =
                 master.find(source, translator.translate(ea, ss, size, LorS), ss, size, LorS, value)
     }
 }

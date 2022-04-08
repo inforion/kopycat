@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores.device
 
-import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.putInt32
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.modules.cores.device.hardware.TestCOP
 import ru.inforion.lab403.kopycat.modules.cores.device.hardware.TestCPU
+import java.io.ByteArrayOutputStream
+import java.io.DataOutputStream
 
 class TestCore(parent: Module, name: String, frequency: Long = 77.MHz):
         ACore<TestCore, TestCPU, TestCOP>(parent, name, frequency, 1.0) {
@@ -42,14 +42,16 @@ class TestCore(parent: Module, name: String, frequency: Long = 77.MHz):
         fun program(vararg instructions: Any): ByteArray {
             val ints = instructions.map { item ->
                 when (item) {
-                    is Long -> listOf(item)
-                    else -> error("Wrong argument type: $item!")
+                    is ULong -> listOf(item)
+                    else -> error("Wrong argument type: ${item::class}!")
                 }
             }.flatten()
 
-            return ByteArray(4 * ints.size).apply {
-                ints.forEachIndexed { index, value -> putInt32(4 * index, value.asInt) }
-            }
+            return ByteArrayOutputStream().apply {
+                DataOutputStream(this).apply {
+                    ints.forEach { writeULong(it) }
+                }
+            }.toByteArray()
         }
     }
 

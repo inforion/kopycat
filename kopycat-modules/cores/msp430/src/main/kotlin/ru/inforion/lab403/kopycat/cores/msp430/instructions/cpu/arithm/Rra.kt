@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.msp430.instructions.cpu.arithm
 
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.ashr
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.msp430.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.msp430.instructions.AMSP430Instruction
@@ -44,8 +45,8 @@ class Rra(core: MSP430Core, size: Int, vararg operands: AOperand<MSP430Core>):
     override fun execute() {
         //TODO: op1 fetch optimisation?
         val op = op1.value(core)
-        result.value(core, op shr 1)
-        FlagProcessor.processShiftFlag(core, result, (op and 1).toBool())
+        result.value(core, op ashr 1)
+        FlagProcessor.processShiftFlag(core, result, (op and 1u).truth)
         op1.value(core, result)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,23 +23,23 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("NOTHING_TO_INLINE")
+
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import gnu.trove.set.hash.THashSet
-import net.sourceforge.argparse4j.inf.ArgumentParser
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.intervalmap.Interval
+import ru.inforion.lab403.common.intervalmap.PriorityTreeIntervalMap
 import ru.inforion.lab403.common.logging.CONFIG
-import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.logging.logger.Logger
-import ru.inforion.lab403.common.proposal.byteBuffer
-import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.enums.*
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.base.extensions.*
 import ru.inforion.lab403.kopycat.interfaces.*
 import ru.inforion.lab403.kopycat.serializer.deserialize
 import ru.inforion.lab403.kopycat.serializer.loadHex
@@ -48,7 +48,10 @@ import ru.inforion.lab403.kopycat.serializer.storeValues
 import ru.inforion.lab403.kopycat.settings
 import java.io.InputStream
 import java.nio.ByteOrder
+import java.util.*
 import java.util.logging.Level
+import kotlin.collections.ArrayList
+import kotlin.collections.HashSet
 
 /**
  * {RU}
@@ -98,14 +101,15 @@ import java.util.logging.Level
  * {EN}
  */
 open class Module(
-        parent: Component?,
-        name: String,
-        plugin: String? = null
+    parent: Component?,
+    name: String,
+    plugin: String? = null
 ) : Component(parent, name, plugin) {
 
     companion object {
         val RESERVED_NAMES = arrayOf("ports", "buses")
-        @Transient val log = logger(CONFIG)
+        @Transient
+        val log = logger(CONFIG)
     }
 
     val isCorePresent get() = ::core.isInitialized
@@ -242,7 +246,7 @@ open class Module(
 
         log.config { "Initializing ports and buses..." }
         if (initializePortsAndBuses()) {
-            log.warning { "ATTENTION: Some ports has warning use printModulesPortsWarnings to see it..." }
+            log.warning { "Some ports has warning use printModulesPortsWarnings to see it..." }
         }
 
         val modules = getAllComponents().size
@@ -268,7 +272,7 @@ open class Module(
      * @param offset connection offset
      * {EN}
      */
-    open fun onPortConnected(port: APort, bus: Bus, offset: Long) = Unit
+    open fun onPortConnected(port: APort, bus: Bus, offset: ULong) = Unit
 
     /**
      * {EN}
@@ -279,7 +283,7 @@ open class Module(
      * @param offset connection offset
      * {EN}
      */
-    open fun onPortDisconnect(port: APort, bus: Bus, offset: Long) = Unit
+    open fun onPortDisconnect(port: APort, bus: Bus, offset: ULong) = Unit
 
     /**
      * {RU}
@@ -339,19 +343,19 @@ open class Module(
      * {EN}
      */
     abstract inner class Area constructor(
-            val port: SlavePort,
-            val start: Long,
-            val end: Long,
-            final override val name: String,
-            val access: ACCESS = ACCESS.R_W,
-            private val verbose: Boolean = false
+        val port: SlavePort,
+        val start: ULong,
+        val end: ULong,
+        final override val name: String,
+        val access: ACCESS = ACCESS.R_W,
+        private val verbose: Boolean = false
     ) : IFetchReadWrite, ICoreUnit {
         val module = this@Module
 
-        val size = end - start + 1
+        val size = end - start + 1u
 
         constructor(port: SlavePort, name: String, access: ACCESS = ACCESS.R_W, verbose: Boolean = false) :
-                this(port, 0, port.size - 1, name, access, verbose)
+                this(port, 0u, port.size - 1u, name, access, verbose)
 
         /**
          * {EN}
@@ -374,7 +378,7 @@ open class Module(
             port.remove(this)
         }
 
-        fun range() = LongRange(start, end)
+        fun range() = ULongRange(start, end)
 
         /**
          * {RU}
@@ -394,10 +398,11 @@ open class Module(
          * {EN}
          */
         override fun serialize(ctxt: GenericSerializer) = storeValues(
-                "name" to name,
-                "start" to start.hex8,
-                "end" to end.hex8,
-                "access" to access)
+            "name" to name,
+            "start" to start.hex8,
+            "end" to end.hex8,
+            "access" to access
+        )
 
         /**
          * {RU}
@@ -415,11 +420,11 @@ open class Module(
          * {EN}
          */
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            val pAddrStart = loadHex(snapshot, "start", -1)
+            val pAddrStart = loadHex(snapshot, "start", ULONG_MAX)
             check(pAddrStart == start) { "start: %08X != %08X".format(start, pAddrStart) }
         }
 
-        private fun beforeFetchOrRead(from: MasterPort, ea: Long): Boolean {
+        private fun beforeFetchOrRead(from: MasterPort, ea: ULong): Boolean {
             if (verbose) log.warning { "$name: [${core.cpu.pc.hex8}]  READ[$access] -> Read access to verbose area [${ea.hex8}]" }
             when (access.read) {
                 GRANT -> return true
@@ -429,7 +434,7 @@ open class Module(
             return false
         }
 
-        override fun beforeFetch(from: MasterPort, ea: Long): Boolean = beforeFetchOrRead(from, ea)
+        override fun beforeFetch(from: MasterPort, ea: ULong): Boolean = beforeFetchOrRead(from, ea)
 
         /**
          * {RU}
@@ -452,12 +457,17 @@ open class Module(
          * @return if true then write can be proceed
          * {EN}
          */
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean {
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean {
             if (verbose) log.warning { "$name: [${core.cpu.pc.hex8}] WRITE[$access] -> Write access to verbose area [${ea.hex8}]" }
             when (access.write) {
                 GRANT -> return true
                 BREAK -> if (isDebuggerPresent) debugger.isRunning = false
-                ERROR -> throw MemoryAccessError(core.pc, ea, STORE, message = "[$access] The area $name can't be written")
+                ERROR -> throw MemoryAccessError(
+                    core.pc,
+                    ea,
+                    STORE,
+                    message = "[$access] The area $name can't be written"
+                )
             }
             return false
         }
@@ -481,13 +491,14 @@ open class Module(
          * @return if true then read can be proceed else 0 should be returned
          * {EN}
          */
-        override fun beforeRead(from: MasterPort, ea: Long) = beforeFetchOrRead(from, ea)
+        override fun beforeRead(from: MasterPort, ea: ULong) = beforeFetchOrRead(from, ea)
 
-        override fun fetch(ea: Long, ss: Int, size: Int): Long = throw IllegalAccessException("Area isn't fetchable by default!")
+        override fun fetch(ea: ULong, ss: Int, size: Int): ULong =
+            throw IllegalAccessException("Area isn't fetchable by default!")
 
         override fun toString(): String = "$port->$name[${start.hex8}..${end.hex8}]"
 
-        fun contains(ea: Long) = ea in start..end
+        fun contains(ea: ULong) = ea in start..end
 
         private inline fun errorIf(condition: Boolean, message: () -> String) {
             if (condition) throw AreaDefinitionError(message())
@@ -535,17 +546,17 @@ open class Module(
      * @property verbose verbose flag
      * {EN}
      */
-    inner class Void(
-            port: SlavePort,
-            start: Long,
-            end: Long,
-            name: String,
-            access: ACCESS = ACCESS.R_W,
-            verbose: Boolean = false
+    open inner class Void(
+        port: SlavePort,
+        start: ULong,
+        end: ULong,
+        name: String,
+        access: ACCESS = ACCESS.R_W,
+        verbose: Boolean = false
     ) : Area(port, start, end, name, access, verbose) {
-        override fun fetch(ea: Long, ss: Int, size: Int): Long = 0
-        override fun read(ea: Long, ss: Int, size: Int): Long = 0
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) = Unit
+        override fun fetch(ea: ULong, ss: Int, size: Int): ULong = 0u
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = Unit
     }
 
     /**
@@ -590,23 +601,25 @@ open class Module(
      * {EN}
      */
     inner class Memory(
-            port: SlavePort,
-            start: Long,
-            end: Long,
-            name: String,
-            access: ACCESS,
-            verbose: Boolean = false,
-            endian: ByteOrder = ByteOrder.LITTLE_ENDIAN
-    ): Area(port, start, end, name, access, verbose) {
+        port: SlavePort,
+        start: ULong,
+        end: ULong,
+        name: String,
+        access: ACCESS,
+        verbose: Boolean = false,
+        endian: ByteOrder = ByteOrder.LITTLE_ENDIAN
+    ) : Area(port, start, end, name, access, verbose) {
         override fun stringify(): String = dump(16, 1, '#', '-')
 
-        private val content = byteBuffer(size.asInt, endian, settings.directedMemory).toSerializable()
+        private val content = runCatching { byteBuffer(size.int, settings.directedMemory, endian) }
+            .onFailure { "Can't allocate $size bytes for memory buffer" }
+            .getOrThrow()
 
-        private val pageSize = 0x2000
-        private val pageCount = size / pageSize + ((size % pageSize) and 1)
-        private val dirtyPages = THashSet<Int>(pageCount.asInt)
-        private val pageMask = (pageSize - 1).inv()
-        private val emptyPage = ByteArray(pageSize)
+        private val pageSize = 0x2000u
+        private val pageCount = size / pageSize + ((size % pageSize) and 1u)
+        private val dirtyPages = HashSet<UInt>(pageCount.int)
+        private val pageMask = (pageSize - 1u).inv()
+        private val emptyPage = ByteArray(pageSize.int)
         var endian: ByteOrder
             get() = content.order()
             set(value) {
@@ -621,64 +634,38 @@ open class Module(
         override fun reset() {
             super.reset()
             dirtyPages.sorted().forEach { pageAddress ->
-                content.position(pageAddress)
-                if (pageAddress + pageSize < content.limit())
+                content.position(pageAddress.int)
+                if (pageAddress + pageSize < content.limit().ulong_z)
                     content.put(emptyPage)
                 else
-                    content.put(ByteArray(content.limit() - pageAddress))
+                    content.put(ByteArray(content.limit() - pageAddress.int))
             }
             content.rewind()
         }
 
-        override fun inb(ea: Long, ss: Int): Long = content.get((ea - start).asInt).asULong
-        override fun inw(ea: Long, ss: Int): Long = content.getShort((ea - start).asInt).asULong
-        override fun inl(ea: Long, ss: Int): Long = content.getInt((ea - start).asInt).asULong
-        override fun inq(ea: Long, ss: Int): Long = content.getLong((ea - start).asInt)
+        private inline fun indexOf(ea: ULong) = (ea - start).int
 
-        override fun outb(ea: Long, value: Long, ss: Int) {
-            val offset = (ea - start).asInt
-            dirtyPages.add(offset and pageMask)
-            content.put(offset, value.asByte)
-        }
+        // isReadable check when bus select an area
+        private inline fun fetchOrRead(ea: ULong, ss: Int, size: Int, access: AccessAction) = with (content) {
+            val index = indexOf(ea)
+            when (size) {
+                QWORD.bytes -> getLong(index).ulong
+                BYTES7.bytes -> getLong(index).ulong like BYTES7
+                FWORD.bytes -> getLong(index).ulong like FWORD
+                BYTES5.bytes -> getLong(index).ulong like BYTES5
 
-        override fun outw(ea: Long, value: Long, ss: Int) {
-            val offset = (ea - start).asInt
-            dirtyPages.add(offset and pageMask)
-            content.putShort(offset, value.asShort)
-        }
+                DWORD.bytes -> getInt(index).ulong_z
+                TRIBYTE.bytes -> getInt(index).ulong_z like TRIBYTE
 
-        override fun outl(ea: Long, value: Long, ss: Int) {
-            val offset = (ea - start).asInt
-            dirtyPages.add(offset and pageMask)
-            content.putInt(offset, value.asInt)
-        }
+                WORD.bytes -> getShort(index).ulong_z
 
-        override fun outq(ea: Long, value: Long, ss: Int) {
-            val offset = (ea - start).asInt
-            dirtyPages.add(offset and pageMask)
-            content.putLong(offset, value.asLong)
-        }
-
-        private fun fetchOrRead(ea: Long, ss: Int, size: Int, access: AccessAction): Long {
-            // isReadable check when bus select a area
-
-            return when (size) {
-                QWORD.bytes -> inq(ea, ss)
-                BYTES7.bytes -> inq(ea, ss) like BYTES7
-                FWORD.bytes -> inq(ea, ss) like FWORD
-                BYTES5.bytes -> inq(ea, ss) like BYTES5
-
-                DWORD.bytes -> inl(ea, ss)
-                TRIBYTE.bytes -> inl(ea, ss) like TRIBYTE
-
-                WORD.bytes -> inw(ea, ss)
-                BYTE.bytes -> inb(ea, ss)
+                BYTE.bytes -> get(index).ulong_z
 
                 else -> throw MemoryAccessError(core.pc, ea, access, "Unsupported read size $size bytes")
             }
         }
 
-        override fun fetch(ea: Long, ss: Int, size: Int): Long = fetchOrRead(ea, ss, size, FETCH)
+        override fun fetch(ea: ULong, ss: Int, size: Int): ULong = fetchOrRead(ea, ss, size, FETCH)
 
         /**
          * {RU}
@@ -702,7 +689,7 @@ open class Module(
          * @return Received value
          * {EN}
          */
-        override fun read(ea: Long, ss: Int, size: Int) = fetchOrRead(ea, ss, size, LOAD)
+        override fun read(ea: ULong, ss: Int, size: Int) = fetchOrRead(ea, ss, size, LOAD)
 
         /**
          * {RU}
@@ -725,20 +712,23 @@ open class Module(
          * @param value value to write to the memory
          * {EN}
          */
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             // isWritable check when bus select a area
+            val index = indexOf(ea)
+            dirtyPages.add(index.uint and pageMask)
+            with(content) {
+                when (size) {
+                    QWORD.bytes -> putLong(index, value.long)
+                    FWORD.bytes -> {
+                        putLong(index + 0, value[31..0].long) // lo
+                        putShort(index + 4, value[47..32].short) // hi
+                    }
+                    DWORD.bytes -> putInt(index, value.int)
+                    WORD.bytes -> putShort(index, value.short)
+                    BYTE.bytes -> put(index, value.byte)
 
-            when (size) {
-                QWORD.bytes -> outq(ea, value, ss)
-                FWORD.bytes -> {
-                    outl(ea + 0, value[31..0], ss) // lo
-                    outw(ea + 4, value[47..32], ss) // hi
+                    else -> throw MemoryAccessError(core.pc, ea, LOAD, "Unsupported write size $size bytes")
                 }
-                DWORD.bytes -> outl(ea, value, ss)
-                WORD.bytes -> outw(ea, value, ss)
-                BYTE.bytes -> outb(ea, value, ss)
-
-                else -> throw MemoryAccessError(core.pc, ea, LOAD, "Unsupported write size $size bytes")
             }
         }
 
@@ -762,8 +752,8 @@ open class Module(
          * @param onError error handler on memory access (throws [MemoryAccessError] by default)
          * {EN}
          */
-        override fun load(ea: Long, size: Int, ss: Int, onError: HardwareErrorHandler?): ByteArray {
-            val offset = (ea - start).toInt()
+        override fun load(ea: ULong, size: Int, ss: Int, onError: HardwareErrorHandler?): ByteArray {
+            val offset = (ea - start).int
             val pos = content.position()
             content.position(offset)
             val result = ByteArray(size).apply { content.get(this) }
@@ -791,13 +781,13 @@ open class Module(
          * @param onError error handler on memory access (throws [MemoryAccessError] by default)
          * {EN}
          */
-        override fun store(ea: Long, data: ByteArray, ss: Int, onError: HardwareErrorHandler?) {
-            val offset = (ea - start).toInt()
+        override fun store(ea: ULong, data: ByteArray, ss: Int, onError: HardwareErrorHandler?) {
+            val offset = (ea - start).int
             content.position(offset)
             content.put(data)
-            val endEa = ea + data.size - 1
-            (ea until endEa step pageSize.asLong).forEach {
-                val pageOffset = (it - start).toInt()
+            val endEa = ea + data.size.uint - 1u
+            (ea until endEa step pageSize.long_z).forEach {
+                val pageOffset = (it - start).uint
                 dirtyPages.add(pageOffset and pageMask)
             }
         }
@@ -818,13 +808,13 @@ open class Module(
          * @param stream read memory stream for data access
          * {EN}
          */
-        fun write(ea: Long, stream: InputStream) {
-            val offset = (ea - start).toInt()
-            val count = stream.readInto(content.obj, offset)
-            val endEa = ea + count - 1
-            (ea until endEa step pageSize.asLong).forEach {
-                val pageOffset = (it - start).toInt()
-                dirtyPages.add(pageOffset and pageMask)
+        fun write(ea: ULong, stream: InputStream) {
+            val offset = (ea - start).int
+            val count = stream.readBufferData(content, offset)
+            val endEa = ea + count - 1u
+            (ea until endEa step pageSize.long_z).forEach {
+                val pageOffset = it - start
+                dirtyPages.add((pageOffset and pageMask.ulong_z).uint)
             }
         }
 
@@ -852,11 +842,11 @@ open class Module(
          * {EN}
          */
         fun dump(cols: Int, rows: Int, fillDirty: Char, fillClear: Char): String {
-            val blockSize = size / (cols * rows)
+            val blockSize = size / (cols * rows).uint
             val lines = Array(rows) { CharArray(cols) { fillClear } }
             dirtyPages.sorted().forEach {
-                val start = it.toInt()
-                val end = it + pageSize - 1
+                val start = it.int
+                val end = (it + pageSize - 1u).int
                 for (k in start until end) {
                     val row = k / cols
                     val col = k % cols
@@ -865,8 +855,8 @@ open class Module(
             }
 
             return lines
-                    .mapIndexed { k, line -> "\t%08X: [ %s ]".format(k * blockSize * cols, String(line)) }
-                    .joinToString("\n")
+                .mapIndexed { k, line -> "\t%08X: [ %s ]".format(k.uint * blockSize * cols.uint, String(line)) }
+                .joinToString("\n")
         }
 
         val snapshotName = "${fullname()}_$name.bin"
@@ -889,7 +879,7 @@ open class Module(
          * {EN}
          */
         override fun serialize(ctxt: GenericSerializer) =
-                storeValues(snapshotName to ctxt.storeBinary(snapshotName, content.obj))
+            storeValues(snapshotName to ctxt.storeBinary(snapshotName, content))
 
         /**
          * {RU}
@@ -908,127 +898,190 @@ open class Module(
          */
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            if (!ctxt.loadBinary(snapshot, snapshotName, content.obj))
-                log.warning { "Can't load $snapshotName -> perhaps snapshot has old version!" }
-        }
-
-        /**
-         * {RU}
-         * Восстановление объекта к последнему десериализованному состоянию
-         *
-         * @param ctxt Контекст объекта-сериализатора
-         * @param snapshot Отображение восстанавливаемых свойств объекта
-         * {RU}
-         *
-         * {EN}
-         * Restore state to last deserialized state
-         *
-         * @param ctxt Serializer context
-         * @param snapshot map of object properties
-         * {EN}
-         */
-        override fun restore(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            if (access == ACCESS.R_W) {
-                if (dirtyPages.isNotEmpty()) {
-                    ctxt.restoreBinary(snapshot, snapshotName, content.obj, dirtyPages, pageSize)
-                    dirtyPages.clear()
-                }
+            if (!ctxt.doRestore) {
+                if (!ctxt.loadBinary(snapshot, snapshotName, content))
+                    log.warning { "Can't load $snapshotName -> perhaps snapshot has old version!" }
+            } else if (access == ACCESS.R_W && dirtyPages.isNotEmpty()) {
+                ctxt.restoreBinary(snapshot, snapshotName, content, dirtyPages, pageSize.int)
+                dirtyPages.clear()
             }
         }
-
-        /**
-         * {RU}
-         * Настройка парсера аргументов командной строки. Для использования команд в консоли эмулятора.
-         *
-         * @param parent родительский парсер, к которому будут добавлены новые аргументы
-         * @param useParent необходимость использования родительского парсера
-         *
-         * @return парсер аргументов
-         * {RU}
-         *
-         * {EN}
-         * Configuring parser for command line arguments. It is used to customize commands for this component/
-         *
-         * @param parent родительский парсер, к которому будут добавлены новые аргументы
-         * @param useParent необходимость использования родительского парсера
-         *
-         * @return парсер аргументов
-         * {EN}
-         */
-        override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
-                super.configure(parent, useParent)?.apply {
-                    subparser("read").apply {
-                        variable<Int>("-a", "--address", required = true, help = "Port address")
-                        variable<Int>("-s", "--segment", required = true, help = "Segment address")
-                        variable<Int>("-z", "--size", required = true, help = "Size of data")
-                    }
-                    subparser("write").apply {
-                        variable<Int>("-a", "--address", required = true, help = "Port address")
-                        variable<Int>("-s", "--segment", required = true, help = "Segment address")
-                        variable<Int>("-z", "--size", required = true, help = "Size of data")
-                        variable<Int>("-v", "--value", required = true, help = "Value to write")
-                    }
-                }
-
-        /**
-         * {RU}
-         * Обработка аргументов командной строки.
-         * Для использования команд в консоли эмулятора.
-         *
-         * @param context Контекст интерактивной консоли
-         *
-         * @return Результат обработки команд (true/false)
-         * {RU}
-         *
-         * {EN}
-         * Processing command line arguments.
-         *
-         * @param context context of interactive command line interface
-         *
-         * @return result of processing
-         * {EN}
-         */
-        override fun process(context: IInteractive.Context): Boolean {
-            if (super.process(context))
-                return true
-
-            when (context.command()) {
-                "read" -> {
-                    val ea: Long = context["ea"] ?: 0
-                    val ss: Int = context["ss"] ?: 0
-                    val size: Int = context["size"] ?: 1
-                    val value = read(ea, ss, size)
-                    context.result = "read(${ea.hex}, $ss, $size) => $value"
-                }
-                "write" -> {
-                    val ea: Long = context["ea"] ?: 0
-                    val ss: Int = context["ss"] ?: 0
-                    val size: Int = context["size"] ?: 1
-                    val value: Long = context["value"]
-                    write(ea, ss, size, value)
-                    context.result = "write(${ea.hex}, $ss, $size, $value) => ok"
-                }
-            }
-
-            context.pop()
-
-            return true
-        }
-
-        /**
-         * {RU}
-         * Имя команды для текущего класса в интерактивной консоли эмулятора.
-         * Для использования команд в консоли эмулятора.
-         *
-         * @return строковое имя команды
-         * {RU}
-         *
-         * {EN}
-         * Name of command for interactive emulator console.
-         * {EN}
-         */
-        override fun command(): String? = port.name
     }
+
+    internal fun interface Translator : IConstructorSerializable {
+        fun translate(ea: ULong): ULong
+    }
+
+    private class OffsetTranslator(val start: ULong = 0u, val offset: ULong = 0u) : Translator {
+        override fun translate(ea: ULong) = ea - start + offset
+
+        override fun toString() = "Basic[offset=0x${offset.hex8}]"
+    }
+
+    private class PhonyTranslator : Translator {
+        override fun translate(ea: ULong) = ea
+
+        override fun toString() = "Phony"
+    }
+
+    internal data class Region constructor(
+        // order in which regions added to mapping,
+        // in fact it defines regions priority and required to deserialization
+        val ord: Int,
+        val port: MasterPort,  // output port
+        val interval: Interval,
+        val rights: Int,
+        val translator: Translator
+    ) : IFetchReadWrite {
+        private inline val ULong.translated get() = translator.translate(this)
+
+        override fun fetch(ea: ULong, ss: Int, size: Int) =
+            port.fetch(ea.translated, ss, size)
+
+        override fun read(ea: ULong, ss: Int, size: Int) =
+            port.read(ea.translated, ss, size)
+
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
+            port.write(ea.translated, ss, size, value)
+
+        override fun toString() = "from $interval to $port with translation $translator"
+
+        val readable = rights[2].truth
+        val writable = rights[1].truth
+        val fetchable = rights[0].truth
+    }
+
+    inner class MappingArea constructor(
+        port: SlavePort,
+        name: String = "Mapping",
+        private val outputs: Map<Int, MasterPort>,
+        val default: Int,
+    ) : Area(port, 0u, port.size - 1u, name) {
+
+        private val map = PriorityTreeIntervalMap(name)
+        private val initialOrd = 0
+        private val maxRegionsCount = bitMask32(MAPPING_SS_OUTPUT_RANGE.length)
+        private val regions = Array<Region?>(maxRegionsCount) { null }
+
+        init {
+            reinitialize()
+        }
+
+        private fun nextOrd() = regions.filterNotNull().maxOf { it.ord } + 1
+
+        internal fun addMapping(first: ULong, last: ULong, output: Int, rights: Int, translator: Translator) {
+            val port = outputs[output] ?: run {
+                log.warning { "Can't map [0x${first.hex8}..0x${last.hex8}] from $port because no output port with number = $output" }
+                return
+            }
+
+            val interval = map.add(output, first, last)
+            regions[output] = Region(nextOrd(), port, interval, rights, translator)
+        }
+
+        internal fun removeMapping(output: Int) {
+            regions[output] = null
+            map.remove(output)
+        }
+
+        private fun translate(ea: ULong): Region {
+            val interval = map[ea]
+            return regions[interval.id] ?: error("Bogus MappingArea state for id = ${interval.id}")
+        }
+
+        internal fun reinitialize() {
+            map.clear()
+            regions.fill(null)
+
+            val prt = outputs[default] ?: error("Can't map init region because no output port with number = $default")
+            val interval = map.init(default, 0u, end)
+            val translator = PhonyTranslator()
+            regions[default] = Region(initialOrd, prt, interval, MAPPING_RIGHTS_RWE, translator)
+        }
+
+        override fun fetch(ea: ULong, ss: Int, size: Int) = translate(ea).fetch(ea, ss, size)
+
+        override fun read(ea: ULong, ss: Int, size: Int) = translate(ea).read(ea, ss, size)
+
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = translate(ea).write(ea, ss, size, value)
+
+        override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + mapOf(
+            "regions" to regions.filterNotNull().map { region ->
+                storeValues(
+                    "ord" to region.ord,
+                    "output" to region.interval.id,
+                    "first" to region.interval.first,
+                    "last" to region.interval.last,
+                    "rights" to region.rights,
+                    "translator" to ctxt.serializeItem(region.translator, "translator${region.ord}")
+                )
+            }
+        )
+
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+            super.deserialize(ctxt, snapshot)
+
+            reinitialize()
+
+            snapshot["regions"]
+                .cast<List<Map<String, Any>>>()
+                .sortedBy { loadValue<Int>(it, "ord") }
+                .drop(1)
+                .forEach {
+                    val ord = loadValue<Int>(it, "ord")
+                    val first = ctxt.deserializePrimitive(it["first"], ULong::class.java) as ULong
+                    val last = ctxt.deserializePrimitive(it["last"], ULong::class.java) as ULong
+                    val output = loadValue<Int>(it, "output")
+                    val rights = loadValue<Int>(it, "rights")
+                    val translator = ctxt.deserializeItem(it["translator"].cast(), "translator${ord}")
+
+                    addMapping(first, last, output, rights, translator as Translator)
+                }
+        }
+
+        override fun stringify() = "$name: $map"
+    }
+
+    inner class Mapper constructor(
+        port: SlavePort,
+        name: String = "Mapper",
+        private val areas: Map<Int, MappingArea>
+    ) : Area(port, 0u, port.size - 1u, name) {
+        override fun fetch(ea: ULong, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
+        override fun read(ea: ULong, ss: Int, size: Int) = throw IllegalAccessException("$name may not be read!")
+
+        private fun area(index: Int) = requireNotNull(areas[index]) { "Area with index $index not found in Mapper" }
+
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            val operation = ss[MAPPING_SS_OPERATION_RANGE]
+            val area = ss[MAPPING_SS_AREA_RANGE]
+            val output = ss[MAPPING_SS_OUTPUT_RANGE]
+
+            when (operation) {
+                MAPPING_MAP_CMD -> {
+                    val width = ss[MAPPING_SS_WIDTH_RANGE]  // width not check because range should limit it
+
+                    val last = ea + ubitMask64(width)
+
+                    require(last > ea) { "Region width=$width overflow 64 bits space from first=0x${ea.hex8}" }
+
+                    val rights = ss[MAPPING_SS_RIGHTS_RANGE]
+
+                    val translator = when (val translation = ss[MAPPING_SS_TRANSLATION_RANGE]) {
+                        MAPPING_TRANSLATION_OFFSET -> OffsetTranslator(ea, value)
+                        else -> error("Unsupported translation type = $translation")
+                    }
+
+                    area(area).addMapping(ea, last, output, rights, translator)
+                }
+
+                MAPPING_UNMAP_CMD -> area(area).removeMapping(output)
+
+                else -> error("Unsupported mapping operation = $operation")
+            }
+        }
+    }
+
 
     class RegisterDefinitionError(message: String) : Exception(message)
 
@@ -1051,18 +1104,18 @@ open class Module(
      * {RU}
      */
     open inner class Register constructor(
-            val port: SlavePort,
-            val address: Long,
-            val datatype: Datatype,
-            name: String,
-            val default: Long = 0,
-            val writable: Boolean = true,
-            val readable: Boolean = true,
-            val level: Level = Level.FINE
+        val port: SlavePort,
+        val address: ULong,
+        val datatype: Datatype,
+        name: String,
+        val default: ULong = 0uL,
+        val writable: Boolean = true,
+        val readable: Boolean = true,
+        val level: Level = Level.FINE
     ) : IFetchReadWrite, IValuable, ICoreUnit {
         val module = this@Module
 
-        final override var data: Long = default
+        final override var data = default
 
         override val name: String = "$name@${address.hex}[$datatype]"
 
@@ -1075,7 +1128,7 @@ open class Module(
          */
         override fun toString(): String = "$port->$name"
 
-        override fun stringify(): String = "%s.%s %08X".format(fullname(), name, data)
+        override fun stringify(): String = "%s.%s %08X".format(fullname(), name, data.long)
 
         /**
          * {RU}Сброс регистра.{RU}
@@ -1095,9 +1148,9 @@ open class Module(
          * {RU}
          */
         override fun serialize(ctxt: GenericSerializer): Map<String, Any> = mapOf(
-                "pName" to port.name,
-                "pAddr" to address.hex8,
-                "data" to data.hex16
+            "pName" to port.name,
+            "pAddr" to address.hex8,
+            "data" to data.hex16
         )
 
         /**
@@ -1109,22 +1162,22 @@ open class Module(
          */
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             val pNameSnapshot = loadValue<String>(snapshot, "pName") { port.name }
-            val pAddrSnapshot = loadValue<String>(snapshot, "pAddr").hexAsULong
+            val pAddrSnapshot = loadValue<String>(snapshot, "pAddr").ulongByHex
 
-            check(pNameSnapshot == port.name) {
-                "port: ${port.name} != $pNameSnapshot. " +
-                        "Try to update snapshot or check registers order in source code, it should be same with snapshot."
+            if (pNameSnapshot != port.name || pAddrSnapshot != address) {
+                log.severe { "$name: Try to update snapshot or check registers order in source code, it should be same with snapshot. Skipping" }
+                return
             }
-            check(pAddrSnapshot == address) { "pAddr: %08X != %08X".format(address, pAddrSnapshot) }
-            data = loadValue<String>(snapshot, "data").hexAsULong
+
+            data = loadValue<String>(snapshot, "data").ulongByHex
         }
 
-        fun Logger.read(level: Level) = log(level) { "[%08X] RD <- %s".format(core.cpu.pc, stringify()) }
+        fun Logger.read(level: Level) = log(level) { "[0x%08X] RD <- %s".format(core.cpu.pc.long, stringify()) }
 
-        fun Logger.write(level: Level) = log(level) { "[%08X] WR -> %s".format(core.cpu.pc, stringify()) }
+        fun Logger.write(level: Level) = log(level) { "[0x%08X] WR -> %s".format(core.cpu.pc.long, stringify()) }
 
-        final override fun fetch(ea: Long, ss: Int, size: Int) =
-                throw IllegalAccessException("Register may not be executed")
+        final override fun fetch(ea: ULong, ss: Int, size: Int) =
+            throw IllegalAccessException("Register may not be executed")
 
         /**
          * {RU}
@@ -1137,7 +1190,7 @@ open class Module(
          * @return значение регистра
          * {RU}
          **/
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             log.read(level)
             return data
         }
@@ -1152,12 +1205,12 @@ open class Module(
          * @param value новое значение для регистра
          * {RU}
          */
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             data = value
             log.write(level)
         }
 
-        final override fun beforeFetch(from: MasterPort, ea: Long): Boolean = false
+        final override fun beforeFetch(from: MasterPort, ea: ULong): Boolean = false
 
         /**
          * {RU}
@@ -1169,7 +1222,7 @@ open class Module(
          * @return результат (true/false)
          * {RU}
          */
-        override fun beforeRead(from: MasterPort, ea: Long): Boolean = readable
+        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = readable
 
         /**
          * {RU}
@@ -1184,7 +1237,7 @@ open class Module(
          * Note: data in register was changed temporary to new value to may possible use bit fields
          * {EN}
          */
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = writable
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = writable
 
         private inline fun errorIf(condition: Boolean, message: () -> String) {
             if (condition) throw RegisterDefinitionError(message())
@@ -1228,27 +1281,48 @@ open class Module(
      * {RU}
      **/
     open inner class ByteAccessRegister(
-            val port: SlavePort,
-            val address: Long,
-            val datatype: Datatype,
-            name: String,
-            val default: Long = 0,
-            private val writable: Boolean = true,
-            private val readable: Boolean = true,
-            val level: Level = Level.FINE
+        val port: SlavePort,
+        val address: ULong,
+        val datatype: Datatype,
+        name: String,
+        val default: ULong = 0u,
+        private val writable: Boolean = true,
+        private val readable: Boolean = true,
+        val level: Level = Level.FINE
     ) : IReadWrite, IValuable, ICoreUnit {
 
-        private inner class Cell(address: Long, name: String) : Register(port, address, BYTE, name) {
-            override fun read(ea: Long, ss: Int, size: Int): Long = this@ByteAccessRegister.read(ea, ss, size)
-            override fun write(ea: Long, ss: Int, size: Int, value: Long) = this@ByteAccessRegister.write(ea, ss, size, value)
+        private inner class Cell(address: ULong, name: String) : Register(port, address, BYTE, name) {
+            override fun read(ea: ULong, ss: Int, size: Int) =
+                this@ByteAccessRegister.read(ea, ss, size)
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
+                this@ByteAccessRegister.write(ea, ss, size, value)
 
-            override fun beforeRead(from: MasterPort, ea: Long): Boolean = this@ByteAccessRegister.beforeRead(from, ea)
-            override fun beforeWrite(from: MasterPort, ea: Long, value: Long): Boolean = this@ByteAccessRegister.beforeWrite(from, ea, value)
+            override fun beforeRead(from: MasterPort, ea: ULong) =
+                this@ByteAccessRegister.beforeRead(from, ea)
+            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+                this@ByteAccessRegister.beforeWrite(from, ea, value)
+
+            override fun reset() {
+                val current = address
+                with (this@ByteAccessRegister) {
+                    if (current == address + datatype.bytes - 1u) reset()
+                }
+            }
+
+            override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+                data = readInternal(address, 0, datatype.bytes)
+                return super.serialize(ctxt)
+            }
+
+            override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+                super.deserialize(ctxt, snapshot)
+                writeInternal(address, 0, datatype.bytes, data)
+            }
         }
 
-        private val cells = Array(datatype.bytes) { Cell(address + it, "${name}_$it") }
+        private val cells = Array(datatype.bytes) { Cell(address + it.uint, "${name}_$it") }
 
-        final override var data: Long = default
+        final override var data: ULong = default
 
         override val name: String = "$name@${address.hex}"
 
@@ -1260,7 +1334,11 @@ open class Module(
          */
         override fun toString(): String = "$port->$name"
 
-        override fun stringify(): String = "%s.%s %08X".format(this@Module.name, name, data)
+        override fun stringify(): String = "%s.%s %08X".format(this@Module.name, name, data.long)
+
+        private fun Logger.read(level: Level) = log(level) { "[0x%08X] RD <- %s".format(core.cpu.pc.long, stringify()) }
+
+        private fun Logger.write(level: Level) = log(level) { "[0x%08X] WR -> %s".format(core.cpu.pc.long, stringify()) }
 
         /**
          * {RU}Сброс регистра (очистка значения){RU}
@@ -1279,9 +1357,9 @@ open class Module(
          * @return отображение сохраняемых свойств объекта
          * {RU}
          */
-        override fun serialize(ctxt: GenericSerializer) = mapOf(
-                "pAddr" to address.hex8,
-                "data" to data.hex8
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> = mapOf(
+            "pAddr" to address.hex8,
+            "data" to data.hex8
         )
 
         /**
@@ -1292,11 +1370,18 @@ open class Module(
          * {RU}
          */
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            val pAddrSnapshot = (snapshot["pAddr"] as String).hexAsULong
+            val pAddrSnapshot = (snapshot["pAddr"] as String).ulongByHex
 
             check(pAddrSnapshot == address) { "pAddr: %08X != %08X".format(address, pAddrSnapshot) }
 
-            data = (snapshot["data"] as String).hexAsULong
+            data = (snapshot["data"] as String).ulongByHex
+        }
+
+        fun readInternal(ea: ULong, ss: Int, size: Int): ULong {
+            require(ea + size.uint <= address + datatype.bytes.uint) {
+                "$name read out of range ea=${ea.hex8} size=$size address=${address.hex8} size=${datatype.bytes}"
+            }
+            return data[range(ea, size)]
         }
 
         /**
@@ -1310,11 +1395,16 @@ open class Module(
          * @return вычитанное значение
          * {RU}
          */
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            require(ea + size <= address + datatype.bytes) {
-                "$name read out of range ea=${ea.hex8} size=$size address=${address.hex8} size=${datatype.bytes}"
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            log.read(level)
+            return readInternal(ea, ss, size)
+        }
+
+        fun writeInternal(ea: ULong, ss: Int, size: Int, value: ULong) {
+            require(ea + size.uint <= address + datatype.bytes.uint) {
+                "$name write out of range ea=${ea.hex8} size=$size address=${address.hex8} size=${datatype.bytes}"
             }
-            return data[range(ea, size)]
+            data = data.insert(value, range(ea, size))
         }
 
         /**
@@ -1327,11 +1417,9 @@ open class Module(
          * @param value значение для записи в регистр
          * {RU}
          */
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            require(ea + size <= address + datatype.bytes) {
-                "$name write out of range ea=${ea.hex8} size=$size address=${address.hex8} size=${datatype.bytes}"
-            }
-            data = data.insert(value, range(ea, size))
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            writeInternal(ea, ss, size, value)
+            log.write(level)
         }
 
         /**
@@ -1355,20 +1443,23 @@ open class Module(
          * @return bit range for read/modify register
          * {EN}
          */
-        private fun range(ea: Long, size: Int): IntRange {
-            val off = offset(ea).asInt
+        private fun range(ea: ULong, size: Int): IntRange {
+            val off = offset(ea).int
             val lsb = off * 8
             val msb = (off + size) * 8 - 1
             return msb..lsb
         }
 
-        fun offset(ea: Long) = ea - address
+        fun offset(ea: ULong) = ea - address
 
-        override fun beforeRead(from: MasterPort, ea: Long) = readable
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long) = writable
+        override fun beforeRead(from: MasterPort, ea: ULong) = readable
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = writable
 
-        override fun load(ea: Long, size: Int, ss: Int, onError: HardwareErrorHandler?) = throw IllegalAccessException("not implemented")
-        override fun store(ea: Long, data: ByteArray, ss: Int, onError: HardwareErrorHandler?) = throw IllegalAccessException("not implemented")
+        override fun load(ea: ULong, size: Int, ss: Int, onError: HardwareErrorHandler?) =
+            throw IllegalAccessException("not implemented")
+
+        override fun store(ea: ULong, data: ByteArray, ss: Int, onError: HardwareErrorHandler?) =
+            throw IllegalAccessException("not implemented")
     }
 
     /**
@@ -1381,8 +1472,8 @@ open class Module(
      * {RU}
      **/
     override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
-            "areas" to areas.map { it.serialize(ctxt) },
-            "registers" to registers.map { it.serialize(ctxt) }
+        "areas" to areas.map { it.serialize(ctxt) },
+        "registers" to registers.map { it.serialize(ctxt) }
     )
 
     /**
@@ -1405,14 +1496,18 @@ open class Module(
             if (registersInfo.size != registers.size) {
                 log.warning { "Number of registers in snapshot [${registersInfo.size}] not equal to actual count [${registers.size}]" }
                 registersInfo.forEach { rInfo ->
-                    val pAddr = (rInfo["pAddr"] as String).hexAsULong
-                    log.warning { "Trying to load register at ${pAddr.hex8} for module $name..." }
+                    val pAddr = (rInfo["pAddr"] as String).ulongByHex
                     val reg = registers.find { it.address == pAddr }
                     if (reg != null) {
                         log.finer { "Register ${reg.name} found in module $name -> loading" }
-                        reg.deserialize(ctxt, rInfo)
+                        runCatching {
+                            reg.deserialize(ctxt, rInfo)
+                        }.onFailure {
+                            log.severe { "$name: Can't deserialize: $it" }
+                            it.printStackTrace()
+                        }
                     } else {
-                        log.warning { "Register omitted -> $rInfo" }
+                        log.warning { "Can't load register $rInfo -> omitted" }
                     }
                 }
             } else {
@@ -1435,54 +1530,32 @@ open class Module(
 
     }
 
-    open inner class ComplexRegister(port: SlavePort, vAddr: Long, name: String, default: Long = 0) :
-            Register(port, vAddr, DWORD, name, default) {
+    open inner class ComplexRegister(port: SlavePort, vAddr: ULong, name: String, default: ULong = 0u) :
+        Register(port, vAddr, DWORD, name, default) {
         // Result from reading SET, CLR, INV should be undefined but for debugging return data value 0
         val BASE get() = this
-        val CLR = object : Register(port, vAddr + 4, DWORD, name + "CLR", 0x0000_0000) {
-            override fun read(ea: Long, ss: Int, size: Int): Long = 0
-            override fun write(ea: Long, ss: Int, size: Int, value: Long) = BASE.write(ea, ss, size, BASE.data and value.inv())
+        val CLR = object : Register(port, vAddr + 4u, DWORD, name + "CLR", 0x0000_0000u) {
+            override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
+                BASE.write(ea, ss, size, BASE.data and value.inv())
         }
-        val SET = object : Register(port, vAddr + 8, DWORD, name + "SET", 0x0000_0000) {
-            override fun read(ea: Long, ss: Int, size: Int): Long = 0
-            override fun write(ea: Long, ss: Int, size: Int, value: Long) = BASE.write(ea, ss, size, BASE.data or value)
+        val SET = object : Register(port, vAddr + 8u, DWORD, name + "SET", 0x0000_0000u) {
+            override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
+                BASE.write(ea, ss, size, BASE.data or value)
         }
-        val INV = object : Register(port, vAddr + 12, DWORD, name + "INV", 0x0000_0000) {
-            override fun read(ea: Long, ss: Int, size: Int): Long = 0
-            override fun write(ea: Long, ss: Int, size: Int, value: Long) = BASE.write(ea, ss, size, BASE.data xor value)
+        val INV = object : Register(port, vAddr + 12u, DWORD, name + "INV", 0x0000_0000u) {
+            override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
+                BASE.write(ea, ss, size, BASE.data xor value)
         }
-    }
-
-    /**
-     * {RU}
-     * Обработка аргументов командной строки.
-     * Для использования команд в консоли эмулятора.
-     *
-     * @param context контекст интерактивной консоли
-     *
-     * @return результат обработки команд (true/false)
-     * {RU}
-     **/
-    override fun process(context: IInteractive.Context): Boolean {
-        if (super.process(context))
-            return true
-
-        if (context.isNotEmpty()) {
-            if (areas.find { it.command() == context.command() }?.process(context) == true)
-                return true
-
-            if (registers.find { it.command() == context.command() }?.process(context) == true)
-                return true
-        }
-
-        return false
     }
 
     /**
      * {RU}Базовый метод отключения периферийных устройств{RU}
      */
     override fun terminate() {
-        log.config { "Terminate peripheral device %s".format(name) }
+        log.fine { "Terminate peripheral device %s".format(name) }
         super.terminate()
         areas.forEach { it.terminate() }
         registers.forEach { it.terminate() }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,12 +35,12 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 class ThumbSetendDecoder(cpu: AARMCore,
                          private val constructor: (
                                  cpu: AARMCore,
-                                 opcode: Long,
+                                 opcode: ULong,
                                  cond: Condition,
                                  setBigEndian: Boolean,
                                  size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val setBigEndian = data[3] == 1L
+    override fun decode(data: ULong): AARMInstruction {
+        val setBigEndian = data[3] == 1uL
         if(core.cpu.InITBlock()) throw Unpredictable
         return constructor(core, data, Condition.AL,  setBigEndian, 2)
     }

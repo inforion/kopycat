@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,8 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+import ru.inforion.lab403.kopycat.interfaces.*
+
 
 class ARMRegisterList constructor(regs: List<ARMRegister>):
         AOperand<AARMCore>(Type.CUSTOM, Access.ANY, Controls.VOID, WRONGI, DWORD),
@@ -50,8 +52,8 @@ class ARMRegisterList constructor(regs: List<ARMRegister>):
     }
 
     val count = regs.size
-    val lowest = regs.minBy { it.desc.id }!!
-    val highest = regs.maxBy { it.desc.id }!!
+    val lowest = regs.minByOrNull { it.desc.id }!!
+    val highest = regs.maxByOrNull { it.desc.id }!!
 
     operator fun get(index: Int) = regs[index]
 
@@ -61,13 +63,13 @@ class ARMRegisterList constructor(regs: List<ARMRegister>):
 
     override fun toString() = "{${joinToString()}}"
 
-    override fun value(core: AARMCore): Long =
+    override fun value(core: AARMCore): ULong =
             throw UnsupportedOperationException("Can't read value of registers list operand")
 
-    override fun value(core: AARMCore, data: Long): Unit =
+    override fun value(core: AARMCore, data: ULong): Unit =
             throw UnsupportedOperationException("Can't write value to registers list operand")
 
-    fun load(core: AARMCore, start: Long) {
+    fun load(core: AARMCore, start: ULong) {
         var address = start
 
         forEach {
@@ -79,11 +81,11 @@ class ARMRegisterList constructor(regs: List<ARMRegister>):
                 it.value(core, value)
             }
 
-            address += 4
+            address += 4u
         }
     }
 
-    fun store(core: AARMCore, start: Long, rn: ARMRegister, wback: Boolean) {
+    fun store(core: AARMCore, start: ULong, rn: ARMRegister, wback: Boolean) {
         var address = start
 
         forEach {
@@ -92,7 +94,7 @@ class ARMRegisterList constructor(regs: List<ARMRegister>):
             }
 
             core.outl(address like DWORD, it.value(core))
-            address += 4
+            address += 4u
         }
     }
 

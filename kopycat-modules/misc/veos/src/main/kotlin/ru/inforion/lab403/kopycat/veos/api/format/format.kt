@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,12 +26,13 @@
 package ru.inforion.lab403.kopycat.veos.api.format
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.optional.*
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.misc.*
 
 
-inline val ctrlVT get() = 0xB.asChar
-inline val ctrlFF get() = 0xC.asChar
+inline val ctrlVT get() = 0xB.char
+inline val ctrlFF get() = 0xC.char
 
 fun isdigit(sym: Char) = sym in "0123456789"
 fun isspace(sym: Char) = sym in "\t\n$ctrlVT$ctrlFF\r "
@@ -51,7 +52,7 @@ fun skipAtoi(str: ICharArrayPointer): Int {
     var i = 0
 
     do {
-        i = i * 10 + str.get.toInt() - '0'.toInt()
+        i = i * 10 + str.get.code - '0'.code
         str.next()
     } while(isdigit(str.get))
     return i
@@ -106,7 +107,7 @@ fun stringNocheck(buf: ICharArrayPointer, inS: String, spec: PrintfSpec) {
 
     while (lim-- != 0) {
         val c = s.get
-        if (c.asUInt == 0)
+        if (c.int_z8 == 0)
             break
         s.next()
         if (buf.hasRemaining)
@@ -273,8 +274,8 @@ fun formatDecode(fmt: CharArrayPointer, spec: PrintfSpec): Int
 
     // qualifier:
     /* get the conversion qualifier */
-    var qualifier = 0.asChar
-    if (fmt.get == 'h' || fmt.get.toLowerCase() == 'l' || fmt.get == 'z' || fmt.get == 't') {
+    var qualifier = 0.char
+    if (fmt.get == 'h' || fmt.get.lowercaseChar() == 'l' || fmt.get == 'z' || fmt.get == 't') {
         qualifier = fmt.get
         fmt.next()
         if (qualifier == fmt.get) {
@@ -401,7 +402,7 @@ fun number(buf: ICharArrayPointer, inNum: Long, spec: PrintfSpec) {
     val locase = if (SMALL in spec.flags) 0x20 else 0
     if (LEFT in spec.flags)
         spec.flags.remove(ZEROPAD)
-    var sign = 0.asChar
+    var sign = 0.char
     if (SIGN in spec.flags) {
         if (num < 0L) {
             sign = '-'
@@ -425,7 +426,7 @@ fun number(buf: ICharArrayPointer, inNum: Long, spec: PrintfSpec) {
     /* generate full string in tmp[], in reverse order */
     var i = 0
     if (num in 0 until spec.base)
-        tmp[i++] = (hexAscUpper[num.asInt].asUInt or locase).asChar
+        tmp[i++] = (hexAscUpper[num.int].int_z8 or locase).char
     else if (spec.base != 10) { /* 8 or 16 */
         val mask = spec.base - 1
         var shift = 3
@@ -433,7 +434,7 @@ fun number(buf: ICharArrayPointer, inNum: Long, spec: PrintfSpec) {
         if (spec.base == 16)
             shift = 4
         do {
-            tmp[i++] = (hexAscUpper[num.asInt and mask].asUInt or locase).asChar
+            tmp[i++] = (hexAscUpper[num.int and mask].int_z8 or locase).char
             num = num ushr shift
         } while (num != 0L)
     } else { /* base 10 */
@@ -452,7 +453,7 @@ fun number(buf: ICharArrayPointer, inNum: Long, spec: PrintfSpec) {
         }
     }
     /* sign */
-    if (sign != 0.asChar) {
+    if (sign != 0.char) {
         if (buf.hasRemaining)
             buf.write(sign)
     }
@@ -464,7 +465,7 @@ fun number(buf: ICharArrayPointer, inNum: Long, spec: PrintfSpec) {
         }
         if (spec.base == 16) {
             if (buf.hasRemaining)
-                buf.write(('x'.asUInt or locase).asChar)
+                buf.write(('x'.int_z8 or locase).char)
         }
     }
     /* zero or space padding */
@@ -523,7 +524,7 @@ fun number(buf: ICharArrayPointer, inNum: Long, spec: PrintfSpec) {
  *
  * If you're not already dealing with a va_list consider using snprintf().
  */
-fun vsprintfMain(os: VEOS<*>, buf: ICharArrayPointer, fmtString: String, args: Iterator<Long>): Int {
+fun vsprintfMain(os: VEOS<*>, buf: ICharArrayPointer, fmtString: String, args: Iterator<ULong>): Int {
     val spec = PrintfSpec()
 
     /* Reject out-of-range values early.  Large positive sizes are
@@ -542,15 +543,15 @@ fun vsprintfMain(os: VEOS<*>, buf: ICharArrayPointer, fmtString: String, args: I
 
     fun vaArg() = args.next()
 
-    loop@ while (fmt.get != 0.asChar) {
+    loop@ while (fmt.get != 0.char) {
         val ptr = formatDecode(fmt, spec)
 
         when (spec.type) {
             FormatType.NONE -> str.write(fmt.readLast(ptr))
 
-            FormatType.WIDTH -> setFieldWidth(spec, vaArg().asInt)
+            FormatType.WIDTH -> setFieldWidth(spec, vaArg().int)
 
-            FormatType.PRECISION -> setPrecision(spec, vaArg().asInt)
+            FormatType.PRECISION -> setPrecision(spec, vaArg().int)
 
             FormatType.CHAR -> {
                 if (LEFT !in spec.flags) {
@@ -559,7 +560,7 @@ fun vsprintfMain(os: VEOS<*>, buf: ICharArrayPointer, fmtString: String, args: I
                             str.write(' ')
                     }
                 }
-                val c = vaArg().asByte.asChar // cut off to 1 byte
+                val c = vaArg().char // cut off to 1 byte
                 if (str.hasRemaining)
                     str.write(c)
                 while (--spec.fieldWidth > 0) {
@@ -570,7 +571,7 @@ fun vsprintfMain(os: VEOS<*>, buf: ICharArrayPointer, fmtString: String, args: I
 
             FormatType.STR -> {
                 val address = vaArg()
-                val data = if (address == 0L) null else os.sys.readAsciiString(address)
+                val data = if (address == 0uL) null else os.sys.readAsciiString(address)
                 string(str, data, spec)
             }
 
@@ -604,20 +605,20 @@ fun vsprintfMain(os: VEOS<*>, buf: ICharArrayPointer, fmtString: String, args: I
 
             else -> {
                 val num = when (spec.type) {
-                    FormatType.LONG_LONG -> vaArg()
+                    FormatType.LONG_LONG -> (vaArg() shl 32) or vaArg()
                     FormatType.ULONG -> vaArg()
                     FormatType.LONG -> vaArg()
                     FormatType.SIZE_T -> if (SIGN in spec.flags) vaArg() else vaArg()
                     FormatType.PTRDIFF -> TODO("Unknown type")
-                    FormatType.UBYTE -> vaArg().asByte.asULong
-                    FormatType.BYTE -> vaArg().asByte.asLong
-                    FormatType.USHORT -> vaArg().asShort.asULong
-                    FormatType.SHORT -> vaArg().asShort.asLong
-                    FormatType.INT -> vaArg().asInt.asLong
-                    FormatType.UINT -> vaArg().asInt.asULong
+                    FormatType.UBYTE -> vaArg().byte.ulong_z
+                    FormatType.BYTE -> vaArg().byte.ulong_s
+                    FormatType.USHORT -> vaArg().short.ulong_z
+                    FormatType.SHORT -> vaArg().short.ulong_s
+                    FormatType.UINT -> vaArg().int.ulong_z
+                    FormatType.INT -> vaArg().int.ulong_s
                     else -> throw IllegalStateException("Unknown format type ${spec.type}")
                 }
-                number(str, num, spec)
+                number(str, num.long, spec)
             }
 
         }
@@ -626,30 +627,32 @@ fun vsprintfMain(os: VEOS<*>, buf: ICharArrayPointer, fmtString: String, args: I
 //    out:
     if (buf.isNotEmpty()) {
         if (str.hasRemaining)
-            str.write(0.asChar)
+            str.write(0.char)
         else {
             str.prev()
-            str.write(0.asChar)
+            str.write(0.char)
         }
     }
     return str.offset - 1
 }
 
-fun simpleStrtoul(ptr: ICharArrayConstPointer, fieldWidth: Int, inBase: Int): Long? {
+fun simpleStrtoul(ptr: ICharArrayConstPointer, fieldWidth: Int, inBase: Int): Optional<ULong> {
     var base = inBase
     when (base) {
         0 -> {
-            if (ptr.get == '0') {
-                ptr.next()
-                if (ptr.get.toLowerCase() == 'x') {
+            base = when (ptr.get) {
+                '0' -> {
                     ptr.next()
-                    base = 16
+                    when {
+                        ptr.get.lowercaseChar() == 'x' -> {
+                            ptr.next()
+                            16
+                        }
+                        else -> 8
+                    }
                 }
-                else
-                    base = 8
+                else -> 10
             }
-            else
-                base = 10
         }
         8, 10, 16 -> {}
         else -> throw IllegalArgumentException("Unknown radix $base")
@@ -663,22 +666,22 @@ fun simpleStrtoul(ptr: ICharArrayConstPointer, fieldWidth: Int, inBase: Int): Lo
         }
     }
     if (str.isEmpty())
-        return null
+        return emptyOpt()
     if (fieldWidth > 0 && str.length > fieldWidth)
         str = str.substring(0 until fieldWidth)
-    return str.toLong(base)
+    return str.toLong(base).ulong.opt
 }
 
 fun simpleStrtoull(ptr: ICharArrayConstPointer, fieldWidth: Int, inBase: Int) = simpleStrtoul(ptr, fieldWidth, inBase)
 
 fun simpleStrtol(ptr: ICharArrayConstPointer, fieldWidth: Int, inBase: Int) =
-        if (ptr.get == '-') {
+    when (ptr.get) {
+        '-' -> {
             ptr.next()
-            val result = simpleStrtoul(ptr, fieldWidth, inBase)
-            if (result != null) -result else null
+            -simpleStrtoul(ptr, fieldWidth, inBase)
         }
-        else
-            simpleStrtoul(ptr, fieldWidth, inBase)
+        else -> simpleStrtoul(ptr, fieldWidth, inBase)
+    }
 
 fun simpleStrtoll(ptr: ICharArrayConstPointer, fieldWidth: Int, inBase: Int) = simpleStrtol(ptr, fieldWidth, inBase)
 
@@ -693,13 +696,13 @@ fun skipSpaces(str: ICharArrayConstPointer) {
  * @fmt:	format of buffer
  * @args:	arguments
  */
-fun vsscanfMain(os: VEOS<*>, str: ICharArrayConstPointer, fmtString: String, args: Iterator<Long>): Int {
+fun vsscanfMain(os: VEOS<*>, str: ICharArrayConstPointer, fmtString: String, args: Iterator<ULong>): Int {
     var num = 0
     fun vaArg() = args.next()
 
     val fmt = fmtString.toCharArray().charArrayPointer
 
-    loop@ while (fmt.get != 0.asChar) {
+    loop@ while (fmt.get != 0.char) {
         /* skip any white space in format */
         /* white space in format matchs any amount of
          * white space, including none, in the input.
@@ -749,8 +752,8 @@ fun vsscanfMain(os: VEOS<*>, str: ICharArrayConstPointer, fmtString: String, arg
         }
 
         /* get conversion qualifier */
-        var qualifier = 0.asChar
-        if (fmt.get == 'h' || fmt.get.toLowerCase() == 'l' || fmt.get == 'z') {
+        var qualifier = 0.char
+        if (fmt.get == 'h' || fmt.get.lowercaseChar() == 'l' || fmt.get == 'z') {
             qualifier = fmt.get
             fmt.next()
             if (qualifier == fmt.get) {
@@ -769,7 +772,7 @@ fun vsscanfMain(os: VEOS<*>, str: ICharArrayConstPointer, fmtString: String, arg
 
         if (fmt.get == 'n') {
             /* return number of characters read so far */
-            os.abi.writeInt(vaArg(), str.offset.asULong)
+            os.abi.writeInt(vaArg(), str.offset.ulong_z)
             fmt.next()
             continue
         }
@@ -788,7 +791,7 @@ fun vsscanfMain(os: VEOS<*>, str: ICharArrayConstPointer, fmtString: String, arg
                 if (fieldWidth == -1)
                     fieldWidth = 1
                 do {
-                    os.abi.writeChar(s++, str.get.asULong)
+                    os.abi.writeChar(s++, str.get.ulong_z8)
                     str.next()
                 } while (--fieldWidth > 0 && str.isNotNull)
                 num++
@@ -804,10 +807,10 @@ fun vsscanfMain(os: VEOS<*>, str: ICharArrayConstPointer, fmtString: String, arg
 
                 /* now copy until next white space */
                 while (str.isNotNull && !isspace(str.get) && fieldWidth-- != 0) {
-                    os.abi.writeChar(s++, str.get.asULong)
+                    os.abi.writeChar(s++, str.get.ulong_z8)
                     str.next()
                 }
-                os.abi.writeChar(s, 0L)
+                os.abi.writeChar(s, 0uL)
                 num++
                 continue@loop
             }
@@ -903,16 +906,18 @@ fun vsscanfMain(os: VEOS<*>, str: ICharArrayConstPointer, fmtString: String, arg
         else
             simpleStrtoull(str, fieldWidth, base)
 
-        if (value == null)
+        if (value.isEmpty)
             break
 
+        val data = value.get
+
         when (qualifier) {
-            'H' -> os.abi.writeChar(vaArg(), value) /* that's 'hh' in format */
-            'h' -> os.abi.writeShort(vaArg(), value)
-            'l' -> os.abi.writeInt(vaArg(), value)
-            'L' -> os.abi.writeLongLong(vaArg(), value)
-            'z' -> os.abi.writeLongLong(vaArg(), value)
-            else -> os.abi.writeInt(vaArg(), value)
+            'H' -> os.abi.writeChar(vaArg(), data) /* that's 'hh' in format */
+            'h' -> os.abi.writeShort(vaArg(), data)
+            'l' -> os.abi.writeInt(vaArg(), data)
+            'L' -> os.abi.writeLongLong(vaArg(), data)
+            'z' -> os.abi.writeLongLong(vaArg(), data)
+            else -> os.abi.writeInt(vaArg(), data)
         }
         num++
 

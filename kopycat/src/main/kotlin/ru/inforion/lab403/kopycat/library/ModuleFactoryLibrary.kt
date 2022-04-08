@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -117,11 +117,23 @@ class ModuleFactoryLibrary(val name: String, val enumerator: IFactoriesEnumerato
      * {EN}
      */
     fun instantiate(
-            parent: Component?,
-            builder: AFileModuleFactoryBuilder?,
-            module: String,
-            designator: String,
-            parameters: Map<String, Any?>): Module {
+        parent: Component?,
+        builder: AFileModuleFactoryBuilder?,
+        module: String,
+        designator: String,
+        parameters: Map<String, Any?>
+    ): Module {
+        val desc = getModuleDescString(builder, module, designator)
+
+        // convert to InputParameter structure and check it validity
+        fun Map<String, Any?>.convertToInputParameterInfo() = map { (key, value) ->
+            InputParameterInfo.fromKeyValue(key, value, desc)
+        }
+
+        // validate that parameter present only one time
+        fun List<InputParameterInfo>.checkDuplicates() = groupBy { it.name }.forEach { (name, values) ->
+            require(values.size == 1) { "Duplicate parameter name '$name' for ${desc}\nParameters: $values" }
+        }
 
         log.info {
             val nestLevel = parent?.getNestingLevel() ?: 0
@@ -134,27 +146,7 @@ class ModuleFactoryLibrary(val name: String, val enumerator: IFactoriesEnumerato
 
         // TODO: this lovely piece of code is better then previous revision but still require refactoring...
 
-        val preprocessed = parameters
-                .map { (key, value) ->
-                    // convert to InputParameter structure and check it validity
-                    InputParameterInfo.fromKeyValue(key, value).also {
-                        require(it.isTypeValid) {
-                            "Incorrect parameter '${it.name}' and type '${it.type}' definition for ${getModuleDescString(builder, module, designator)}" +
-                                    "\nUse only parameter name (for example 'data') or parameter name and type (for example 'data:String')" +
-                                    "\nAvailable types is: ${settings.availableTypes.joinToString(separator = ", ")}"
-                        }
-                    }
-                }.also { preprocessed ->
-                    // validate that parameter present only one time
-                    preprocessed
-                            .groupBy { it.name }
-                            .forEach { (name, values) ->
-                                require(values.size == 1) {
-                                    "Duplicate parameter name '$name' for ${getModuleDescString(builder, module, designator)}" +
-                                            "\nParameters: $values"
-                                }
-                            }
-                }
+        val preprocessed = parameters.convertToInputParameterInfo().also { it.checkDuplicates() }
 
         val candidates = factories.map { factory -> SatisfactionChecker(factory, preprocessed) }
 

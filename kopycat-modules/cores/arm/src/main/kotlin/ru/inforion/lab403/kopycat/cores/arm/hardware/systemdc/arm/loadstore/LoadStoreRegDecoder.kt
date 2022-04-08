@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.loadstore
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.DecodeImmShift
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -43,7 +43,7 @@ class LoadStoreRegDecoder(
         private val checkRt: Boolean,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 index: Boolean,
                 add: Boolean,
@@ -54,23 +54,23 @@ class LoadStoreRegDecoder(
                 shiftT: SRType,
                 shiftN: Int,
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
+    override fun decode(data: ULong): AARMInstruction {
         val cond = cond(data)
-        val rt = gpr(data[15..12].asInt)
-        val rn = gpr(data[19..16].asInt)
-        val rm = gpr(data[3..0].asInt)
+        val rt = gpr(data[15..12].int)
+        val rn = gpr(data[19..16].int)
+        val rm = gpr(data[3..0].int)
         val imm5 = data[11..7]
         val type = data[6..5]
 
-        val index = data[24] == 1L
-        val add = data[23] == 1L
-        val wback = data[24] == 0L || data[21] == 1L
+        val index = data[24] == 1uL
+        val add = data[23] == 1uL
+        val wback = data[24] == 0uL || data[21] == 1uL
         val (shiftT, shiftN) = DecodeImmShift(type, imm5)
 
         if ((checkRt && rt.isProgramCounter(core)) || rm.isProgramCounter(core)) throw Unpredictable
         if (wback && (rn.isProgramCounter(core) || rn.desc == rt.desc)) throw Unpredictable
         if (core.cpu.ArchVersion() < 6 && wback && rm.desc == rn.desc) throw Unpredictable
 
-        return constructor(core, data, cond, index, add, wback, rt, rn, rm, shiftT, shiftN.asInt, 4)
+        return constructor(core, data, cond, index, add, wback, rt, rn, rm, shiftT, shiftN.int, 4)
     }
 }

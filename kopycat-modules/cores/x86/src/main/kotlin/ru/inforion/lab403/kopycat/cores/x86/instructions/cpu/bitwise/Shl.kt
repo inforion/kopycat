@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.mask
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
@@ -49,11 +50,11 @@ class Shl(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
 
     override fun execute() {
         val a1 = op1.value(core)
-        val a2 = (op2.value(core) mask 5).toInt()
+        val a2 = (op2.value(core) mask 6).int
         val res = a1 shl a2
-        val result = Variable<x86Core>(0, op1.dtyp)
+        val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
-        FlagProcessor.processShiftFlag(core, result, op1, op2, true, false, a1[op1.dtyp.bits - a2] == 1L)
+        FlagProcessor.processShiftFlag(core, result, op1, op2, true, false, a1[op1.dtyp.bits - a2] == 1uL)
         op1.value(core, result)
     }
 }

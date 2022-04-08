@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.veos.ports.signal
 
-import ru.inforion.lab403.common.extensions.asByte
+import ru.inforion.lab403.common.extensions.byte
 import ru.inforion.lab403.kopycat.veos.api.pointers.IntPointer
 import ru.inforion.lab403.kopycat.veos.kernel.System
 import ru.inforion.lab403.kopycat.veos.ports.dirent.DIR
 import ru.inforion.lab403.kopycat.veos.ports.sysdep.ASystemDep.Companion.deps
 
-class sigset_t(sys: System, address: Long = 0): IntPointer(sys, address) {
+class sigset_t(sys: System, address: ULong = 0u): IntPointer(sys, address) {
     companion object {
         fun allocate(sys: System) = DIR(
                 sys,
@@ -42,5 +42,5 @@ class sigset_t(sys: System, address: Long = 0): IntPointer(sys, address) {
 
     val size = sys.deps.SIGSET_NWORDS
 
-    fun fill() = sys.abi.writeBytes(address, ByteArray(size * sys.sizeOf.int) { (-1).asByte })
+    fun fill() = sys.abi.writeBytes(address, ByteArray(size * sys.sizeOf.int) { (-1).byte })
 }

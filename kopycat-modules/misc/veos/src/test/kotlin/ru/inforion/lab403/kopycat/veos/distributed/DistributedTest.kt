@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,8 @@ import ru.inforion.lab403.common.extensions.getResourceUrl
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.modules.veos.ARMApplication
 import ru.inforion.lab403.kopycat.veos.VEOS
-import ru.inforion.lab403.swarm.parallelize
-import ru.inforion.lab403.swarm.threadsSwarm
+import ru.inforion.lab403.common.swarm.parallelize
+import ru.inforion.lab403.common.swarm.threadsSwarm
 import kotlin.test.assertFalse
 
 
@@ -48,11 +48,11 @@ class DistributedTest {
         threadsSwarm(2) { swarm ->
 
             val device = ARMApplication(null, "top", root, executable, "-S arm-linux-gnueabi-as")
-            Kopycat(null).apply { open(device, false, null) }
+            Kopycat(null).apply { open(device, null, false) }
 
             val result = listOf("arm-linux-gnueabi-as", "arm-linux-gnueabi-objdump", "arm-linux-gnueabi-ranlib").parallelize(swarm).map {
 
-                val kopycat = Kopycat(null).apply { open(device, false, null) }
+                val kopycat = Kopycat(null).apply { open(device, null, false) }
 
                 // REVIEW: stack cleanup and api reinit causes memory leaks
                 device.veos.loader.loadArguments(arrayOf(executable, "-S", it))

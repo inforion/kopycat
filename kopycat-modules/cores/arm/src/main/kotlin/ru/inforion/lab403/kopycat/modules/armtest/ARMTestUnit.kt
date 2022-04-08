@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.armtest
 
 import ru.inforion.lab403.common.extensions.MHz
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.annotations.DontExportModule
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
@@ -55,9 +56,9 @@ class ARMTestUnit(
 
     init {
         arm.ports.mem.connect(buses.mem)
-        rom.ports.mem.connect(buses.mem, 0x0800_0000)
-        sram.ports.mem.connect(buses.mem, 0x2000_0000)
-        peripheral.ports.mem.connect(buses.mem, 0x4000_0000)
+        rom.ports.mem.connect(buses.mem, 0x0800_0000u)
+        sram.ports.mem.connect(buses.mem, 0x2000_0000u)
+        peripheral.ports.mem.connect(buses.mem, 0x4000_0000u)
         dbg.ports.breakpoint.connect(buses.mem)
     }
 }

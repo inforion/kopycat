@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,29 +26,20 @@
 package ru.inforion.lab403.kopycat.veos.kernel
 
 import org.junit.Test
-import ru.inforion.lab403.common.extensions.convertToString
 import ru.inforion.lab403.common.extensions.div
 import ru.inforion.lab403.common.extensions.getResourceUrl
-import ru.inforion.lab403.common.extensions.times
-import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.extensions.string
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.modules.memory.VirtualMemory
 import ru.inforion.lab403.kopycat.modules.veos.ARMApplication
 import ru.inforion.lab403.kopycat.veos.VEOS
-import ru.inforion.lab403.kopycat.veos.arm.lighttpd.ARMLighttpd
-import ru.inforion.lab403.kopycat.veos.filesystems.StandardStreamFile
 import ru.inforion.lab403.kopycat.veos.filesystems.StreamFile
 import ru.inforion.lab403.kopycat.veos.filesystems.impl.FileSystem
 import java.io.ByteArrayOutputStream
-import java.net.Socket
-import java.nio.charset.Charset
-import kotlin.test.assertEquals
 import kotlin.test.assertFalse
-import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-
 
 
 internal class StdioTest {
@@ -65,7 +56,7 @@ internal class StdioTest {
         val top = ARMApplication(null, "top", root, executable)
 
         VirtualMemory.log.level = INFO
-        val kopycat = Kopycat(null).also { it.open(top, false, null) }
+        val kopycat = Kopycat(null).also { it.open(top, null, false) }
         top.veos.ioSystem.close(FileSystem.STDOUT_INDEX)
         val stream = ByteArrayOutputStream(100 * 1024)
         top.veos.ioSystem.reserve(StreamFile(stream), FileSystem.STDOUT_INDEX)
@@ -75,7 +66,7 @@ internal class StdioTest {
         var failed = false
 
         stream.toByteArray()
-            .convertToString()
+            .string
             .lines().filter { it.isNotEmpty() }
             .forEach {
                 if (it.startsWith("[")) {

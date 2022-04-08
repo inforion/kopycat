@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,16 +29,16 @@ import ru.inforion.lab403.common.extensions.MHz
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
+import ru.inforion.lab403.kopycat.cores.x86.config.CPUID
+import ru.inforion.lab403.kopycat.cores.x86.config.Generation
 import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_proxy
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import ru.inforion.lab403.kopycat.modules.cores.x86Core.Generation
-import ru.inforion.lab403.kopycat.modules.cores.x86Core.Generation.Am5x86
 
 
 class AMDElanSC520(
-        parent: Module,
-        name: String,
+    parent: Module,
+    name: String,
 
 // FIXME: Must be Am5x86 but something wrong here 0000B8F7 with flags and DMA cache
 // Perhaps error occurred in early boot and hides after loading from snapshot.
@@ -50,9 +50,9 @@ class AMDElanSC520(
 // for prior i486SX processors (Elan is Am5x86)
 //
 // But for eth module it should be as it is...
-        generation: Generation = Am5x86,
+    generation: Generation = Generation.Am5x86,
 
-        RSTLD: Int = 0
+    RSTLD: Int = 0
 ) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
@@ -79,12 +79,7 @@ class AMDElanSC520(
 
     override val buses = Buses()
 
-    val x86 = x86Core(
-            this,
-            "x86",
-            frequency = 133.MHz,
-            generation = generation,
-            ipc = 0.388)
+    val x86 = x86Core(this, "x86", frequency = 133.MHz, generation, ipc = 0.388)
 
     val pic = PIC(this, "pic")
 
@@ -103,6 +98,11 @@ class AMDElanSC520(
     val sdram_ctrl = SDRAM(this, "sdram_ctrl")
     val boot_ctrl = BOOT(this, "boot_ctrl")
 
+    override fun reset() {
+        super.reset()
+        x86.config.cpuid(1u,0u, 0u, 0u, 0x4F4u)
+    }
+
     init {
         // x86 connect to internal x5 mem/io bus and
         // ElanSC520 system address mapping controller connect to x5 mem/io bus
@@ -115,8 +115,8 @@ class AMDElanSC520(
         scp.ports.io.connect(buses.gpio)
         dmac.ports.io.connect(buses.gpio)
         gpbus.ports.io.connect(buses.gpio)
-        uart1.ports.io.connect(buses.gpio, 0x300)
-        uart2.ports.io.connect(buses.gpio, 0x200)
+        uart1.ports.io.connect(buses.gpio, 0x300u)
+        uart2.ports.io.connect(buses.gpio, 0x200u)
 //        am5x86.ports.io.connect(buses.gpio)
 //        pci.ports.io.connect(buses.gpio)
         sac.ports.io.connect(buses.gpio)
@@ -127,7 +127,6 @@ class AMDElanSC520(
         sam.ports.gpio_s.connect(buses.gpio)  // connect MMCR slave port of SAM to bus
         sam.ports.mmcr_s.connect(buses.mmcr)  // connect GP I/O slave port of SAM to bus
 
-        buses.connect(sam.ports.pci_mem, pci.ports.mem)
         buses.connect(sam.ports.pci_io, pci.ports.io)
 
         pic.ports.mmcr.connect(buses.mmcr)
@@ -135,14 +134,14 @@ class AMDElanSC520(
         scp.ports.mmcr.connect(buses.mmcr)
         dmac.ports.mmcr.connect(buses.mmcr)
         gpbus.ports.mmcr.connect(buses.mmcr)
-        uart1.ports.mmcr.connect(buses.mmcr, 0xCC0)
-        uart2.ports.mmcr.connect(buses.mmcr, 0xCC4)
+        uart1.ports.mmcr.connect(buses.mmcr, 0xCC0u)
+        uart2.ports.mmcr.connect(buses.mmcr, 0xCC4u)
         am5x86.ports.mmcr.connect(buses.mmcr)
         sac.ports.mmcr.connect(buses.mmcr)
         sdram_ctrl.ports.mmcr.connect(buses.mmcr)
         boot_ctrl.ports.mmcr.connect(buses.mmcr)
 
-        pci.ports.mmcr.connect(buses.mmcr)
+        pci.mmcr.connect(buses.mmcr)
 
         // internal interrupts connect to inner ElanSC520 buses
         buses.connect(pit.ports.irq, pic.ports.pit)
@@ -160,7 +159,7 @@ class AMDElanSC520(
 
         // PCI output buses connect
         buses.connect(ports.pci, pci.ports.pci)
-        buses.connect(ports.map, pci.ports.map)
+//        buses.connect(ports.map, pci.ports.mapper)  // TODO
 
         // PIC output buses connect
         buses.connect(ports.irq_gp, pic.ports.gp)

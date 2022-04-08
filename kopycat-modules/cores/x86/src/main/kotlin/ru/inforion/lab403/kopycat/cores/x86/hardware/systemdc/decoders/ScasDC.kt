@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,12 +32,6 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.string.Scas
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRBL.al
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.eax
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.edi
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.ax
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.di
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.es
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -45,12 +39,12 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 class ScasDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
         val opcode = s.last
-        val reg = if (prefs.is16BitAddressMode) di else edi
+        val reg = xdi(prefs.addrsize)
         val ops = when (opcode) {
-            0xAE -> arrayOf(al, x86Displacement(Datatype.BYTE, reg, ssr = es))
+            0xAE -> arrayOf(al, x86Displacement(Datatype.BYTE, reg, es))
             0xAF -> {
-                val src = if (prefs.is16BitOperandMode) ax else eax
-                arrayOf(src, x86Displacement(prefs.opsize, reg, ssr = es))
+                val src = xax(prefs.opsize)
+                arrayOf(src, x86Displacement(prefs.opsize, reg, es))
             }
             else -> throw GeneralException("Incorrect opcode in decoder")
         }

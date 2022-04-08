@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -52,9 +52,9 @@ class MIPSABI(core: MipsCore, bigEndian: Boolean): ABI<MipsCore>(core, 32, bigEn
     override val ra get() = core.cpu.regs.ra.toOperand()
     override val rv get() = core.cpu.regs.v0.toOperand()
 
-    override val stackArgsOffset: Long = 0x10
+    override val stackArgsOffset: ULong = 0x10u
 
-    override var programCounterValue: Long
+    override var programCounterValue: ULong
         get() = core.cpu.pc
         set(value) { core.cpu.pc = value }
 }

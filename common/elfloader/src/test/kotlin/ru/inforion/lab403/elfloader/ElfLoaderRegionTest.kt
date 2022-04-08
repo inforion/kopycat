@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,14 +25,11 @@
  */
 package ru.inforion.lab403.elfloader
 
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInstance
+import org.junit.Test
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.extensions.unhexlify
-import ru.inforion.lab403.elfloader.enums.ElfSectionHeaderFlag.*
-import java.nio.ByteBuffer
-import java.util.logging.Level
+import ru.inforion.lab403.elfloader.enums.ElfSectionHeaderFlag.SHF_ALLOC
+import ru.inforion.lab403.elfloader.enums.ElfSectionHeaderFlag.SHF_EXECINSTR
+import kotlin.test.assertEquals
 
 internal class ElfLoaderRegionTest {
     companion object {
@@ -45,28 +42,28 @@ internal class ElfLoaderRegionTest {
         val size = 0x100
         val data = ByteArray(size)
         val access = ElfAccess.fromSectionHeaderFlags(SHF_ALLOC.id or SHF_EXECINSTR.id)
-        elfRegion = ElfLoader.ElfRegion("testRegion", 1,1,  0x08000000, 0x60, size, data, access, 4)
+        elfRegion = ElfLoader.ElfRegion("testRegion", 1,1,  0x08000000u, 0x60, size, data, access, 4)
     }
 
     @Test
     fun testOffset() {
-        val offset = elfRegion.toOffset(0x0800_1000)
+        val offset = elfRegion.toOffset(0x0800_1000u)
         assertEquals(0x1000, offset)
     }
 
     @Test
     fun testAddressRange() {
-        assertEquals(0x08000000L..0x080000FFL, elfRegion.addressRange)
+        assertEquals(0x08000000uL..0x080000FFuL, elfRegion.addressRange)
     }
 
     @Test
     fun testIsAddressIncluded() {
-        assertEquals(true, elfRegion.isAddressIncluded(0x08000000))
+        assertEquals(true, elfRegion.isAddressIncluded(0x08000000u))
     }
 
     @Test
     fun testIsAddressNotIncluded() {
-        assertEquals(false, elfRegion.isAddressIncluded(0x08000100))
+        assertEquals(false, elfRegion.isAddressIncluded(0x08000100u))
     }
 
 }

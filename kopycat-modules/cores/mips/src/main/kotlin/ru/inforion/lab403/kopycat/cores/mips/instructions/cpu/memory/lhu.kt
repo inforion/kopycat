@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,19 +38,15 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * LHU rt, offset(base)
  */
 class lhu(core: MipsCore,
-          data: Long,
+          data: ULong,
           rt: MipsRegister,
           off: MipsDisplacement) : RtOffsetInsn(core, data, Type.VOID, rt, off) {
 
-//    override val store = false
-//    override val dtyp = WORD
-//    override val core = ProcType.CentralProc
-//    override val construct = ::lhu
     override val mnem = "lhu"
 
     override fun execute() {
         // I hate mips... and big-endian unsupported
-        if (address[0] != 0L)
+        if (address[0] != 0uL)
             throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
         vrt = memword[15..0]
     }

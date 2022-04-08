@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,14 +23,27 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("NOTHING_TO_INLINE")
+
 package ru.inforion.lab403.kopycat.library
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.reflection.stringify
 import ru.inforion.lab403.kopycat.library.builders.api.IModuleFactory
 import ru.inforion.lab403.kopycat.library.builders.api.InputParameterInfo
 import ru.inforion.lab403.kopycat.library.types.Resource
-import ru.inforion.lab403.kopycat.settings
+import ru.inforion.lab403.kopycat.settings.availableTypes
 import java.io.File
+import kotlin.reflect.KType
+import kotlin.reflect.full.starProjectedType
+import kotlin.reflect.jvm.jvmErasure
+
+internal val KType.name get() = stringify().lowercase()
+
+internal val availableTypeMap = availableTypes.associateBy { it.name }
+
+internal fun String.preparse2Array() =
+    trim('[', ']').splitBy(",", trim = true)
 
 /**
  * {EN}
@@ -43,86 +56,120 @@ import java.io.File
  * @return converted value with type of [type]
  * {EN}
  */
-fun convertParameterType(name: String, value: Any?, type: String): Any? {
+internal fun convertParameterType(name: String, value: Any?, type: KType): Any? {
     if (value == null)
         return null
 
     if (value == "null")
         return null
 
-    return when (type) {
-        "String" -> when (value) {
+    val klass = type.jvmErasure
+
+    return when (klass) {
+        String::class -> when (value) {
             is String -> value
             else -> value.toString()
         }
-        "char" -> when (value) {
+        Char::class -> when (value) {
             is Char -> value
-            is String -> value.toCharArray().first()
+            is String -> value[0]
             else -> null
         }
-        "int" -> when (value) {
+        Int::class -> when (value) {
             is Int -> value
-            is String -> when {
-                value.startsWith("0x") -> value.removePrefix("0x").hexAsInt
-                else -> value.replace(" ", "").toInt()
-            }
-            is Long -> value.toInt()
+            is Long -> value.int
+            is String -> value.int
             else -> null
         }
-        "long" -> when (value) {
+        Long::class -> when (value) {
             is Long -> value
-            is String -> when {
-                value.startsWith("0x") -> value.removePrefix("0x").hexAsULong
-                else -> value.replace(" ", "").toLong()
-            }
-            is Int -> value.toLong()
+            is Int -> value.long_z
+            is String -> value.long
             else -> null
         }
-        "float" -> when (value) {
+        UInt::class -> when (value) {
+            is Int -> value.uint
+            is Long -> value.uint
+            is String -> value.uint
+            else -> null
+        }
+        ULong::class -> when (value) {
+            is Int -> value.ulong_z
+            is Long -> value.ulong
+            is String -> value.ulong
+            else -> null
+        }
+        Float::class -> when (value) {
             is Float -> value
-            is Double -> value.toFloat()
-            is Int -> value.toFloat()
-            is Long -> value.toFloat()
-            is String -> value.toFloat()
+            is Double -> value.float
+            is Int -> value.float
+            is Long -> value.float
+            is String -> value.float
             else -> null
         }
-        "double" -> when (value) {
+        Double::class -> when (value) {
             is Double -> value
-            is Float -> value.toDouble()
-            is Int -> value.toDouble()
-            is Long -> value.toDouble()
-            is String -> value.toDouble()
+            is Float -> value.double
+            is Int -> value.double
+            is Long -> value.double
+            is String -> value.double
             else -> null
         }
-        "boolean" -> when (value) {
+        Boolean::class -> when (value) {
             is Boolean -> value
-            is String -> value.toBoolean()
+            is Int -> value.truth
+            is Long -> value.truth
+            is String -> value.bool
             else -> null
         }
-        "File" -> when (value) {
+        Array::class -> when (value) {
+            is Array<*> -> value
+            is String -> value
+                .preparse2Array()
+                .map { convertParameterType(name, it, requireNotNull(type.classifier).starProjectedType) }
+                .toTypedArray()
+            else -> null
+        }
+        IntArray::class -> when (value) {
+            is IntArray -> value
+            is String -> value
+                .preparse2Array()
+                .map { it.int }
+                .toIntArray()
+            else -> null
+        }
+        LongArray::class -> when (value) {
+            is LongArray -> value
+            is String -> value
+                .preparse2Array()
+                .map { it.long }
+                .toLongArray()
+            else -> null
+        }
+        File::class -> when (value) {
             is File -> value
-            is String -> File(value)
+            is String -> value.toFile()
             else -> null
         }
-        "Resource" -> when (value) {
+        Resource::class -> when (value) {
             is Resource -> value
             is String -> Resource(value)
             else -> null
         }
-        "byte[]" -> when (value) {
+        ByteArray::class -> when (value) {
             is ByteArray -> value
             is String -> value.unhexlify()
             else -> null
         }
         else -> throw IllegalArgumentException("Can't convert to type $type. " +
-                "Use on of available types: ${settings.availableTypes.joinToString(separator = ", ")}")
+                "Use on of available types: ${availableTypes.joinToString(separator = ", ")}")
     }.sure { "Can't parse $name as $type value = $value" }
 }
 
 /**
  * {EN}Create from [parameters] array of parameters for [factory] constructor.{EN}
  */
-fun parseParametersAsMap(
+internal fun parseParametersAsMap(
         factory: IModuleFactory,
         parameters: Map<String, InputParameterInfo>
 ) = factory.parameters.mapNotNull {
@@ -138,6 +185,8 @@ fun parseParametersAsMap(
     }
 }.toMap()
 
+internal val regexSplitCommaOutsideSquareBrackets = ",(?=[^\\]]*(?:\\[|\$))".toRegex()
+
 /**
  * {EN}
  * Parse input line to map of parameters
@@ -145,8 +194,8 @@ fun parseParametersAsMap(
  * @return Map with parameters (for example "arg0" to "100", "arg1" to "0x200", "arg2" to "/path/to/something"
  * {EN}
  */
-fun parseParametersAsString(line: String): Map<String, Any> = line
-        .split(",")
+internal fun parseParametersAsString(line: String): Map<String, Any> = line
+        .split(regexSplitCommaOutsideSquareBrackets)
         .filter { it.isNotBlank() }
         .associate {
             val tmp = it.split("=")

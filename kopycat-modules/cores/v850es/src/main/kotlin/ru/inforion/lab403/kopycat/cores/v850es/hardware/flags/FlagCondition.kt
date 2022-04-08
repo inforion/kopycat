@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,23 +32,23 @@ import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 
 object FlagCondition {
-    inline fun CheckCondition(core: v850ESCore, cc: Long): Boolean = when (cc) {
-        0x0L -> core.cpu.flags.ov
-        0x1L -> core.cpu.flags.cy
-        0x2L -> core.cpu.flags.z
-        0x3L -> core.cpu.flags.cy or core.cpu.flags.z
-        0x4L -> core.cpu.flags.s
-        0x5L -> true
-        0x6L -> core.cpu.flags.s xor core.cpu.flags.ov
-        0x7L -> (core.cpu.flags.s xor core.cpu.flags.ov) or core.cpu.flags.z
-        0x8L -> !core.cpu.flags.ov
-        0x9L -> !core.cpu.flags.cy
-        0xAL -> !core.cpu.flags.z
-        0xBL -> !(core.cpu.flags.cy or core.cpu.flags.z)
-        0xCL -> !core.cpu.flags.s
-        0xDL -> core.cpu.flags.sat
-        0xEL -> !(core.cpu.flags.s xor core.cpu.flags.ov)
-        0xFL -> !((core.cpu.flags.s xor core.cpu.flags.ov) or core.cpu.flags.z)
+    inline fun CheckCondition(core: v850ESCore, cc: ULong): Boolean = when (cc) {
+        0x0uL -> core.cpu.flags.ov
+        0x1uL -> core.cpu.flags.cy
+        0x2uL -> core.cpu.flags.z
+        0x3uL -> core.cpu.flags.cy or core.cpu.flags.z
+        0x4uL -> core.cpu.flags.s
+        0x5uL -> true
+        0x6uL -> core.cpu.flags.s xor core.cpu.flags.ov
+        0x7uL -> (core.cpu.flags.s xor core.cpu.flags.ov) or core.cpu.flags.z
+        0x8uL -> !core.cpu.flags.ov
+        0x9uL -> !core.cpu.flags.cy
+        0xAuL -> !core.cpu.flags.z
+        0xBuL -> !(core.cpu.flags.cy or core.cpu.flags.z)
+        0xCuL -> !core.cpu.flags.s
+        0xDuL -> core.cpu.flags.sat
+        0xEuL -> !(core.cpu.flags.s xor core.cpu.flags.ov)
+        0xFuL -> !((core.cpu.flags.s xor core.cpu.flags.ov) or core.cpu.flags.z)
         else -> throw GeneralException("Incorrect condition code in CheckCondition")
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,8 +37,8 @@ class PPCSystemDecoder(core: PPCCore, vararg systems: eSystem) : APPCSystemDecod
 
     override val baseOpcode = InstructionTable(
             8, 8,
-            { data: Long -> data[31..29] },
-            { data: Long -> data[28..26] },
+            { data -> data[31..29] },
+            { data -> data[28..26] },
             /////               0,0,0       0,0,1       0,1,0       0,1,1       1,0,0       1,0,1       1,1,0       1,1,1
             /*0,0,0*/  null,       null,       null,       null,       null,       null,       null,       null,
             /*1,0,0*/           null,       null,       null,       null,       null,       null,       null,       null,

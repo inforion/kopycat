@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,40 +43,39 @@ abstract class GPIOxTest(register: RegisterType) {
 abstract class GPIOxTestWithLock(register: RegisterType) : GPIOxTest(register) {
     @Test
     fun modeOfLockedPinCantChange() {
-        u1.write(0x0000_0001)
-        expect(0x0000_0001) { u1.read() }
+        u1.write(0x0000_0001u)
+        expect(0x0000_0001u) { u1.read() }
 
         u1.setLock()
-        expect(0x0000_0001) { u1.read() }
+        expect(0x0000_0001u) { u1.read() }
 
-        u1.write(0x0000_0002)
-        expect(0x0000_0001) { u1.read() }
+        u1.write(0x0000_0002u)
+        expect(0x0000_0001u) { u1.read() }
     }
 
     @Test
     fun modeLockResetTest() {
         u1.reset()
-        u1.write(0x0000_0001)
+        u1.write(0x0000_0001u)
         u1.setLock()
-        expect(0x0000_0001) { u1.read() }
+        expect(0x0000_0001u) { u1.read() }
 
         u1.reset()
-        u1.write(0x0000_0002)
+        u1.write(0x0000_0002u)
         u1.setLock()
-        expect(0x0000_0002) { u1.read() }
+        expect(0x0000_0002u) { u1.read() }
     }
 
     @Test
     fun lockWriteNotAffectToModeChange() {
-        u1.write(0x0000_0001)
-        expect(0x0000_0001) { u1.read() }
+        u1.write(0x0000_0001u)
+        expect(0x0000_0001u) { u1.read() }
 
         u1.writeLockValues()
-        expect(0x0000_0001) { u1.read() }
+        expect(0x0000_0001u) { u1.read() }
 
-        u1.write(0x0000_0002)
-        expect(0x0000_0002) { u1.read() }
-
+        u1.write(0x0000_0002u)
+        expect(0x0000_0002u) { u1.read() }
     }
 }
 
@@ -91,46 +90,46 @@ class GPIOx_PUPDR_Test : GPIOxTestWithLock(RegisterType.PUPDR)
 class GPIOx_IDR_Test : GPIOxTest(RegisterType.IDR) {
     @Test
     fun inputSetTest() {
-        u1.ioWrite(0x0000_0005)
-        expect(0x0000_0005) { u1.read() }
+        u1.ioWrite(0x0000_0005u)
+        expect(0x0000_0005u) { u1.read() }
     }
 }
 
 class GPIOx_BSRR_Test : GPIOxTest(RegisterType.BSRR) {
     @Test
     fun setResetTest() {
-        u1.write(0x0000_FFFE)
-        expect(0x0000_FFFE) { u1.memRead(0x14) }
+        u1.write(0x0000_FFFEu)
+        expect(0x0000_FFFEu) { u1.memRead(0x14u) }
 
-        u1.write(0xE000_0001)
-        expect(0x0000_1FFF) { u1.memRead(0x14) }
+        u1.write(0xE000_0001u)
+        expect(0x0000_1FFFu) { u1.memRead(0x14u) }
     }
 }
 
 class GPIOx_LCKR_Test : GPIOxTest(RegisterType.LCKR) {
     @Test
     fun lockSetTest() {
-        expect(0L) { u1.read()[16] }
+        expect(0u) { u1.read()[16] }
         u1.setLock()
-        expect(1L) { u1.read()[16] }
+        expect(1u) { u1.read()[16] }
     }
 
     @Test
     fun lockNoChangeTest() {
         u1.setLock()
 
-        u1.write(0x00011110)
-        expect(0b0000_0000_0000_0001__0000_0000_0000_0011) { u1.read() }
+        u1.write(0x00011110u)
+        expect(0b0000_0000_0000_0001__0000_0000_0000_0011u) { u1.read() }
     }
 
     @Test
     fun lockResetTest() {
         u1.setLock()
         u1.reset()
-        expect(0L) { u1.read()[16] }
+        expect(0u) { u1.read()[16] }
 
         u1.setLock()
-        expect(1L) { u1.read()[16] }
+        expect(1u) { u1.read()[16] }
     }
 }
 
@@ -141,8 +140,8 @@ class GPIOx_AFRH_Test : GPIOxTestWithLock(RegisterType.AFRH)
 class GPIOx_BRR_Test : GPIOxTest(RegisterType.BRR) {
     @Test
     fun resetTest() {
-        u1.memWrite(0x14, 0x0000_FFFF)
-        u1.write(0x0000_0001)
-        expect(0x0000_FFFE) { u1.memRead(0x14) }
+        u1.memWrite(0x14u, 0x0000_FFFFu)
+        u1.write(0x0000_0001u)
+        expect(0x0000_FFFEu) { u1.memRead(0x14u) }
     }
 }

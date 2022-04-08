@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,10 @@
  */
 package ru.inforion.lab403.elfloader.enums
 
-
- 
-enum class ElfProgramHeaderFlag(val id: Int) {
-    PF_X(1),                        //Execute
-    PF_W(2),                        //Write
-    PF_R(4),                        //Read
-    PF_MASKOS(0x0ff00000),          //OS-specific
-    PF_MASKPROC(0xf0000000.toInt())    //Platform-specific
+enum class ElfProgramHeaderFlag(val id: UInt) {
+    PF_X(1u),  // Execute
+    PF_W(2u),  // Write
+    PF_R(4u),  // Read
+    PF_MASKOS(0x0ff00000u),   //OS-specific
+    PF_MASKPROC(0xf0000000u)  //Platform-specific
 }

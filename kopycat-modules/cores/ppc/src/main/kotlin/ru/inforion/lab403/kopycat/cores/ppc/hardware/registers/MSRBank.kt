@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.registers
 
-import ru.inforion.lab403.common.extensions.toBool
-import ru.inforion.lab403.common.extensions.toInt
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eMSR
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
@@ -107,8 +107,8 @@ class MSRBank(core : PPCCore) : ARegistersBank<PPCCore, eMSR>(core, arrayOf(), b
     //0 - reserved
 
     //Bits operations
-    fun bit(index: Int, value: Boolean) = PPCRegister.OEA.MSR.bit(core, index, value.toInt())
-    fun bit(index: Int) = PPCRegister.OEA.MSR.bit(core, index).toBool()
-    fun bits(range: IntRange, value: Long) = PPCRegister.OEA.MSR.bits(core, range, value)
+    fun bit(index: Int, value: Boolean) = PPCRegister.OEA.MSR.bit(core, index, value.int)
+    fun bit(index: Int) = PPCRegister.OEA.MSR.bit(core, index).truth
+    fun bits(range: IntRange, value: ULong) = PPCRegister.OEA.MSR.bits(core, range, value)
     fun bits(range: IntRange) = PPCRegister.OEA.MSR.bits(core, range)
 }

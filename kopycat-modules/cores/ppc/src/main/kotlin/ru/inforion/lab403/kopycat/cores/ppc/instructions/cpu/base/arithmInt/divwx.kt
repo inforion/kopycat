@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.arithmInt
 
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.ppc.flags.FlagProcessor
+import ru.inforion.lab403.kopycat.cores.ppc.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCVariable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
@@ -45,15 +46,16 @@ class divwx(core: PPCCore, val overflow: Boolean, val record: Boolean, vararg op
         val opA = op2.ssext(core)
         val opB = op3.ssext(core)
 
-        val inv = (opB == 0L) || ((op2.value(core) == 0x8000_0000L) && (opB == -1L))
+        val inv = (opB == 0L) || ((op2.value(core) == 0x8000_0000uL) && (opB == -1L))
         if (!inv) {
-            result.value(core, opA / opB)
+            result.value(core, (opA / opB).ulong)
 
             op1.value(core, result)
 
             if (record)
                 FlagProcessor.processCR0(core, result)
         }
+
         if (overflow)
             FlagProcessor.processOverflowDiv(core, inv)
     }

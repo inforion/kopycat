@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,27 +23,38 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("NOTHING_TO_INLINE")
+
 package ru.inforion.lab403.kopycat.cores.x86.enums
 
+enum class x86GPR(val index: Int, val n8: String, val n16: String, val n32: String, val n64: String) {
+    RAX(0, "al", "ax", "eax", "rax"),
+    RCX(1, "cl", "cx", "ecx", "rcx"),
+    RDX(2, "dl", "dx", "edx", "rdx"),
+    RBX(3, "bl", "bx", "ebx", "rbx"),
+    RSP(4, "spl", "sp", "esp", "rsp"),
+    RBP(5, "bpl", "bp", "ebp", "rbp"),
+    RSI(6, "sil", "si", "esi", "rsi"),
+    RDI(7, "dil", "di", "edi", "rdi"),
 
+    R8 (8,  "r8b", "r8w", "r8d", "r8"),
+    R9 (9,  "r9b", "r9w", "r9d", "r9"),
+    R10(10, "r10b", "r10w", "r10d", "r10"),
+    R11(11, "r11b", "r11w", "r11d", "r11"),
+    R12(12, "r12b", "r12w", "r12d", "r12"),
+    R13(13, "r13b", "r13w", "r13d", "r13"),
+    R14(14, "r14b", "r14w", "r14d", "r14"),
+    R15(15, "r15b", "r15w", "r15d", "r15"),
 
-enum class x86GPR(val id: Int, val n8: String, val n16: String, val n32: String) {
-    EAX(0, "al", "ax", "eax"),
-    ECX(1, "cl", "cx", "ecx"),
-    EDX(2, "dl", "dx", "edx"),
-    EBX(3, "bl", "bx", "ebx"),
-    ESP(4, "ah", "sp", "esp"),
-    EBP(5, "ch", "bp", "ebp"),
-    ESI(6, "dh", "si", "esi"),
-    EDI(7, "bh", "di", "edi"),
+    RIP(16, "??", "ip", "eip", "rip"),
 
-    EIP(8, "??", "ip", "eip"),
-
-    NONE(9, "noneB", "noneW", "noneD");
+    NONE(17, "noneB", "noneW", "noneD", "noneR");
 
     companion object {
-        val COUNT: Int get() = values().size
-        fun from(id: Int): x86GPR = x86GPR.values().first { it.id == id }
-        fun fromOrNull(name: String): x86GPR? = values().firstOrNull { it.name == name }
+        private val index2GPR = enumValues<x86GPR>()
+            .sortedBy { it.index }
+            .toTypedArray()
+
+        fun byIndex(index: Int) = index2GPR[index]
     }
 }

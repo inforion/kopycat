@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("PrivatePropertyName", "unused")
+
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.clr
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.common.extensions.set
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -39,23 +42,24 @@ import java.util.logging.Level
 
 class RCC(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.WARNING)
+        @Transient
+        val log = logger(WARNING)
 
-        private enum class RegisterType(val offset: Long) {
-            RCC_CR          (0x00),
-            RCC_CFGR        (0x04),
-            RCC_CIR         (0x08),
-            RCC_APB2RSTR    (0x0C),
-            RCC_APB1RSTR    (0x10),
-            RCC_AHBENR      (0x14),
-            RCC_APB2ENR     (0x18),
-            RCC_APB1ENR     (0x1C),
-            RCC_BDCR        (0x20),
-            RCC_CSR         (0x24),
-            RCC_AHBRSTR     (0x28),
-            RCC_CFGR2       (0x2C),
-            RCC_CFGR3       (0x30),
-            RCC_CR2         (0x34)
+        private enum class RegisterType(val offset: ULong) {
+            RCC_CR(0x00u),
+            RCC_CFGR(0x04u),
+            RCC_CIR(0x08u),
+            RCC_APB2RSTR(0x0Cu),
+            RCC_APB1RSTR(0x10u),
+            RCC_AHBENR(0x14u),
+            RCC_APB2ENR(0x18u),
+            RCC_APB1ENR(0x1Cu),
+            RCC_BDCR(0x20u),
+            RCC_CSR(0x24u),
+            RCC_AHBRSTR(0x28u),
+            RCC_CFGR2(0x2Cu),
+            RCC_CFGR3(0x30u),
+            RCC_CR2(0x34u)
         }
     }
 
@@ -67,37 +71,37 @@ class RCC(parent: Module, name: String) : Module(parent, name) {
     override val ports = Ports()
 
     private open inner class RegisterBase(
-            register: RegisterType,
-            default: Long = 0x0000_0000,
-            writable: Boolean = true,
-            readable: Boolean = true,
-            level: Level = Level.FINE
+        register: RegisterType,
+        default: ULong = 0x0000_0000u,
+        writable: Boolean = true,
+        readable: Boolean = true,
+        level: Level = Level.FINE
     ) : Register(ports.mem, register.offset, Datatype.DWORD, register.name, default, writable, readable, level)
 
-    private val RCC_CR          = object : RegisterBase(RegisterType.RCC_CR,    0x0000_0083) {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+    private val RCC_CR = object : RegisterBase(RegisterType.RCC_CR, 0x0000_0083u) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (value) {
-                data.and(0xFEFFFFFF) -> super.write(ea, ss, size, value.clr(25))
-                data.or(0x1000000) -> super.write(ea, ss, size, value.set(25))
+                data and 0xFEFFFFFFuL -> super.write(ea, ss, size, value clr 25)
+                data or 0x1000000uL -> super.write(ea, ss, size, value set 25)
                 else -> super.write(ea, ss, size, value)
             }
         }
     } // 0x2000_0000 set hardware PLL lock
-    private val RCC_CFGR        = object : RegisterBase(RegisterType.RCC_CFGR) {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+    private val RCC_CFGR = object : RegisterBase(RegisterType.RCC_CFGR) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value.insert(value[1..0], 3..2))
         }
     }
-    private val RCC_APB2RSTR    = object : RegisterBase(RegisterType.RCC_APB2RSTR) {}
-    private val RCC_APB1RSTR    = object : RegisterBase(RegisterType.RCC_APB1RSTR) {}
-    private val RCC_CIR         = object : RegisterBase(RegisterType.RCC_CIR) {}
-    private val RCC_AHBENR      = object : RegisterBase(RegisterType.RCC_AHBENR,0x0000_0014) {}
-    private val RCC_APB2ENR     = object : RegisterBase(RegisterType.RCC_APB2ENR) {}
-    private val RCC_APB1ENR     = object : RegisterBase(RegisterType.RCC_APB1ENR) {}
-    private val RCC_BDCR        = object : RegisterBase(RegisterType.RCC_BDCR) {}
-    private val RCC_CSR         = object : RegisterBase(RegisterType.RCC_CSR,   0x0000_0002) {} // set hardware osc ready
-    private val RCC_AHBRSTR     = object : RegisterBase(RegisterType.RCC_AHBRSTR) {}
-    private val RCC_CFGR2       = object : RegisterBase(RegisterType.RCC_CFGR2) {}
-    private val RCC_CFGR3       = object : RegisterBase(RegisterType.RCC_CFGR3) {}
-    private val RCC_CR2         = object : RegisterBase(RegisterType.RCC_CR2,   0x0000_0080) {}
+    private val RCC_APB2RSTR = RegisterBase(RegisterType.RCC_APB2RSTR)
+    private val RCC_APB1RSTR = RegisterBase(RegisterType.RCC_APB1RSTR)
+    private val RCC_CIR = RegisterBase(RegisterType.RCC_CIR)
+    private val RCC_AHBENR = RegisterBase(RegisterType.RCC_AHBENR, 0x0000_0014u)
+    private val RCC_APB2ENR = RegisterBase(RegisterType.RCC_APB2ENR)
+    private val RCC_APB1ENR = RegisterBase(RegisterType.RCC_APB1ENR)
+    private val RCC_BDCR = RegisterBase(RegisterType.RCC_BDCR)
+    private val RCC_CSR = RegisterBase(RegisterType.RCC_CSR, 0x0000_0002u) // set hardware osc ready
+    private val RCC_AHBRSTR = RegisterBase(RegisterType.RCC_AHBRSTR)
+    private val RCC_CFGR2 = RegisterBase(RegisterType.RCC_CFGR2)
+    private val RCC_CFGR3 = RegisterBase(RegisterType.RCC_CFGR3)
+    private val RCC_CR2 = RegisterBase(RegisterType.RCC_CR2, 0x0000_0080u)
 }

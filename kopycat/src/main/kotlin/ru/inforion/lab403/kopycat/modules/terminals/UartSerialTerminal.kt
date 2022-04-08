@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,8 +28,8 @@ package ru.inforion.lab403.kopycat.modules.terminals
 import com.fazecast.jSerialComm.SerialPort
 import com.fazecast.jSerialComm.SerialPortDataListener
 import com.fazecast.jSerialComm.SerialPortEvent
-import ru.inforion.lab403.common.extensions.asUInt
-import ru.inforion.lab403.common.extensions.hex2
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.utils.lazyTransient
 import ru.inforion.lab403.kopycat.auxiliary.Socat
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 
@@ -58,13 +58,13 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
  * {RU}
  */
 class UartSerialTerminal(
-        parent: Module,
-        name: String,
-        val tty: String?,
-        val baudRate: Int,
-        val parity: Int,
-        val numStopBits: Int,
-        val numDataBits: Int
+    parent: Module,
+    name: String,
+    val tty: String?,
+    val baudRate: Int,
+    val parity: Int,
+    val numStopBits: Int,
+    val numDataBits: Int
 ) : UartTerminal(parent, name) {
     constructor(parent: Module, name: String, tty: String?) :
             this(parent, name, tty, 115200, SerialPort.NO_PARITY, SerialPort.ONE_STOP_BIT, 8)
@@ -94,7 +94,14 @@ class UartSerialTerminal(
         comPort.numStopBits = numStopBits
         comPort.numDataBits = numDataBits
 
-        check(comPort.openPort()) { "Can't open port: $name" }
+        // safetySleepTime should be 0 to disable check below in jSerial openPort() otherwise it just interrupts thread
+        //
+        // Force a sleep to ensure that the port does not become unusable due to rapid closing/opening on the part of the user
+        // if (safetySleepTimeMS > 0)
+        //     try { Thread.sleep(safetySleepTimeMS); } catch (Exception e) { Thread.currentThread().interrupt(); }
+        val isOpen = comPort.openPort(0)
+
+        check(isOpen) { "Can't open port: $name" }
 
         val listener = object : SerialPortDataListener {
             override fun getListeningEvents() = SerialPort.LISTENING_EVENT_DATA_AVAILABLE
@@ -106,7 +113,7 @@ class UartSerialTerminal(
                 if (available < 0)
                     return
                 val newData = ByteArray(available)
-                comPort.readBytes(newData, newData.size.toLong())
+                comPort.readBytes(newData, newData.size.long_z)
                 newData.forEach { write(it) }
             }
         }
@@ -123,17 +130,18 @@ class UartSerialTerminal(
      * {EN}
      */
     override fun onByteTransmitReady(byte: Byte) {
-        comPort?.outputStream?.write(byte.asUInt)
-        log.finest { "$this comPort byte ${byte.toChar()}[${byte.hex2}] written" }
+        comPort?.outputStream?.write(byte.int_z)
+        log.finest { "$this comPort byte ${byte.char}[${byte.hex2}] written" }
     }
 
     val socat = if (tty != null) Socat.createPseudoTerminal(this, tty) else null
 
     private val terminal = socat?.pty0 ?: tty
-    private val comPort = if (terminal != null)
-        openComPort(terminal, baudRate, parity, numStopBits, numDataBits)
-    else {
-        log.severe { "Terminal wasn't opened for $this tty=$tty..." }
-        null
+    private val comPort by lazyTransient {
+        terminal ifItNotNull {
+            openComPort(it, baudRate, parity, numStopBits, numDataBits)
+        } otherwise {
+            log.severe { "Terminal wasn't opened for $this tty=$tty..." }
+        }
     }
 }

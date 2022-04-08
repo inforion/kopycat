@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,19 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.abstracts
 
+import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.emptyOpt
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 
 
-abstract class APIFunction constructor(name: String, address: Long? = null) : APIObject(name, address) {
+abstract class APIFunction constructor(name: String, address: Optional<ULong> = emptyOpt()) : APIObject(name, address) {
     abstract val args: Array<ArgType> //TODO: default C types: char, int, short, long, etc...
-    abstract fun exec(name: String, vararg argv: Long): APIResult
+    abstract fun exec(name: String, vararg argv: ULong): APIResult
 
-    open fun retval(value: Long) = APIResult.Value(value)
+    open fun retval(value: ULong) = APIResult.Value(value)
 
     open fun void() = APIResult.Void()
 
-    fun redirect(address: Long) = APIResult.Redirect(address)
+    fun redirect(address: ULong) = APIResult.Redirect(address)
 
     fun terminate(status: Int) = APIResult.Terminate(status)
 

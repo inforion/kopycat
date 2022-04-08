@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.embedded.procCtrl
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
@@ -43,15 +43,14 @@ class mtmsr(core: PPCCore, val fieldA: Int, val fieldB: Int, val fieldC: Int, va
     override fun execute() {
         val value = rs.value(core)
         if (L == 0) {
-            core.cpu.msrBits.EE = value[15].toBool() || value[14].toBool()
-            core.cpu.msrBits.IS = value[5].toBool() || value[14].toBool()
-            core.cpu.msrBits.DS = value[4].toBool() || value[14].toBool()
+            core.cpu.msrBits.EE = value[15].truth || value[14].truth
+            core.cpu.msrBits.IS = value[5].truth || value[14].truth
+            core.cpu.msrBits.DS = value[4].truth || value[14].truth
             core.cpu.msrBits.bits(31..16, value[31..16])
             core.cpu.msrBits.bits(14..13, value[14..13])
             core.cpu.msrBits.bits(11..6, value[11..6])
             core.cpu.msrBits.bits(3..1, value[3..1])
-        }
-        else {
+        } else {
             core.cpu.msrBits.bits(15..1, value[15..1])
         }
     }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,18 +31,18 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.extensions.div
 import ru.inforion.lab403.common.extensions.hexlify
 import ru.inforion.lab403.common.extensions.unhexlify
-import ru.inforion.lab403.common.extensions.applyRoutes
-import ru.inforion.lab403.common.extensions.getAny
-import ru.inforion.lab403.common.extensions.postAny
-import ru.inforion.lab403.common.extensions.postVoid
+import ru.inforion.lab403.common.javalin.applyRoutes
+import ru.inforion.lab403.common.javalin.getAny
+import ru.inforion.lab403.common.javalin.postAny
+import ru.inforion.lab403.common.javalin.postVoid
 import ru.inforion.lab403.common.logging.FINE
-import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
 import ru.inforion.lab403.kopycat.library.builders.text.BusConfig
 import ru.inforion.lab403.kopycat.library.builders.text.ConnectionConfig
 import ru.inforion.lab403.kopycat.library.builders.text.PortConfig
+import ru.inforion.lab403.kopycat.library.builders.text.create
 import ru.inforion.lab403.kopycat.serializer.Serializer
 
 class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList<Module>): Plugin {
@@ -50,11 +50,11 @@ class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList
         val log = logger(FINE)
     }
 
-    internal data class MemoryLoadInfo(val address: Long, val size: Int, val ss: Int)
-    internal data class MemoryStoreInfo(val address: Long, val data: String, val ss: Int)
+    internal data class MemoryLoadInfo(val address: ULong, val size: Int, val ss: Int)
+    internal data class MemoryStoreInfo(val address: ULong, val data: String, val ss: Int)
     internal data class RegisterReadInfo(val index: Int)
-    internal data class RegisterWriteInfo(val index: Int, val value: Long)
-    internal data class PcWriteInfo(val value: Long)
+    internal data class RegisterWriteInfo(val index: Int, val value: ULong)
+    internal data class PcWriteInfo(val value: ULong)
     internal data class OpenInfo(val top: String, val gdbPort: Int?, val gdbBinaryProto: Boolean, val traceable: Boolean)
 
     val name = "kopycat"
@@ -111,7 +111,7 @@ class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList
          */
         postAny("$name/connect") {
             val designator = it.header("designator")!!
-            val connection = it.bodyAsClass(ConnectionConfig::class.java)
+            val connection = it.bodyAsClass(ArrayList::class.java) as ConnectionConfig
             log.finer { "connect(designator=$designator connection=$connection)" }
             val module = modules.first { it.name == designator }
             connection.create(module)
@@ -210,7 +210,7 @@ class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList
         postAny("$name/load") {
             val name = it.header("name")
             log.finer { "load(name=$name)" }
-            kopycat.load(name)
+            if (name != null) kopycat.load(name) else kopycat.restore()
         }
 
         postVoid("$name/reset") {
@@ -242,9 +242,9 @@ class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList
         postVoid("$name/open") {
             val params = it.bodyAsClass(OpenInfo::class.java)
             log.finer { "open(params=$params)" }
-            val gdb = if (params.gdbPort != null) GDBServer(params.gdbPort, true, params.gdbBinaryProto) else null
+            val gdb = if (params.gdbPort != null) GDBServer(params.gdbPort, binaryProtoEnabled = params.gdbBinaryProto) else null
             val top = modules.first { module -> module.name == params.top }
-            kopycat.open(top, params.traceable, gdb)
+            kopycat.open(top, gdb, params.traceable)
             kopycat.isTopModulePresented
         }
 

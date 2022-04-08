@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,15 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("unused")
+
 package ru.inforion.lab403.elfloader.processors.arm
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.emptyOpt
+import ru.inforion.lab403.common.optional.opt
 import ru.inforion.lab403.elfloader.*
 import ru.inforion.lab403.elfloader.enums.ElfOSABI.*
 import ru.inforion.lab403.elfloader.enums.ElfObjectSize.*
@@ -37,17 +42,13 @@ import ru.inforion.lab403.elfloader.exceptions.EBadSegment
 import ru.inforion.lab403.elfloader.exceptions.EDecodeFault
 import ru.inforion.lab403.elfloader.processors.AElfDecoder
 import ru.inforion.lab403.elfloader.processors.arm.enums.ArmDynamicSectionTag.*
+import ru.inforion.lab403.elfloader.processors.arm.enums.ArmFlags.*
 import ru.inforion.lab403.elfloader.processors.arm.enums.ArmRelocationType.*
 import ru.inforion.lab403.elfloader.processors.arm.enums.ArmSectionType.*
-import ru.inforion.lab403.elfloader.processors.arm.enums.ArmFlags.*
 import ru.inforion.lab403.elfloader.processors.arm.enums.ArmSegmentType.*
 import ru.inforion.lab403.elfloader.processors.arm.enums.ArmRelocationType
 import ru.inforion.lab403.elfloader.processors.arm.enums.ArmSegmentType
 
-
-
-
- 
 class ElfDecoderArm (file: ElfFile) : AElfDecoder(file) {
     companion object {
         private val log = logger()
@@ -58,30 +59,30 @@ class ElfDecoderArm (file: ElfFile) : AElfDecoder(file) {
     override val pltEntrySize = 12
 
     //Thumb code flag
-    val thumb: Boolean by lazy { file.entry[0] == 1L }
+    val thumb by lazy { file.entry[0] == 1u }
 
     //ABI version
-    val abi: Int by lazy {
-        val data = (file.flags and EF_ARM_ABIMASK.id) shr 24
-        if (data > 5)
+    val abi by lazy {
+        val data = (file.flags and EF_ARM_ABIMASK.id) ushr 24
+        if (data > 5u)
             TODO("ABI version $data isn't implemented")
-        else if (data < 5)
+        else if (data < 5u)
             log.warning { "Obsolete ABI version $data" }
         data
     }
 
     //BE8-code (armv6)
-    val be8: Boolean by lazy { file.flags and EF_ARM_ABI_FLOAT_HARD.id != 0 }
+    val be8 by lazy { file.flags and EF_ARM_ABI_FLOAT_HARD.id != 0u }
 
     //GCC-generated info
-    val gcc: Int by lazy { file.flags and EF_ARM_GCCMASK.id }
+    val gcc by lazy { file.flags and EF_ARM_GCCMASK.id }
 
     //Hard float or Soft float (emulation)
-    val armhf: Boolean by lazy { file.flags and EF_ARM_ABI_FLOAT_HARD.id != 0 }
+    val armhf by lazy { file.flags and EF_ARM_ABI_FLOAT_HARD.id != 0u }
 
     //TODO: to HashTable
-    var symbolTableSize : Long? = null
-    var preEmptionMap : Long? = null
+    var symbolTableSize: Optional<ULong> = emptyOpt()
+    var preEmptionMap: Optional<ULong> = emptyOpt()
     var preEmptionMapOffset : Int? = null
 
 
@@ -96,11 +97,11 @@ class ElfDecoderArm (file: ElfFile) : AElfDecoder(file) {
 
         log.fine { "Thumb mode $thumb" }
 
-        if (file.entry[1..0] == 0b10L)
+        if (file.entry[1..0] == 0b10u)
             throw EDecodeFault("Reserved combination of entry point lsb")
 
         if (file.eh_osabi in ELFOSABI_LOPROC.id..ELFOSABI_HIPROC.id)
-            if (file.eh_osabi == 64.toByte()) TODO("ELFOSABI_ARM_AEABI isn't implemented")
+            if (file.eh_osabi.int_z == 64) TODO("ELFOSABI_ARM_AEABI isn't implemented")
             else log.warning { "Unknown platform-specific OS/ABI: 0x${file.eh_osabi.hex2}" }
     }
 
@@ -120,7 +121,7 @@ class ElfDecoderArm (file: ElfFile) : AElfDecoder(file) {
         */
         log.fine { "GCC info is 0x${gcc.hex8}" }
 
-        if ((file.flags and EF_ARM_ABI_FLOAT_HARD.id == 1) && (file.flags and EF_ARM_ABI_FLOAT_SOFT.id == 1))
+        if (file.flags and EF_ARM_ABI_FLOAT_HARD.id == 1u && file.flags and EF_ARM_ABI_FLOAT_SOFT.id == 1u)
             throw EDecodeFault("Can't be both of EF_ARM_ABI_FLOAT_HARD and EF_ARM_ABI_FLOAT_SOFT simultaneously")
 
     }
@@ -139,26 +140,28 @@ class ElfDecoderArm (file: ElfFile) : AElfDecoder(file) {
 
     }
 
-    override fun checkSectionFlags(flags: Int) {
-        if (flags and 0x20000000 != 0)
+    override fun checkSectionFlags(flags: UInt) {
+        if (flags and 0x20000000u != 0u)
             throw EDecodeFault("SHF_ARM_NOREAD flag seems to be deprecated") //SHF_ARM_NOREAD - No use to make enum class
         else
             throw EDecodeFault("Unknown section flag: 0x${flags.hex8}")
     }
 
-    override fun checkSectionName(name: String, type: Int, flags: Int) : Boolean {
+    override fun checkSectionName(name: String, type: Int, flags: UInt) : Boolean {
         val invalid = when (name) {
-            ".ARM.preemptmap" -> ((type != SHT_ARM_PREEMPTMAP.id) || (flags != SHF_ALLOC.id))
-            ".ARM.attributes" -> ((type != SHT_ARM_ATTRIBUTES.id) || (flags != 0))
-            ".ARM.debug_overlay" -> ((type != SHT_ARM_DEBUGOVERLAY.id) || (flags != 0))
+            ".ARM.preemptmap" -> ((type != SHT_ARM_PREEMPTMAP.id) || flags != SHF_ALLOC.id)
+            ".ARM.attributes" -> ((type != SHT_ARM_ATTRIBUTES.id) || flags != 0u)
+            ".ARM.debug_overlay" -> ((type != SHT_ARM_DEBUGOVERLAY.id) || flags != 0u)
             ".ARM.overlay_table" -> TODO("See DBGOVL for details")
-            else -> if (name.startsWith(".ARM.exidx"))
-                ((type != SHT_ARM_EXIDX.id) || ((flags != SHF_ALLOC.id) && (flags != SHF_LINK_ORDER.id)))
-            else if (name.startsWith(".ARM.extab"))
-                ((type != SHT_PROGBITS.id) || (flags != SHF_ALLOC.id))
-            else {
-                log.warning { "Non standard section name: $name" }
-                false
+            else -> when {
+                name.startsWith(".ARM.exidx") ->
+                    type != SHT_ARM_EXIDX.id || flags != SHF_ALLOC.id && flags != SHF_LINK_ORDER.id
+                name.startsWith(".ARM.extab") ->
+                    type != SHT_PROGBITS.id || flags != SHF_ALLOC.id
+                else -> {
+                    log.warning { "Non standard section name: $name" }
+                    false
+                }
             }
         }
         //Kostil.kt
@@ -166,22 +169,19 @@ class ElfDecoderArm (file: ElfFile) : AElfDecoder(file) {
             ".ARM.preemptmap" -> TODO("Check section destination")
             ".ARM.attributes" -> Unit //Now no needed
             ".ARM.debug_overlay" -> TODO("Check section destination")
-            else -> if (name.startsWith(".ARM.exidx"))
-                TODO("Check section destination")
-            else if (name.startsWith(".ARM.extab"))
-                TODO("Check section destination")
+            else -> when {
+                name.startsWith(".ARM.exidx") -> TODO("Check section destination")
+                name.startsWith(".ARM.extab") -> TODO("Check section destination")
+            }
         }
 
         return invalid
     }
 
-    override fun checkSymbolBinding(bind: Int) {
+    override fun checkSymbolBinding(bind: Int): Unit =
         throw EDecodeFault("ARM not provides platform-specific symbol bindings")
-    }
 
-    override fun checkSymbolType(type: Int) {
-        throw EDecodeFault("ARM not provides platform-specific symbols")
-    }
+    override fun checkSymbolType(type: Int): Unit = throw EDecodeFault("ARM not provides platform-specific symbols")
 
     //TODO: change name!!!
     override fun checkSegmentType(type: Int) {
@@ -193,34 +193,34 @@ class ElfDecoderArm (file: ElfFile) : AElfDecoder(file) {
         log.warning { "ARM platform-specific segment 0x${type.hex8} may be linker-dependent" }
     }
 
-    override fun checkSegmentFlags(flags: Int) = Unit
+    override fun checkSegmentFlags(flags: UInt) = Unit
 
-    override fun parseDynamic(hm: HashMap<Int, Long>, tag: Int, ptr: Long) {
+    override fun parseDynamic(hm: MutableMap<Int, ULong>, tag: Int, ptr: ULong) {
         when (tag) {
-            DT_ARM_SYMTABSZ.id -> symbolTableSize = ptr
+            DT_ARM_SYMTABSZ.id -> symbolTableSize = ptr.opt
             DT_ARM_PREEMPTMAP.id -> {
-                preEmptionMap = ptr
+                preEmptionMap = ptr.opt
                 TODO("Pre-emption map isn't implemented")
             }
             else -> throw EDecodeFault("Unknown platform-specific dynamic tag: 0x${tag.hex8}")
         }
     }
 
-    override fun applyStaticRelocation(rel: ElfRel, vaddr: Long, symbol: Long, got: Long?, data: Long): Long {
-        val A = if (rel.withAddend) rel.addend.toLong() else data
+    override fun applyStaticRelocation(rel: ElfRel, vaddr: ULong, symbol: ULong, got: Optional<ULong>, data: ULong): ULong {
+        val A = if (rel.withAddend) rel.addend.ulong_z else data
         val S = symbol
-        val T = thumb.toInt()
+        val T = thumb.int.ulong_z
 
         return when (rel.type) {
 
-            R_ARM_COPY.id -> 0
+            R_ARM_COPY.id -> 0u
 
             R_ARM_JUMP_SLOT.id -> {
-                val a = if (rel.withAddend) A else 0L
-                (S + a) or T.toLong()
+                val a = if (rel.withAddend) A else 0u
+                (S + a) or T
             }
 
-            R_ARM_GLOB_DAT.id -> (S + A) or T.toLong()
+            R_ARM_GLOB_DAT.id -> (S + A) or T
 
             R_ARM_RELATIVE.id -> data
 

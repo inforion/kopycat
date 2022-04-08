@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86FPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 
@@ -41,27 +43,27 @@ class Fsave(core: x86Core, opcode: ByteArray, prefs: Prefixes, val dst: AOperand
     override fun execute() {
         val address = dst.effectiveAddress(core)
 
-        if (!core.cpu.cregs.vpe || core.cpu.mode != x86CPU.Mode.R32)
+        if (!core.cpu.cregs.cr0.pe || !core.is32bit)
             TODO("Only for PE and 32-bit mode implemented!")
 
-        core.outl(address +  0, core.fpu.fwr.FPUControlWord)
-        core.outl(address +  4, core.fpu.fwr.FPUStatusWord)
-        core.outl(address +  8, core.fpu.fwr.FPUTagWord)
-        core.outl(address + 12, core.fpu.fwr.FPUInstructionPointer)
-        core.outl(address + 16, 0)  // FPUInstructionPointer Selector
-        core.outl(address + 20, core.fpu.fwr.FPUDataPointer)
-        core.outl(address + 24, 0)  // FPUDataPointer Selector
+        core.outl(address +  0u, core.fpu.fwr.FPUControlWord.value)
+        core.outl(address +  4u, core.fpu.fwr.FPUStatusWord.value)
+        core.outl(address +  8u, core.fpu.fwr.FPUTagWord.value)
+        core.outl(address + 12u, core.fpu.fwr.FPUInstructionPointer.value)
+        core.outl(address + 16u, 0u)  // FPUInstructionPointer Selector
+        core.outl(address + 20u, core.fpu.fwr.FPUDataPointer.value)
+        core.outl(address + 24u, 0u)  // FPUDataPointer Selector
 
         repeat(x86FPU.FPU_STACK_SIZE) {
-            core.outl(address + 28 + 10 * it, core.fpu[it])
+            core.outl(address + 28u + 10u * it.uint, core.fpu[it])
         }
         // occupied 0x6C bytes (108)
 
-        core.fpu.fwr.FPUControlWord = 0x37F
-        core.fpu.fwr.FPUStatusWord = 0
-        core.fpu.fwr.FPUTagWord = 0xFFFF
-        core.fpu.fwr.FPUDataPointer = 0
-        core.fpu.fwr.FPUInstructionPointer = 0
-        core.fpu.fwr.FPULastInstructionOpcode = 0
+        core.fpu.fwr.FPUControlWord.value = 0x37Fu
+        core.fpu.fwr.FPUStatusWord.value = 0u
+        core.fpu.fwr.FPUTagWord.value = 0xFFFFu
+        core.fpu.fwr.FPUDataPointer.value = 0u
+        core.fpu.fwr.FPUInstructionPointer.value = 0u
+        core.fpu.fwr.FPULastInstructionOpcode.value = 0u
     }
 }

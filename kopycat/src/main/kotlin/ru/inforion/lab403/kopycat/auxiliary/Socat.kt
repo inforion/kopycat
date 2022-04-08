@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.auxiliary
 
+import ru.inforion.lab403.common.extensions.isWindowsOperatingSystem
+import ru.inforion.lab403.common.extensions.operatingSystemTag
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
@@ -71,15 +73,12 @@ data class Socat(val process: Process, val pty0: String, val pty1: String) {
 
             val tty = url.substringAfter(SOCAT_PREFIX)
 
-            val osName = System.getProperty("os.name")
-            if (osName.toLowerCase().startsWith("win")) {
-                throw NotImplementedError("Automatic creation of virtual terminal for Windows systems not supported!")
-            }
+            assert(!isWindowsOperatingSystem) { "Automatic creation of virtual terminal for Windows systems not supported!" }
 
-            val comm = if (tty.isNotBlank())
-                "socat -d -d pty,raw,echo=0,link=${tty}_in pty,raw,echo=0,link=$tty"
-            else
-                "socat -d -d pty,raw,echo=0 pty,raw,echo=0"
+            val comm = when {
+                tty.isNotBlank() -> "socat -d -d pty,raw,echo=0,link=${tty}_in pty,raw,echo=0,link=$tty"
+                else -> "socat -d -d pty,raw,echo=0 pty,raw,echo=0"
+            }
 
             val runtime = Runtime.getRuntime()
             val process = runtime.exec(comm.split(" ").toTypedArray())

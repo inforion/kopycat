@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.operands
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.rotr32
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.arm.enums.ShiftType
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
@@ -37,25 +34,25 @@ class ARMRegisterShift constructor(val rs: ARMRegister, val rm: ARMRegister, val
 
     override fun toString(): String = "$rm, $shift $rs"
 
-    override fun value(core: AARMCore): Long {
-        val shifter = (rs.value(core) and 0xFF).asInt
+    override fun value(core: AARMCore): ULong {
+        val shifter = (rs.value(core) and 0xFFu).int
 
         return when (shift) {
             ShiftType.LSL -> when {
                 shifter <= 0 -> rm.value(core)
                 shifter < 32 -> rm.value(core) shl shifter
-                else -> 0
+                else -> 0u
             }
             ShiftType.LSR -> when {
                 shifter <= 0 -> rm.value(core)
                 shifter < 32 -> rm.value(core) ushr shifter
-                else -> 0
+                else -> 0u
             }
             ShiftType.ASR -> when {
                 shifter <= 0 -> rm.value(core)
-                shifter < 32 -> rm.value(core) shr shifter
-                shifter == 32 -> 0
-                else -> 0xFFFFFFFF
+                shifter < 32 -> rm.value(core) ashr shifter
+                shifter == 32 -> 0u
+                else -> 0xFFFFFFFFu
             }
             ShiftType.ROR -> when {
                 shifter <= 0 -> rm.value(core)
@@ -68,29 +65,29 @@ class ARMRegisterShift constructor(val rs: ARMRegister, val rm: ARMRegister, val
     }
 
     override fun carry(core: AARMCore): Boolean{
-        val shifter = (rs.value(core) and 0xFF).asInt
+        val shifter = (rs.value(core) and 0xFFu).int
         return when (shift) {
             ShiftType.LSL -> when {
                 shifter <= 0 -> core.cpu.flags.c
-                shifter < 32 -> rm.value(core)[32 - shifter].toBool()
-                shifter == 32 -> rm.value(core)[0].toBool()
+                shifter < 32 -> rm.value(core)[32 - shifter].truth
+                shifter == 32 -> rm.value(core)[0].truth
                 else -> false
             }
             ShiftType.LSR -> when {
                 shifter <= 0 -> core.cpu.flags.c
-                shifter < 32 -> rm.value(core)[shifter - 1].toBool()
-                shifter == 32 -> rm.value(core)[31].toBool()
+                shifter < 32 -> rm.value(core)[shifter - 1].truth
+                shifter == 32 -> rm.value(core)[31].truth
                 else -> false
             }
             ShiftType.ASR -> when {
                 shifter <= 0L -> core.cpu.flags.c
-                shifter < 32L -> rm.value(core)[shifter - 1].toBool()
-                else -> rm.value(core)[31].toBool()
+                shifter < 32L -> rm.value(core)[shifter - 1].truth
+                else -> rm.value(core)[31].truth
             }
             ShiftType.ROR -> when {
                 shifter <= 0L -> core.cpu.flags.c
-                (shifter and 0b11111) == 0 -> rm.value(core)[31].toBool()
-                (shifter and 0b11111) > 0 -> rm.value(core)[(shifter and 0b11111) - 1].toBool()
+                (shifter and 0b11111) == 0 -> rm.value(core)[31].truth
+                (shifter and 0b11111) > 0 -> rm.value(core)[(shifter and 0b11111) - 1].truth
                 else -> throw IllegalStateException("Unexpected shifter value!")
             }
             else -> throw IllegalStateException("Unexpected shift type!")

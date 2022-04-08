@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.elfloader
 
-import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import java.nio.ByteBuffer
@@ -37,7 +37,7 @@ class ElfRel constructor(
 
         // AT LEAST: for relocatable file it is the byte offset from the beginning of the section to the storage unit
         // Virtual address of the storage unit affected by the relocation
-        val vaddr: Long,
+        val vaddr: ULong,
 
         // symbol table index and the type of relocation
         val sym: Int,
@@ -64,7 +64,7 @@ class ElfRel constructor(
         ): ElfRel {
             position(off + ind * size)
 
-            val vaddr = int.asULong
+            val vaddr = int.ulong_z
             val info = int
             val addend = if (withAddend) int else 0
 

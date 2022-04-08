@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,29 +36,28 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class MSRr(cpu: AARMCore,
-          opcode: Long,
+          opcode: ULong,
           cond: Condition,
           val rn: ARMRegister,
-          private val SYSm: Long):
+          private val SYSm: ULong):
         AARMInstruction(cpu, Type.VOID, cond, opcode, rn) {
     override val mnem = "MSR$mcnd"
 
     val result = ARMVariable(Datatype.WORD)
     override fun execute() {
         when(SYSm[7..3]) {
-            0b00000L -> {
-                if(SYSm[2] == 0L)
+            0b00000uL -> {
+                if(SYSm[2] == 0uL)
                     core.cpu.sregs.apsr.value = rn.value(core)[31..27] shl 27
             }
-            0b00001L -> {
+            0b00001uL -> {
                 if(core.cpu.CurrentModeIsPrivileged()) {
                     when(SYSm[2..0]) {
-                        0b000L -> {
+                        0b000uL -> {
                             core.cpu.regs.sp.main = rn.value(core)[31..2] shl 2
                         }
-                        0b001L -> {
+                        0b001uL -> {
                             core.cpu.regs.sp.process = rn.value(core)[31..2] shl 2
                         }
                         else -> {
@@ -67,16 +66,16 @@ class MSRr(cpu: AARMCore,
                     }
                 }
             }
-            0b00010L -> {
+            0b00010uL -> {
                 if(core.cpu.CurrentModeIsPrivileged()) {
                     when(SYSm[2..0]) {
-                        0b000L -> {
-                            core.cpu.spr.primask.pm = rn.value(core)[0] == 1L
+                        0b000uL -> {
+                            core.cpu.spr.primask.pm = rn.value(core)[0] == 1uL
                         }
-                        0b100L -> {
-                            core.cpu.spr.control.npriv = rn.value(core)[0] == 1L
+                        0b100uL -> {
+                            core.cpu.spr.control.npriv = rn.value(core)[0] == 1uL
                             if(core.cpu.CurrentMode() == Mode.Thread)
-                                core.cpu.spr.control.spsel = rn.value(core)[1] == 1L
+                                core.cpu.spr.control.spsel = rn.value(core)[1] == 1uL
                         }
                         else -> {
                             throw Unpredictable

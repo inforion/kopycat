@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,9 @@
 
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -40,34 +41,32 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.PIN
 import java.util.logging.Level
-import java.util.logging.Level.FINE
-import java.util.logging.Level.INFO
 
 @Suppress("EnumEntryName", "PrivatePropertyName", "PropertyName")
 class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
     companion object {
         @Transient private val log = logger(INFO)
-        private enum class RegisterType(val offset: Long) {
-            TIMx_CR1    (0x00),
-            TIMx_CR2    (0x04),
-            TIMx_SMCR   (0x08),
-            TIMx_DIER   (0x0C),
-            TIMx_SR     (0x10),
-            TIMx_EGR    (0x14),
-            TIMx_CCMR1  (0x18),
-            TIMx_CCMR2  (0x1C),
-            TIMx_CCER   (0x20),
-            TIMx_CNT    (0x24),
-            TIMx_PSC    (0x28),
-            TIMx_ARR    (0x2C),
-            TIMx_RCR    (0x30),
-            TIMx_CCR1   (0x34),
-            TIMx_CCR2   (0x38),
-            TIMx_CCR3   (0x3C),
-            TIMx_CCR4   (0x40),
-            TIMx_BDTR   (0x44),
-            TIMx_DCR    (0x48),
-            TIMx_DMAR   (0x4C)
+        private enum class RegisterType(val offset: ULong) {
+            TIMx_CR1    (0x00u),
+            TIMx_CR2    (0x04u),
+            TIMx_SMCR   (0x08u),
+            TIMx_DIER   (0x0Cu),
+            TIMx_SR     (0x10u),
+            TIMx_EGR    (0x14u),
+            TIMx_CCMR1  (0x18u),
+            TIMx_CCMR2  (0x1Cu),
+            TIMx_CCER   (0x20u),
+            TIMx_CNT    (0x24u),
+            TIMx_PSC    (0x28u),
+            TIMx_ARR    (0x2Cu),
+            TIMx_RCR    (0x30u),
+            TIMx_CCR1   (0x34u),
+            TIMx_CCR2   (0x38u),
+            TIMx_CCR3   (0x3Cu),
+            TIMx_CCR4   (0x40u),
+            TIMx_BDTR   (0x44u),
+            TIMx_DCR    (0x48u),
+            TIMx_DMAR   (0x4Cu)
         }
     }
     inner class Ports : ModulePorts(this) {
@@ -89,28 +88,28 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
 
     private open inner class RegisterBase(
             register: RegisterType,
-            default: Long = 0x0000,
+            default: ULong = 0x0000u,
             useDWORD: Boolean = false,
             writable: Boolean = true,
             readable: Boolean = true,
-            level: Level = FINE
+            level: Level = Level.FINE
     ) : Register(ports.mem, register.offset, if (useDWORD) DWORD else WORD, register.name, default, writable, readable, level)
 
     private open inner class RegisterBaseWithShadow(
             register: RegisterType,
-            default: Long = 0x0000,
+            default: ULong = 0x0000u,
             useDWORD: Boolean = false,
             writable: Boolean = true,
             readable: Boolean = true,
-            level: Level = FINE,
+            level: Level = Level.FINE,
             shadowRange: IntRange = if (useDWORD) 31..0 else 15..0
     ) : RegisterBase(register, default, useDWORD, writable, readable, level) {
         val first = shadowRange.first
         val last = shadowRange.last
 
-        var shadow = data[first..last].asInt
+        var shadow = data[first..last]
         open fun updateShadow() {
-            shadow = data[first..last].asInt
+            shadow = data[first..last]
         }
     }
 
@@ -128,9 +127,9 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
     }
 
     private fun startTimer() {
-        if (TIMx_ARR.shadow == 0) return
+        if (TIMx_ARR.shadow == 0uL) return
 
-        counter.connect(core.clock, TIMx_PSC.shadow.toLong() + 1)
+        counter.connect(core.clock, TIMx_PSC.shadow.long + 1)
         TIMx_CR1.CEN = 1
         counter.enabled = true
     }
@@ -138,7 +137,7 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
     private fun updateCounter() {
 //        log.warning { "$this -> trigger $TIMx_CNT.CNT / ${TIMx_ARR.shadow}" }
         if (TIMx_CR1.DIR == 1) {
-            if (TIMx_CNT.CNT == 0) {
+            if (TIMx_CNT.CNT == 0uL) {
                 TIMx_CNT.CNT = TIMx_ARR.ARR
                 updateEvent()
             } else {
@@ -146,7 +145,7 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
             }
         } else {
             if (TIMx_CNT.CNT == TIMx_ARR.shadow) {
-                TIMx_CNT.CNT = 0
+                TIMx_CNT.CNT = 0u
                 updateEvent()
             } else {
                 TIMx_CNT.CNT++
@@ -203,7 +202,7 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
     private fun interruptCCR4(enabled: Int, captured: Boolean) =
             interruptCCRx(enabled, captured, TIMx_DIER.CC4IE, TIMx_DIER.CC4DE) { TIMx_SR.CC4IF = 1 }
 
-    private fun compareInterrupt(value: Int = TIMx_CNT.CNT) {
+    private fun compareInterrupt(value: ULong = TIMx_CNT.CNT) {
         interruptCCR1(TIMx_CCER.CC1E, value == TIMx_CCR1.CCR)
         interruptCCR2(TIMx_CCER.CC2E, value == TIMx_CCR2.CCR)
         interruptCCR3(TIMx_CCER.CC3E, value == TIMx_CCR3.CCR)
@@ -222,7 +221,7 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
         var UDIS by bit(1)  // Если 1, то не будет происходить обновления теневого регистра TIMx_ARR, однако, таймер продолжит считать
         var CEN by bit(0)   // Counter enable
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             if (CEN == 1) {
                 startTimer()
@@ -295,7 +294,7 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
         var CC1G by bit(1)  // Capture/compare 1 generation
         var UG by bit(0)    // update generation
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
             if (UG == 1) updateEvent(TIMx_CR1.URS == 0)
@@ -360,29 +359,27 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
     private val TIMx_CNT    = object : RegisterBase(RegisterType.TIMx_CNT, useDWORD = is32BitTimer) {
         var CNT by field(if (is32BitTimer) 31..0 else 15..0)
 
-        override fun read(ea: Long, ss: Int, size: Int) = CNT.toLong()
+        override fun read(ea: ULong, ss: Int, size: Int) = CNT
     }
     private val TIMx_PSC    = object : RegisterBaseWithShadow(RegisterType.TIMx_PSC) {
         var PSC by field(15..0)
 
         override fun updateShadow() { // always buffered
             super.updateShadow()
-            counter.connect(core.clock, shadow.toLong() + 1)
+            counter.connect(core.clock, shadow.long + 1)
         }
     }
     private val TIMx_ARR    = object : RegisterBaseWithShadow(RegisterType.TIMx_ARR, useDWORD = is32BitTimer) {
         var ARR by field(if (is32BitTimer) 31..0 else 15..0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             if (TIMx_CR1.ARPE == 0 && TIMx_CR1.UDIS == 0) updateShadow()
         }
 
         override fun updateShadow() {
             super.updateShadow()
-            if (shadow == 0) {
-                disableTimer()
-            }
+            if (shadow == 0uL) disableTimer()
         }
     }
     private val TIMx_RCR    = object : RegisterBase(RegisterType.TIMx_RCR) {

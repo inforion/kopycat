@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -72,7 +72,7 @@ class DirentAPI constructor(os: VEOS<*>) : API(os) {
 
     private val dirents64 = mutableMapOf<Int, dirent64>()
 
-    private val BasicFileAttributes.inode get() = fileKey().toString().substringBetween("ino=", ")").toULong()
+    private val BasicFileAttributes.inode get() = fileKey().toString().substringBetween("ino=", ")").ulongByDec
 
     private val BasicFileAttributes.type get() = when {
         isDirectory -> DT_DIR
@@ -92,11 +92,11 @@ class DirentAPI constructor(os: VEOS<*>) : API(os) {
             log.fine { "[0x${ra.hex8}] readdir(dirp=0x${dirp}) -> ${record.name} in ${os.currentProcess}" }
 
             dent.apply {
-                d_name = record.name.convertToBytes() + 0x00
+                d_name = record.name.bytes + 0x00
                 // FIXME: Provide other cases for d_type
-                d_type = record.attributes.type.asByte
-                d_reclen = dirent.sizeOf.asShort
-                d_ino = record.attributes.inode.asInt
+                d_type = record.attributes.type.byte
+                d_reclen = dirent.sizeOf.short
+                d_ino = record.attributes.inode.int
             }
         }
     }
@@ -110,10 +110,10 @@ class DirentAPI constructor(os: VEOS<*>) : API(os) {
             log.fine { "[0x${ra.hex8}] readdir64(dirp=0x${dirp}) -> ${record.name} in ${os.currentProcess}" }
 
             dent64.apply {
-                d_name = record.name.convertToBytes() + 0x00
+                d_name = record.name.bytes + 0x00
                 // FIXME: Provide other cases for d_type
-                d_type = record.attributes.type.asByte
-                d_reclen = dirent64.sizeOf.asShort
+                d_type = record.attributes.type.byte
+                d_reclen = dirent64.sizeOf.short
                 d_ino = record.attributes.inode
             }
         }

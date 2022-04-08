@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,6 +31,7 @@ import ru.inforion.lab403.kopycat.cores.ppc.enums.Regtype
 import ru.inforion.lab403.kopycat.cores.ppc.enums.systems.embedded.mmufsl.eOEA_EmbeddedMMUFSL
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
+import java.util.*
 
 abstract class PPCRegister_EmbeddedMMUFSL(
         reg: Int,
@@ -41,19 +42,19 @@ abstract class PPCRegister_EmbeddedMMUFSL(
     override fun toString() = when (rtyp) {
         Regtype.EmbeddedMMUFSL -> first<eOEA_EmbeddedMMUFSL> { it.id == reg }.name
         else -> super.toString()
-    }.toLowerCase()
+    }.lowercase()
 
     sealed class OEAext(id: Int) : PPCRegister_EmbeddedMMUFSL(id, Regtype.EmbeddedMMUFSL) {
-        override fun value(core: PPCCore): Long = core.cpu.sprRegs.readIntern(reg)
-        override fun value(core: PPCCore, data: Long) = core.cpu.sprRegs.writeIntern(reg, data)
+        override fun value(core: PPCCore): ULong = core.cpu.sprRegs.readIntern(reg)
+        override fun value(core: PPCCore, data: ULong) = core.cpu.sprRegs.writeIntern(reg, data)
 
         open class REG_DBG_DENIED(id: Int) : OEAext(id) {
             override fun value(core: PPCCore) = denied_read(reg)
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_READ(id: Int) : OEAext(id) {
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_WRITE(id: Int) : OEAext(id) {
@@ -64,7 +65,7 @@ abstract class PPCRegister_EmbeddedMMUFSL(
         //No need because we don't use
         //Waiting for read point
         object MMUCSR0 : REG_DBG_WRITE(eOEA_EmbeddedMMUFSL.MMUCSR0.id) {
-            override fun value(core: PPCCore, data: Long) {
+            override fun value(core: PPCCore, data: ULong) {
                 core.mmu.MMUCSR0Update(data)
                 //super.value(core, value) //We don't change value, only apply MMU commands
             }

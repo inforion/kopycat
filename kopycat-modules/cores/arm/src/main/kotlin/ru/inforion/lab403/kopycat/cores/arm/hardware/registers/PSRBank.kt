@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,37 +25,31 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.registers
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.first
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.arm.enums.ProcessorMode
-import ru.inforion.lab403.kopycat.cores.arm.hardware.processors.AARMCPU
+import ru.inforion.lab403.kopycat.cores.arm.enums.ProcessorMode.svc
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-import java.io.Serializable
-import kotlin.reflect.KProperty
 
 
-class PSRBank(val cpu: AARMCPU) : ARegistersBankNG<AARMCore>(
+class PSRBank(val core: AARMCore) : ARegistersBankNG<AARMCore>(
         "ARM Program Status Registers Bank", 5, 32) {
 
     inner class APSR : Register("apsr", 0) {
-        inner class bitOf(val bit: Int): Serializable {
-            operator fun getValue(thisRef: APSR, property: KProperty<*>) = cpsr.value[bit].toBool()
-            operator fun setValue(thisRef: APSR, property: KProperty<*>, newValue: Boolean) {
-                cpsr.value = cpsr.value.insert(newValue.toInt(), bit)
-            }
-        }
-
-        override var value: Long
-            get() = cpsr.value and 0xF00F_0000L
+        override var value: ULong
+            get() = cpsr.value and 0xF00F_0000uL
             set(value) {
                 cpsr.bits31_27 = value[31..27]
                 cpsr.bits19_16 = value[19..16]
             }
 
-        var n by bitOf(31)
-        var z by bitOf(30)
-        var c by bitOf(29)
-        var v by bitOf(28)
+        var n by bitOf(31, core)
+        var z by bitOf(30, core)
+        var c by bitOf(29, core)
+        var v by bitOf(28, core)
     }
 
     inner class IPSR : Register("ipsr", 1) {
@@ -66,29 +60,29 @@ class PSRBank(val cpu: AARMCPU) : ARegistersBankNG<AARMCore>(
         var t by bitOf(24)
     }
 
-    inner class CPSR : Register("cpsr", 3, default = ProcessorMode.svc.id.toULong()) {
+    inner class CPSR : Register("cpsr", 3, default = svc.id.ulong_z) {
 
-        override var value: Long
+        override var value: ULong
             get() = super.value
             set(value) {
-                val prevModeId = super.value and 0b11111
-                val newModeId = value and 0b11111
+                val prevModeId = super.value and 0b11111u
+                val newModeId = value and 0b11111u
                 if (prevModeId != newModeId) {
-                    if (prevModeId != 0L) {
-                        val prevMode = first<ProcessorMode> { it.id == prevModeId.toInt() }
-                        val newMode = first<ProcessorMode> { it.id == newModeId.toInt() }
-                        cpu.switchBankedRegisters(prevMode, newMode)
+                    if (prevModeId != 0uL) {
+                        val prevMode = first<ProcessorMode> { it.id == prevModeId.int }
+                        val newMode = first<ProcessorMode> { it.id == newModeId.int }
+                        core.cpu.switchBankedRegisters(prevMode, newMode)
                     }
                 }
                 super.value = value
             }
 
-        var n by bitOf(31)
-        var z by bitOf(30)
-        var c by bitOf(29)
-        var v by bitOf(28)
+        var n by bitOf(31, track = core)
+        var z by bitOf(30, track = core)
+        var c by bitOf(29, track = core)
+        var v by bitOf(28, track = core)
 
-        var q by bitOf(27)
+        var q by bitOf(27, track = core)
         var ITSTATE by fieldOf(
                 15..10 to 7..2,
                 26..25 to 1..0)

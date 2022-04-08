@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,11 @@
 package ru.inforion.lab403.kopycat.veos.filesystems.interfaces
 
 interface IRandomAccessFile: IBasicFile {
-    fun seek(position: Long): Unit = throw NotImplementedError("seek() not implemented for $this")
+    fun seek(position: ULong): Unit = throw NotImplementedError("seek() not implemented for $this")
 
-    fun tell(): Long = throw NotImplementedError("tell() not implemented for $this")
+    fun tell(): ULong = throw NotImplementedError("tell() not implemented for $this")
 
-    fun size(): Long = throw NotImplementedError("size() not implemented for $this")
+    fun size(): ULong = throw NotImplementedError("size() not implemented for $this")
 
     fun share(): Unit = throw NotImplementedError("share() not implemented for $this")
 }

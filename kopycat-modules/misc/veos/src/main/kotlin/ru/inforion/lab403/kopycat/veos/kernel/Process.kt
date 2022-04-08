@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 package ru.inforion.lab403.kopycat.veos.kernel
 
 import kotlinx.coroutines.Deferred
+import ru.inforion.lab403.common.concurrent.async
+import ru.inforion.lab403.common.concurrent.onComplete
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
@@ -52,7 +54,7 @@ open class Process constructor(
         private set
 
     // REVIEW: Add variant of function that works by ABIBase-argument
-    fun initContext(pc: Long, sp: Long, ra: Long) {
+    fun initContext(pc: ULong, sp: ULong, ra: ULong) {
         context.programCounterValue = pc
         context.stackPointerValue = sp
         context.returnAddressValue = ra
@@ -99,35 +101,35 @@ open class Process constructor(
         return this
     }
 
-    private val handlers = mutableMapOf<Long, Handler>()
+    private val handlers = mutableMapOf<ULong, Handler>()
 
-    fun setHandler(address: Long, handler: Handler) {
+    fun setHandler(address: ULong, handler: Handler) {
         require(address !in handlers) { "Try of rewriting handler at address ${address.hex8}" }
         handlers[address] = handler
     }
 
-    fun getHandler(address: Long) = handlers[address]
-    fun hasHandler(address: Long) = address in handlers
+    fun getHandler(address: ULong) = handlers[address]
+    fun hasHandler(address: ULong) = address in handlers
 
     // Heap allocator
     // TODO: should not be used directly
     var allocator = Allocator(sys)
         private set
 
-    var stackTop = 0L
+    var stackTop: ULong = 0u
         private set
 
-    var stackBottom = 0L
+    var stackBottom: ULong = 0u
         private set
 
     // TODO: move to corresponding function
-    fun aligned(ea: Long): Long = (ea ushr sys.sizeOf.int) shl sys.sizeOf.int
+    fun aligned(ea: ULong): ULong = (ea ushr sys.sizeOf.int) shl sys.sizeOf.int
 
-    open fun initProcess(entryPoint: Long) {
+    open fun initProcess(entryPoint: ULong) {
         check(isReady) { "Wrong state $state (Ready expected)" }
 
-        val stackRange = memory.allocateByAlignment("stack", sys.conf.stackSize.asInt) // TODO: make it int in config
-        val heapRange = memory.allocateByAlignment("heap", sys.conf.heapSize.asInt) // TODO: make it int in config
+        val stackRange = memory.allocateByAlignment("stack", sys.conf.stackSize.int) // TODO: make it int in config
+        val heapRange = memory.allocateByAlignment("heap", sys.conf.heapSize.int) // TODO: make it int in config
 
         checkNotNull(stackRange) { "Not enough memory for stack allocation" }
         checkNotNull(heapRange) { "Not enough memory for heap allocation" }
@@ -180,7 +182,7 @@ open class Process constructor(
         if (sys.currentProcess != this) state = State.Ready else restoreState()
     }
 
-    fun unblock(result: Long) {
+    fun unblock(result: ULong) {
         context.setReturnValue(result)
         unblock()
     }

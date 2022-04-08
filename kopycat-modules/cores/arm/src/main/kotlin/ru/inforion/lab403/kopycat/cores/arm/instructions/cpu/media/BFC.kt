@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.media
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.clr
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -34,19 +34,18 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class BFC(cpu: AARMCore,
-          opcode: Long,
+          opcode: ULong,
           cond: Condition,
           val rd: ARMRegister,
           val rn: ARMRegister,
-          private val msBit: Long,
-          private val lsBit: Long):
+          private val msBit: ULong,
+          private val lsBit: ULong):
         AARMInstruction(cpu, Type.VOID, cond, opcode, rd) {
 
     override val mnem = "BFC$mcnd"
     override fun execute() {
-        if(msBit >= lsBit) rd.value(core, rd.value(core).clr(msBit.asInt..lsBit.asInt))
+        if(msBit >= lsBit) rd.value(core, rd.value(core).clr(msBit.int..lsBit.int))
         else throw Unpredictable
     }
 }

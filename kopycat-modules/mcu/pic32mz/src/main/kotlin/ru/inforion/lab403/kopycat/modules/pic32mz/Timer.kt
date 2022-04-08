@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.modules.pic32mz
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asLong
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long_s
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -57,15 +57,15 @@ class Timer(parent: Module, name: String) : Module(parent, name) {
         override fun trigger() {
             super.trigger()
             log.finest { "%s triggered at %,d us".format(name, core.clock.time()) }
-            TMRx.data += 1
+            TMRx.data += 1u
             if (TMRx.data == PRx.data) {
-                TMRx.data = 0
+                TMRx.data = 0u
                 ports.irq.request(0)
             }
         }
     }
 
-    val TxCON = object : ComplexRegister(ports.mem,0x0000, "TxCON") {
+    val TxCON = object : ComplexRegister(ports.mem,0x0000u, "TxCON") {
         val ON by bit(15)
         val SIDL by bit(13)
         val TWDIS by bit(12)
@@ -78,11 +78,11 @@ class Timer(parent: Module, name: String) : Module(parent, name) {
         private var clockPrescaler: Int = 1
         private var peripheralBusPrescaler: Int = 1
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             log.config { "TxCON[ON=$ON SIDL=$SIDL TWDIS=$TWDIS TWIP=$TWIP TGATE=$TGATE TCKPS=$TCKPS TSYNC=$TSYNC TCS=$TCS]" }
 
-            val newClockPrescaler = when (TCKPS.asInt) {
+            val newClockPrescaler = when (TCKPS.int) {
                 3 -> 256  //
                 2 -> 64
                 1 -> 8
@@ -91,13 +91,13 @@ class Timer(parent: Module, name: String) : Module(parent, name) {
             }
             if (clockPrescaler != newClockPrescaler) {
                 clockPrescaler = newClockPrescaler
-                core.clock.connect(counter, clockPrescaler.asLong * peripheralBusPrescaler.asLong)
+                core.clock.connect(counter, clockPrescaler.long_s * peripheralBusPrescaler)
             }
 
             val newPeripheralBusPrescaler: Int = osc.variables["PB3DIV"]
             if (peripheralBusPrescaler != newPeripheralBusPrescaler) {
                 peripheralBusPrescaler = newPeripheralBusPrescaler
-                core.clock.connect(counter, clockPrescaler.asLong * peripheralBusPrescaler.asLong)
+                core.clock.connect(counter, clockPrescaler.long_s * peripheralBusPrescaler)
             }
 
             if (SIDL != 0) log.severe { "SIDL: Stop in Idle Mode unsupported!" }
@@ -111,6 +111,6 @@ class Timer(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    val TMRx = ComplexRegister(ports.mem, 0x0010, "TMRx") // Current timer ticks
-    val PRx = ComplexRegister(ports.mem, 0x0020, "PRx") // Match register
+    val TMRx = ComplexRegister(ports.mem, 0x0010u, "TMRx") // Current timer ticks
+    val PRx = ComplexRegister(ports.mem, 0x0020u, "PRx") // Match register
 }

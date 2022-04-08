@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.logical
 
+import ru.inforion.lab403.common.extensions.inv
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -40,7 +41,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class nor(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         rd: MipsRegister,
         rs: MipsRegister,
         rt: MipsRegister) : RdRsRtInsn(core, data, Type.VOID, rd, rs, rt) {
@@ -48,7 +49,7 @@ class nor(
     override val mnem = "nor"
 
     override fun execute() {
-        vrd = (vrs or vrt).inv()
+        vrd = inv(vrs or vrt)
     }
 
 }

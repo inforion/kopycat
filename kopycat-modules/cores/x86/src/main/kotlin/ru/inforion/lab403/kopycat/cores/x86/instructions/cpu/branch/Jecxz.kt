@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,17 +26,18 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
+import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-class Jecxz(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>):
-        AX86Instruction(core, Type.COND_JUMP, opcode, prefs, operand) {
+class Jecxz(core: x86Core, opcode: ByteArray, prefs: Prefixes, op: AOperand<x86Core>):
+        AX86Instruction(core, Type.COND_JUMP, opcode, prefs, op) {
     override val mnem = "jecxz"
 
     override fun execute() {
-        val reg = if(prefs.is16BitAddressMode) core.cpu.regs.cx else core.cpu.regs.ecx
-        if (reg == 0L) core.cpu.regs.eip += op1.ssext(core)
+        val reg = core.cpu.regs.gpr(x86GPR.RCX, prefs.addrsize).value
+        if (reg == 0uL) core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize).value += op1.usext(core)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.procCtrl
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
+import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.cores.ppc.operands.SPR
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
@@ -42,8 +43,11 @@ open class mfspr(core: PPCCore, val field: Int, vararg operands: AOperand<PPCCor
 
     override fun execute() {
 
+//        if (reg.name == "TBL")
+//            log.warning { "Move from time base" }
+
         when (reg.moveFrom) {
-            SPR.Access.no -> GeneralException("Move from special register isn't defined for register \"${reg.name}\" (${reg.id})")
+            SPR.Access.no -> throw GeneralException("Move from special register isn't defined for register \"${reg.name}\" (${reg.id})")
             SPR.Access.hypv -> TODO("Isn't implemented")
             SPR.Access.yes -> {}
         }

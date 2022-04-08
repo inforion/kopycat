@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ss
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -41,10 +40,10 @@ class Lss(core: x86Core, opcode: ByteArray, prefs: Prefixes, op1: AOperand<x86Co
         val a2 = op2.value(core)
         if(prefs.is16BitOperandMode){
             op1.value(core, a2[15..0])
-            ss.value(core, a2[31..16])
+            core.cpu.sregs.ss.value = a2[31..16]
         } else {
             op1.value(core, a2[31..0])  // always use 31..0 (snapped in value)
-            ss.value(core, a2[47..32])
+            core.cpu.sregs.ss.value = a2[47..32]
         }
     }
 }

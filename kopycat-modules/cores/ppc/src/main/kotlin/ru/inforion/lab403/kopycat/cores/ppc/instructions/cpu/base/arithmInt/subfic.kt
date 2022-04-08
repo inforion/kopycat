@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.arithmInt
 
-import ru.inforion.lab403.common.extensions.usext
+import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.ppc.flags.FlagProcessor
+import ru.inforion.lab403.kopycat.cores.ppc.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCVariable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
@@ -36,16 +37,16 @@ import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 
 //Subtract from immediate carrying
-class subfic(core: PPCCore, val condRegField: Long, val length: Boolean, val data: Long, vararg operands: AOperand<PPCCore>):
+class subfic(core: PPCCore, val condRegField: ULong, val length: Boolean, val data: ULong, vararg operands: AOperand<PPCCore>):
         APPCInstruction(core, Type.VOID, *operands) {
     override val mnem = "subfic"
 
     private val result = PPCVariable(Datatype.DWORD)
 
     override fun execute() {
-        val extImm = data.usext(31)
+        val extImm = data.signextRenameMeAfter(31)
 
-        result.value(core, op2.inv(core) + extImm + 1)
+        result.value(core, op2.inv(core) + extImm + 1uL)
 
         op1.value(core, result)
 

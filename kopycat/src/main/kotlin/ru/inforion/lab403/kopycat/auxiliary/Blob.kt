@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,9 @@
 package ru.inforion.lab403.kopycat.auxiliary
 
 import ru.inforion.lab403.common.extensions.getInt
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.common.extensions.putInt
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import java.nio.ByteOrder
@@ -42,12 +44,12 @@ open class Blob(val size: Int, val order: ByteOrder) {
 
     private val data = ByteArray(size)
 
-    protected inner class Field<in T: Blob>(val offset: Int, val dtyp: Datatype, var value: Long) :
-            ReadWriteProperty<T, Long> {
+    protected inner class Field<in T: Blob>(val offset: Int, val dtyp: Datatype, var value: ULong) :
+            ReadWriteProperty<T, ULong> {
 
         private var initialized = false
 
-        override fun getValue(thisRef: T, property: KProperty<*>): Long {
+        override fun getValue(thisRef: T, property: KProperty<*>): ULong {
             if (!initialized) {
                 put(offset, dtyp, value)
                 initialized = true
@@ -55,20 +57,20 @@ open class Blob(val size: Int, val order: ByteOrder) {
             return get(offset, dtyp)
         }
 
-        override operator fun setValue(thisRef: T, property: KProperty<*>, value: Long) = put(offset, dtyp, value)
+        override operator fun setValue(thisRef: T, property: KProperty<*>, value: ULong) = put(offset, dtyp, value)
     }
 
-    protected fun <T: Blob>byte(offset: Int, value: Long = 0) = Field<T>(offset, Datatype.BYTE, value)
-    protected fun <T: Blob>word(offset: Int, value: Long = 0) = Field<T>(offset, Datatype.WORD, value)
-    protected fun <T: Blob>tribyte(offset: Int, value: Long = 0) = Field<T>(offset, Datatype.TRIBYTE, value)
-    protected fun <T: Blob>dword(offset: Int, value: Long = 0) = Field<T>(offset, Datatype.DWORD, value)
-    protected fun <T: Blob>qword(offset: Int, value: Long = 0) = Field<T>(offset, Datatype.QWORD, value)
+    protected fun <T: Blob>byte(offset: Int, value: ULong = 0u) = Field<T>(offset, Datatype.BYTE, value)
+    protected fun <T: Blob>word(offset: Int, value: ULong = 0u) = Field<T>(offset, Datatype.WORD, value)
+    protected fun <T: Blob>tribyte(offset: Int, value: ULong = 0u) = Field<T>(offset, Datatype.TRIBYTE, value)
+    protected fun <T: Blob>dword(offset: Int, value: ULong = 0u) = Field<T>(offset, Datatype.DWORD, value)
+    protected fun <T: Blob>qword(offset: Int, value: ULong = 0u) = Field<T>(offset, Datatype.QWORD, value)
 
-    fun get(offset: Int, dtyp: Datatype): Long = get(offset, dtyp.bytes)
-    fun put(offset: Int, dtyp: Datatype, value: Long) = put(offset, dtyp.bytes, value)
+    fun get(offset: Int, dtyp: Datatype): ULong = get(offset, dtyp.bytes)
+    fun put(offset: Int, dtyp: Datatype, value: ULong) = put(offset, dtyp.bytes, value)
 
-    fun get(offset: Int, size: Int): Long = data.getInt(offset, size, order)
-    fun put(offset: Int, size: Int, value: Long) = data.putInt(offset, value, size, order)
+    fun get(offset: Int, size: Int): ULong = data.getInt(offset, size, order).ulong
+    fun put(offset: Int, size: Int, value: ULong) = data.putInt(offset, value.long, size, order)
 
     fun init() {
         // spooling delegate properties initial values

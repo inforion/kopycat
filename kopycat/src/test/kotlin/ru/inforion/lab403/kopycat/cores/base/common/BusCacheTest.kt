@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,12 +27,14 @@ package ru.inforion.lab403.kopycat.cores.base.common
 
 import org.junit.Assert
 import org.junit.Test
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS.R_W
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.modules.cores.device.TestTopDevice
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
+import ru.inforion.lab403.kopycat.interfaces.*
 
 class BusCacheTest: Module(null, "Module Buses Test") {
     class PortsModule(parent: Module): Module(parent, "Ports module") {
@@ -60,96 +62,96 @@ class BusCacheTest: Module(null, "Module Buses Test") {
 
     @Test fun masterSlaveTest1() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        val mem1 = Memory(module.ports.slave16, 0xFA, 0x100, "a", R_W)
-        val mem2 = Memory(module.ports.slave16, 0x1AFA, 0x2000, "b", R_W)
+        val mem1 = Memory(module.ports.slave16, 0xFAu, 0x100u, "a", R_W)
+        val mem2 = Memory(module.ports.slave16, 0x1AFAu, 0x2000u, "b", R_W)
         initializeAndResetAsTopInstance()
-        mem1.write(DWORD, 0xFA, 0xFFFF)
-        mem2.write(DWORD, 0x1AFA, 0xFFFF)
+        mem1.write(DWORD, 0xFAu, 0xFFFFu)
+        mem2.write(DWORD, 0x1AFAu, 0xFFFFu)
     }
 
     @Test fun masterSlaveTest2() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        val mem1 = Memory(module.ports.slave16, 0xFA, 0x100, "a", R_W)
-        val mem2 = Memory(module.ports.slave16, 0x100, 0x200, "b", R_W)
+        val mem1 = Memory(module.ports.slave16, 0xFAu, 0x100u, "a", R_W)
+        val mem2 = Memory(module.ports.slave16, 0x100u, 0x200u, "b", R_W)
         initializeAndResetAsTopInstance()
-        mem1.write(DWORD, 0xFA, 0xFFFF)
-        mem2.write(DWORD, 0x1AF, 0xFFFF)
+        mem1.write(DWORD, 0xFAu, 0xFFFFu)
+        mem2.write(DWORD, 0x1AFu, 0xFFFFu)
     }
 
     @Test fun masterSlaveTest3() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        val mem1 = Memory(module.ports.slave16, 0x0, 0x200, "a", R_W)
-        val mem2 = Memory(module.ports.slave16, 0x100, 0x300, "b", R_W)
+        val mem1 = Memory(module.ports.slave16, 0x0u, 0x200u, "a", R_W)
+        val mem2 = Memory(module.ports.slave16, 0x100u, 0x300u, "b", R_W)
         initializeAndResetAsTopInstance()
-        mem1.write(DWORD, 0x1FA, 0x1111)
-        mem2.write(DWORD, 0x1FA, 0xFFFF)
-        val readMem1 = mem1.read(DWORD, 0x1FA)
-        val readMem2 = mem2.read(DWORD, 0x1FA)
-        assert(0x1111, readMem1)
-        assert(0xFFFF, readMem2)
+        mem1.write(DWORD, 0x1FAu, 0x1111u)
+        mem2.write(DWORD, 0x1FAu, 0xFFFFu)
+        val readMem1 = mem1.read(DWORD, 0x1FAu)
+        val readMem2 = mem2.read(DWORD, 0x1FAu)
+        assert(0x1111uL, readMem1)
+        assert(0xFFFFuL, readMem2)
     }
 
     @Test(expected = IllegalStateException::class) fun masterSlaveTest4() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        Memory(module.ports.slave16, 0x0, 0x200, "a", R_W)
-        Memory(module.ports.slave16, 0x100, 0x300, "b", R_W)
+        Memory(module.ports.slave16, 0x0u, 0x200u, "a", R_W)
+        Memory(module.ports.slave16, 0x100u, 0x300u, "b", R_W)
         initializeAndResetAsTopInstance()
-        module.ports.master16.read(DWORD, 0x102)
+        module.ports.master16.read(DWORD, 0x102u)
     }
 
     @Test fun masterSlaveTest5() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        Memory(module.ports.slave16, 0x0, 0x200, "a", R_W)
-        Memory(module.ports.slave16, 0x100, 0x300, "b", R_W)
+        Memory(module.ports.slave16, 0x0u, 0x200u, "a", R_W)
+        Memory(module.ports.slave16, 0x100u, 0x300u, "b", R_W)
         initializeAndResetAsTopInstance()
-        module.ports.master16.read(DWORD, 0x202)
-        module.ports.master16.read(DWORD, 0x2)
+        module.ports.master16.read(DWORD, 0x202u)
+        module.ports.master16.read(DWORD, 0x2u)
     }
 
     @Test fun registerTest1() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        val reg1 = Register(module.ports.slave16, 0xFA, DWORD, "a")
-        val reg2 = Register(module.ports.slave16, 0x1AFA, DWORD, "b")
+        val reg1 = Register(module.ports.slave16, 0xFAu, DWORD, "a")
+        val reg2 = Register(module.ports.slave16, 0x1AFAu, DWORD, "b")
         initializeAndResetAsTopInstance()
-        reg1.write(DWORD, 0xFA, 0xFFFF)
-        reg2.write(DWORD, 0x1AFA, 0xFFFF)
+        reg1.write(DWORD, 0xFAu, 0xFFFFu)
+        reg2.write(DWORD, 0x1AFAu, 0xFFFFu)
     }
 
     @Test fun registerTest2() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        val reg1 = Register(module.ports.slave16, 0xFA, DWORD, "a")
-        val reg2 = Register(module.ports.slave16, 0x200, DWORD, "b")
+        val reg1 = Register(module.ports.slave16, 0xFAu, DWORD, "a")
+        val reg2 = Register(module.ports.slave16, 0x200u, DWORD, "b")
         initializeAndResetAsTopInstance()
-        reg1.write(DWORD, 0xFA, 0xFFFF)
-        reg2.write(DWORD, 0x1AF, 0xFFFF)
+        reg1.write(DWORD, 0xFAu, 0xFFFFu)
+        reg2.write(DWORD, 0x1AFu, 0xFFFFu)
     }
 
     @Test fun registerTest3() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        val reg1 = Register(module.ports.slave16, 0x100, DWORD, "a")
-        val reg2 = Register(module.ports.slave16, 0x100, DWORD, "b")
+        val reg1 = Register(module.ports.slave16, 0x100u, DWORD, "a")
+        val reg2 = Register(module.ports.slave16, 0x100u, DWORD, "b")
         initializeAndResetAsTopInstance()
-        reg1.write(DWORD, 0x1FA, 0x1111)
-        reg2.write(DWORD, 0x1FA, 0xFFFF)
-        val readMem1 = reg1.read(DWORD, 0x1FA)
-        val readMem2 = reg2.read(DWORD, 0x1FA)
-        assert(0x1111, readMem1)
-        assert(0xFFFF, readMem2)
+        reg1.write(DWORD, 0x1FAu, 0x1111u)
+        reg2.write(DWORD, 0x1FAu, 0xFFFFu)
+        val readMem1 = reg1.read(DWORD, 0x1FAu)
+        val readMem2 = reg2.read(DWORD, 0x1FAu)
+        assert(0x1111uL, readMem1)
+        assert(0xFFFFuL, readMem2)
     }
 
     @Test(expected = MemoryAccessError::class) fun registerTest4() {
         buses.connect(module.ports.master16, module.ports.slave16)
-        Register(module.ports.slave16, 0x100, DWORD, "a")
-        Register(module.ports.slave16, 0x100, DWORD, "b")
+        Register(module.ports.slave16, 0x100u, DWORD, "a")
+        Register(module.ports.slave16, 0x100u, DWORD, "b")
         initializeAndResetAsTopInstance()
-        module.ports.master16.write(DWORD, 0x100, 0xFFFF)
+        module.ports.master16.write(DWORD, 0x100u, 0xFFFFu)
     }
 
     @Test fun proxyTest1() {
         initializeAndResetAsTopInstance()
-        val value = 0xBABA_DEDA
-        testCore.core.write(DWORD, 0x20, value)
-        val readed = testCore.core.read(DWORD, 0x20)
+        val value = 0xBABA_DEDAuL
+        testCore.core.write(DWORD, 0x20u, value)
+        val readed = testCore.core.read(DWORD, 0x20u)
         assert(value, readed)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.base.operands
 
 import ru.inforion.lab403.common.extensions.WRONGI
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.kopycat.interfaces.*
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
@@ -48,15 +50,18 @@ import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Type.MEM
 open class Memory<in T: AGenericCore>(
         dtyp: Datatype,
         val atyp: Datatype, // pointer type
-        val addr: Long,
+        val addr: ULong,
         access: Access,
         num: Int = WRONGI) :
         AOperand<T>(MEM, access, VOID, num, dtyp) {
 
-    final override fun effectiveAddress(core: T): Long = addr like atyp
+    override fun effectiveAddress(core: T): ULong = addr like atyp
 
-    override fun value(core: T, data: Long) = core.write(dtyp, effectiveAddress(core), data)
-    override fun value(core: T): Long = core.read(dtyp, effectiveAddress(core))
+    override fun value(core: T, data: ULong) = core.write(dtyp, effectiveAddress(core), data)
+    override fun value(core: T): ULong = core.read(dtyp, effectiveAddress(core))
+
+    override fun bytes(core: T, size: Int): ByteArray = core.load(effectiveAddress(core), size)
+    override fun bytes(core: T, data: ByteArray)  = core.store(effectiveAddress(core), data)
 
     override fun equals(other: Any?): Boolean =
             other is Memory<*> &&
@@ -73,5 +78,5 @@ open class Memory<in T: AGenericCore>(
         return result
     }
 
-    override fun toString(): String = "${dtyp}_%08X".format(addr)
+    override fun toString(): String = "${dtyp}_%08X".format(addr.long)
 }

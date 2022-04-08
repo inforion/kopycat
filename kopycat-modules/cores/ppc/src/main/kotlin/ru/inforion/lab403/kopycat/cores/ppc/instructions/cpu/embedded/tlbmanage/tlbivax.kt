@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.embedded.tlbmanage
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
@@ -42,12 +43,12 @@ class tlbivax(core: PPCCore, val fieldA: Int, val fieldB: Int, val fieldC: Int, 
     val rb = PPCRegister.gpr(fieldC)
 
     override fun execute() {
-        val a = if (fieldA == 0) 0 else ra.value(core)
+        val a = if (fieldA == 0) 0u else ra.value(core)
         val ea = a + rb.value(core)
-        val tlb = ea[4..3].toInt()
+        val tlb = ea[4..3].int
         for (entry in core.mmu.TLB[tlb]) {
-            val m = ((1L shl (2L * (entry.SIZE - 1L)).toInt()) - 1L).inv()
-            if (((ea[63..12] and m) == (entry.EPN and m)) || ea[2].toBool())
+            val m = ((1uL shl (2uL * (entry.SIZE - 1uL)).int) - 1uL).inv()
+            if (((ea[63..12] and m) == (entry.EPN and m)) || ea[2].truth)
                 if (!entry.IPROT)
                     entry.V = false
         }

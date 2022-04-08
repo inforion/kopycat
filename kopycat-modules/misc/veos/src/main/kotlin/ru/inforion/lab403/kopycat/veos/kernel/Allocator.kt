@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.kernel
 
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.sure
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 
@@ -34,8 +33,8 @@ class Allocator(
         val sys: System,
         // vars because of serializer
         // TODO: solve this problem
-        var startAddr: Long = 0,
-        var endAddr: Long = 0x0FFFL,
+        var startAddr: ULong = 0u,
+        var endAddr: ULong = 0x0FFFuL,
         var alignment: Int = 4
 ): IAutoSerializable {
 
@@ -47,7 +46,7 @@ class Allocator(
         freedBlocks.addAll(orig.freedBlocks)
     }
 
-    data class MBlock(var addr: Long, var size: Int): IAutoSerializable, IConstructorSerializable
+    data class MBlock(var addr: ULong, var size: Int): IAutoSerializable, IConstructorSerializable
 
     private var currentFreePos = startAddr
     private val usedBlocks = ArrayList<MBlock>()
@@ -55,38 +54,38 @@ class Allocator(
 
     fun getAlignedSize(size: Int) = (size / alignment + 1) * alignment
 
-    private fun getAddrFromUnused(sizeAligned: Int): Long {
+    private fun getAddrFromUnused(sizeAligned: Int): ULong {
         val addr = currentFreePos
         return if (addr + sizeAligned < endAddr) {
             currentFreePos += sizeAligned
             addr
-        } else -1
+        } else -1uL
     }
 
-    val size = endAddr - startAddr + 1
+    val size = endAddr - startAddr + 1u
 
     /**
      * Never allocated memory
      */
-    val sizeOfUnused get() = endAddr - currentFreePos + 1
+    val sizeOfUnused get() = endAddr - currentFreePos + 1u
 
     /**
      * All available non-allocated memory
      */
-    val sizeOfAvailable get() = sizeOfUnused + freedBlocks.sumBy { it.size }
+    val sizeOfAvailable get() = sizeOfUnused + freedBlocks.sumOf { it.size }
 
     /**
      * All available freed memory
      */
-    val sizeOfFreed get() = freedBlocks.sumBy { it.size }
+    val sizeOfFreed get() = freedBlocks.sumOf { it.size }
 
     /**
      * Allocated size
      */
-    val sizeOfUsed get() = usedBlocks.sumBy { it.size }
+    val sizeOfUsed get() = usedBlocks.sumOf { it.size }
 
-    private fun getAddrFromFreed(sizeAligned: Int): Long {
-        val block = freedBlocks.filter { it.size >= sizeAligned }.minBy { it.size }!!
+    private fun getAddrFromFreed(sizeAligned: Int): ULong {
+        val block = freedBlocks.filter { it.size >= sizeAligned }.minByOrNull { it.size }!!
         val addr = block.addr
         if (block.size == sizeAligned)
             freedBlocks.remove(block)
@@ -97,13 +96,14 @@ class Allocator(
         return addr
     }
 
-    fun allocate(size: Int): Long{
+    fun allocate(size: Int): ULong {
         val sizeAligned = getAlignedSize(size)
         val newAddr = if (freedBlocks.find { it.size >= sizeAligned  } != null)
             getAddrFromFreed(sizeAligned)
         else
             getAddrFromUnused(sizeAligned)
-        if (newAddr >= 0) {
+
+        if (newAddr != -1uL) {
             usedBlocks.add(MBlock(newAddr, sizeAligned))
             usedBlocks.sortBy { it.addr }
         }
@@ -111,7 +111,7 @@ class Allocator(
         return newAddr
     }
 
-    fun blockSize(address: Long) = usedBlocks
+    fun blockSize(address: ULong) = usedBlocks
             .find { it.addr == address }?.size
             .sure { "Invalid pointer or double free at 0x${sys.abi.programCounterValue.hex8} called from 0x${sys.abi.returnAddressValue.hex8}" }
 
@@ -123,7 +123,7 @@ class Allocator(
     fun pointer() = allocate(sys.sizeOf.pointer)
     fun long() = allocate(sys.sizeOf.longLong)
 
-    fun free(addr: Long): Boolean{
+    fun free(addr: ULong): Boolean {
         val block = usedBlocks.find { it.addr == addr }
         if (block != null) {
             usedBlocks.remove(block)

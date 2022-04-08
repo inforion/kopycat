@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,11 +46,11 @@ object virtarm {
         // - read to read at most 8 bytes with taking into account endian
 
         // here first instruction that will be executed
-        top.nor.store(0, "0300b0e30710b0e3002091e0".unhexlify())
+        top.nor.store(0u, "0300b0e30710b0e3002091e0".unhexlify())
 
         // here is some RAM
         // in default VirtARM configuration kernel placed here and UBOOT go in this region
-        top.kern.store(0, "AAAAAAAA".unhexlify())
+        top.kern.store(0u, "AAAAAAAA".unhexlify())
 
         // NAND isn't normal memory and has no standard memory interface so we need
         // first - make right memory layout
@@ -72,7 +72,7 @@ object virtarm {
         top.uart.sendText("")
 
         // start GDB server on port 23946
-        GDBServer(23946, true, binaryProtoEnabled = false).also { it.debuggerModule(top.debugger) }
+        GDBServer(23946).also { it.debuggerModule(top.debugger) }
 
         // HERE EMULATOR READ TO WORK WITH GDB
         // Below just code to see different API styles

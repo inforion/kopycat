@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,20 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.peripheral
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.ppc.enums.eIrq
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eTCR
+import ru.inforion.lab403.kopycat.cores.ppc.enums.eTSR
 import ru.inforion.lab403.kopycat.cores.ppc.enums.systems.embedded.eOEA_Embedded
+import ru.inforion.lab403.kopycat.cores.ppc.exceptions.PPCExceptionHolder_e500v2
+import ru.inforion.lab403.kopycat.cores.ppc.exceptions.PPCHardwareException
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
+import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_Embedded
+import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_e500v2
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 import ru.inforion.lab403.kopycat.modules.cores.PPCCoreEmbedded
@@ -42,18 +47,19 @@ import ru.inforion.lab403.kopycat.modules.cores.PPCCoreEmbedded
 class TimeBase(parent: Module, name: String, freq: Long) : Module(parent, name) {
     val ppccore = parent as PPCCoreEmbedded
 
+
     private inner class Incrementer {
-        private fun valueHigh(core: PPCCore, data: Long) = PPCRegister.OEA.TBU.value(core, data)
-        private fun valueLow(core: PPCCore, data: Long) = PPCRegister.OEA.TBL.value(core, data)
-        private fun valueHigh(core: PPCCore): Long = PPCRegister.VEA.TBU.value(core)
-        private fun valueLow(core: PPCCore): Long = PPCRegister.VEA.TBL.value(core)
+        private fun valueHigh(core: PPCCore, data: ULong) = PPCRegister.OEA.TBU.value(core, data)
+        private fun valueLow(core: PPCCore, data: ULong) = PPCRegister.OEA.TBL.value(core, data)
+        private fun valueHigh(core: PPCCore) = PPCRegister.VEA.TBU.value(core)
+        private fun valueLow(core: PPCCore) = PPCRegister.VEA.TBL.value(core)
         private fun inc(core: PPCCore): Boolean {
-            val low = valueLow(core) + 1L
+            val low = valueLow(core) + 1uL
             valueLow(core, low)
-            if (low == 0L) {
-                val high = valueHigh(core) + 1L
+            if (low == 0uL) {
+                val high = valueHigh(core) + 1uL
                 valueHigh(core, high)
-                if (high == 0L)
+                if (high == 0uL)
                     return true
             }
             return false
@@ -69,27 +75,29 @@ class TimeBase(parent: Module, name: String, freq: Long) : Module(parent, name) 
 
     private inner class Decrementer : ISerializable{
         var autoreload = false
+        var doInterrupts = false
 
-        private fun value(core: PPCCore, data: Long) = PPCRegister.OEA.DEC.value(core, data)
-        private fun value(core: PPCCore): Long = PPCRegister.OEA.DEC.value(core)
+        private fun value(core: PPCCore, data: ULong) = PPCRegister.OEA.DEC.value(core, data)
+        private fun value(core: PPCCore): ULong = PPCRegister.OEA.DEC.value(core)
         private fun dec(core: PPCCore): Boolean {
             val data = value(core)
-            if (data != 0L)
+            if (data != 0uL)
             {
-                val newData = data - 1L
-                val outValue = if (newData == 0L && autoreload) {
-                    core.cpu.sprRegs.readIntern(eOEA_Embedded.DECAR.id)
-                }
-                else
-                    newData
+                val newData = data - 1uL
+                val outValue = if (newData == 0uL && autoreload)
+                    core.cpu.sprRegs.readIntern(eOEA_Embedded.DECAR.id) else newData
+
                 value(core, outValue)
-                return newData == 0L
+                return newData == 0uL
             }
             return false
         }
 
         fun trigger() {
-            dec(ppccore)
+            if (dec(ppccore)) {
+                if (ppccore.cpu.msrBits.EE && doInterrupts)
+                    throw PPCExceptionHolder_e500v2.DecrementerInterrupt(core.pc)
+            }
 
             /*
             if (ppccore.cpu)
@@ -105,7 +113,7 @@ class TimeBase(parent: Module, name: String, freq: Long) : Module(parent, name) 
 
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            autoreload = (snapshot["autoreload"] as String?)?.toBoolean() ?: false
+            autoreload = (snapshot["autoreload"] as String?)?.bool ?: false
         }
     }
 
@@ -123,10 +131,12 @@ class TimeBase(parent: Module, name: String, freq: Long) : Module(parent, name) 
 
 
 
-    fun operateTCR(value: Long) {
-        decrementer.autoreload = value[eTCR.ARE.bit].toBool()
-        if (value and (1L shl eTCR.ARE.bit).inv() != 0L)
-            throw GeneralException("Now we have to implement some fields to continue")
+    fun operateTCR(value: ULong) {
+        decrementer.autoreload = value[eTCR.ARE.bit].truth
+        decrementer.doInterrupts = value[eTCR.DIE.bit].truth
+        val todoMask = inv((1uL shl eTCR.ARE.bit) or (1uL shl eTCR.DIE.bit))
+        if (value and todoMask != 0uL)
+            TODO("Now we have to implement some fields to continue")
     }
 
     fun connect() {
@@ -143,7 +153,7 @@ class TimeBase(parent: Module, name: String, freq: Long) : Module(parent, name) 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         val dec = snapshot["Decrementer"]
         if (dec != null)
-            decrementer.deserialize(ctxt, dec)
+            decrementer.deserialize(ctxt, dec as Map<String, Any>)
     }
 
 }

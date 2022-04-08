@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,9 @@
 package ru.inforion.lab403.kopycat.modules.cortexm0
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.set
+import ru.inforion.lab403.common.logging.ALL
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.cores.base.abstracts.APIC
@@ -42,7 +44,7 @@ import java.util.logging.Level
 
 class NVIC(parent: Module, name: String) : APIC(parent, name) {
     companion object {
-        @Transient private val log = logger(Level.ALL)
+        @Transient private val log = logger(ALL)
 
         const val INTERRUPT_COUNT = 32
         const val EXCEPTION_COUNT = 16
@@ -127,7 +129,7 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
                 30 -> IPR7.PRI_30
                 31 -> IPR7.PRI_31
                 else -> throw GeneralException("WRONG INTERRUPT IRQ")
-            }
+            }.int
     }
 
     private val interrupts = Interrupts(ports.irq, "IRQ", *Array(INTERRUPT_COUNT) { NVICInterrupt(it) })
@@ -135,19 +137,19 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
     /**
      * Interrupt set-enable register
      */
-    inner class ISER_TYP : Register(ports.mem, 0x000, DWORD, "ISER") {
+    inner class ISER_TYP : Register(ports.mem, 0x000u, DWORD, "ISER") {
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             repeat(INTERRUPT_COUNT) {
-                if (value[it] == 1L)
+                if (value[it] == 1uL)
                     interrupts[it].enabled = true
             }
         }
 
         // ICER and ISER read similar, it's ok!
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            var enabled = 0L
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            var enabled = 0uL
             repeat(INTERRUPT_COUNT) {
                 if (interrupts[it].enabled)
                     enabled = enabled set it
@@ -159,19 +161,19 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
     /**
      * Interrupt clear-enable register
      */
-    inner class ICER_TYP : Register(ports.mem, 0x080, DWORD, "ICER") {
+    inner class ICER_TYP : Register(ports.mem, 0x080u, DWORD, "ICER") {
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             repeat(INTERRUPT_COUNT) {
-                if (value[it] == 1L)
+                if (value[it] == 1uL)
                     interrupts[it].enabled = false
             }
         }
 
         // ICER and ISER read similar, it's ok!
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            var enabled = 0L
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            var enabled = 0uL
             repeat(INTERRUPT_COUNT) {
                 if (interrupts[it].enabled)
                     enabled = enabled set it
@@ -183,19 +185,19 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
     /**
      * Interrupt set-pending register
      */
-    inner class ISPR_TYP : Register(ports.mem, 0x100, DWORD, "ISPR") {
+    inner class ISPR_TYP : Register(ports.mem, 0x100u, DWORD, "ISPR") {
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             repeat(INTERRUPT_COUNT) {
-                if (value[it] == 1L)
+                if (value[it] == 1uL)
                     interrupts[it].pending = true
             }
         }
 
         // ICPR and ISPR read similar, it's ok!
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            var pending = 0L
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            var pending = 0uL
             repeat(INTERRUPT_COUNT) {
                 if (interrupts[it].pending)
                     pending = pending set it
@@ -207,19 +209,19 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
     /**
      * Interrupt clear-pending register
      */
-    inner class ICPR_TYP : Register(ports.mem, 0x180, DWORD, "ICPR") {
+    inner class ICPR_TYP : Register(ports.mem, 0x180u, DWORD, "ICPR") {
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             repeat(INTERRUPT_COUNT) {
-                if (value[it] == 1L)
+                if (value[it] == 1uL)
                     interrupts[it].pending = false
             }
         }
 
         // ICPR and ISPR read similar, it's ok!
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            var pending = 0L
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            var pending = 0uL
             repeat(INTERRUPT_COUNT) {
                 if (interrupts[it].pending)
                     pending = pending set it
@@ -233,56 +235,56 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
     private var ISPR = ISPR_TYP()
     private var ICPR = ICPR_TYP()
 
-    private var IPR0 = object : Register(ports.mem, 0x300, DWORD, "IPR0") {
+    private var IPR0 = object : Register(ports.mem, 0x300u, DWORD, "IPR0") {
         var PRI_0 by field(7..0)
         var PRI_1 by field(15..8)
         var PRI_2 by field(23..16)
         var PRI_3 by field(31..24)
     }
 
-    private var IPR1 = object : Register(ports.mem, 0x304, DWORD, "IPR1") {
+    private var IPR1 = object : Register(ports.mem, 0x304u, DWORD, "IPR1") {
         var PRI_4 by field(7..0)
         var PRI_5 by field(15..8)
         var PRI_6 by field(23..16)
         var PRI_7 by field(31..24)
     }
 
-    private var IPR2 = object : Register(ports.mem, 0x308, DWORD, "IPR2") {
+    private var IPR2 = object : Register(ports.mem, 0x308u, DWORD, "IPR2") {
         var PRI_8 by field(7..0)
         var PRI_9 by field(15..8)
         var PRI_10 by field(23..16)
         var PRI_11 by field(31..24)
     }
 
-    private var IPR3 = object : Register(ports.mem, 0x30C, DWORD, "IPR3") {
+    private var IPR3 = object : Register(ports.mem, 0x30Cu, DWORD, "IPR3") {
         var PRI_12 by field(7..0)
         var PRI_13 by field(15..8)
         var PRI_14 by field(23..16)
         var PRI_15 by field(31..24)
     }
 
-    private var IPR4 = object : Register(ports.mem, 0x310, DWORD, "IPR4") {
+    private var IPR4 = object : Register(ports.mem, 0x310u, DWORD, "IPR4") {
         var PRI_16 by field(7..0)
         var PRI_17 by field(15..8)
         var PRI_18 by field(23..16)
         var PRI_19 by field(31..24)
     }
 
-    private var IPR5 = object : Register(ports.mem, 0x314, DWORD, "IPR5") {
+    private var IPR5 = object : Register(ports.mem, 0x314u, DWORD, "IPR5") {
         var PRI_20 by field(7..0)
         var PRI_21 by field(15..8)
         var PRI_22 by field(23..16)
         var PRI_23 by field(31..24)
     }
 
-    private var IPR6 = object : Register(ports.mem, 0x318, DWORD, "IPR6") {
+    private var IPR6 = object : Register(ports.mem, 0x318u, DWORD, "IPR6") {
         var PRI_24 by field(7..0)
         var PRI_25 by field(15..8)
         var PRI_26 by field(23..16)
         var PRI_27 by field(31..24)
     }
 
-    private var IPR7 = object : Register(ports.mem, 0x31C, DWORD, "IPR7") {
+    private var IPR7 = object : Register(ports.mem, 0x31Cu, DWORD, "IPR7") {
         var PRI_28 by field(7..0)
         var PRI_29 by field(15..8)
         var PRI_30 by field(23..16)

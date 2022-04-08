@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.benchmarks
 
 import org.junit.Test
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.auxiliary.PerformanceTester
@@ -39,12 +40,12 @@ class VirtARMPerformanceTest {
 
     @Test
     fun ubootPerformanceFast() {
-        PerformanceTester(0xAFFCC7C0) { VirtARM(null, "top") }.run(3, 1)
+        PerformanceTester(0xAFFCC7C0u) { VirtARM(null, "top") }.run(3, 1)
     }
 
     @Test
     fun linuxPerformance() {
-        val tester = PerformanceTester(-1, 150_000_000) { VirtARM(null, "top") }
+        val tester = PerformanceTester(-1uL, 150_000_000u) { VirtARM(null, "top") }
         tester.stopWhenTerminalReceive(tester.top.term.socat!!.pty1, "buildroot login:").run(1, 0)
 //        val top = VirtARM(null, "top")
 //        val kopycat = Kopycat(null).apply { open(top, false, GDBServer(6666, true, false)) }

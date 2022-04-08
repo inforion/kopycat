@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.arith
 
+import ru.inforion.lab403.common.extensions.bigint
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
@@ -38,38 +41,51 @@ class Div(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
     override val mnem = "div"
 
+    companion object {
+        val LIMIT = 0xFFFF_FFFF_FFFF_FFFFuL.bigint
+    }
+
     override fun execute() {
         val a2 = op1.value(core)
-        if (a2 == 0L)
+        if (a2 == 0uL)
             throw x86HardwareException.DivisionByZero(core.pc)
 
         when (op1.dtyp) {
             Datatype.BYTE -> {
-                val a1 = core.cpu.regs.ax
+                val a1 = core.cpu.regs.ax.value
                 val quotient = a1 / a2
                 val remainder = a1 % a2
-                if (quotient > 0xFF)
+                if (quotient > 0xFFu)
                     throw x86HardwareException.Overflow(core.pc)
-                core.cpu.regs.al = quotient
-                core.cpu.regs.ah = remainder
+                core.cpu.regs.al.value = quotient
+                core.cpu.regs.ah.value = remainder
             }
             Datatype.WORD -> {
-                val a1 = core.cpu.regs.dx.shl(16) or core.cpu.regs.ax
+                val a1 = core.cpu.regs.dx.value.shl(16) or core.cpu.regs.ax.value
                 val quotient = a1 / a2
                 val remainder = a1 % a2
-                if (quotient > 0xFFFF)
+                if (quotient > 0xFFFFu)
                     throw x86HardwareException.Overflow(core.pc)
-                core.cpu.regs.ax = quotient
-                core.cpu.regs.dx = remainder
+                core.cpu.regs.ax.value = quotient
+                core.cpu.regs.dx.value = remainder
             }
             Datatype.DWORD -> {
-                val a1 = (core.cpu.regs.edx.shl(32) or core.cpu.regs.eax)
+                val a1 = (core.cpu.regs.edx.value.shl(32) or core.cpu.regs.eax.value)
                 val quotient = a1 / a2
                 val remainder = a1 % a2
-                if (quotient > 0xFFFFFFFF)
+                if (quotient > 0xFFFFFFFFu)
                     throw x86HardwareException.Overflow(core.pc)
-                core.cpu.regs.eax = quotient
-                core.cpu.regs.edx = remainder
+                core.cpu.regs.eax.value = quotient
+                core.cpu.regs.edx.value = remainder
+            }
+            Datatype.QWORD -> {
+                val a1 = (core.cpu.regs.rdx.value.bigint shl 64) or core.cpu.regs.rax.value.bigint
+
+                val (quotient, remainder) = a1.divideAndRemainder(a2.bigint)
+                if (quotient > LIMIT)
+                    throw x86HardwareException.Overflow(core.pc)
+                core.cpu.regs.rax.value = quotient.ulong
+                core.cpu.regs.rdx.value = remainder.ulong
             }
             else -> throw GeneralException("Wrong datatype!")
         }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,13 +36,13 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * TLBR
  */
 class tlbr(core: MipsCore,
-           data: Long,
+           data: ULong,
            imm: MipsImmediate) : Code19bitInsn(core, data, Type.VOID, imm) {
 
     override val mnem = "tlbr"
 
     override fun execute() {
-        val i = index.toInt()
+        val i = index
         if (i > core.mmu.tlbEntries)
             throw GeneralException("Trying to read TLB register above index: $i > ${core.mmu.tlbEntries}")
         val entry = core.mmu.readTlbEntry(i)

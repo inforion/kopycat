@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ enum class ElfOSABI(val id : Byte) {
     ELFOSABI_CLOUDABI(17),          //Nuxi CloudABI
     ELFOSABI_OPENVOS(18),           //Stratus Technologies OpenVOS
     ELFOSABI_LOPROC(0x40),          //Processor-specific
-    ELFOSABI_HIPROC(0xFF.toByte());
+    ELFOSABI_HIPROC(0xFF.byte);
 
     companion object {
         fun getNameById(id: Byte): String = find<ElfOSABI>{ it.id == id }!!.name.substring(9)

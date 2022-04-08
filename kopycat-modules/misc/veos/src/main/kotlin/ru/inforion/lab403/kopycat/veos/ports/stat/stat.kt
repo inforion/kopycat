@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,16 +26,16 @@
 package ru.inforion.lab403.kopycat.veos.ports.stat
 
 data class stat(
-        val st_dev: Long = 0,
-        val st_ino: Long = 0,
-        val st_mode: Long = 0,
-        val st_nlink: Long = 0,
-        val st_uid: Long = 0,
-        val st_gid: Long = 0,
-        val st_rdev: Long = 0,
-        val st_size: Long = 0,
-        val st_blksize: Long = 0,
-        val st_blocks: Long = 0,
-        val st_atime: Long = 0,
-        val st_mtime: Long = 0,
-        val st_ctime: Long = 0)
+        val st_dev: ULong = 0u,
+        val st_ino: ULong = 0u,
+        val st_mode: ULong = 0u,
+        val st_nlink: ULong = 0u,
+        val st_uid: ULong = 0u,
+        val st_gid: ULong = 0u,
+        val st_rdev: ULong = 0u,
+        val st_size: ULong = 0u,
+        val st_blksize: ULong = 0u,
+        val st_blocks: ULong = 0u,
+        val st_atime: ULong = 0u,
+        val st_mtime: ULong = 0u,
+        val st_ctime: ULong = 0u)

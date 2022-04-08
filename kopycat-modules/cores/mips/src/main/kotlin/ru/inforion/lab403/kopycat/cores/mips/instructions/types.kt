@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.VOID
 import ru.inforion.lab403.kopycat.cores.mips.enums.COND
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ACOP0
@@ -41,13 +40,13 @@ import kotlin.reflect.KProperty
 // WARNING: Other classes made without delegate due to delegated property can't be made inline!
 
 class DoubleRegister(val index: Int): Serializable {
-    operator fun getValue(insn: AMipsInstruction, property: KProperty<*>): Long {
+    operator fun getValue(insn: AMipsInstruction, property: KProperty<*>): ULong {
         val op1 = insn[index - 1] as MipsRegister
         val op2 = op1.desc.next.toOperand()
         return op1.value(insn.core).insert(op2.value(insn.core), 63..32)
     }
 
-    operator fun setValue(insn: AMipsInstruction, property: KProperty<*>, value: Long) {
+    operator fun setValue(insn: AMipsInstruction, property: KProperty<*>, value: ULong) {
         val op1 = insn[index - 1] as MipsRegister
         val op2 = op1.desc.next.toOperand()
         op1.value(insn.core, value[31..0])
@@ -58,39 +57,39 @@ class DoubleRegister(val index: Int): Serializable {
 
 abstract class CcFsFtInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val fs: MipsRegister,
         val ft: MipsRegister,
         val cc: MipsImmediate
 ) : AMipsInstruction(core, data, type, fs, ft, cc) {
-    inline var vfs: Long
+    inline var vfs: ULong
         get() = fs.value(core)
         set(value) = fs.value(core, value)
-    inline var vft: Long
+    inline var vft: ULong
         get() = ft.value(core)
         set(value) = ft.value(core, value)
 
-    var dfs : Long by DoubleRegister(1)
-    var dft : Long by DoubleRegister(2)
+    var dfs : ULong by DoubleRegister(1)
+    var dft : ULong by DoubleRegister(2)
 
     //  FCC0 bit is 23
     inline var vcc: Boolean
         get() = core.fpu.cntrls.fccr.fcc0
         set(value) { core.fpu.cntrls.fccr.fcc0 = value }
 
-    val cond by lazy { COND.values().find { it.ordinal == (op3 as MipsImmediate).value.toInt() }!! }
+    val cond by lazy { COND.values().first { it.ordinal == (op3 as MipsImmediate).value.int } }
 }
 
 abstract class CcOffsetInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val cc: MipsImmediate,
         val off: MipsNear
 ) : AMipsInstruction(core, data, type, cc, off) {
-    inline val address: Long get() = off.offset + (core.cpu.pc + size)
-    inline val eaAfterBranch: Long get() = core.cpu.pc + 8
+    inline val address: ULong get() = (core.cpu.pc + size) + off.offset
+    inline val eaAfterBranch: ULong get() = core.cpu.pc + 8u
 
     //  FCC0 bit is 23
     inline var vcc: Boolean
@@ -98,115 +97,115 @@ abstract class CcOffsetInsn(
         set(value) { core.fpu.cntrls.fccr.fcc0 = value }
 }
 
-abstract class Code19bitInsn(core: MipsCore, data: Long, type: Type, val imm: MipsImmediate) :
+abstract class Code19bitInsn(core: MipsCore, data: ULong, type: Type, val imm: MipsImmediate) :
         AMipsInstruction(core, data, type, imm) {
 
     inline val cop0: ACOP0 get() = core.cop
 
-    inline var index: Long
-        get() = cop0.regs.Index.value
+    inline var index: Int
+        get() = cop0.regs.Index.value.int
         set(value) {
-            cop0.regs.Index.value = value
+            cop0.regs.Index.value = value.ulong_s
         }
 
-    inline val random: Long get() = cop0.regs.Random.value
+    inline val random: ULong get() = cop0.regs.Random.value
 
-    inline var pageMask: Long
-        get() = cop0.regs.PageMask.value
+    inline var pageMask: UInt
+        get() = cop0.regs.PageMask.value.uint
         set(value) {
-            cop0.regs.PageMask.value = value
+            cop0.regs.PageMask.value = value.ulong_z
         }
-    inline var entryHi: Long
-        get() = cop0.regs.EntryHi.value
+    inline var entryHi: UInt
+        get() = cop0.regs.EntryHi.value.uint
         set(value) {
-            cop0.regs.EntryHi.value = value
+            cop0.regs.EntryHi.value = value.ulong_z
         }
-    inline var entryLo0: Long
-        get() = cop0.regs.EntryLo0.value
+    inline var entryLo0: UInt
+        get() = cop0.regs.EntryLo0.value.uint
         set(value) {
-            cop0.regs.EntryLo0.value = value
+            cop0.regs.EntryLo0.value = value.ulong_z
         }
-    inline var entryLo1: Long
-        get() = cop0.regs.EntryLo1.value
+    inline var entryLo1: UInt
+        get() = cop0.regs.EntryLo1.value.uint
         set(value) {
-            cop0.regs.EntryLo1.value = value
+            cop0.regs.EntryLo1.value = value.ulong_z
         }
 }
 
 abstract class Code20bitInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val code: MipsImmediate
 ) : AMipsInstruction(core, data, type, code)
 
 abstract class Cofun25BitInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val cofun: MipsImmediate
 ) : AMipsInstruction(core, data, type, cofun)
 
 abstract class FdFsInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val fd: MipsRegister,
         val fs: MipsRegister
 ) : AMipsInstruction(core, data, type, fd, fs) {
-    inline var vfs: Long
+    inline var vfs: ULong
         get() = fs.value(core)
         set(value) = fs.value(core, value)
-    inline var vfd: Long
+    inline var vfd: ULong
         get() = fd.value(core)
         set(value) = fd.value(core, value)
-    var dfd : Long by DoubleRegister(1)
-    var dfs : Long by DoubleRegister(2)
+    var dfd : ULong by DoubleRegister(1)
+    var dfs : ULong by DoubleRegister(2)
 }
 
 abstract class FdFsFtInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val fd: MipsRegister,
         val fs: MipsRegister,
         val ft: MipsRegister
 ) : AMipsInstruction(core, data, type, fd, fs, ft) {
 
-    inline var vfd: Long
+    inline var vfd: ULong
         get() = fd.value(core)
         set(value) = fd.value(core, value)
-    inline var vfs: Long
+    inline var vfs: ULong
         get() = fs.value(core)
         set(value) = fs.value(core, value)
-    inline var vft: Long
+    inline var vft: ULong
         get() = ft.value(core)
         set(value) = ft.value(core, value)
 
-    var dfd : Long by DoubleRegister(1)
-    var dfs : Long by DoubleRegister(2)
-    var dft : Long by DoubleRegister(3)
+    var dfd : ULong by DoubleRegister(1)
+    var dfs : ULong by DoubleRegister(2)
+    var dft : ULong by DoubleRegister(3)
 }
 
 abstract class IndexInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val index: MipsNear
 ) : AMipsInstruction(core, data, type, index) {
 
-    val address: Long get() = index.offset + (core.cpu.pc and 0xF0000000)
+    val address: ULong get() = (core.cpu.pc and 0xF0000000u) + index.offset
 
-    inline var vra: Long
+    inline var vra: ULong
         get() = core.cpu.regs.ra.value
         set(value) { core.cpu.regs.ra.value = value }
 
-    inline val eaAfterBranch: Long get() = core.cpu.pc + 8
+    inline val eaAfterBranch: ULong get() = core.cpu.pc + 8u
 }
 
 abstract class OpOffsetBaseInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val imm: MipsImmediate,
         val off: MipsDisplacement
@@ -214,35 +213,35 @@ abstract class OpOffsetBaseInsn(
 
 abstract class RdInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rd: MipsRegister
 ) : AMipsInstruction(core, data, type, rd) {
-    inline var vrd: Long
+    inline var vrd: ULong
         get() = rd.value(core)
         set(value) = rd.value(core, value)
 }
 
 abstract class RdRsHintInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rd: MipsRegister,
         val rs: MipsRegister,
         val hint: MipsImmediate
 ) : AMipsInstruction(core, data, type, rd, rs, hint) {
-    inline var vrd: Long
+    inline var vrd: ULong
         get() = rd.value(core)
         set(value) = rd.value(core, value)
-    inline var vrs: Long
+    inline var vrs: ULong
         get() = rs.value(core)
         set(value) = rs.value(core, value)
-    val eaAfterBranch: Long get() = core.cpu.pc + 8
+    val eaAfterBranch: ULong get() = core.cpu.pc + 8u
 }
 
 abstract class RdRsCcInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rd: MipsRegister,
         val rs: MipsRegister,
@@ -251,240 +250,232 @@ abstract class RdRsCcInsn(
 
 abstract class RdRsRtInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rd: MipsRegister,
         val rs: MipsRegister,
         val rt: MipsRegister
 ) : AMipsInstruction(core, data, type, rd, rs, rt) {
-    inline var vrd: Long
+    inline var vrd: ULong
         get() = rd.value(core)
         set(value) = rd.value(core, value)
-    inline val vrs: Long get() = rs.value(core)
-    inline val vrt: Long get() = rt.value(core)
+    inline val vrs: ULong get() = rs.value(core)
+    inline val vrt: ULong get() = rt.value(core)
 }
 
 abstract class RdRtInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rd: MipsRegister,
         val rt: MipsRegister
 ) : AMipsInstruction(core, data, type, rd, rt) {
-    inline var vrd: Long
+    inline var vrd: ULong
         get() = rd.value(core)
         set(value) = rd.value(core, value)
-    inline val vrt: Long get() = rt.value(core)
+    inline val vrt: ULong get() = rt.value(core)
 }
 
 abstract class RdRtRsInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rd: MipsRegister,
         val rt: MipsRegister,
         val rs: MipsRegister
 ) : AMipsInstruction(core, data, type, rd, rt, rs) {
-    inline var vrd: Long
+    inline var vrd: ULong
         get() = rd.value(core)
         set(value) = rd.value(core, value)
-    inline val vrt: Long get() = rt.value(core)
-    inline val vrs: Long get() = rs.value(core)
+    inline val vrt: ULong get() = rt.value(core)
+    inline val vrs: ULong get() = rs.value(core)
 }
 
 abstract class RdRtSaInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rd: MipsRegister,
         val rt: MipsRegister,
         val sa: MipsImmediate
 ) : AMipsInstruction(core, data, type, rd, rt, sa) {
-    inline var vrd: Long
+    inline var vrd: ULong
         get() = rd.value(core)
         set(value) = rd.value(core, value)
-    inline val vrt: Long get() = rt.value(core)
-    inline val vsa: Int get() = sa.zext.toInt()
+    inline val vrt: ULong get() = rt.value(core)
+    inline val vsa: Int get() = sa.value.int
 }
 
 abstract class RsInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rs: MipsRegister
 ) : AMipsInstruction(core, data, type, rs) {
-    inline var vrs: Long
+    inline var vrs: ULong
         get() = rs.value(core)
         set(value) = rs.value(core, value)
 }
 
 abstract class RsImmInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rs: MipsRegister,
         val imm: MipsImmediate
 ) : AMipsInstruction(core, data, type, rs, imm) {
-    inline var vrs: Long
+    inline var vrs: ULong
         get() = rs.value(core)
         set(value) = rs.value(core, value)
 }
 
 abstract class RsOffsetInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rs: MipsRegister,
         val off: MipsNear
 ) : AMipsInstruction(core, data, type, rs, off) {
-    inline val vrs: Long get() = rs.value(core)
-    inline val address: Long get() = off.offset + (core.cpu.pc + size)
-    inline val eaAfterBranch: Long get() = core.cpu.pc + 8
+    inline val vrs: ULong get() = rs.value(core)
+    inline val address: ULong get() = (core.cpu.pc + size) + off.offset
+    inline val eaAfterBranch: ULong get() = core.cpu.pc + 8u
 
-    inline var vra: Long
+    inline var vra: ULong
         get() = core.cpu.regs.ra.value
         set(value) { core.cpu.regs.ra.value = value }
 }
 
 abstract class RsRtCodeInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rs: MipsRegister,
         val rt: MipsRegister,
         val code: MipsImmediate
 ) : AMipsInstruction(core, data, type, rs, rt, code) {
-    inline var vrs: Long
+    inline var vrs: ULong
         get() = rs.value(core)
         set(value) = rs.value(core, value)
-    inline val vrt: Long get() = rt.value(core)
-    inline val vcode: Long get() = code.zext
+    inline val vrt: ULong get() = rt.value(core)
+    inline val vcode: ULong get() = code.value
 }
 
 abstract class RsRtOffsetInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rs: MipsRegister,
         val rt: MipsRegister,
         val off: MipsNear
 ) : AMipsInstruction(core, data, type, rs, rt, off) {
-    inline val vrs: Long get() = rs.value(core)
-    inline val vrt: Long get() = rt.value(core)
-    inline val address: Long get() = off.offset + (core.cpu.pc + size)
-    inline val eaAfterBranch: Long get() = core.cpu.pc + 8
+    inline val vrs: ULong get() = rs.value(core)
+    inline val vrt: ULong get() = rt.value(core)
+    inline val address: ULong get() = (core.cpu.pc + size) + off.offset
+    inline val eaAfterBranch: ULong get() = core.cpu.pc + 8u
 }
 
 abstract class RsRtPosSizeInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rs: MipsRegister,
         val rt: MipsRegister,
         val pos: MipsImmediate,
         val siz: MipsImmediate
 ) : AMipsInstruction(core, data, type, rs, rt, pos, siz) {
-    inline var vrs: Long
+    inline var vrs: ULong
         get() = rs.value(core)
         set(value) = rs.value(core, value)
-    inline val vrt: Long get() = rt.value(core)
-    inline val lsb: Int get() = pos.zext.toInt()
-    inline val msb: Int get() = siz.zext.toInt()
+    inline val vrt: ULong get() = rt.value(core)
+    inline val lsb: Int get() = pos.value.int
+    inline val msb: Int get() = siz.value.int
 }
 
 abstract class RtInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rt: MipsRegister
 ) : AMipsInstruction(core, data, type, rt) {
     inline val cop0: ACOP0 get() = core.cop
-    inline var vrt: Long
+    inline var vrt: ULong
         get() = rt.value(core)
         set(value) = rt.value(core, value)
 }
 
 abstract class RtImmInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rt: MipsRegister,
         val imm: MipsImmediate
 ) : AMipsInstruction(core, data, type, rt, imm) {
-    inline var vrt: Long
+    inline var vrt: ULong
         get() = rt.value(core)
         set(value) = rt.value(core, value)
 }
 
 abstract class FtOffsetInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val ct: MipsRegister,
         val off: MipsDisplacement
 ) : AMipsInstruction(core, data, type, ct, off) {
-    inline var vct: Long
+    inline var vct: ULong
         get() = ct.value(core)
         set(value) = ct.value(core, value)
-    inline var memword: Long
+    inline var memword: ULong
         get() = off.value(core)
         set(value) = off.value(core, value)
-    inline val address: Long get() = off.effectiveAddress(core)
-    var dft : Long by DoubleRegister(1)
+    inline val address: ULong get() = off.effectiveAddress(core)
+    var dft : ULong by DoubleRegister(1)
 }
 
 abstract class RtOffsetInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rt: MipsRegister,
         val off: MipsDisplacement
 ) : AMipsInstruction(core, data, type, rt, off) {
-    inline var vrt: Long
+    inline var vrt: ULong
         get() = rt.value(core)
         set(value) = rt.value(core, value)
-    inline var memword: Long
+    inline var memword: ULong
         get() = off.value(core)
         set(value) = off.value(core, value)
-    inline val address: Long get() = off.effectiveAddress(core)
-    var dft : Long by DoubleRegister(1)
+    inline val address: ULong get() = off.effectiveAddress(core)
+    var dft : ULong by DoubleRegister(1)
 }
-
-//abstract class RtRd(
-//        core: MipsCore,
-//        data: Long,
-//        type: Type,
-//        val rt: MipsRegister,
-//        val rd: MipsRegister
-//) : AMipsInstruction(core, data, type, rt, rd)
 
 abstract class RtRdSelInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rt: MipsRegister,
         val rd: MipsRegister
 ) : AMipsInstruction(core, data, type, rt, rd) {
-    inline var vrt: Long
+    inline var vrt: ULong
         get() = rt.value(core)
         set(value) = rt.value(core, value)
-    inline var vrd: Long
+    inline var vrd: ULong
         get() = rd.value(core)
         set(value) = rd.value(core, value)
 }
 
 abstract class RtRsImmInsn(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         type: Type,
         val rt: MipsRegister,
         val rs: MipsRegister,
         val imm: MipsImmediate
 ) : AMipsInstruction(core, data, type, rt, rs, imm) {
-    inline var vrt: Long
+    inline var vrt: ULong
         get() = rt.value(core)
         set(value) = rt.value(core, value)
-    inline val vrs: Long get() = rs.value(core)
+    inline val vrs: ULong get() = rs.value(core)
 }
 
-abstract class EmptyInsn(core: MipsCore, data: Long) : AMipsInstruction(core, data, VOID)
+abstract class EmptyInsn(core: MipsCore, data: ULong) : AMipsInstruction(core, data, VOID)

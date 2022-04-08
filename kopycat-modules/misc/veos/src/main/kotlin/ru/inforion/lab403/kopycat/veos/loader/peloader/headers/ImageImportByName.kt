@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.common.extensions.asUInt
+import ru.inforion.lab403.common.extensions.int_z
 import ru.inforion.lab403.kopycat.veos.loader.peloader.string
 import java.nio.ByteBuffer
 
 
 
 class ImageImportByName(input: ByteBuffer) {
-    val hint = input.short.asUInt
+    val hint = input.short.int_z
     val name = input.string
 }

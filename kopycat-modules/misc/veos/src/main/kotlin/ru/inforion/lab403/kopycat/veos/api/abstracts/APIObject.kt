@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.abstracts
 
+import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.emptyOpt
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 
 abstract class APIObject(
-        val name: String,
-        open val address: Long? = null
-): IAutoSerializable, IConstructorSerializable {
-    val linked get() = address != null
+    val name: String,
+    open val address: Optional<ULong> = emptyOpt()
+) : IAutoSerializable, IConstructorSerializable {
+    inline val linked get() = address.isPresent
 }

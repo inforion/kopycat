@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,9 +50,9 @@ class ARMv6CPU(
         @Transient val log = logger(FINER)
     }
 
-    override fun InITBlock(): Boolean = status.ITSTATE[3..0] != 0b0000L
+    override fun InITBlock(): Boolean = status.ITSTATE[3..0] != 0b0000uL
 
-    override fun LastInITBlock(): Boolean = status.ITSTATE[3..0] == 0b1000L
+    override fun LastInITBlock(): Boolean = status.ITSTATE[3..0] == 0b1000uL
 
     private val thumb16 = Thumb16Decoder(core)
     private val thumb32 = Thumb32Decoder(core)
@@ -67,62 +67,62 @@ class ARMv6CPU(
         //	.long	0x0007f000
         // The first one is the masked value
         // The second one is the mask
-        vmsa.midr.implementer = VMSABank.Implementer.ArmLimited.data
-        vmsa.midr.architecture = VMSABank.Architecture.ARMv6.data
-        vmsa.midr.primaryPartNumber = 0xB00
+        vmsa.midr.implementer = VMSABank.Implementer.ArmLimited.data.ulong_s
+        vmsa.midr.architecture = VMSABank.Architecture.ARMv6.data.ulong
+        vmsa.midr.primaryPartNumber = 0xB00u
 
         // Cache type, see B4.1.42
-        vmsa.ctr.format = VMSABank.CacheTypeFormat.ARMv6.data
-        vmsa.ctr.cwg = 0b0000 // Not provide Cache Write-back Granule information
-        vmsa.ctr.erg = 0b0000 // Not provide Cache Exclusives Reservation Granule information
-        vmsa.ctr.dminLine = 0b0000 // Log2 of the number of words in the smallest cache line of all the data caches...
-        vmsa.ctr.l1lp = VMSABank.L1IP.AIVIVT.data
-        vmsa.ctr.iminLine = 0b0000 // Log2 of the number of words in the smallest cache line of all the instruction caches...
+        vmsa.ctr.format = VMSABank.CacheTypeFormat.ARMv6.data.ulong
+        vmsa.ctr.cwg = 0b0000u // Not provide Cache Write-back Granule information
+        vmsa.ctr.erg = 0b0000u // Not provide Cache Exclusives Reservation Granule information
+        vmsa.ctr.dminLine = 0b0000u // Log2 of the number of words in the smallest cache line of all the data caches...
+        vmsa.ctr.l1lp = VMSABank.L1IP.AIVIVT.data.ulong
+        vmsa.ctr.iminLine = 0b0000u // Log2 of the number of words in the smallest cache line of all the instruction caches...
 
-        val sp = 0x0000_0000L
-        val pc = 0x0000_0000L
+        val sp = 0x0000_0000uL
+        val pc = 0x0000_0000uL
 
         log.fine { "pc=0x${pc.hex8} sp=0x${sp.hex8}" }
 
         BXWritePC(pc)
         regs.sp.value = sp
-        regs.lr.value = 0xFFFF_FFFF
+        regs.lr.value = 0xFFFF_FFFFu
 
         pipelineRefillRequired = false
     }
 
-    private fun fetch(where: Long): Long = core.fetch(where, 0 ,4)
+    private fun fetch(where: ULong): ULong = core.fetch(where, 0 ,4)
 
-    private fun swapByte(data: Long): Long {
-        val high = data and 0xFFFF_0000
-        val low = data and 0xFFFF
-        return (high shr 16) or (low shl 16)
+    private fun swapByte(data: ULong): ULong {
+        val high = data and 0xFFFF_0000u
+        val low = data and 0xFFFFu
+        return (high ushr 16) or (low shl 16)
     }
 
-    private var offset: Int = 0
+    private var offset: UInt = 0u
 
     override fun decode() {
-        var data: Long
+        var data: ULong
         val decoder: ADecoder<AARMInstruction>
 
         when (CurrentInstrSet()) {
             InstructionSet.ARM -> {
                 data = fetch(pc)
                 decoder = armDc
-                offset = 4
+                offset = 4u
             }
             InstructionSet.THUMB -> {
                 data = fetch(pc clr 0)
                 val type = data[15..11]
                 // 16 bits thumb instruction
-                if (type != 0b11101L && type != 0b11110L && type != 0b11111L){
+                if (type != 0b11101uL && type != 0b11110uL && type != 0b11111uL){
                     data = data[15..0]
                     decoder = thumb16
-                    offset = 2
+                    offset = 2u
                 } else { // 32 bits thumb instruction
                     data = swapByte(data)
                     decoder = thumb32
-                    offset = 0
+                    offset = 0u
                     TODO("CHECK IT (OFFSET)")
                 }
             }
@@ -136,7 +136,7 @@ class ARMv6CPU(
     }
 
     override fun execute(): Int {
-        pc += insn.size + offset
+        pc += insn.size.uint + offset
         val lrBefore = regs.lr.value
         try {
             insn.execute()

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,5 +33,7 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 class Std(core: x86Core, opcode: ByteArray, prefs: Prefixes): AX86Instruction(core, Type.VOID, opcode, prefs) {
     override val mnem = "std"
-    override fun execute() = x86Register.eflags.df(core, true)
+    override fun execute() {
+        core.cpu.flags.df = true
+    }
 }

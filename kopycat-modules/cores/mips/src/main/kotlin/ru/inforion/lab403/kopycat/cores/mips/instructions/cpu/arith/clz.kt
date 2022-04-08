@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ulong_s
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.VOID
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -34,7 +35,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class clz(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         rd: MipsRegister,
         rs: MipsRegister,
         rt: MipsRegister) : RdRsRtInsn(core, data, VOID, rd, rs, rt)  {
@@ -42,13 +43,13 @@ class clz(
     override val mnem = "clz"
 
     override fun execute() {
-        var tmp = 32L
+        var tmp = 32
         for (k in 31 downTo 0) {
-            if (vrs[k] == 1L) {
-                tmp = 31L - k
+            if (vrs[k] == 1uL) {
+                tmp = 31 - k
                 break
             }
         }
-        vrd = tmp
+        vrd = tmp.ulong_s
     }
 }

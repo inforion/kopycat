@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.flags
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -37,7 +38,7 @@ object FlagProcessor {
         var bitCounter = 0
         var tmp = res.value(core)
         for (i in 0..7) {
-            if (tmp % 2L != 0L) bitCounter++
+            if (tmp % 2uL != 0uL) bitCounter++
             tmp = tmp ushr 1
         }
         return bitCounter % 2 == 0
@@ -48,16 +49,16 @@ object FlagProcessor {
         val a2 = op1.value(core)
         val a3 = op2.value(core)
 
-        return a1[4] xor a2[4] xor a3[4] != 0L
+        return a1[4] xor a2[4] xor a3[4] != 0uL
     }
 
     fun processAsciiAdjustFlag(core: x86Core, isOvf: Boolean) =
             if(isOvf){
-                core.cpu.flags.af = true
-                core.cpu.flags.cf = true
+                core.cpu.flags.eflags.af = true
+                core.cpu.flags.eflags.cf = true
             } else {
-                core.cpu.flags.af = false
-                core.cpu.flags.cf = false
+                core.cpu.flags.eflags.af = false
+                core.cpu.flags.eflags.cf = false
             }
 
 
@@ -68,8 +69,8 @@ object FlagProcessor {
     rotates, the OF flag is set to the exclusive OR of the two most-significant bits of the result.
     */
     fun getOFRotate(core: x86Core, result: Variable<x86Core>, isLeft: Boolean): Boolean =
-            if (isLeft) core.cpu.flags.cf xor (result.value(core)[result.dtyp.bits - 1] == 1L)
-            else (result.value(core)[result.dtyp.bits - 1] == 1L) xor (result.value(core)[result.dtyp.bits - 2] == 1L)
+            if (isLeft) core.cpu.flags.eflags.cf xor (result.value(core)[result.dtyp.bits - 1] == 1uL)
+            else (result.value(core)[result.dtyp.bits - 1] == 1uL) xor (result.value(core)[result.dtyp.bits - 2] == 1uL)
 
     /*
         The CF flag contains the value of the last bit shifted out of the destination operand; it is unde-
@@ -85,13 +86,13 @@ object FlagProcessor {
     */
     fun getOFShift(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>,
                    isLeft: Boolean, isSar: Boolean): Boolean =
-            if(op2.value(core) == 1L)
+            if(op2.value(core) == 1uL)
                 if(isSar)
                     false
                 else if(isLeft)
-                    core.cpu.flags.cf != (result.value(core)[result.dtyp.bits - 1] == 1L)
+                    core.cpu.flags.eflags.cf != (result.value(core)[result.dtyp.bits - 1] == 1uL)
                 else
-                    op1.value(core)[op1.dtyp.bits - 1] == 1L
+                    op1.value(core)[op1.dtyp.bits - 1] == 1uL
             else
                 false
 
@@ -100,57 +101,57 @@ object FlagProcessor {
     fun processCliFlag() {}
 
     fun processAddSubCmpFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>, isSubtract: Boolean) {
-        core.cpu.flags.zf = result.isZero(core)
-        core.cpu.flags.sf = result.isNegative(core)
-        core.cpu.flags.cf = result.isCarry(core)
-        core.cpu.flags.of = result.isIntegerOverflow(core, op1, op2, isSubtract)
-        core.cpu.flags.pf = getPF(core, result)
-        core.cpu.flags.af = getAF(core, result, op1, op2)
+        core.cpu.flags.eflags.zf = result.isZero(core)
+        core.cpu.flags.eflags.sf = result.isNegative(core)
+        core.cpu.flags.eflags.cf = result.isCarry(core, op1, op2, isSubtract)
+        core.cpu.flags.eflags.of = result.isIntegerOverflow(core, op1, op2, isSubtract)
+        core.cpu.flags.eflags.pf = getPF(core, result)
+        core.cpu.flags.eflags.af = getAF(core, result, op1, op2)
     }
 
     fun processNegFlag(core: x86Core, result: Variable<x86Core>) {
-        core.cpu.flags.cf = result.value(core) != 0L
+        core.cpu.flags.eflags.cf = result.value(core) != 0uL
     }
 
     fun processIncDecFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>, isSubtract: Boolean){
-        core.cpu.flags.pf = getPF(core, result)
-        core.cpu.flags.zf = result.isZero(core)
-        core.cpu.flags.sf = result.isNegative(core)
-        core.cpu.flags.of = result.isIntegerOverflow(core, op1, op2, isSubtract)
-        core.cpu.flags.af = getAF(core, result, op1, op2)
+        core.cpu.flags.eflags.pf = getPF(core, result)
+        core.cpu.flags.eflags.zf = result.isZero(core)
+        core.cpu.flags.eflags.sf = result.isNegative(core)
+        core.cpu.flags.eflags.of = result.isIntegerOverflow(core, op1, op2, isSubtract)
+        core.cpu.flags.eflags.af = getAF(core, result, op1, op2)
     }
 
     fun processRotateFlag(core: x86Core, result: Variable<x86Core>, op2: AOperand<x86Core>, isLeft: Boolean, cf: Boolean) {
-        core.cpu.flags.cf = cf
-        if(op2.value(core) == 1L) core.cpu.flags.of = getOFRotate(core, result, isLeft)
+        core.cpu.flags.eflags.cf = cf
+        if(op2.value(core) == 1uL) core.cpu.flags.eflags.of = getOFRotate(core, result, isLeft)
     }
 
     fun processShiftFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>,
                          isLeft: Boolean, isSar: Boolean, cf: Boolean) {
-        core.cpu.flags.cf = cf
-        core.cpu.flags.pf = getPF(core, result)
-        core.cpu.flags.zf = result.isZero(core)
-        core.cpu.flags.sf = result.isNegative(core)
-        core.cpu.flags.of = getOFShift(core, result, op1, op2, isLeft, isSar)
+        core.cpu.flags.eflags.cf = cf
+        core.cpu.flags.eflags.pf = getPF(core, result)
+        core.cpu.flags.eflags.zf = result.isZero(core)
+        core.cpu.flags.eflags.sf = result.isNegative(core)
+        core.cpu.flags.eflags.of = getOFShift(core, result, op1, op2, isLeft, isSar)
     }
 
     fun processAndOrXorTestFlag(core: x86Core, result: Variable<x86Core>) {
-        core.cpu.flags.zf = result.isZero(core)
-        core.cpu.flags.sf = result.isNegative(core)
-        core.cpu.flags.cf = false
-        core.cpu.flags.of = false
-        core.cpu.flags.pf = FlagProcessor.getPF(core, result)
-        core.cpu.flags.af = false
+        core.cpu.flags.eflags.zf = result.isZero(core)
+        core.cpu.flags.eflags.sf = result.isNegative(core)
+        core.cpu.flags.eflags.cf = false
+        core.cpu.flags.eflags.of = false
+        core.cpu.flags.eflags.pf = getPF(core, result)
+        core.cpu.flags.eflags.af = false
         // undefined, but in bochs it is false
     }
 
-    fun processMulFlag(core: x86Core, upperHalf: Long) {
-        if(upperHalf == 0L){
-            core.cpu.flags.of = false
-            core.cpu.flags.cf = false
+    fun processMulFlag(core: x86Core, upperHalf: ULong) {
+        if(upperHalf == 0uL){
+            core.cpu.flags.eflags.of = false
+            core.cpu.flags.eflags.cf = false
         } else {
-            core.cpu.flags.of = true
-            core.cpu.flags.cf = true
+            core.cpu.flags.eflags.of = true
+            core.cpu.flags.eflags.cf = true
         }
 
     }

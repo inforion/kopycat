@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,6 +46,6 @@ abstract class AARMShift: AOperand<AARMCore>(Type.CUSTOM, Access.ANY, Controls.V
 
     abstract fun carry(core: AARMCore): Boolean
 
-    final override fun value(core: AARMCore, data: Long): Unit =
+    final override fun value(core: AARMCore, data: ULong): Unit =
             throw UnsupportedOperationException("Can't write to shift operand")
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.ROR
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
@@ -36,11 +37,11 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class LDRT(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            val postindex: Boolean,
            val add: Boolean,
@@ -56,11 +57,11 @@ class LDRT(cpu: AARMCore,
         val address = if (postindex) rn.value(core) else offsetAddress
         val data = core.inl(address like Datatype.DWORD)
         if (postindex) rn.value(core, offsetAddress)
-        if (core.cpu.UnalignedSupport() || address[1..0] == 0b00L) {
+        if (core.cpu.UnalignedSupport() || address[1..0] == 0b00uL) {
             rt.value(core, data)
         } else {  // Can only apply before ARMv7
             if (core.cpu.CurrentInstrSet() == AARMCore.InstructionSet.ARM) {
-                rt.value(core, ROR(data, 32, 8 * address[1..0].asInt))
+                rt.value(core, ROR(data, 32, 8 * address[1..0].int))
             } else {
                 throw ARMHardwareException.Unknown
             }

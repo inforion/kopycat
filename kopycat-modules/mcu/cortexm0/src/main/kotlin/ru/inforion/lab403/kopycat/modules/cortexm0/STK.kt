@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.cortexm0
 
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -41,7 +42,7 @@ import java.util.logging.Level
 
 class STK(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.FINE)
+        @Transient val log = logger(FINE)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -54,8 +55,8 @@ class STK(parent: Module, name: String) : Module(parent, name) {
     private val counter = object : SystemClock.PeriodicalTimer("STK") {
         override fun trigger() {
             super.trigger()
-            STK_CVR.CURRENT -= 1
-            if (STK_CVR.CURRENT == 0) {
+            STK_CVR.CURRENT -= 1u
+            if (STK_CVR.CURRENT == 0uL) {
                 STK_CVR.CURRENT = STK_RVR.RELOAD
                 STK_CSR.COUNTFLAG = 1
                 if (STK_CSR.TICKINT == 1) {
@@ -66,12 +67,12 @@ class STK(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    private inner class STK_CSR_TYP : Register(ports.mem, 0x0, DWORD, "STK_CSR", 0x0000_0004) {
+    private inner class STK_CSR_TYP : Register(ports.mem, 0x0u, DWORD, "STK_CSR", 0x0000_0004u) {
         var ENABLE by bit(0)
         var TICKINT by bit(1)
         var CLKSOURCE by bit(2)
         var COUNTFLAG by bit(16)
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             if (ENABLE == 1) {
                 STK_CVR.CURRENT = STK_RVR.RELOAD
@@ -80,20 +81,20 @@ class STK(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    private inner class STK_RVR_TYP : Register(ports.mem, 0x4, DWORD, "STK_RVR") {
+    private inner class STK_RVR_TYP : Register(ports.mem, 0x4u, DWORD, "STK_RVR") {
         var RELOAD by field(23..0)
     }
 
-    private inner class STK_CVR_TYP : Register(ports.mem, 0x8, DWORD, "STK_CVR") {
+    private inner class STK_CVR_TYP : Register(ports.mem, 0x8u, DWORD, "STK_CVR") {
         var CURRENT by field(23..0)
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             STK_CSR.COUNTFLAG = 0
-            CURRENT = 0
+            CURRENT = 0u
         }
     }
 
-    private inner class STK_CALIB_TYP : Register(ports.mem, 0xC, DWORD, "STK_CALIB", writable = false) {
+    private inner class STK_CALIB_TYP : Register(ports.mem, 0xCu, DWORD, "STK_CALIB", writable = false) {
         var TENMS by field(23..0)
         var SKEW by bit(30)
         var NOREF by bit(31)

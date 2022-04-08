@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,4 +31,4 @@ import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 
 
 
-class MSP430Variable(dtyp: Datatype, default: Long = 0) : Variable<MSP430Core>(default, dtyp)
+class MSP430Variable constructor(dtyp: Datatype, default: ULong = 0u) : Variable<MSP430Core>(default, dtyp)

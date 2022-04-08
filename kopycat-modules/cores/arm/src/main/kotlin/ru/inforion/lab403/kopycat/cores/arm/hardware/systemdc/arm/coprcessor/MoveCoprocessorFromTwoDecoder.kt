@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.coprcessor
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
@@ -42,20 +43,20 @@ class MoveCoprocessorFromTwoDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 cp: Int,
                 opc1: Int,
                 rt: ARMRegister,
                 rt2: ARMRegister,
                 crm: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
+    override fun decode(data: ULong): AARMInstruction {
         val cond = cond(data)
-        val rt2 = gpr(data[19..16].asInt)
-        val rt = gpr(data[15..12].asInt)
-        val coproc = data[11..8].toInt()
-        val opc1 = data[7..4].toInt()
-        val crm = data[3..0].toInt()
+        val rt2 = gpr(data[19..16].int)
+        val rt = gpr(data[15..12].int)
+        val coproc = data[11..8].int
+        val opc1 = data[7..4].int
+        val crm = data[3..0].int
 
         if (coproc and 0b1110 == 0b1010)
             TODO(" SEE \"Advanced SIMD and Floating-point\"")

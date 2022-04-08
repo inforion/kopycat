@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.plus
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
@@ -43,14 +44,14 @@ class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
         val interrupt = pending(true)
         if (interrupt != null) {
             // Merge external interrupt with pending internal software interrupt (or required, see EMUKOT-106)
-            regs.Cause.IP7_0 = interrupt.cause.asULong
+            regs.Cause.IP7_0 = interrupt.cause.ulong_z
             interrupt.onInterrupt()
         }
 
         // Interrupt taken only if these condition are true
         // see vol.3 MIPS32 (Rev. 0.95) Architecture (5.1)
         // log.config { "IP = %08X IM = %08X IRQ = %08X".format(ip, im, ip and im) }
-        if ((regs.Cause.IP7_0 and regs.Status.IM7_0) != 0L
+        if ((regs.Cause.IP7_0 and regs.Status.IM7_0) != 0uL
 //                && !regs.Debug.DM
                 && regs.Status.IE
                 && !regs.Status.EXL
@@ -82,7 +83,7 @@ class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
         if (!regs.Status.EXL) {
             if (core.cpu.branchCntrl.isDelaySlot) {
                 regs.Cause.BD = true
-                regs.EPC.value = core.cpu.pc - 4
+                regs.EPC.value = core.cpu.pc - 4u
             } else {
                 regs.Cause.BD = false
                 regs.EPC.value = core.cpu.pc
@@ -109,9 +110,9 @@ class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
 
         // if StatusBEV = 1 then ...
         if (regs.Status.BEV) {
-            core.cpu.branchCntrl.setIp(0xBFC0_0200 + vectorOffset)
+            core.cpu.branchCntrl.setIp(0xBFC0_0200uL + vectorOffset)
         } else {
-            core.cpu.branchCntrl.setIp(0x8000_0000 + vectorOffset)
+            core.cpu.branchCntrl.setIp(0x8000_0000uL + vectorOffset)
         }
 
         return null

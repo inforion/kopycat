@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,10 @@
 package ru.inforion.lab403.kopycat.examples
 
 import org.junit.Test
-import ru.inforion.lab403.common.extensions.getResourceUrl
+import ru.inforion.lab403.common.swarm.parallelize
+import ru.inforion.lab403.common.swarm.threadsSwarm
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.modules.examples.stm32f042_example
-import ru.inforion.lab403.swarm.parallelize
-import ru.inforion.lab403.swarm.threadsSwarm
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
@@ -42,7 +41,7 @@ class DistributedTest {
             val device = stm32f042_example(null, "top", "example:gpiox_led")
 
             val result = listOf(10, 20, 30).parallelize(swarm).map {
-                val kopycat = Kopycat(null).apply { open(device, false, null) }
+                val kopycat = Kopycat(null).apply { open(device, null, false) }
 
                 repeat(it * 2048) { kopycat.step() }
 

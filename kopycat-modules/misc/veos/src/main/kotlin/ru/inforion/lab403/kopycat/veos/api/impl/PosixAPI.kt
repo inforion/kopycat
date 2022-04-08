@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-@file:Suppress("unused", "LocalVariableName", "PropertyName", "ObjectPropertyName", "MemberVisibilityCanBePrivate", "FunctionName")
+@file:Suppress("unused", "LocalVariableName", "PropertyName", "ObjectPropertyName", "MemberVisibilityCanBePrivate", "FunctionName",
+    "UNUSED_VARIABLE"
+)
 
 package ru.inforion.lab403.kopycat.veos.api.impl
 
@@ -75,9 +77,9 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
     fun htons(value: Int) = if (os.abi.bigEndian) value else value.swap16()
 
-    fun htons(value: Long) = if (os.abi.bigEndian) value else value.swap16()
+    fun htons(value: ULong) = if (os.abi.bigEndian) value else value.swap16()
 
-    fun htonl(value: Long) = if (os.abi.bigEndian) value else value.swap32()
+    fun htonl(value: ULong) = if (os.abi.bigEndian) value else value.swap32()
 
     enum class LC(val id: Int) {
         CTYPE(0),
@@ -89,7 +91,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         ALL(6)
     }
 
-    var gid = 0L
+    var gid: ULong = 0u
 
     var openlogIdent = ""
 
@@ -104,7 +106,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     val mode_t.oct3: String get() = "${int / 64}${(int / 8) % 8}${int % 8}"
 
     // REVIEW: refactor and get rid of Context
-    class jmp_buf(sys: System, address: Long) : Pointer<Unit>(sys, address) {
+    class jmp_buf(sys: System, address: ULong) : Pointer<Unit>(sys, address) {
         val ctx = sys.abi.createContext()
 
         fun restore() = ctx.restore(address)
@@ -129,7 +131,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         ret<StructPointer> { APIResult.Value(it.address) }
     }
 
-    override fun init(argc: Long, argv: Long, envp: Long) {
+    override fun init(argc: ULong, argv: ULong, envp: ULong) {
         if (this.argc.linked && this.argv.linked) {
             this.argc.value = argc
             this.argv.value = argv
@@ -148,7 +150,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/stpcpy
     val stpcpy = object : APIFunction("stpcpy") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val dst = argv[0]
             val src = os.sys.readAsciiString(argv[1])
             os.sys.writeAsciiString(dst, src)
@@ -159,31 +161,31 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/strcasecmp
     val strcasecmp = object : APIFunction("strcmp") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val str1 = os.sys.readAsciiString(argv[0]).toLowerCase()
-            val str2 = os.sys.readAsciiString(argv[1]).toLowerCase()
-            return retval(str1.compareTo(str2).asLong)
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val str1 = os.sys.readAsciiString(argv[0]).lowercase()
+            val str2 = os.sys.readAsciiString(argv[1]).lowercase()
+            return retval(str1.compareTo(str2).ulong_z)
         }
     }
     // 4.4BSD, POSIX.1-2001
     // https://linux.die.net/man/3/strncasecmp
     val strncasecmp = object : APIFunction("strncasecmp") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val n = argv[2].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val n = argv[2].int
             var str1 = os.sys.readAsciiString(argv[0])
             var str2 = os.sys.readAsciiString(argv[1])
             // TODO: make own implementation of toLowerCaseAsciiOnly
             str1 = str1[0..minOf(n, str1.length)].toLowerCaseAsciiOnly()
             str2 = str2[0..minOf(n, str2.length)].toLowerCaseAsciiOnly()
-            return retval(str1.compareTo(str2).asLong)
+            return retval(str1.compareTo(str2).ulong_z)
         }
     }
     // SVr4, 4.3BSD, POSIX.1-2001
     // https://linux.die.net/man/3/strdup
     val strdup = object : APIFunction("strdup") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val string = os.sys.readAsciiString(argv[0])
             val result = os.sys.allocate(string.length + 1)
             os.sys.writeAsciiString(result, string, true)
@@ -199,16 +201,16 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     val open = object : APIFunction("open") {
         val O_ACCMODE = 3
 
-        infix fun Long.check(b: Int) = (this and b.asULong).toBool()
+        infix fun ULong.check(b: Int) = (this and b.ulong_z).truth
 
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val filenameStr = os.sys.readAsciiString(argv[0])
             val mode = argv[1]
 
             val deps = sys.deps
 
-            val accmode = mode.asInt and O_ACCMODE
+            val accmode = mode.int and O_ACCMODE
             val flags = AccessFlags(
                     accmode == O_RDWR || accmode == O_RDONLY,
                     accmode == O_RDWR || accmode == O_WRONLY,
@@ -218,14 +220,14 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                     mode check deps.O_EXCL
             )
 
-            val mask = (O_ACCMODE or deps.O_TRUNC or deps.O_APPEND or deps.O_CREAT or deps.O_EXCL or deps.O_LARGEFILE).asULong.inv()
-            check(mode and mask == 0L) { "[0x${ra.hex8}] Unknown combination of flags ($filenameStr): 0x${mode.hex8}" }
+            val mask = (O_ACCMODE or deps.O_TRUNC or deps.O_APPEND or deps.O_CREAT or deps.O_EXCL or deps.O_LARGEFILE).ulong_z.inv()
+            check(mode and mask == 0uL) { "[0x${ra.hex8}] Unknown combination of flags ($filenameStr): 0x${mode.hex8}" }
 
             val result = os.filesystem.open(filenameStr, flags)
 
             log.fine { "[0x${ra.hex8}] open(file='$filenameStr' mode='$flags') -> fd = $result in ${os.currentProcess}" }
 
-            return retval(result.asLong)
+            return retval(result.ulong_z)
         }
     }
     val open64 = open
@@ -233,10 +235,10 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/fcntl
     val fcntl = object : APIFunction("fcntl") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val fd = argv[0].asInt
-            val cmd = argv[1].asInt
-            val arg = argv[2].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val fd = argv[0].int
+            val cmd = argv[1].int
+            val arg = argv[2].int
 
             log.fine { "[0x${ra.hex8}] fcntl(fd=$fd cmd=$cmd arg=$arg)" }
 
@@ -246,7 +248,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
             when (cmd) {
                 F_GETFD -> {
                     log.config { "[0x${ra.hex8}] F_GETFD is not implemented!" }
-                    return retval(0L)
+                    return retval(0uL)
                 }
                 F_SETFD -> log.config { "[0x${ra.hex8}] F_SETFD with $arg is not implemented!" }
                 F_GETFL -> {
@@ -257,7 +259,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                         file.readable() -> O_RDONLY
                         else -> TODO("Strange case")
                     }
-                    return retval(result.asULong)
+                    return retval(result.ulong_z)
                 }
                 F_SETFL -> {
                     check(arg and mask.inv() == 0) { "Unimplemented flags: 0x${arg.hex8}" }
@@ -275,7 +277,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                 else -> throw IllegalArgumentException("[0x${ra.hex8}] Unknown fcntl cmd=0x${cmd.hex8} fd=$fd arg=0x${arg.hex8}")
             }
 
-            return retval(0)
+            return retval(0uL)
         }
     }
     // SVr4, 4.3BSD, POSIX.1-2001
@@ -287,11 +289,11 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/close
     val close = object : APIFunction("close") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val fd = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val fd = argv[0].int
             log.fine { "[0x${ra.hex8}] close(fd=${argv[0]})" }
             val result = nothrow(-1) { os.ioSystem.close(fd); 0 }
-            return retval(result.asLong)
+            return retval(result.ulong_z)
         }
     }
 
@@ -300,13 +302,13 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     val read = object : APIFunction("read") {
         // https://linux.die.net/man/2/read
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val fd = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val fd = argv[0].int
             val buf = argv[1]
-            val count = argv[2].asInt
+            val count = argv[2].int
 
             if (count == 0)
-                return retval(0)
+                return retval(0uL)
 
             os.block<ByteArray> {
                 execute {
@@ -315,12 +317,12 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
                 success {
                     log.fine { "[0x${ra.hex8}] read(fd=$fd buf=0x${buf.hex8} count=$count) -> read=${it.size} in ${os.currentProcess}" }
-                    os.abi.writeBytes(buf, it); it.size.asULong
+                    os.abi.writeBytes(buf, it); it.size.ulong_z
                 }
 
                 failure {
                     log.fine { "[0x${ra.hex8}] read(fd=$fd buf=0x${buf.hex8} count=$count) -> failed in ${os.currentProcess}" }
-                    setErrno(it); 0
+                    setErrno(it); 0u
                 }
             }
 
@@ -332,16 +334,16 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/write
     val write = object : APIFunction("write") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val fd = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val fd = argv[0].int
             val buf = argv[1]
             val count = argv[2] // TODO: overflow?  // KC-1848 - непонятно
 
             log.fine { "[0x${ra.hex8}] write(fd=$fd buf=0x${buf.hex8} count=$count) in ${os.currentProcess}" }
 
-            val data = os.abi.readBytes(buf, count.asInt)
+            val data = os.abi.readBytes(buf, count.int)
             val result = nothrow(-1) { os.ioSystem.write(fd, data); data.size }
-            return retval(result.asLong)
+            return retval(result.ulong_z)
         }
     }
 
@@ -349,11 +351,11 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/isatty
     val isatty = object : APIFunction("isatty") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val fd = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val fd = argv[0].int
             log.fine { "[0x${ra.hex8}] isatty(fd=${fd})" }
             val result = nothrow(-1) { os.ioSystem.isTerm(fd); 0 }
-            return retval(result.asLong)
+            return retval(result.ulong_z)
         }
     }
 
@@ -361,10 +363,10 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/getpagesize
     val getpagesize = object : APIFunction("getpagesize") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.fine { "[0x${ra.hex8}] getpagesize()" }
             // linux typical pagesize is 4096
-            return retval(4096)
+            return retval(4096uL)
         }
     }
 
@@ -372,20 +374,20 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // POSIX.2 and POSIX.1-2001
     // https://linux.die.net/man/3/getopt
     val getopt = object : APIFunction("getopt") {
-        private fun getArg(pArgv: Long, index: Int): String {
+        private fun getArg(pArgv: ULong, index: Int): String {
             val address = os.abi.readPointer(pArgv + os.abi.types.pointer.bytes * index)
             return os.sys.readAsciiString(address)
         }
 
-        private fun getProgname(pArgv: Long): String = getArg(pArgv, 0)
-        private fun getArgs(pArgv: Long, argc: Int) = collect(argc) { getArg(pArgv, it) }.toTypedArray()
+        private fun getProgname(pArgv: ULong): String = getArg(pArgv, 0)
+        private fun getArgs(pArgv: ULong, argc: Int) = List(argc) { getArg(pArgv, it) }.toTypedArray()
 
         @DontAutoSerialize
         private lateinit var g: Getopt
         private var initialized = false
 
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             if (!initialized) {
                 val argc = argv[0]
                 val pArgv = argv[1]
@@ -393,44 +395,44 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
                 val optstr = os.sys.readAsciiString(pOptStr)
                 val progname = getProgname(pArgv)
-                val args = getArgs(pArgv, argc.asInt).drop(1).toTypedArray()
+                val args = getArgs(pArgv, argc.int).drop(1).toTypedArray()
 
                 initialized = true
                 g = Getopt(progname, args, optstr)
 
                 if (optind.linked)
-                    optind.value = 1
+                    optind.value = 1uL
             }
 
             val result = g.getopt()
             if (result == -1)
-                return retval(-1)
+                return retval(-1uL)
 
             if (optind.linked)
-                optind.value = g.optind.asULong + 1
+                optind.value = g.optind.ulong_z + 1u
 
             if (optarg.linked) {
-                if (optarg.value != 0L)
+                if (optarg.value != 0uL)
                     os.sys.free(optarg.value)
-                optarg.value = if (g.optarg != null) os.sys.allocateAsciiString(g.optarg) else 0L
+                optarg.value = if (g.optarg != null) os.sys.allocateAsciiString(g.optarg) else 0uL
             }
 
             if (optopt.linked) {
-                optopt.value = g.optopt.asULong
+                optopt.value = g.optopt.ulong_z
                 TODO("Unchecked case -> results may be very unexpected")
             }
 
-            return retval(result.asULong)
+            return retval(result.ulong_z)
         }
     }
     // POSIX.1-2001, 4.3BSD, SVr4
     // https://linux.die.net/man/2/getpid
     val getpid = object : APIFunction("getpid") {
         override val args = emptyArray<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val pid = os.currentProcess.id
             log.fine { "[0x${ra.hex8}] getpid() -> 0x${pid.hex8}" }
-            return retval(pid.asLong)
+            return retval(pid.ulong_z)
         }
     }
 
@@ -438,7 +440,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/sleep
     val sleep = object : APIFunction("sleep") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val seconds = argv[0]
             TODO("Not implemented")
         }
@@ -448,7 +450,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/getuid
     val getuid = object : APIFunction("getuid") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long) = retval(0) // User: root
+        override fun exec(name: String, vararg argv: ULong) = retval(0uL) // User: root
     }
 
     // POSIX.1-2001, 4.3BSD
@@ -459,12 +461,12 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/dup2
     val dup2 = object : APIFunction("dup2") {
         override val args = arrayOf(ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val oldfd = argv[0].asInt
-            val newfd = argv[1].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val oldfd = argv[0].int
+            val newfd = argv[1].int
             log.fine { "[0x${ra.hex8}] dup2(oldfd=$oldfd newfd=$newfd)" }
             val result = nothrow(-1) { os.filesystem.dup2(oldfd, newfd) }
-            return retval(result.asULong)
+            return retval(result.ulong_z)
         }
     }
 
@@ -472,13 +474,13 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/getcwd
     val getcwd = object : APIFunction("getcwd") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val buf = argv[0]
-            val size = argv[1]
+            val size = argv[1].int
 
             val cwd = os.filesystem.cwd
             if (cwd.length + 1 > size)
-                return retval(0)
+                return retval(0uL)
 
             os.sys.writeAsciiString(buf, cwd)
 
@@ -490,7 +492,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/chdir
     val chdir = object : APIFunction("chdir") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             // TODO: WTF?
 
             val path = os.sys.readAsciiString(argv[0])
@@ -498,7 +500,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
             log.config { "[0x${ra.hex8}] chdir(path='$path')"}
 
             println()
-            return retval(-1)
+            return retval(-1uL)
         }
     }
 
@@ -506,19 +508,19 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/getgid
     val getgid = object : APIFunction("getgid") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long) = retval(gid)
+        override fun exec(name: String, vararg argv: ULong) = retval(gid)
     }
 
     // POSIX.1-2001
     // https://linux.die.net/man/3/sysconf
     val sysconf = object : APIFunction("sysconf") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val id = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val id = argv[0].int
 
             check(id == _SC_IOV_MAX) { "[0x${ra.hex8}] Not _SC_IOV_MAX: $id" }
 
-            return retval(IOV_MAX.asULong)
+            return retval(IOV_MAX.ulong_z)
         }
     }
 
@@ -526,16 +528,16 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/fork
     val fork = object : APIFunction("fork") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val proc = os.copyProcess("forked")
 
             (os.currentProcess as PosixThread).childProcesses.add(proc as PosixThread)
             proc.parentProcess = os.currentProcess as PosixThread
 
-            proc.context.setReturnValue(0)
+            proc.context.setReturnValue(0uL)
             proc.context.programCounterValue = os.sys.returnerAddress
 
-            return retval(proc.id.toULong())
+            return retval(proc.id.ulong_z)
         }
     }
 
@@ -543,7 +545,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/execve
     val execve = object : APIFunction("execve") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val filenameStr = os.sys.readAsciiString(argv[0])
             val _argv = os.sys.readArrayString(argv[1])
 
@@ -584,14 +586,14 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/putenv
     val putenv = object : APIFunction("putenv") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val envData = os.sys.readAsciiString(argv[0]).split('=')
-            return if (envData.size != 2) retval(-1) else {
+            return if (envData.size != 2) retval(-1uL) else {
                 val varName = envData[0]
                 val value = envData[1]
                 log.fine { "[0x${ra.hex8}] putenv(name='$varName' value='$value')" }
                 os.sys.allocateEnvironmentVariable(varName, value)
-                retval(0)
+                retval(0uL)
             }
         }
     }
@@ -612,8 +614,8 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         val sequence = (0..5).map { letters.random(krand) }.joinToString("")
         template.string = templateString.replace("XXXXXX", sequence) // TODO: replace only last symbols
         val deps = sys.deps
-        val result = open.exec("", template.address, (deps.O_CREAT or deps.O_TRUNC or O_RDWR).asULong)
-        return (result as APIResult.Value).data.asInt
+        val result = open.exec("", template.address, (deps.O_CREAT or deps.O_TRUNC or O_RDWR).ulong_z)
+        return (result as APIResult.Value).data.int
     }
 
     @APIFunc
@@ -640,15 +642,15 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int, ArgType.Int,
                 ArgType.Int, ArgType.Int, ArgType.LongLong)
 
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val start = argv[0]
             val length = argv[1]
             val prot = argv[2]
             val flags = argv[3]
-            val fd = argv[4].asInt
-            val offset = argv[5].asInt
+            val fd = argv[4].int
+            val offset = argv[5].int
 
-            if (start != 0L) TODO("start isn't zero: 0x${start.hex8}")
+            if (start != 0uL) TODO("start isn't zero: 0x${start.hex8}")
 
             // TODO: process prot
             log.config { "[0x${ra.hex8}] mmap(start=$start length=$length fd=$fd offset=$offset) -> parameter prot unused" }
@@ -667,13 +669,13 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/munmap
     val munmap = object : APIFunction("munmap") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val start = argv[0]
-            val length = argv[1].asInt
+            val length = argv[1].int
 
             // TODO: if something wrong then we don't know yet about it and should learn
             os.sys.unmapFileFromMemory(start, length)
-            return retval(0)
+            return retval(0u)
         }
     }
 
@@ -681,12 +683,12 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/madvise
     val madvise = object : APIFunction("madvise") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val addr = argv[0].asLong
-            val length = argv[1].asInt
-            val advice = argv[2].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val addr = argv[0]
+            val length = argv[1].int
+            val advice = argv[2].int
             log.config { "[0x${ra.hex8}] madvise not implemented addr=0x${addr.hex8} length=${length} advice=$advice" }
-            return retval(0)
+            return retval(0uL)
         }
     }
 
@@ -707,10 +709,10 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/socket
     val socket = object : APIFunction("socket") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val domain = argv[0].asInt
-            val type = argv[1].asInt
-            val protocol = argv[2].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val domain = argv[0].int
+            val type = argv[1].int
+            val protocol = argv[2].int
 
             val sockStream = sys.deps.SOCK_STREAM
             require(domain == AF_INET && type == sockStream && (protocol == IPPROTO_IP || protocol == IPPROTO_TCP)) {
@@ -720,7 +722,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
             log.fine { "[0x${ra.hex8}] socket(domain=$domain type=$type protocol=$protocol) -> fd = $socket" }
 
-            return retval(socket.asULong)
+            return retval(socket.ulong_z)
         }
     }
     val _socket = socket
@@ -728,15 +730,15 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/bind
     val bind = object : APIFunction("bind") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val sockfd = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val sockfd = argv[0].int
             val saPtr = argv[1]
-            val addrlen = argv[2].asInt
+            val addrlen = argv[2].int
             val sa = os.abi.reader.sockaddr(saPtr, addrlen)
             require(sa.sin_family == AF_INET) { "[0x${ra.hex8}] Only AF_INET currently supported!" }
             val address = InetSocketAddress(InetAddress.getByAddress(sa.sin_addr), htons(sa.sin_port))
             val result = nothrow(-1) { os.network.bind(sockfd, address); 0 }
-            return retval(result.asLong)
+            return retval(result.ulong_z)
         }
     }
     val _bind = bind
@@ -744,25 +746,25 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/sendto
     val sendto = object : APIFunction("sendto") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int, ArgType.Int, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult = TODO("use socketSystem")
+        override fun exec(name: String, vararg argv: ULong): APIResult = TODO("use socketSystem")
     }
     val _sendto = sendto
     // 4.4BSD, POSIX.1-2001
     // https://linux.die.net/man/2/recvfrom
     val recvfrom = object : APIFunction("recvfrom") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int, ArgType.Int, ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult = TODO("use socketSystem")
+        override fun exec(name: String, vararg argv: ULong): APIResult = TODO("use socketSystem")
     }
     val _recvfrom = recvfrom
     // 4.4BSD, POSIX.1-2001
     // https://linux.die.net/man/2/listen
     val listen = object : APIFunction("listen") {
         override val args = arrayOf(ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val s = argv[0].asInt
-            val backlog = argv[1].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val s = argv[0].int
+            val backlog = argv[1].int
             val result = nothrow(-1) { os.network.listen(s, backlog); 0 }
-            return retval(result.asLong)
+            return retval(result.ulong_z)
         }
     }
     val _listen = listen
@@ -771,10 +773,10 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     val accept = object : APIFunction("accept") {
         // https://linux.die.net/man/3/accept
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val s = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val s = argv[0].int
             val addr = argv[1]
-            val addrlen = argv[2]
+            val addrlen = argv[2].int
 
             require(addrlen >= sockaddr.sizeof) { "[0x${ra.hex8}] Wrong sockaddr size: $addrlen" }
 
@@ -786,12 +788,12 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                 success { (fd, inet) ->
                     log.fine { "[0x${ra.hex8}] accept(fd=$s addr=0x${addr.hex8}) -> fd=$fd inet=$inet" }
                     os.abi.writer.sockaddr(addr, inet.address, inet.port)
-                    fd.asULong
+                    fd.ulong_z
                 }
 
                 failure {
                     log.fine { "[0x${ra.hex8}] accept(fd=$s addr=0x${addr.hex8}) -> failed" }
-                    setErrno(it); -1
+                    setErrno(it); -1uL
                 }
             }
 
@@ -803,18 +805,18 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/getsockopt
     val getsockopt = object : APIFunction("getsockopt") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int, ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult = TODO("use socketSystem")
+        override fun exec(name: String, vararg argv: ULong): APIResult = TODO("use socketSystem")
     }
     val _getsockopt = getsockopt
     // 4.4BSD, POSIX.1-2001
     // https://linux.die.net/man/2/recv
     val recv = object : APIFunction("recv") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val s = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val s = argv[0].int
             val buf = argv[1]
-            val len = argv[2].asInt
-            val flags = argv[3].asInt
+            val len = argv[2].int
+            val flags = argv[3].int
 
             check(flags == 0) { "[0x${ra.hex8}] The program requires to use the flags value: $flags" }
 
@@ -825,11 +827,11 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
                 success {
                     os.abi.writeBytes(buf, it)
-                    it.size.asULong
+                    it.size.ulong_z
                 }
 
                 failure {
-                    setErrno(it); -1
+                    setErrno(it); -1uL
                 }
             }
 
@@ -841,11 +843,11 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/send
     val send = object : APIFunction("send") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val s = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val s = argv[0].int
             val buf = argv[1]
-            val len = argv[2].asInt
-            val flags = argv[3].asInt
+            val len = argv[2].int
+            val flags = argv[3].int
 
             check(flags == 0) { "[0x${ra.hex8}] The program requires to use the flags value: $flags" }
 
@@ -853,19 +855,19 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
             val result = nothrow(-1) { os.network.send(s, data); len }
 
-            return retval(result.asULong)
+            return retval(result.ulong_z)
         }
     }
     // SVr4, 4.4BSD, POSIX.1-2001
     // https://linux.die.net/man/2/setsockopt
     val setsockopt = object : APIFunction("setsockopt") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val s = argv[0]
-            val level = argv[1].asInt
-            val optname = argv[2].asInt
+            val level = argv[1].int
+            val optname = argv[2].int
             val optval = argv[3]
-            val optlen = argv[4].asInt
+            val optlen = argv[4].int
 
             // TODO: now nothing to do
             val deps = sys.deps
@@ -877,21 +879,21 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
             os.abi.readInt(optval) // Check for access
 
-            return retval(0)
+            return retval(0uL)
         }
     }
     // POSIX.1-2001, 4.4BSD
     // https://linux.die.net/man/3/shutdown
     val shutdown = object : APIFunction("shutdown") {
         override val args = arrayOf(ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val s = argv[0].asInt
-            val how = argv[1].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val s = argv[0].int
+            val how = argv[1].int
             log.fine { "[0x${ra.hex8}] shutdown(s=$s how=$how) in ${os.currentProcess} " }
             val read = how == SHUT_RDWR || how == SHUT_RD
             val write = how == SHUT_RDWR || how == SHUT_WR
             val error = nothrow(-1) { os.network.shutdown(s, read, write); 0 }
-            return retval(error.asLong)
+            return retval(error.ulong_z)
         }
     }
 
@@ -900,7 +902,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/htons
     val htons = object : APIFunction("htons") {
         override val args = arrayOf(ArgType.Short)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val value = argv[0]
             return retval(htons(value))
         }
@@ -909,7 +911,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/htonl
     val htonl = object : APIFunction("htonl") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val value = argv[0]
             return retval(htonl(value))
         }
@@ -918,18 +920,18 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/inet_ntop
     val inet_ntop = object : APIFunction("inet_ntop") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val af = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val af = argv[0].int
             val src = argv[1]
             val dst = argv[2]
-            val cnt = argv[3]
+            val cnt = argv[3].int
 
             check(af == AF_INET) { "[0x${ra.hex8}] Not AF_INET: $af" }
 
             val addr = os.abi.reader.sockaddr(src)
 
             if (addr.hostname.length + 1 < cnt)
-                return retval(0)
+                return retval(0uL)
 
             os.sys.writeAsciiString(dst, addr.hostname)
 
@@ -948,39 +950,39 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                 ArgType.Pointer,    // longopts
                 ArgType.Pointer     // longindex
         )
-        private fun getArg(pArgv: Long, index: Int): String {
+        private fun getArg(pArgv: ULong, index: Int): String {
             val address = os.abi.readPointer(pArgv + os.abi.types.pointer.bytes * index)
             return os.sys.readAsciiString(address)
         }
 
-        private fun getProgname(pArgv: Long): String = getArg(pArgv, 0)
-        private fun getArgs(pArgv: Long, argc: Int) = collect(argc) { getArg(pArgv, it) }.toTypedArray()
+        private fun getProgname(pArgv: ULong): String = getArg(pArgv, 0)
+        private fun getArgs(pArgv: ULong, argc: Int) = List(argc) { getArg(pArgv, it) }.toTypedArray()
 
         @DontAutoSerialize
         private lateinit var g: Getopt
         private var initialized = false
 
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val longopts = argv[3]
             val longindex = argv[4]
 
             val longoptsList = mutableListOf<LongOpt>()
             var ptr = longopts
-            val stringBuffers = mutableMapOf<Long, StringBuffer>()
+            val stringBuffers = mutableMapOf<ULong, StringBuffer>()
 
             while (true) {
                 val nameAddress = os.abi.readPointer(ptr)
-                if (nameAddress == 0L)
+                if (nameAddress == 0uL)
                     break
-                val hasArg = os.abi.readInt(ptr + 4)
-                val flagAddress = os.abi.readPointer(ptr + 8)
-                val value = os.abi.readInt(ptr + 12)
+                val hasArg = os.abi.readInt(ptr + 4u)
+                val flagAddress = os.abi.readPointer(ptr + 8u)
+                val value = os.abi.readInt(ptr + 12u)
 
                 val name = os.sys.readAsciiString(nameAddress)
-                val flag = if (flagAddress == 0L) null else StringBuffer().also { stringBuffers[flagAddress] = it }
-                longoptsList.add(LongOpt(name, hasArg.asInt, flag, value.asInt))
+                val flag = if (flagAddress == 0uL) null else StringBuffer().also { stringBuffers[flagAddress] = it }
+                longoptsList.add(LongOpt(name, hasArg.int, flag, value.int))
 
-                ptr += 16
+                ptr += 16u
             }
 
             val array = longoptsList.toTypedArray()
@@ -992,28 +994,28 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
                 val optstr = os.sys.readAsciiString(pOptStr)
                 val progname = getProgname(pArgv)
-                val args = getArgs(pArgv, argc.asInt).drop(1).toTypedArray()
+                val args = getArgs(pArgv, argc.int).drop(1).toTypedArray()
 
                 initialized = true
                 g = Getopt(progname, args, optstr, array)
 
                 if (optind.linked)
-                    optind.value = 1
+                    optind.value = 1uL
             }
 
             val result = g.getopt()
 
-            if (longindex != 0L) {
-                os.abi.writeLong(longindex, g.longind.asULong)
+            if (longindex != 0uL) {
+                os.abi.writeLong(longindex, g.longind.ulong_z)
             }
 
             if (optind.linked)
-                optind.value = g.optind.asULong + 1
+                optind.value = g.optind.ulong_z + 1u
 
             if (optarg.linked)
-                optarg.value = if (g.optarg != null) os.sys.allocateAsciiString(g.optarg) else 0L
+                optarg.value = if (g.optarg != null) os.sys.allocateAsciiString(g.optarg) else 0uL
 
-            return retval(result.asULong)
+            return retval(result.ulong_z)
         }
     }
     // TODO: merge with getopt_long
@@ -1027,39 +1029,39 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                 ArgType.Pointer,    // longopts
                 ArgType.Pointer     // longindex
         )
-        private fun getArg(pArgv: Long, index: Int): String {
+        private fun getArg(pArgv: ULong, index: Int): String {
             val address = os.abi.readPointer(pArgv + os.abi.types.pointer.bytes * index)
             return os.sys.readAsciiString(address)
         }
 
-        private fun getProgname(pArgv: Long): String = getArg(pArgv, 0)
-        private fun getArgs(pArgv: Long, argc: Int) = collect(argc) { getArg(pArgv, it) }.toTypedArray()
+        private fun getProgname(pArgv: ULong): String = getArg(pArgv, 0)
+        private fun getArgs(pArgv: ULong, argc: Int) = List(argc) { getArg(pArgv, it) }.toTypedArray()
 
         @DontAutoSerialize
         private lateinit var g: Getopt
         private var initialized = false
 
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val longopts = argv[3]
             val longindex = argv[4]
 
             val longoptsList = mutableListOf<LongOpt>()
             var ptr = longopts
-            val stringBuffers = mutableMapOf<Long, StringBuffer>()
+            val stringBuffers = mutableMapOf<ULong, StringBuffer>()
 
             while (true) {
                 val nameAddress = os.abi.readPointer(ptr)
-                if (nameAddress == 0L)
+                if (nameAddress == 0uL)
                     break
-                val hasArg = os.abi.readInt(ptr + 4)
-                val flagAddress = os.abi.readPointer(ptr + 8)
-                val value = os.abi.readInt(ptr + 12)
+                val hasArg = os.abi.readInt(ptr + 4u)
+                val flagAddress = os.abi.readPointer(ptr + 8u)
+                val value = os.abi.readInt(ptr + 12u)
 
                 val name = os.sys.readAsciiString(nameAddress)
-                val flag = if (flagAddress == 0L) null else StringBuffer().also { stringBuffers[flagAddress] = it }
-                longoptsList.add(LongOpt(name, hasArg.asInt, flag, value.asInt))
+                val flag = if (flagAddress == 0uL) null else StringBuffer().also { stringBuffers[flagAddress] = it }
+                longoptsList.add(LongOpt(name, hasArg.int, flag, value.int))
 
-                ptr += 16
+                ptr += 16u
             }
 
             val array = longoptsList.toTypedArray()
@@ -1071,28 +1073,28 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
                 val optstr = os.sys.readAsciiString(pOptStr)
                 val progname = getProgname(pArgv)
-                val args = getArgs(pArgv, argc.asInt).drop(1).toTypedArray()
+                val args = getArgs(pArgv, argc.int).drop(1).toTypedArray()
 
                 initialized = true
                 g = Getopt(progname, args, optstr, array, true)
 
                 if (optind.linked)
-                    optind.value = 1
+                    optind.value = 1u
             }
 
             val result = g.getopt()
 
 
-            if (longindex != 0L)
-                os.abi.writeInt(longindex, g.longind.asULong)
+            if (longindex != 0uL)
+                os.abi.writeInt(longindex, g.longind.ulong_z)
 
             if (optind.linked)
-                optind.value = g.optind.asULong + 1
+                optind.value = g.optind.ulong_z + 1u
 
             if (optarg.linked)
-                optarg.value = if (g.optarg != null) os.sys.allocateAsciiString(g.optarg) else 0L
+                optarg.value = if (g.optarg != null) os.sys.allocateAsciiString(g.optarg) else 0uL
 
-            return retval(result.asULong)
+            return retval(result.ulong_z)
         }
     }
 
@@ -1101,16 +1103,16 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/getrlimit
     val getrlimit = object : APIFunction("getrlimit") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val resource = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val resource = argv[0].int
             val rlim = argv[1]
 
             log.config { "[0x${ra.hex8}] Not fair implementation of getrlimit -> values depends on arch" }
             val rlimitNofile = sys.deps.RLIMIT_NOFILE
             check(resource == rlimitNofile) { "[0x${ra.hex8}] TODO: Not implemented" }
 
-            os.abi.writeBytes(rlim, rlimit(0x1000, 0x1000).asBytes)
-            return retval(0)
+            os.abi.writeBytes(rlim, rlimit(0x1000u, 0x1000u).asBytes)
+            return retval(0u)
         }
     }
 
@@ -1152,17 +1154,24 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         }
     }
 
+    // REVIEW: not implemented
+    // REVIEW: uid_t, gid_t
+    // 4.4BSD, SVr4, POSIX.1-2001
+    // https://linux.die.net/man/2/chown
+    @APIFunc
+    fun chown() = 0.also { log.fine { "[0x${ra.hex8}] chown(...) -> not implemented" }}
+
     // REVIEW: #include <syslog.h>
     // SUSv2, POSIX.1-2001
     // https://linux.die.net/man/3/openlog
     val openlog = object : APIFunction("openlog") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val ident = os.sys.readAsciiString(argv[0])
             val option = argv[1]
-            val facility = argv[2].asInt
+            val facility = argv[2].int
 
-            check(option and 0x03L.inv() == 0L) { "[0x${ra.hex8}] Unknown option: $option" }
+            check(option and inv(0x03uL) == 0uL) { "[0x${ra.hex8}] Unknown option: $option" }
             log.config { "[0x${ra.hex8}] openlog() -> facility not implemented" }
 
             openlogIdent = ident
@@ -1175,15 +1184,15 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/select
     val select = object : APIFunction("select") {
 
-        fun selectSingle(ptr: Long, n: Int, block: (Int) -> Boolean): Int {
+        fun selectSingle(ptr: ULong, n: Int, block: (Int) -> Boolean): Int {
             var count = 0
-            if (ptr != 0L) {
+            if (ptr != 0uL) {
                 val fdSet = fd_set(os.abi.readBytes(ptr, fd_set.sizeof), n)
                 for (i in 0 until n) {
                     val major = i / 32
                     val minor = i % 32
                     val value = fdSet.fds_bits[major]
-                    if (value[minor].toBool()) {
+                    if (value[minor].truth) {
                         if (block(i)) {
                             fdSet.fds_bits[major] = value.set(minor)
                             count++
@@ -1199,8 +1208,8 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
         // https://linux.die.net/man/2/select
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Pointer, ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val n = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val n = argv[0].int
             val readfdsPtr = argv[1]
             val writefdsPtr = argv[2]
             val exceptfdsPtr = argv[3]
@@ -1216,7 +1225,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
             val exceptCount = selectSingle(exceptfdsPtr, n) { false } // TODO: catch exceptions?
 
-            return retval(maxOf(readCount, writeCount, exceptCount).asULong)
+            return retval(maxOf(readCount, writeCount, exceptCount).ulong_z)
         }
     }
 
@@ -1226,7 +1235,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     val poll = object : APIFunction("poll") {
         val mask = POLLIN or POLLPRI or POLLOUT /*or POLLERR or POLLHUP or POLLNVAL*/
 
-        private fun pollfd.isAnyEvents(mask: Long) = events.asULong and mask != 0L
+        private fun pollfd.isAnyEvents(mask: ULong) = events.ulong_z and mask != 0uL
 
         private fun pollfd.poll(): Boolean {
             check(!isAnyEvents(mask.inv())) { "[0x${ra.hex8}] Unimplemented flags: ${events.hex4}" }
@@ -1239,12 +1248,12 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                 var changed = false
 
                 if (os.ioSystem.writable(fd)) {
-                    revents = revents or POLLOUT.asShort
+                    revents = revents or POLLOUT.short
                     changed = true
                 }
 
                 if (os.ioSystem.readable(fd)) {
-                    revents = revents or POLLIN.asShort
+                    revents = revents or POLLIN.short
                     changed = true
                 }
 
@@ -1261,30 +1270,30 @@ class PosixAPI(os: VEOS<*>) : API(os) {
             return false
         }
 
-        private fun List<pollfd>.poll(timeout: Long = 0): Int {
-            if (timeout == 0L)
+        private fun List<pollfd>.poll(timeout: ULong = 0u): Int {
+            if (timeout == 0uL)
                 return count { it.poll() }
 
             var count: Int
             var remain = timeout
             do {
-                val duration = minOf(50, remain)
-                Thread.sleep(duration)
+                val duration = remain.coerceAtMost(50u)
+                Thread.sleep(duration.long)
                 count = count { it.poll() }
                 remain -= duration
-            } while (count == 0 && remain > 0)
+            } while (count == 0 && remain != 0uL)
 
             return count
         }
 
         // https://linux.die.net/man/2/poll
         override val args = arrayOf(ArgType.Pointer, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val fds = argv[0]
-            val nfds = argv[1].asInt
+            val nfds = argv[1].int
             val timeout = argv[2]
 
-            require(timeout != -1L) { "[0x${ra.hex8}] timeout == -1 is not implemented!" }
+            require(timeout != -1uL) { "[0x${ra.hex8}] timeout == -1 is not implemented!" }
 
             log.fine { "[0x${ra.hex8}] poll(nfds=$nfds timeout=$timeout)" }
 
@@ -1297,12 +1306,12 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
                 success { count ->
                     structs.forEachIndexed { i, pollfd -> os.abi.writer.pollfd(fds, pollfd, i) }
-                    count.asULong
+                    count.ulong_z
                 }
 
                 failure {
                     // EFAULT, EINTR, EINVAL, ENOMEM <- currently not thrown
-                    setErrno(it); -1
+                    setErrno(it); -1uL
                 }
             }
 
@@ -1316,19 +1325,19 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     val writev = object : APIFunction("writev") {
 
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val fd = argv[0].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val fd = argv[0].int
             val vector = argv[1]
-            val count = argv[2].asInt
+            val count = argv[2].int
 
-            val iovecs = collect(count) { i -> iovec(os.abi.readBytes(vector + i * iovec.sizeof, iovec.sizeof)) }
+            val iovecs = List(count) { i -> iovec(os.abi.readBytes(vector + i * iovec.sizeof, iovec.sizeof)) }
 
-            var total = 0L
+            var total = 0uL
 
             iovecs.forEach {
-                val result = write.exec(name, fd.asULong, it.iov_base, it.iov_len) as APIResult.Value
-                if (result.data == -1L)
-                    return retval(-1)
+                val result = write.exec(name, fd.ulong_z, it.iov_base, it.iov_len) as APIResult.Value
+                if (result.data == -1uL)
+                    return retval(-1uL)
                 total += result.data
             }
 
@@ -1349,7 +1358,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     @APIFunc
     fun __longjmp_chk(env: jmp_buf, value: Int) {
         env.restore()
-        os.abi.setReturnValue(if (value == 0) 1L else value.asULong) // TODO: return?
+        os.abi.setReturnValue(if (value == 0) 1uL else value.ulong_z) // TODO: return?
     }
 
     // REVIEW: #include <sys/wait.h>
@@ -1371,13 +1380,13 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                     val statusValue = if (it.isSegfault)
                         SIGSEGV
                     else
-                        it.context.returnValue.asInt shl 8
+                        it.context.returnValue.int shl 8
                     status.set(statusValue)
                 }
-                it.id.asULong
+                it.id.ulong_z
             }
             failure {
-                -1
+                -1uL
             }
         }
     }
@@ -1387,7 +1396,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/bindtextdomain
     val bindtextdomain = object : APIFunction("bindtextdomain") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val domainname = os.sys.readAsciiString(argv[0])
             val dirname = os.sys.readAsciiString(argv[1])
 
@@ -1398,7 +1407,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/textdomain
     val textdomain = object : APIFunction("textdomain") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val domainname = os.sys.readAsciiString(argv[0])
 
             return retval(os.sys.allocateAsciiString(domainname))
@@ -1408,7 +1417,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/dcgettext
     val dcgettext = object : APIFunction("dcgettext") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val msgid = os.sys.readAsciiString(argv[1])
 
             return retval(os.sys.allocateAsciiString(msgid))
@@ -1436,7 +1445,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
             alignment: Int,
             chunkfun: FunctionPointer,
             freefun: FunctionPointer
-    ) = withCallback(h.address, size.asULong, alignment.asULong, chunkfun.address, freefun.address) {
+    ) = withCallback(h.address, size.ulong_z, alignment.ulong_z, chunkfun.address, freefun.address) {
         log.warning { "[0x${ra.hex8}] _obstack_begin(h=$h size=${size.hex8} alignment=${alignment.hex8} chunkfun=$chunkfun freefun=$freefun)" }
         val concreteAlignment = if (alignment != 0) alignment else 4 // TODO: way to determine alignment
         val concreteSize = if (size != 0) size else objstackDefaultAlignment
@@ -1448,7 +1457,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         h.useExtraArg = false
 
         check(!h.useExtraArg) { "Not implemented" }
-        val chunk = _obstack_chunk(os.sys, it.interrupt(h.chunkfun, h.chunkSize.asULong))
+        val chunk = _obstack_chunk(os.sys, it.interrupt(h.chunkfun, h.chunkSize.ulong_z))
         check(chunk.isNotNull) { "Not implemented" }
         h.chunk = chunk
 
@@ -1456,24 +1465,26 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         h.nextFree = h.objectBase.address
         chunk.limit = chunk.address + h.chunkSize
         h.chunkLimit = chunk.limit
-        chunk.prev = _obstack_chunk(os.sys, 0)
+        chunk.prev = _obstack_chunk(os.sys, 0uL)
         /* The initial chunk now contains no empty object.  */
         h.maybeEmptyObject = false
         h.allocFailed = false
+
         Unit
     }
     // Linux
     // https://refspecs.linuxfoundation.org/LSB_1.2.0/gLSB/baselib--obstack-newchunk.html
     @APIFunc
-    fun _obstack_newchunk(h: obstack, length: Int) = withCallback(h.address, length.asULong) {
+    fun _obstack_newchunk(h: obstack, length: Int) = withCallback(h.address, length.ulong_z) {
         log.warning { "[0x${ra.hex8}] _obstack_newchunk(h=$h length=${length.hex8})" }
         val oldChunk = h.chunk
         val objSize = h.nextFree - h.objectBase.address
 
+        val chunkSize = h.chunkSize.ulong_z
+
         /* Compute size for new chunk.  */
-        var newSize = (objSize + length) + (objSize shr 3) + h.alignmentMask + 100
-        if (newSize < h.chunkSize)
-            newSize = h.chunkSize.asULong
+        var newSize = (objSize + length) + (objSize ushr 3) + h.alignmentMask + 100uL
+        if (newSize < chunkSize) newSize = chunkSize
 
         /* Allocate and initialize the new chunk.  */
         check(!h.useExtraArg) { "Not implemented" }
@@ -1495,7 +1506,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         }
 
         /* Copy remaining bytes one by one.  */
-        objectBase.store(h.objectBase.load(objSize.asInt - already, already), already)
+        objectBase.store(h.objectBase.load(objSize.int - already, already), already)
 
         /* If the object just copied was the only data in OLD_CHUNK,
            free that chunk and remove it from the chain.
@@ -1543,6 +1554,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                 throw IllegalArgumentException("Abort")
             }
         }
+
         Unit
     }
 
@@ -1553,9 +1565,9 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/2/ioctl
     val ioctl = object : APIFunction("ioctl") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val fd = argv[0].asInt
-            val cmd = argv[1].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val fd = argv[0].int
+            val cmd = argv[1].int
             val argp = argv[2]
 
             val error = nothrow(-1) {
@@ -1564,7 +1576,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                     sys.deps.FIONREAD -> {
                         val available = os.ioSystem.available(fd)
                         log.fine { "[0x${ra.hex8}] ioctl(fd=$fd cmd=FIONREAD argp=0x${argp.hex8}) -> $available" }
-                        os.abi.writeInt(argp, available.asULong)
+                        os.abi.writeInt(argp, available.ulong_z)
                     }
 
                     else -> {
@@ -1574,7 +1586,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
                 return@nothrow 0
             }
 
-            return retval(error.asLong)
+            return retval(error.ulong_z)
         }
     }
 
@@ -1582,7 +1594,7 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     // https://linux.die.net/man/3/mallopt
     val mallopt = object : APIFunction("mallopt") {
         override val args = arrayOf(ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long) = retval(1)
+        override fun exec(name: String, vararg argv: ULong) = retval(1uL)
     }
 
     // REVIEW: #include <selinux/selinux.h>

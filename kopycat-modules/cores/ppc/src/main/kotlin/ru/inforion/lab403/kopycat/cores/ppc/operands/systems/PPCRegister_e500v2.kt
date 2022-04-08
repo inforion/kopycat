@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,38 +27,36 @@ package ru.inforion.lab403.kopycat.cores.ppc.operands.systems
 
 import ru.inforion.lab403.common.extensions.first
 import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.toBool
-import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.ppc.enums.Regtype
 import ru.inforion.lab403.kopycat.cores.ppc.enums.systems.e500v2.eOEA_e500v2
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 
-
 abstract class PPCRegister_e500v2(
         reg: Int,
         rtyp: Regtype,
-        access: AOperand.Access = AOperand.Access.ANY) :
+        access: Access = Access.ANY) :
         PPCRegister(reg, rtyp, access) {
 
     override fun toString() = when (rtyp) {
         Regtype.E500_OEA -> first<eOEA_e500v2> { it.id == reg }.name
         else -> super.toString()
-    }.toLowerCase()
+    }.lowercase()
 
 
     sealed class OEAext(id: Int) : PPCRegister_e500v2(id, Regtype.E500_OEA) {
-        override fun value(core: PPCCore): Long = core.cpu.sprRegs.readIntern(reg)
-        override fun value(core: PPCCore, data: Long) = core.cpu.sprRegs.writeIntern(reg, data)
+        override fun value(core: PPCCore) = core.cpu.sprRegs.readIntern(reg)
+        override fun value(core: PPCCore, data: ULong) = core.cpu.sprRegs.writeIntern(reg, data)
 
         open class REG_DBG_DENIED(id: Int) : OEAext(id) {
             override fun value(core: PPCCore) = denied_read(reg)
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_READ(id: Int) : OEAext(id) {
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_WRITE(id: Int) : OEAext(id) {
@@ -89,7 +87,7 @@ abstract class PPCRegister_e500v2(
 
         //Data exception address register
         //Waiting for read point
-        object DEAR : REG_DBG_WRITE(eOEA_e500v2.DEAR.id)
+        object DEAR : OEAext(eOEA_e500v2.DEAR.id)
 
         //Interrupt vector offset registers 0-15
         object IVOR0 : OEAext(eOEA_e500v2.IVOR0.id)
@@ -153,31 +151,57 @@ abstract class PPCRegister_e500v2(
 
         //L1 cache control/status 0/1 [1]
         //No need because we don't use
-        object L1CSR0 : OEAext(eOEA_e500v2.L1CSR0.id)
-        object L1CSR1 : OEAext(eOEA_e500v2.L1CSR1.id)
+        open class L1CSR(val ind: Int) : OEAext(indToId(ind)) {
+            companion object {
+                fun indToId(id: Int) = when (id) {
+                    0 -> eOEA_e500v2.L1CSR0.id
+                    1 -> eOEA_e500v2.L1CSR1.id
+                    else -> throw IllegalArgumentException("Unknown id $id")
+                }
+            }
+
+
+            override fun value(core: PPCCore, data: ULong) {
+                super.value(core, data)
+                val CFI = bit(core, 1)
+                if (CFI.truth) {
+                    log.warning { "L1CSR$ind: Cache flash invalidate" }
+                    bit(core, 1, 0)
+                }
+            }
+        }
+
+        object L1CSR0 : L1CSR(0)
+        object L1CSR1 : L1CSR(1)
 
         // Configuration registers
         object SVR : OEAext(eOEA_e500v2.SVR.id) {
-            override fun value(core: PPCCore): Long {
+            override fun value(core: PPCCore): ULong {
                 log.severe { "Read from SVR!"}
-                return 0x80800000
+                return 0x80800000u
             }
 
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
-        object PIR : OEAext(eOEA_e500v2.PIR.id)
+        object PIR : OEAext(eOEA_e500v2.SVR.id) {
+            override fun value(core: PPCCore): ULong {
+                log.severe { "Read from PIR!"}
+                return 0u
+            }
 
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
+        }
         //TODO: Many skipped
 
         //Hardware implementation-dependent register 0
         //Waiting for write point
-        object HID0 : OEAext(eOEA_e500v2.HID1.id) {
+        object HID0 : OEAext(eOEA_e500v2.HID0.id) {
 
-            override fun value(core: PPCCore, data: Long) {
+            override fun value(core: PPCCore, data: ULong) {
                 //TODO: NOT IMPLEMENTED
                 super.value(core, data)
                 val TBEN = bit(core, 14)
-                if (TBEN.toBool())
+                if (TBEN.truth)
                     log.severe { "Now time base enabled" }
             }
         }
@@ -185,14 +209,14 @@ abstract class PPCRegister_e500v2(
         //Hardware implementation-dependent register 1
         object HID1 : OEAext(eOEA_e500v2.HID1.id) {
 
-            override fun value(core: PPCCore): Long {
-                val pllCfg = 0b110001_01L //Ratio of 2:1
+            override fun value(core: PPCCore): ULong {
+                val pllCfg = 0b110001_01uL //Ratio of 2:1
                 return pllCfg shl 24
                 //super.value(core)
             }
 
-            override fun value(core: PPCCore, data: Long) {
-                log.warning { "PID1 value: ${data.hex8}" }
+            override fun value(core: PPCCore, data: ULong) {
+                log.warning { "HID1 value: ${data.hex8}" }
                 super.value(core, data)
             }
 

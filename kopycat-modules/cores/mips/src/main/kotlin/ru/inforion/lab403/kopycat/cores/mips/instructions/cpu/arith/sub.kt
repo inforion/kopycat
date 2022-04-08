@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class sub(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         rd: MipsRegister,
         rs: MipsRegister,
         rt: MipsRegister) : RdRsRtInsn(core, data, Type.VOID, rd, rs, rt)  {
@@ -42,8 +42,8 @@ class sub(
     override val mnem = "sub"
 
     override fun execute() {
-        val op1 = vrs or ((vrs and 0x80000000) shl 1)
-        val op2 = vrt or ((vrt and 0x80000000) shl 1)
+        val op1 = vrs or ((vrs and 0x80000000u) shl 1)
+        val op2 = vrt or ((vrt and 0x80000000u) shl 1)
         val tmp = op1 - op2
         if (tmp[32] != tmp[31])
             throw MipsHardwareException.OV(core.pc)

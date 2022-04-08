@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb16
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -38,16 +38,16 @@ object ThumbArithmImmDecoder {
     class T1(cpu: AARMCore,
              private val constructor: (
                      cpu: AARMCore,
-                     opcode: Long,
+                     opcode: ULong,
                      cond: Condition,
                      setFlags: Boolean,
                      rd: ARMRegister,
                      rn: ARMRegister,
                      imm32: Immediate<AARMCore>,
                      size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
-            val rd = gpr(data[2..0].asInt)
-            val rn = gpr(data[5..3].asInt)
+        override fun decode(data: ULong): AARMInstruction {
+            val rd = gpr(data[2..0].int)
+            val rn = gpr(data[5..3].int)
             val imm3 = Immediate<AARMCore>(data[8..6])
             val setFlag = !core.cpu.InITBlock()
             return constructor(core, data, Condition.AL, setFlag, rd, rn, imm3, 2)
@@ -57,16 +57,16 @@ object ThumbArithmImmDecoder {
     class T2(cpu: AARMCore,
              private val constructor: (
                      cpu: AARMCore,
-                     opcode: Long,
+                     opcode: ULong,
                      cond: Condition,
                      setFlags: Boolean,
                      rd: ARMRegister,
                      rn: ARMRegister,
                      imm32: Immediate<AARMCore>,
                      size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
-            val rd = gpr(data[10..8].asInt)
-            val rn = gpr(data[10..8].asInt)
+        override fun decode(data: ULong): AARMInstruction {
+            val rd = gpr(data[10..8].int)
+            val rn = gpr(data[10..8].int)
             val imm8 = Immediate<AARMCore>(data[7..0])
             val setFlag = !core.cpu.InITBlock()
             return constructor(core, data, Condition.AL, setFlag, rd, rn, imm8, 2)

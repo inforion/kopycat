@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,24 +35,24 @@ class ARMImmediateShift constructor(val rm: ARMRegister, val imm: ARMImmediate, 
 
     override fun toString(): String = "$rm, $shift $imm"
 
-    override fun value(core: AARMCore): Long {
-        val data = imm.value.asInt
+    override fun value(core: AARMCore): ULong {
+        val data = imm.value.int
         return when (shift) {
             ShiftType.LSL -> if (data <= 0L) rm.value(core) else (rm.value(core) shl data) mask 32
             ShiftType.LSR -> if (data <= 0L) rm.value(core) else rm.value(core) ushr data
-            ShiftType.ASR -> if (data <= 0L) if (carry(core)) 0xFFFFFFFF else 0 else rm.value(core) shr imm.value.asInt
-            ShiftType.ROR -> if (data <= 0L) (rm.value(core) ushr 1) or (core.cpu.flags.c.asLong shl 31) else rm.value(core) rotr32 data
-            ShiftType.RRX -> RRX(rm.value(core), 32, core.cpu.flags.c.asInt)
+            ShiftType.ASR -> if (data <= 0L) if (carry(core)) 0xFFFFFFFFu else 0u else rm.value(core) ashr imm.value.int
+            ShiftType.ROR -> if (data <= 0L) (rm.value(core) ushr 1) or (core.cpu.flags.c.ulong shl 31) else rm.value(core) rotr32 data
+            ShiftType.RRX -> RRX(rm.value(core), 32, core.cpu.flags.c.int)
             else -> throw IllegalStateException("Unexpected shift type!")
         }
     }
 
     override fun carry(core: AARMCore): Boolean {
-        val data = imm.value.asInt
+        val data = imm.value.int
         return when (shift) {
-            ShiftType.LSL -> if (data <= 0L) core.cpu.flags.c else rm.value(core)[32 - data].toBool()
-            ShiftType.LSR, ShiftType.ASR -> if (data <= 0L) rm.value(core)[31].toBool() else rm.value(core)[data - 1].toBool()
-            ShiftType.ROR -> if (data <= 0L) rm.value(core)[0].toBool() else rm.value(core)[data - 1].toBool()
+            ShiftType.LSL -> if (data <= 0L) core.cpu.flags.c else rm.value(core)[32 - data].truth
+            ShiftType.LSR, ShiftType.ASR -> if (data <= 0L) rm.value(core)[31].truth else rm.value(core)[data - 1].truth
+            ShiftType.ROR -> if (data <= 0L) rm.value(core)[0].truth else rm.value(core)[data - 1].truth
             else -> throw IllegalStateException("Unexpected shift type!")
         }
     }

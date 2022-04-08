@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.common
 
-import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -33,12 +32,14 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT
-import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT.*
+import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
+import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType.*
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
 import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
+import ru.inforion.lab403.kopycat.interfaces.*
+
 
 class DebuggerTest: Module(null, "ARM Debugger Test") {
     inner class Buses: ModuleBuses(this) { val mem = Bus("mem") }
@@ -51,23 +52,23 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
     init {
         arm.ports.mem.connect(buses.mem)
         ram1.ports.mem.connect(buses.mem)
-        boot.ports.mem.connect(buses.mem, 0x0800_0000)
+        boot.ports.mem.connect(buses.mem, 0x0800_0000u)
         dbg.ports.breakpoint.connect(buses.mem)
         initializeAndResetAsTopInstance()
-        arm.cpu.BXWritePC(0x1)  // binary compiled as Thumb ARMv7
+        arm.cpu.BXWritePC(0x1u)  // binary compiled as Thumb ARMv7
     }
 
     private fun prepareStrings() {
         val str = "Hello World"
-        val address1 = 0x100L
-        val address2 = 0x200L
+        val address1 = 0x100uL
+        val address2 = 0x200uL
         store(address1, str)
         regs(r0 = address1, r1 = address2)
     }
 
-    private fun regs(r0: Long = 0, r1: Long = 0, r2: Long = 0, r3: Long = 0, r4: Long = 0,
-                     r5: Long = 0, r6: Long = 0, r7: Long = 0, r8: Long = 0, r9: Long = 0,
-                     r10: Long = 0, r11: Long = 0, r12: Long = 0, r13: Long = 0, r14: Long = 0) {
+    private fun regs(r0: ULong = 0u, r1: ULong = 0u, r2: ULong = 0u, r3: ULong = 0u, r4: ULong = 0u,
+                     r5: ULong = 0u, r6: ULong = 0u, r7: ULong = 0u, r8: ULong = 0u, r9: ULong = 0u,
+                     r10: ULong = 0u, r11: ULong = 0u, r12: ULong = 0u, r13: ULong = 0u, r14: ULong = 0u) {
         arm.cpu.regs.r0.value = r0
         arm.cpu.regs.r1.value = r1
         arm.cpu.regs.r2.value = r2
@@ -85,24 +86,24 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
         arm.cpu.regs.lr.value = r14
     }
 
-    private fun flags(n: Long = 0, z: Long = 0, c: Long = 0, v: Long = 0) {
-        arm.cpu.flags.n = n.toBool()
-        arm.cpu.flags.z = z.toBool()
-        arm.cpu.flags.c = c.toBool()
-        arm.cpu.flags.v = v.toBool()
+    private fun flags(n: ULong = 0u, z: ULong = 0u, c: ULong = 0u, v: ULong = 0u) {
+        arm.cpu.flags.n = n.truth
+        arm.cpu.flags.z = z.truth
+        arm.cpu.flags.c = c.truth
+        arm.cpu.flags.v = v.truth
     }
 
-    private fun status(q: Long = 0, ge: Long = 0) {
-        arm.cpu.status.q = q.toBool()
-        arm.cpu.status.ge = ge.asLong
+    private fun status(q: ULong = 0u, ge: ULong = 0u) {
+        arm.cpu.status.q = q.truth
+        arm.cpu.status.ge = ge
     }
 
-    private fun load(address: Long, size: Int): String = arm.load(address, size).hexlify()
-    private fun load(address: Long, dtyp: Datatype): Long = arm.read(dtyp, address, 0)
-    private fun store(address: Long, data: String) = arm.store(address, data.unhexlify())
-    private fun store(address: Long, data: Long, dtyp: Datatype) = arm.write(dtyp, address, data, 0)
+    private fun load(address: ULong, size: Int): String = arm.load(address, size).hexlify()
+    private fun load(address: ULong, dtyp: Datatype): ULong = arm.read(dtyp, address, 0)
+    private fun store(address: ULong, data: String) = arm.store(address, data.unhexlify())
+    private fun store(address: ULong, data: ULong, dtyp: Datatype) = arm.write(dtyp, address, data, 0)
 
-    private fun assertPC(expected: Long, actual: Long, type: String = "PC") =
+    private fun assertPC(expected: ULong, actual: ULong, type: String = "PC") =
             Assert.assertEquals("$type error: 0x${expected.hex8} != 0x${actual.hex8}", expected, actual)
 
     @Before fun resetTest() {
@@ -111,46 +112,42 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
         prepareStrings()
     }
 
-    private fun setBreakpoint(address: Long, btyp: GDB_BPT = SOFTWARE) = dbg.bptSet(btyp, address)
-    private fun deleteBreakpoint(address: Long) = dbg.bptClr(address)
+    private fun setBreakpoint(address: ULong, btyp: BreakpointType = SOFTWARE) = dbg.bptSet(btyp, address)
+    private fun deleteBreakpoint(address: ULong) = dbg.bptClr(address)
 
     @Test fun bptExecTest() {
-        val expected = 0x6L
+        val expected = 0x6uL
         setBreakpoint(expected)
-        val def = async { dbg.cont() }
-        runBlocking { def.await() }
+        dbg.cont()
         assertPC(expected, dbg.cpu.pc)
         dbg.step()
-        assertPC(expected + 2, arm.pc)
+        assertPC(expected + 2u, arm.pc)
     }
 
     @Test fun bptWriteTest() {
-        val expected = 0x8L
-        setBreakpoint(0x100, WRITE)
-        val def = async { dbg.cont() }
-        runBlocking { def.await() }
+        val expected = 0x8uL
+        setBreakpoint(0x100u, WRITE)
+        dbg.cont()
         assertPC(expected, dbg.cpu.pc)
     }
 
     @Test fun bptReadTest() {
-        val expected = 0x4L
-        setBreakpoint(0x200, READ)
-        val def = async { dbg.cont() }
-        runBlocking { def.await() }
+        val expected = 0x4uL
+        setBreakpoint(0x200u, READ)
+        dbg.cont()
         assertPC(expected, dbg.cpu.pc)
     }
 
     @Test fun bptAddDelete() {
-        val expected = 0x8L
-        setBreakpoint(0x100, WRITE)
-        setBreakpoint(0x200, READ)
-        setBreakpoint(0x200, READ)
-        setBreakpoint(0x200, READ)
-        deleteBreakpoint(0x200)
-        deleteBreakpoint(0x200)
-        deleteBreakpoint(0x200)
-        val def = async { dbg.cont() }
-        runBlocking { def.await() }
+        val expected = 0x8uL
+        setBreakpoint(0x100u, WRITE)
+        setBreakpoint(0x200u, READ)
+        setBreakpoint(0x200u, READ)
+        setBreakpoint(0x200u, READ)
+        deleteBreakpoint(0x200u)
+        deleteBreakpoint(0x200u)
+        deleteBreakpoint(0x200u)
+        dbg.cont()
         assertPC(expected, dbg.cpu.pc)
     }
 

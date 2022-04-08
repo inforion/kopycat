@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@ import ru.inforion.lab403.kopycat.modules.elanSC520.PIT.READBACK_TYPE.*
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import java.util.logging.Level.FINE
-import java.util.logging.Level.FINER
 
 @Suppress("MemberVisibilityCanBePrivate", "PropertyName")
 class PIT(parent: Module, name: String) : Module(parent, name) {
@@ -54,7 +53,7 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
         val irq = Master("irq", INTERRUPT_COUNT)
-        val io = Slave("io", BUS16)
+        val io = Slave("io", BUS16.ulong)
     }
 
     override val ports = Ports()
@@ -65,7 +64,7 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
 
     enum class READBACK_TYPE { Count, Status, StatusThenCount, None }
 
-    inner class PITxCNT_STA(port: SlavePort, val id: Int) : Register(port, 0x0040L + id, BYTE, "PIT${id}CNT_STA") {
+    inner class PITxCNT_STA(port: SlavePort, val id: Int) : Register(port, 0x0040uL + id.uint, BYTE, "PIT${id}CNT_STA") {
         // Fields for read
         var OUTPUT by bit(7)
         var NULL_CNT by bit(6)
@@ -75,14 +74,14 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
 
         var CHx_CNT by field(7..0)
 
-        var READBACK_LATCHED = 0
+        var READBACK_LATCHED = 0uL
 
         // Latched data that counter repeatedly work out
-        var LATCHED = 0
+        var LATCHED = 0uL
         // Current count of timer
-        var COUNT = 0
+        var COUNT = 0uL
         // Count latch mode (see datasheet)
-        var CTR_RW_LATCH = 0
+        var CTR_RW_LATCH = 0uL
         // Meaning only for CTR_RW_LATCH == 3
         var no = 0
 
@@ -91,9 +90,9 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
 
         override fun stringify() = "${super.stringify()} [LATCHED=$LATCHED ENABLED=${timer.enabled} OUTPUT=$OUTPUT NULL_CNT=$NULL_CNT RW=$RW CTR_MODE_STA=$CTR_MODE_STA BCD=$BCD]"
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            val tmp = value.asInt
-            when (CTR_RW_LATCH) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            val tmp = value and 0xFFFF_FFFFuL // TODO: idk, why, but there was an int-cast
+            when (CTR_RW_LATCH.int) {
                 1 -> LATCHED = insert(tmp, 7..0)
                 2 -> LATCHED = insert(tmp, 15..8)
                 3 -> if (no == 0) {
@@ -106,13 +105,13 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
             }
             COUNT = LATCHED
             // Timer enabled for emulator core if at least one LATCHED value configured
-            timer.enabled = PIT_CNT_STA.any { it.LATCHED != 0 }
+            timer.enabled = PIT_CNT_STA.any { it.LATCHED != 0uL }
             log.write(FINE)
         }
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             when (READBACK) {
-                Count -> when (CTR_RW_LATCH) {
+                Count -> when (CTR_RW_LATCH.int) {
                     1 -> CHx_CNT = READBACK_LATCHED[7..0]
                     2 -> CHx_CNT = READBACK_LATCHED[15..8]
                     3 -> if (no == 0) {
@@ -152,18 +151,18 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             super.deserialize(ctxt, snapshot)
-            LATCHED = loadValue(snapshot, "LATCHED") { 0 }
-            COUNT = loadValue(snapshot, "COUNT") { 0 }
-            CTR_RW_LATCH = loadValue(snapshot, "CTR_RW_LATCH") { 0 }
+            LATCHED = loadValue(snapshot, "LATCHED") { 0u }
+            COUNT = loadValue(snapshot, "COUNT") { 0u }
+            CTR_RW_LATCH = loadValue(snapshot, "CTR_RW_LATCH") { 0u }
             no = loadValue(snapshot, "no") { 0 }
             READBACK = loadEnum(snapshot, "READBACK", Status)
-            READBACK_LATCHED = loadValue(snapshot, "READBACK_LATCHED") { 0 }
+            READBACK_LATCHED = loadValue(snapshot, "READBACK_LATCHED") { 0u }
         }
     }
 
     private val PIT_CNT_STA = Array(INTERRUPT_COUNT) { PITxCNT_STA(ports.io, it) }
 
-    private val PITMODECTL = object : Register(ports.io, 0x0043, BYTE, name = "PITMODECTL") {
+    private val PITMODECTL = object : Register(ports.io, 0x0043u, BYTE, name = "PITMODECTL") {
         val CTR_SEL by field(CTR_SEL_RANGE)
         val CTR_RW_LATCH by field(CTR_CMD_RANGE)
         val CTR_MODE by field(3..1)
@@ -171,38 +170,38 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
 
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL CTR_RW_LATCH=$CTR_RW_LATCH CTR_MODE=$CTR_MODE BCD=$BCD]"
 
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long) =
-                value[CTR_SEL_RANGE] != 3L && value[CTR_CMD_RANGE] != 0L
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+                value[CTR_SEL_RANGE] != 3uL && value[CTR_CMD_RANGE] != 0uL
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            val PITCNT = PIT_CNT_STA[CTR_SEL]
+            val PITCNT = PIT_CNT_STA[CTR_SEL.int]
             PITCNT.CTR_RW_LATCH = CTR_RW_LATCH
             PITCNT.no = 0
         }
     }
 
-    private val PITCNTLAT = object : Register(ports.io, 0x0043, BYTE, name = "PITCNTLAT") {
+    private val PITCNTLAT = object : Register(ports.io, 0x0043u, BYTE, name = "PITCNTLAT") {
         val CTR_SEL by field(CTR_SEL_RANGE)
         val CTR_CMD by field(CTR_CMD_RANGE)
 
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL CTR_CMD=$CTR_CMD]"
 
         // When this address (Port 0043h) is written with bits 7–6 != 11b and bits 5–4 = 00b, the PITCNTLAT register is addressed
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long) =
-                value[CTR_SEL_RANGE] != 3L && value[CTR_CMD_RANGE] == 0L
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+                value[CTR_SEL_RANGE] != 3uL && value[CTR_CMD_RANGE] == 0uL
 
         // Reads of this register (PITCNTLAT) return an undefined value
-        override fun read(ea: Long, ss: Int, size: Int): Long = 0
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            PIT_CNT_STA[CTR_SEL].READBACK = Count
-            PIT_CNT_STA[CTR_SEL].READBACK_LATCHED = PIT_CNT_STA[CTR_SEL].COUNT
+            PIT_CNT_STA[CTR_SEL.int].READBACK = Count
+            PIT_CNT_STA[CTR_SEL.int].READBACK_LATCHED = PIT_CNT_STA[CTR_SEL.int].COUNT
         }
     }
 
-    private val PITRDBACK = object : Register(ports.io, 0x0043, BYTE, "PITRDBACK") {
+    private val PITRDBACK = object : Register(ports.io, 0x0043u, BYTE, "PITRDBACK") {
         val CTR_SEL by field(7..6)
         val LCNT by bit(5)
         val LSTAT by bit(4)
@@ -213,10 +212,10 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL LCNT=$LCNT LSTAT=$LSTAT CNT2=$CNT2 CNT1=$CNT1 CNT0=$CNT0]"
 
         // When this address (Port 0043h) is written with bits 7–6 = 11b, the PITRDBACK register is addressed
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long) = value[CTR_SEL_RANGE] == 3L
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[CTR_SEL_RANGE] == 3uL
 
         // Reads of this register (PITRDBACK) return an undefined value
-        override fun read(ea: Long, ss: Int, size: Int): Long = 0
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
 
         private fun prepareReadbackIfReq(pit: PITxCNT_STA, cnt: Int) {
             if (cnt == 1) when {
@@ -240,11 +239,27 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
             }
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             prepareReadbackIfReq(PIT_CNT_STA[2], CNT2)
             prepareReadbackIfReq(PIT_CNT_STA[1], CNT1)
             prepareReadbackIfReq(PIT_CNT_STA[0], CNT0)
+        }
+    }
+
+    private val UNK_REG = object : Register(ports.io, 0x004Eu, BYTE, "UNKNOWNREGISTER") {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = TODO("$name: Read from ${address.hex2}")
+
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            log.severe { "$name: Write to ${address.hex2} = ${value.hex8}" }
+        }
+    }
+
+    private val UNK_REG2 = object : Register(ports.io, 0x004Fu, BYTE, "UNKNOWNREGISTER2") {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = TODO("$name: Read from ${address.hex2}")
+
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            log.severe { "$name: Write to ${address.hex2} = ${value.hex8}" }
         }
     }
 
@@ -253,14 +268,14 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
         override fun trigger() {
             super.trigger()
 //            log.finest { "$name COUNT0=${PIT_CNT_STA[0].COUNT} COUNT1=${PIT_CNT_STA[1].COUNT} COUNT2=${PIT_CNT_STA[2].COUNT} triggered at %,d ns".format(dev.timer.time(Time.ns)) }
-            when (PITMODECTL.CTR_MODE) {
+            when (PITMODECTL.CTR_MODE.int) {
             // Counting data from LATCHED value to 0 for each channel where LATCHED != 0 (just for performance)
             // When zero reached trigger interrupt and reload COUNT value
                 2, 3 -> PIT_CNT_STA // TODO: that's nothing common with UserManual
-                        .filter { it.LATCHED != 0 }
+                        .filter { it.LATCHED != 0uL }
                         .forEach {
-                            it.COUNT -= 1
-                            if (it.COUNT == 0) {
+                            it.COUNT -= 1u
+                            if (it.COUNT == 0uL) {
                                 ports.irq.request(it.id)
                                 it.COUNT = it.LATCHED
                                 log.finest { "%s counter reached latched value at %,d ns".format(name, core.clock.time(Time.ns)) }

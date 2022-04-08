@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,14 +25,15 @@
  */
 package ru.inforion.lab403.elfloader.enums
 
+import ru.inforion.lab403.common.extensions.short
 
- 
+
 enum class ElfSectionHeaderIndex(val id: Short) {
-    SHN_UNDEF(0),
-    SHN_LORESERVE(0xFF00.toShort()),
-    SHN_LOPROC(0xFF00.toShort()),
-    SHN_HIPROC(0xFF1F.toShort()),
-    SHN_ABS(0xFFF1.toShort()),
-    SHN_COMMON(0xFFF2.toShort()),
-    SHN_HIRESERVE(0xFFFF.toShort());
+    SHN_UNDEF(0.short),
+    SHN_LORESERVE(0xFF00.short),
+    SHN_LOPROC(0xFF00.short),
+    SHN_HIPROC(0xFF1F.short),
+    SHN_ABS(0xFFF1.short),
+    SHN_COMMON(0xFFF2.short),
+    SHN_HIRESERVE(0xFFFF.short);
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.common
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -54,12 +55,12 @@ class SD(parent: Module,
          private val page: Int = 0x2000
 ) : Module(parent, name) {
     companion object {
-        @Transient private val log = logger(Level.INFO)
+        @Transient private val log = logger(INFO)
     }
 
     constructor(parent: Module, name: String, cid: String, csd: String, capacity: Int, page: Int, content: InputStream) :
             this(parent, name, cid, csd, capacity, page) {
-        content.readInto(memory)
+        content.readBufferData(memory)
     }
     constructor(parent: Module, name: String, cid: String, csd: String, capacity: Int, page: Int, content: Resource) :
             this(parent, name, cid, csd, capacity, page, content.inputStream())
@@ -85,17 +86,17 @@ class SD(parent: Module,
 
     private var buffer = allocate(0)
 
-    private val dirtyPages = HashSet<Int>(capacity / page)
+    private val dirtyPages = HashSet<UInt>(capacity / page)
     private val pageMask = (page - 1).inv()
     private val emptyPage = ByteArray(page)
 
     private val regDataIO = object : Register(ports.sd, SD_ARGUMENT, DWORD, "SD_ARGUMENT") {
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             super.read(ea, ss, size)
             return onDataRead()
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             onDataWrite(value)
         }
@@ -104,7 +105,7 @@ class SD(parent: Module,
     private val regArgumentOut = Register(ports.sd, SD_ARGUMENT, DWORD, "SD_ARGUMENT")
 
     private val regCommandOut = object : Register(ports.sd, SD_COMMAND, DWORD, "SD_COMMAND") {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             onCommandWrite(value)
         }
@@ -113,24 +114,24 @@ class SD(parent: Module,
     private val regStatusIn = Register(ports.sd, SD_STATUS, DWORD, "SD_STATUS")
 
     private val regControlIO = object : Register(ports.sd, SD_CONTROL, DWORD, "SD_CONTROL") {
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             super.read(ea, ss, size)
             return onControlReadIO()
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             onControlWriteIO(value)
         }
     }
 
     private val regResponseIn = object : Register(ports.sd, SD_RESPONSE, DWORD, "SD_RESPONSE") {
-        val values = Array(4) { 0L }
+        val values = Array(4) { 0uL }
 
-        fun clear() = values.fill(0)
+        fun clear() = values.fill(0u)
 
-        override fun read(ea: Long, ss: Int, size: Int): Long = values[ss]
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = values[ss]
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             values[ss] = value
         }
 
@@ -145,7 +146,7 @@ class SD(parent: Module,
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             super.deserialize(ctxt, snapshot)
-            (snapshot["values"] as ArrayList<Long>).forEachIndexed { index, l -> values[index] = l }
+            (snapshot["values"] as ArrayList<Long>).forEachIndexed { index, l -> values[index] = l.ulong }
         }
     }
 
@@ -174,22 +175,22 @@ class SD(parent: Module,
         }
     }
 
-    private val OPCOND_MAGIC_READY: Long = 0x80FFC000
+    private val OPCOND_MAGIC_READY: ULong = 0x80FFC000u
     //    private val COMMAND_EXEC_TIME: Long = 2 // ms
-    private val COMMAND_EXEC_START_MASK: Long = 0xBFC6.inv()
+    private val COMMAND_EXEC_START_MASK: ULong = 0xBFC6uL.inv()
     private var execCommand = Command.CMD_NOP
 //    private var executionStartTime = 0L
 
-    fun onControlReadIO(): Long {
+    fun onControlReadIO(): ULong {
 //        if (dev.timer.timestamp(Time.ms) - executionStartTime > COMMAND_EXEC_TIME) {
 //
 //        }
-        regControlIO.data = regControlIO.data or 0x04
+        regControlIO.data = regControlIO.data or 0x04u
         return regControlIO.data
     }
 
-    fun onControlWriteIO(value: Long) {
-        if (value != 0xFFFFFFFF) {
+    fun onControlWriteIO(value: ULong) {
+        if (value != 0xFFFFFFFFuL) {
             log.warning { "Unexpected control register value = %08X".format(value) }
             return
         }
@@ -198,40 +199,40 @@ class SD(parent: Module,
 //        executionStartTime = dev.timer.timestamp(Time.ms)
     }
 
-    fun onDataRead(): Long {
+    fun onDataRead(): ULong {
         if (buffer.remaining() == 0) {
             log.warning { "Try to read of empty buffer" }
-            return 0xFFFFFFFF
+            return 0xFFFFFFFFuL
         }
-        return buffer.int.toULong()
+        return buffer.int.ulong_z
     }
 
-    fun onDataWrite(value: Long) {
+    fun onDataWrite(value: ULong) {
         if (buffer.remaining() == 0) {
             log.warning { "Writing data %08X to data register when buffer is full and written".format(value) }
         } else {
-            buffer.putInt(value.toInt())
+            buffer.putInt(value.int)
             if (buffer.remaining() == 0) {
                 log.fine { "%s write [%08X]: %s".format(name, memory.position(), buffer.array().hexlify()) }
-                dirtyPages.add(memory.position() and pageMask)
+                dirtyPages.add(memory.position().uint and pageMask.uint)
                 memory.put(buffer.array())
-                regStatusIn.data = clearBit(regStatusIn.data, 9)
+                regStatusIn.data = regStatusIn.data.clr(9)
             }
         }
     }
 
-    fun onCommandWrite(value: Long) {
+    fun onCommandWrite(value: ULong) {
         regResponseIn.clear()
-        regStatusIn.data = 0
+        regStatusIn.data = 0u
 
         val stopBit = value[31]
 
-        if (stopBit != 1L) {
+        if (stopBit != 1uL) {
             return
         }
 
         val prevCommand = execCommand
-        execCommand = Command.from(value[5..0])
+        execCommand = Command.from(value[5..0].long)
 
         log.finest { "%s -> %s arg = %08X".format(name, execCommand, regArgumentOut.data) }
 
@@ -246,16 +247,16 @@ class SD(parent: Module,
 
             Command.CMD_ALL_SEND_CID, Command.CMD_SEND_CID -> {
                 cidBuf.rewind()
-                repeat(regResponseIn.values.size) { regResponseIn.values[it] = cidBuf.int.asULong }
+                repeat(regResponseIn.values.size) { regResponseIn.values[it] = cidBuf.int.ulong_z }
             }
 
             Command.CMD_SEND_CSD -> {
                 csdBuf.rewind()
-                repeat(regResponseIn.values.size) { regResponseIn.values[it] = csdBuf.int.asULong }
+                repeat(regResponseIn.values.size) { regResponseIn.values[it] = csdBuf.int.ulong_z }
             }
 
             Command.CMD_SET_BLOCKLEN -> {
-                buffer = ByteBuffer.allocate(regArgumentOut.data.toInt()).apply { order(ByteOrder.LITTLE_ENDIAN) }
+                buffer = ByteBuffer.allocate(regArgumentOut.data.int).apply { order(ByteOrder.LITTLE_ENDIAN) }
             }
 
             Command.CMD_READ_SINGLE_BLOCK -> {
@@ -264,13 +265,13 @@ class SD(parent: Module,
                     if (isDebuggerPresent) debugger.isRunning = false
                     return
                 }
-                val offset = regArgumentOut.data.toInt()
+                val offset = regArgumentOut.data.int
                 memory.position(offset)
                 memory.get(buffer.array())
                 // System.arraycopy(memory.array(), offset, buffer.array(), 0, buffer.limit())
                 buffer.rewind()
                 // Magic ready for controller
-                regStatusIn.data = regStatusIn.data or (buffer.limit().ushr(2).shl(0x11).toULong())
+                regStatusIn.data = regStatusIn.data or (buffer.limit().ushr(2).shl(0x11).ulong_z)
                 log.fine { "%s read [%08X]: %s".format(name, offset, buffer.array().hexlify()) }
             }
 
@@ -280,18 +281,18 @@ class SD(parent: Module,
                     if (isDebuggerPresent) debugger.isRunning = false
                     return
                 }
-                val offset = regArgumentOut.data.toInt()
+                val offset = regArgumentOut.data.int
                 memory.position(offset)
                 buffer.rewind()
                 // Magic not ready for controller
-                regStatusIn.data = setBit(regStatusIn.data, 9)
-                regControlIO.data = regControlIO.data or 0x04
+                regStatusIn.data = regStatusIn.data.set(9)
+                regControlIO.data = regControlIO.data or 0x04u
             }
 
             Command.CMD_SEND_STATUS -> {
                 // Magic after write don't know whether it used elsewhere
                 if (prevCommand == Command.CMD_WRITE_SINGLE_BLOCK) {
-                    regResponseIn.values[0] = 0x800
+                    regResponseIn.values[0] = 0x800u
                 } else {
                     log.warning { "Request status not after write command -> response unchanged" }
                 }
@@ -312,7 +313,7 @@ class SD(parent: Module,
         regResponseIn.reset()
         regStatusIn.reset()
         dirtyPages.forEach { pageAddr ->
-            memory.position(pageAddr)
+            memory.position(pageAddr.int)
             memory.put(emptyPage)
         }
     }
@@ -327,24 +328,17 @@ class SD(parent: Module,
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
-        restoreCommon(ctxt, snapshot)
 
-        if (!ctxt.loadBinary(snapshot, "sd.bin", memory))
-            throw IllegalStateException("Can't load sd.bin")
-    }
-
-    @Suppress("UNCHECKED_CAST")
-    override fun restore(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        restoreCommon(ctxt, snapshot)
-
-        ctxt.restoreBinary(snapshot, "sd.bin", memory, dirtyPages, page)
-        dirtyPages.clear()
-    }
-
-    private fun restoreCommon(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         execCommand = loadEnum(snapshot, "execCommand")
         loadByteBuffer(snapshot, "buffer", buffer)
         loadByteBuffer(snapshot, "cidBuf", cidBuf)
         loadByteBuffer(snapshot, "csdBuf", csdBuf)
+
+        if (!ctxt.doRestore) {
+            check(ctxt.loadBinary(snapshot, "sd.bin", memory)) { "Can't load sd.bin" }
+        } else {
+            ctxt.restoreBinary(snapshot, "sd.bin", memory, dirtyPages, page)
+            dirtyPages.clear()
+        }
     }
 }

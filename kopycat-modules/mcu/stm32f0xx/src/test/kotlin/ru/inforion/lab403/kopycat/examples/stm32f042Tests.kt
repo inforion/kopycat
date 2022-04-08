@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.examples
 
 import org.junit.Test
-import ru.inforion.lab403.common.extensions.convertToString
+import ru.inforion.lab403.common.extensions.readAvailableBytes
+import ru.inforion.lab403.common.extensions.string
 import ru.inforion.lab403.common.extensions.times
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.OFF
@@ -38,7 +39,6 @@ import ru.inforion.lab403.kopycat.modules.examples.stm32f042_example
 import ru.inforion.lab403.kopycat.modules.terminals.UartTerminal
 import java.io.File
 import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 
 
 internal class stm32f042Tests {
@@ -56,14 +56,14 @@ internal class stm32f042Tests {
 
     @Test
     fun gpiox_led_test() {
-        PerformanceTester(0x0800_11B4, 100_000_000) {
+        PerformanceTester(0x0800_11B4u, 100_000_000u) {
             stm32f042_example(null, "top", "example:gpiox_led")
         }.run(2, 1)
     }
 
     @Test
     fun gpiox_led_test_tracer() {
-        PerformanceTester(0x0800_11B4, 100_000_000) {
+        PerformanceTester(0x0800_11B4u, 100_000_000u) {
             stm32f042_example(null, "top", "example:gpiox_led").also {
                 val trc = ComponentTracer<ARMv6MCore>(it.stm32f042, "trc")
                 it.stm32f042.buses.connect(trc.ports.trace, it.stm32f042.dbg.ports.trace)
@@ -73,29 +73,29 @@ internal class stm32f042Tests {
 
     @Test
     fun gpiox_registers_test() {
-        PerformanceTester(0x0800_241E, 10_000_000) {
+        PerformanceTester(0x0800_241Eu, 10_000_000u) {
             stm32f042_example(null, "top", "example:gpiox_registers")
         }.run(2, 1)
     }
 
     @Test
     fun benchmark_qsort_test() {
-        PerformanceTester(0x0800_1E62) {
+        PerformanceTester(0x0800_1E62u) {
             stm32f042_example(null, "top", "example:benchmark_qsort")
         }.run(5, 1)
     }
 
-    private fun checkSocatOutput(path: String, expected: String) {
-        val stream = File(path).inputStream()
-        assertTrue("available=${stream.available()} expected=${expected.length }") {
-            stream.available() >= expected.length
-        }
+    private fun String.readout(count: Int = -1): String {
+        val stream = File(this).inputStream()
+        return stream.readAvailableBytes(count).string
+    }
 
-        val result = ByteArray(expected.length).also { stream.read(it) }.convertToString()
+    private fun String.flush() = readout()
 
-        log.info { "Socat output: $result" }
-
-        assertEquals(expected, result)
+    private fun assertFileContentStartswith(path: String, expected: String) {
+        val actual = path.readout(expected.length)
+        log.fine { "Stream output for $path: $actual" }
+        assertEquals(expected, actual)
     }
 
     /**
@@ -105,16 +105,18 @@ internal class stm32f042Tests {
     fun usart_poll_test() {
         val testStringPoll = "my-test-string?my-test-string\n"
 
-        val tester = PerformanceTester(0x800_1D82, 1_000_000) {
+        val tester = PerformanceTester(0x800_1D82u, 1_000_000u) {
             stm32f042_example(null, "top", "example:usart_poll", "socat:", "socat:")
         }.afterReset {
+            it.term1.socat?.pty1?.flush()
+            it.term2.socat?.pty1?.flush()
             it.sendStringIntoUART1(testStringPoll * 5)
-        }.atAddressAlways(0x0800_1CF8) {
+        }.atAddressAlways(0x0800_1CF8u) {
             log.info { "main -> Enter" }
         }.apply { run(5, 1) }
 
-        checkSocatOutput(tester.top.term1.socat!!.pty1, testStringPoll)
-        checkSocatOutput(tester.top.term2.socat!!.pty1, testStringPoll)
+        assertFileContentStartswith(tester.top.term1.socat!!.pty1, testStringPoll)
+        assertFileContentStartswith(tester.top.term2.socat!!.pty1, testStringPoll)
     }
 
     /**
@@ -124,18 +126,18 @@ internal class stm32f042Tests {
     fun usart_dma_test() {
         val testStringDMA = "very very long string\n"
 
-        val tester = PerformanceTester(0x0800_23FC, 1_000_000) {
+        val tester = PerformanceTester(0x0800_23FCu, 1_000_000u) {
             stm32f042_example(null, "top", "example:usart_dma", "socat:", "socat:")
-        }.atAddressOnce(0x0800_23EE) {
+        }.atAddressOnce(0x0800_23EEu) {
             it.sendStringIntoUART1(testStringDMA * 20)
-        }.atAddressAlways(0x0800_0684) {
+        }.atAddressAlways(0x0800_0684u) {
             log.severe { "Enter -> HAL_DMA_IRQHandler" }
-        }.atAddressAlways(0x0800_07C6) {
+        }.atAddressAlways(0x0800_07C6u) {
             log.severe { "Exit -> HAL_DMA_IRQHandler" }
         }.apply { run(1, 0) }
 
         // in this test not echo just output to uart2
-        checkSocatOutput(tester.top.term2.socat!!.pty1, testStringDMA)
+        assertFileContentStartswith(tester.top.term2.socat!!.pty1, testStringDMA)
     }
 
     /**
@@ -143,15 +145,15 @@ internal class stm32f042Tests {
      */
     @Test
     fun freertos_uart() {
-        val tester = PerformanceTester(0x0800_3338, 15_000_000) {
+        val tester = PerformanceTester(0x0800_3338u, 15_000_000u) {
             stm32f042_example(null, "top", "example:freertos_uart")
-        }.atAddressAlways(0x0800_31FC) {
+        }.atAddressAlways(0x0800_31FCu) {
             log.severe { "Enter -> StarterTaskHandler" }
-        }.atAddressAlways(0x0800_3250) {
+        }.atAddressAlways(0x0800_3250u) {
             log.severe { "Enter -> UartTaskHandler" }
-        }.atAddressAlways(0x0800_32A4) {
+        }.atAddressAlways(0x0800_32A4u) {
             log.severe { "Enter -> ProcessTaskHandler" }
-        }.atAddressAlways(0x0800_32F8) {
+        }.atAddressAlways(0x0800_32F8u) {
             log.severe { "Enter -> WatchDogHandler" }
         }.run(5, 1)
     }

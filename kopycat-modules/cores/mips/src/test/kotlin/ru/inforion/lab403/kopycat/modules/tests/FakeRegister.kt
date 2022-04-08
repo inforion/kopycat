@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,14 +26,13 @@
 package ru.inforion.lab403.kopycat.modules.tests
 
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import java.util.logging.Level
-import java.util.logging.Level.*
 
-class FakeRegister(parent: Module, name: String, value: Long): Module(parent, name) {
+class FakeRegister(parent: Module, name: String, value: ULong): Module(parent, name) {
     companion object {
         @Transient val log = logger(INFO)
     }
@@ -44,12 +43,12 @@ class FakeRegister(parent: Module, name: String, value: Long): Module(parent, na
 
     override val ports = Ports()
 
-    val register = object : Register(ports.mem, 0, Datatype.DWORD, name) {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+    val register = object : Register(ports.mem, 0u, Datatype.DWORD, name) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             log.warning { "Write from $name at address ${ea.hex8}" }
         }
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             log.warning { "Read from $name at address ${ea.hex8}" }
             return value
         }

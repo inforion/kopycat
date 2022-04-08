@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,11 +26,22 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.registers
 
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.x86.enums.DBGR
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
 
-class DBGBank(core: x86Core) : ARegistersBank<x86Core, DBGR>(core, DBGR.values(), bits = 16) {
-    override val name: String = "Debug Registers"
+class DBGBank : ARegistersBankNG<x86Core>("Debug Registers", DBGR.values().size, bits = 16) {
+
+    val dr0 = Register("dr0",0, dtype = Datatype.WORD)
+    val dr1 = Register("dr1",1, dtype = Datatype.WORD)
+    val dr2 = Register("dr2",2, dtype = Datatype.WORD)
+    val dr3 = Register("dr3",3, dtype = Datatype.WORD)
+    val dr4 = Register("dr4",4, dtype = Datatype.WORD)
+    val dr5 = Register("dr5",5, dtype = Datatype.WORD)
+    val dr6 = Register("dr6",6, dtype = Datatype.WORD)
+    val dr7 = Register("dr7",7, dtype = Datatype.WORD)
 }

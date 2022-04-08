@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,10 +26,12 @@
 package ru.inforion.lab403.kopycat.modules.cores
 
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
+import ru.inforion.lab403.kopycat.cores.ppc.PPCABI
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eSystem
 import ru.inforion.lab403.kopycat.cores.ppc.exceptions.IPPCExceptionHolder
 import ru.inforion.lab403.kopycat.cores.ppc.hardware.processors.APPCMMU
@@ -68,6 +70,8 @@ abstract class PPCCore(
 
     override val fpu = null //TODO("FPU")
     abstract override val mmu: APPCMMU //TODO: change this
+
+    override fun abi() = PPCABI(this, true) // TODO: endianness as parameter
 
     //Because buses, cpu and ports aren't final
     open fun initRoutine() {

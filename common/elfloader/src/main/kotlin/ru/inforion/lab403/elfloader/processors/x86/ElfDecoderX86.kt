@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.elfloader.processors.x86
 
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.optional.Optional
 import ru.inforion.lab403.elfloader.exceptions.EDecodeFault
 import ru.inforion.lab403.elfloader.ElfAccess
 import ru.inforion.lab403.elfloader.ElfFile
@@ -49,40 +51,24 @@ class ElfDecoderX86(file: ElfFile) : AElfDecoder(file) {
 
     override fun checkHeader() {
         if (file.objectSize != CLASS_32.id)
-            throw EDecodeFault("Only ELF32 supported for x86 architecture (should be x68_64 instead)")
+            throw EDecodeFault("Only ELF32 supported for x86 architecture (should be x86_64 instead)")
         if (file.encoding != DATA_LSB.id)
             throw EDecodeFault("x86 architecture supports only LSB")
     }
-    override fun checkFlags() {
-        //TODO("X86-specific flags isn't implemented")
-    }
-    override fun checkSectionType(type: Int) {
-        TODO("There is no any X86-specific sections")
-    }
-    override fun checkSectionFlags(flags: Int) {
-        TODO("There is no any X86-specific section flags")
-    }
-    override fun checkSectionName(name: String, type: Int, flags: Int): Boolean {
-        TODO("There is no any X86-specific section names")
-    }
-    override fun checkSymbolBinding(bind: Int) {
-        TODO("There is no any X86-specific sections")
-    }
-    override fun checkSymbolType(type: Int) {
-        TODO("There is no any X86-specific sections")
-    }
-    override fun checkSegmentType(type: Int) {
-        TODO("There is no any X86-specific segments")
-    }
-    override fun checkSegmentFlags(flags: Int) {
-        TODO("There is no any X86-specific segment flags")
-    }
-    override fun parseDynamic(hm: HashMap<Int, Long>, tag: Int, ptr: Long) {
-        TODO("There is no any X86-specific dynamic tags")
-    }
-    override fun applyStaticRelocation(rel: ElfRel, vaddr: Long, symbol: Long, got: Long?, data: Long): Long {
+    override fun checkFlags() = TODO("X86-specific flags isn't implemented")
+
+    override fun checkSectionType(type: Int): Unit = TODO("There is no any X86-specific sections")
+    override fun checkSectionFlags(flags: UInt): Unit = TODO("There is no any X86-specific section flags")
+    override fun checkSectionName(name: String, type: Int, flags: UInt) = TODO("There is no any X86-specific section names")
+    override fun checkSymbolBinding(bind: Int) = TODO("There is no any X86-specific sections")
+    override fun checkSymbolType(type: Int) = TODO("There is no any X86-specific sections")
+    override fun checkSegmentType(type: Int) = TODO("There is no any X86-specific segments")
+    override fun checkSegmentFlags(flags: UInt) = TODO("There is no any X86-specific segment flags")
+    override fun parseDynamic(hm: MutableMap<Int, ULong>, tag: Int, ptr: ULong) = TODO("There is no any X86-specific dynamic tags")
+
+    override fun applyStaticRelocation(rel: ElfRel, vaddr: ULong, symbol: ULong, got: Optional<ULong>, data: ULong): ULong {
         val S = symbol
-        val A = if (rel.withAddend) rel.addend.toLong() else data
+        val A = if (rel.withAddend) rel.addend.ulong_z else data
         val P = vaddr
 
         return when (rel.type) {
@@ -106,7 +92,7 @@ class ElfDecoderX86(file: ElfFile) : AElfDecoder(file) {
             R_386_PLT32.id -> S - P + A //S -> L
 
             //Copy
-            R_386_COPY.id -> 0
+            R_386_COPY.id -> 0uL
 
             //S
             R_386_GLOB_DAT.id -> S
@@ -123,29 +109,21 @@ class ElfDecoderX86(file: ElfFile) : AElfDecoder(file) {
 
             //S + A - GOT
             R_386_GOTOFF.id -> {
-                if (got == null)
-                    throw  Exception("GOT relocation without GOT-section")
-                S - got + A
+                check(got.isPresent) { "GOT relocation without GOT-section" }
+                S - got.get + A
             }
 
             //GOT + A - P
             R_386_GOTPC.id -> {
-                if (got == null)
-                    throw  Exception("GOT relocation without GOT-section")
-                got - P + A
+                check(got.isPresent) { "GOT relocation without GOT-section" }
+                got.get - P + A
             }
 
             else -> TODO("Not implemented type: ${rel.type} (${getRelocationNameById(rel.type)})")
         }
     }
-    override fun isLoadableSection(type: Int, access: ElfAccess): Boolean {
-        TODO("There is no any X86-specific sections")
-    }
-    override fun isLoadableSegment(type: Int) : Boolean {
-        TODO("There is no any X86-specific segments")
-    }
-    override fun getProgramHeaderTypeNameById(type: Int): String {
-        TODO("There is no any X86-specific segments")
-    }
-    override fun getRelocationNameById(type: Int): String = X86RelocationType.values().first{ it -> it.id == type}.name
+    override fun isLoadableSection(type: Int, access: ElfAccess) = TODO("There is no any X86-specific sections")
+    override fun isLoadableSegment(type: Int) = TODO("There is no any X86-specific segments")
+    override fun getProgramHeaderTypeNameById(type: Int) = TODO("There is no any X86-specific segments")
+    override fun getRelocationNameById(type: Int) = X86RelocationType.values().first{ it.id == type}.name
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * MOVZ rd, rs, rt
  */
 class movz(core: MipsCore,
-           data: Long,
+           data: ULong,
            rd: MipsRegister,
            rs: MipsRegister,
            rt: MipsRegister) : RdRsRtInsn(core, data, Type.VOID, rd, rs, rt) {
@@ -42,9 +42,7 @@ class movz(core: MipsCore,
     override val mnem = "movz"
 
     override fun execute() {
-        if (vrt == 0L) {
-            vrd = vrs
-        }
+        if (vrt == 0uL) vrd = vrs
     }
 }
 

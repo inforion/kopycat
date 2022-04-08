@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ import ru.inforion.lab403.kopycat.cores.base.field
 class OSC(parent: Module, name: String) : Module(parent, name) {
 
     inner class Variables: AVariables() {
-        val div = array(8, "PBDIV", 0)
+        val div = array(8, "PBDIV", 0uL)
     }
 
     override val variables = Variables()
@@ -47,19 +47,19 @@ class OSC(parent: Module, name: String) : Module(parent, name) {
 
     override val ports = Ports()
 
-    val OSCCON = ComplexRegister(ports.mem,0x1200, "OSCCON")
-    val SPLLCON = ComplexRegister(ports.mem,0x1220, "SPLLCON")
+    val OSCCON = ComplexRegister(ports.mem,0x1200u, "OSCCON")
+    val SPLLCON = ComplexRegister(ports.mem,0x1220u, "SPLLCON")
 
-    inner class PBxDIV(val id: Int, offset: Long) : ComplexRegister(ports.mem, offset, "PB${id}DIV") {
+    inner class PBxDIV(val id: Int, offset: ULong) : ComplexRegister(ports.mem, offset, "PB${id}DIV") {
         var ON by bit(15)
         val PBDIVRDY by bit(11)
         val PBDIV by field(6..0)
 
         override fun toString(): String = "$name[ON=$ON PBDIVRDY=$PBDIVRDY PBDIV=$PBDIV]"
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            variables.div[id].value = PBDIV + 1
+            variables.div[id].value = PBDIV + 1u
             log.config { "$this" }
         }
 
@@ -69,12 +69,12 @@ class OSC(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    val PB1DIV = PBxDIV(1, 0x1300)
-    val PB2DIV = PBxDIV(2, 0x1310)
-    val PB3DIV = PBxDIV(3, 0x1320)
-    val PB4DIV = PBxDIV(4, 0x1330)
-    val PB5DIV = PBxDIV(5, 0x1340)
-    val PB6DIV = PBxDIV(6, 0x1350)
-    val PB7DIV = PBxDIV(7, 0x1360)
-    val PB8DIV = PBxDIV(8, 0x1370)
+    val PB1DIV = PBxDIV(1, 0x1300u)
+    val PB2DIV = PBxDIV(2, 0x1310u)
+    val PB3DIV = PBxDIV(3, 0x1320u)
+    val PB4DIV = PBxDIV(4, 0x1330u)
+    val PB5DIV = PBxDIV(5, 0x1340u)
+    val PB6DIV = PBxDIV(6, 0x1350u)
+    val PB7DIV = PBxDIV(7, 0x1360u)
+    val PB8DIV = PBxDIV(8, 0x1370u)
 }

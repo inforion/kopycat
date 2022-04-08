@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,19 +29,21 @@ import ru.inforion.lab403.kopycat.library.builders.api.ModuleParameterInfo
 import ru.inforion.lab403.kopycat.settings
 
 class PluginConfig(
-        val top: Boolean,
-        val plugin: String,
-        val library: String,
-        val params: Array<ParameterConfig>,
-        val ports: Array<PortConfig>,
-        val buses: Array<BusConfig>,
-        val modules: Array<ModuleConfig>,
-        val connections: Array<ConnectionConfig>,
-        val reset: Array<String>?) {
+    val top: Boolean,
+    val plugin: String,
+    val library: String,
+    val params: Array<ParameterConfig>,
+    val ports: Array<PortConfig>,
+    val buses: Array<BusConfig>,
+    val modules: Array<ModuleConfig>,
+    val connections: Array<ConnectionConfig>,
+    val reset: Array<String>? = null
+) {
 
-    val definitions by lazy {
-        params.mapIndexed { k, v -> ModuleParameterInfo(k, v.name, v.type, true, v.default) }
-    }
+    val definitions get() =
+        params.mapIndexed { k, v ->
+            ModuleParameterInfo(k, v.name, v.getKType(), true, v.default)
+        }
 
     /**
      * {EN}
@@ -72,8 +74,8 @@ class PluginConfig(
      * {EN}
      */
     inline fun substituteParameterValues(
-            parameters: Map<String, Any?>,
-            substitute: (info: ModuleParameterInfo) -> Any?
+        parameters: Map<String, Any?>,
+        substitute: (info: ModuleParameterInfo) -> Any?
     ): Map<String, Any?> {
         val pairs = parameters.map { (name, value) ->
             val actual: Any? = if (value == null) null else {

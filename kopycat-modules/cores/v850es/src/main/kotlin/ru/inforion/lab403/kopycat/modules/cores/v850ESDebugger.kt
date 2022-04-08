@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 class v850ESDebugger(parent: Module, name: String): Debugger(parent, name) {
     override fun ident() = "v850es"
 
-    override fun registers(): MutableList<Long> {
+    override fun registers(): MutableList<ULong> {
         val core = core as v850ESCore
         val gprRegs = Array(core.cpu.regs.count()) { k -> regRead(k) }
         val ctrlRegs = Array(core.cpu.cregs.count()) { k -> readCtrlRegister(core, k) }
@@ -46,7 +46,7 @@ class v850ESDebugger(parent: Module, name: String): Debugger(parent, name) {
     }
 
     // TODO(): Fix readFlags and readCtrlRegister
-    private fun readFlags(core: v850ESCore, index: Int): Long = core.cpu.cregs.psw[index]
+    private fun readFlags(core: v850ESCore, index: Int) = core.cpu.cregs.psw[index]
 
-    private fun readCtrlRegister(core: v850ESCore, index: Int): Long = core.cpu.cregs.readIntern(index)
+    private fun readCtrlRegister(core: v850ESCore, index: Int) = core.cpu.cregs.readIntern(index)
 }

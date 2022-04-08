@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.rotateInt
 
-import ru.inforion.lab403.common.extensions.bitMask
 import ru.inforion.lab403.common.extensions.mask
 import ru.inforion.lab403.common.extensions.rotl32
+import ru.inforion.lab403.common.extensions.ubitMask64
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.ppc.flags.FlagProcessor
+import ru.inforion.lab403.kopycat.cores.ppc.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCVariable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
@@ -49,13 +49,9 @@ class rlwimix(core: PPCCore, val shift: Int, val maskFst: Int, val maskSnd: Int,
         //WARNING: In documentation MASK(x, y), where x > y.
         //But in PPC msb is zero. So MASK(MB, ME) switches to MASK(ME, MB)
         val m = when {
-            maskFst < maskSnd + 1 -> bitMask((31 - maskFst)..(31 - maskSnd))
-            maskFst == maskSnd + 1 -> {
-                bitMask(31..0)
-            }
-            else -> {
-                bitMask((31 - maskSnd)..(31 - maskFst)).inv() mask 32
-            }
+            maskFst < maskSnd + 1 -> ubitMask64((31 - maskFst)..(31 - maskSnd))
+            maskFst == maskSnd + 1 -> ubitMask64(31..0)
+            else -> ubitMask64((31 - maskSnd)..(31 - maskFst)).inv() mask 32
         }
 
         result.value(core, (r and m) or (op2.value(core) and m.inv()))

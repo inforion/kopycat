@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,4 +28,4 @@ package ru.inforion.lab403.kopycat.veos.api.pointers
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
 
-class FunctionPointer constructor(sys: System, address: Long) : Pointer<Unit>(sys, address)
+class FunctionPointer constructor(sys: System, address: ULong) : Pointer<Unit>(sys, address)

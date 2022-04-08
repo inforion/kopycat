@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.trap
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsImmInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -44,7 +45,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * end of the unsigned range.
  */
 class tgeiu(core: MipsCore,
-            data: Long,
+            data: ULong,
             rs: MipsRegister,
             imm: MipsImmediate) : RsImmInsn(core, data, Type.VOID, rs, imm) {
 
@@ -55,7 +56,7 @@ class tgeiu(core: MipsCore,
     override fun execute() {
         // Compare as unsigned integers
         // TODO: Refactor legacy operand class usage
-        if (vrs >= imm.usext) throw MipsHardwareException.TR(core.pc)
+        if (vrs >= imm.usext.uint) throw MipsHardwareException.TR(core.pc)
     }
 
 }

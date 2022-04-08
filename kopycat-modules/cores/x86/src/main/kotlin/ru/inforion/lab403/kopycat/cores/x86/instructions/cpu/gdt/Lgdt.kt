@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.gdt
 
-import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class Lgdt(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>):
@@ -38,14 +41,26 @@ class Lgdt(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<
     override val mnem = "lgdt"
 
     override fun execute() {
-        val src = op1.value(core)
-        if (prefs.is16BitOperandMode) {
-            core.mmu.gdtr.limit = src[15..0]
-            core.mmu.gdtr.base = src[47..16] and 0xFFFFFF
-        } else {
-            core.mmu.gdtr.limit = src[15..0]
-            core.mmu.gdtr.base = src[47..16]
+        val dtype = if (op1.dtyp == Datatype.DFWORD) Datatype.QWORD else Datatype.DWORD
+
+        val limit = core.read(Datatype.WORD, op1.effectiveAddress(core), op1.ssr.reg)
+        val base = core.read(dtype, op1.effectiveAddress(core) + Datatype.WORD.bytes.uint, op1.ssr.reg)
+        when (prefs.opsize) {
+            Datatype.QWORD -> {
+                core.mmu.gdtr.limit = limit
+                core.mmu.gdtr.base = base
+            }
+            Datatype.DWORD ->  {
+                core.mmu.gdtr.limit = limit
+                core.mmu.gdtr.base = base
+            }
+            Datatype.WORD -> {
+                core.mmu.gdtr.limit = limit
+                core.mmu.gdtr.base = base and 0xFFFFFFu
+            }
+            else -> throw GeneralException("Unknown operand size: ${prefs.opsize}")
         }
-        log.info { "[${core.cpu.pc.hex}] GDTR changed ${core.mmu.gdtr}" }
+
+        log.info { "[0x${core.cpu.pc.hex}] GDTR changed ${core.mmu.gdtr}" }
     }
 }

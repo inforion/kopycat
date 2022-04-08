@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,8 @@
 
 package ru.inforion.lab403.kopycat.cores.arm.hardware.registers
 
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
@@ -34,14 +36,14 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 class VMSABank : ARegistersBankNG<AARMCore>(
         "Virtual Memory System Architecture System control registers", 11, 32) {
 
-    enum class Implementer(val data: Long) {
-        ArmLimited('A'.toLong()),
-        DigitalEquipmentCorporation('D'.toLong()),
-        Motorola('M'.toLong()),
-        FreescaleSemiconfuctorInc('M'.toLong()),
-        QualcommInc('Q'.toLong()),
-        MarvellSemiconductorInc('V'.toLong()),
-        IntelCorporation('i'.toLong())
+    enum class Implementer(val data: Char) {
+        ArmLimited('A'),
+        DigitalEquipmentCorporation('D'),
+        Motorola('M'),
+        FreescaleSemiconfuctorInc('M'),
+        QualcommInc('Q'),
+        MarvellSemiconductorInc('V'),
+        IntelCorporation('i')
     }
 
     enum class Architecture(val data: Long) {
@@ -68,8 +70,8 @@ class VMSABank : ARegistersBankNG<AARMCore>(
     }
 
     // ARMv6 implementation
-    inner class SCTLR : Register("sctlr", 0, default=0xC50074) {
-        val mask = 0x4FE07807L
+    inner class SCTLR : Register("sctlr", 0, default=0xC50074u) {
+        val mask = 0x4FE07807uL
 
         var te by bitOf(30)
         var afe by bitOf(29)
@@ -95,7 +97,7 @@ class VMSABank : ARegistersBankNG<AARMCore>(
     val sctlr = SCTLR()
 
     val ttbr0 = object : Register("ttbr0", 1) {
-        val address: Long get() = value ushr (14 - ttbcr.n.toInt())
+        val address get() = value ushr (14 - ttbcr.n.int)
     }
 
     val ttbr1 = Register("ttbr1", 2)

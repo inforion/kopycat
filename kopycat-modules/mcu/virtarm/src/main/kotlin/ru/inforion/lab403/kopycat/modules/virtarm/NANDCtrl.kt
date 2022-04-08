@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.virtarm
 
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -50,16 +51,16 @@ class NANDCtrl(parent: Module, name: String) : Module(parent, name) {
 
     override val ports = Ports()
 
-    val area = object : Area(ports.mem, 0, 0b11L, "area") {
+    val area = object : Area(ports.mem, 0u, 0b11uL, "area") {
 
-        override fun read(ea: Long, ss: Int, size: Int): Long = ports.nand.read(NAND_IO, 0, 1)
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = ports.nand.read(NAND_IO, 0, 1)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (ea) {
-                0b00L -> ports.nand.write(NAND_IO, 0, 1, value)
-                0b01L -> ports.nand.write(NAND_ADDRESS, 0, 1, value)
-                0b10L -> ports.nand.write(NAND_CMD, 0, 1, value)
-                0b11L -> throw GeneralException("Can't be CLE and ALE at the same time")
+                0b00uL -> ports.nand.write(NAND_IO, 0, 1, value)
+                0b01uL -> ports.nand.write(NAND_ADDRESS, 0, 1, value)
+                0b10uL -> ports.nand.write(NAND_CMD, 0, 1, value)
+                0b11uL -> throw GeneralException("Can't be CLE and ALE at the same time")
             }
         }
     }

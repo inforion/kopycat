@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ class KopycatRestProtocolIntegrationalTest {
     private val registry = RegistryClient(host, port)
 
     @Test
-    fun kopycatDefaultScenarioTest() = withKopycatRest { kopycat, modules ->
+    fun kopycatDefaultScenarioTest() = withKopycatRest(port) { kopycat, modules ->
 
         val moduleResponse = registry.module.create(null, defaultModuleName)
         assertEquals(defaultModuleName, modules.first { it.name == moduleResponse }.name)
@@ -89,14 +89,14 @@ class KopycatRestProtocolIntegrationalTest {
                 INSN.MUL, // R2 = 4
                 INSN.SUB  // R2 = 0
         ).hexlify()
-        kopycat.core.cpu.reg(0, 0x4)
-        kopycat.core.cpu.reg(1, 0x2)
-        kopycat.core.cpu.pc = 0x1234
+        kopycat.core.cpu.reg(0, 0x4u)
+        kopycat.core.cpu.reg(1, 0x2u)
+        kopycat.core.cpu.pc = 0x1234u
 
-        client.memStore(0x1000L, code, 0)
-        assertEquals(code, kopycat.memLoad(0x1000L, code.length / 2, 0).hexlify())
+        client.memStore(0x1000uL, code, 0)
+        assertEquals(code, kopycat.memLoad(0x1000uL, code.length / 2, 0).hexlify())
 
-        val memLoadResponse = client.memLoad(0x1000, 8, 0)
+        val memLoadResponse = client.memLoad(0x1000u, 8, 0)
         assertEquals(code.substring(0, 16), memLoadResponse)
 
         val regResponse = client.regRead(2)
@@ -105,7 +105,7 @@ class KopycatRestProtocolIntegrationalTest {
         val pcResponse = client.pcRead()
         assertEquals(pcResponse, 0x1234)
 
-        client.pcWrite(0x1000)
+        client.pcWrite(0x1000u)
         assertEquals(kopycat.core.pc, 0x1000)
 
         assertTrue(client.step())

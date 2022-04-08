@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,6 @@ class Fldcw(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand
 
     override fun execute() {
         val data = op1.value(core)
-        core.fpu.fwr.FPUControlWord = data
+        core.fpu.fwr.FPUControlWord.value = data
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,23 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.modules.common
 
-import net.sourceforge.argparse4j.inf.ArgumentParser
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
-import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.PIN
 import java.io.File
-import java.util.logging.Level
 
 
 class M95160(parent: Module, name: String, val eeprom: File): Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.CONFIG)
+        @Transient val log = logger(CONFIG)
     }
 
     enum class CMD(val OPCODE: Int) {
@@ -72,65 +70,65 @@ class M95160(parent: Module, name: String, val eeprom: File): Module(parent, nam
 
     override val ports = Ports()
 
-    private val totalFlashSize = 0x800
-    private val content = ByteArray(totalFlashSize).apply {
+    private val totalFlashSize = 0x800uL
+    private val content = ByteArray(totalFlashSize.int).apply {
         gzipInputStreamIfPossible(eeprom.path).read(this)
     }
 
-    private var identificationPage = 0L
-    private var addressIdentificationPage: Int = 0
+    private var identificationPage = 0uL
+    private var addressIdentificationPage = 0uL
 
-    private var statusRegister = 0L
-    private var addressRegister = 0
-    private var stateRegister = 0
+    private var statusRegister = 0uL
+    private var addressRegister = 0uL
+    private var stateRegister = 0uL
 
     var cmd = CMD.IDLE
 
     fun stateReset() {
-        stateRegister = 0
+        stateRegister = 0u
         cmd = CMD.IDLE
         statusRegister = statusRegister.clr(SR.WIP.bit)
     }
 
-    val CS_TOGGLE = object : Register(ports.cs, 0, BYTE, "CS_TOGGLE") {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            if (value == 1L) stateReset()
+    val CS_TOGGLE = object : Register(ports.cs, 0u, BYTE, "CS_TOGGLE") {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            if (value == 1uL) stateReset()
         }
     }
 
-    val SPI_DAT_REG = object : Register(ports.csi, 0, DWORD, "SPI_DAT_REG") {
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+    val SPI_DAT_REG = object : Register(ports.csi, 0u, DWORD, "SPI_DAT_REG") {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             when (cmd) {
                 CMD.READ -> {
                     when (stateRegister) {
-                        2 -> {
-                            stateRegister += 1
-                            return 0
+                        2uL -> {
+                            stateRegister += 1u
+                            return 0u
                         }
-                        3 -> {
-                            stateRegister += 1
+                        3uL -> {
+                            stateRegister += 1u
                         }
-                        4 -> {
-                            addressRegister += 1
-                            if (addressRegister == totalFlashSize - 1)
-                                stateRegister += 1
+                        4uL -> {
+                            addressRegister += 1u
+                            if (addressRegister == totalFlashSize - 1u)
+                                stateRegister += 1u
                         }
-                        5 -> {
-                            addressRegister = 0
-                            stateRegister -= 1
+                        5uL -> {
+                            addressRegister = 0u
+                            stateRegister -= 1u
                         }
                         else -> {
                             // log.warning { "$name [${dev.cpu.pc.hex8}] -> Wrong state noticed: $cmd, return 0" }
-                            return 0
+                            return 0u
                         }
                     }
-                    val result = content.getInt8(addressRegister).asULong
+                    val result = content.getUInt8(addressRegister.int)
 //                log.finest { "$name [${cpu.pc.hex8}] -> sending from ${addr.hex4} data ${result.hex2}" }
                     log.finest { "$name  -> sending from ${addressRegister.hex4} data ${result.hex2}" }
                     return result
                 }
                 CMD.RDSR -> {
-                    stateRegister = 0
+                    stateRegister = 0u
                     cmd = CMD.IDLE
                     val result = statusRegister
 //                log.finest { "$name [${cpu.pc.hex8}] -> sending status = ${result.hex2}" }
@@ -142,40 +140,40 @@ class M95160(parent: Module, name: String, val eeprom: File): Module(parent, nam
                 }
                 CMD.WRDI -> {
                     stateReset()
-                    return 0
+                    return 0u
                 }
                 CMD.WREN -> {
                     stateReset()
-                    return 0
+                    return 0u
                 }
                 CMD.IDLE, CMD.WRITE -> {
-                    return 0
+                    return 0u
                 }
                 else -> {
 //                log.warning { "$name [${cpu.pc.hex8}] -> Unexpected state reading $cmd, return 0" }
                     log.warning { "$name -> Unexpected state reading $cmd, return 0" }
-                    return 0
+                    return 0u
                 }
             }
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (cmd) {
                 CMD.IDLE -> {
-                    if (value == 0L) {
+                    if (value == 0uL) {
                         ports.irq.request(0)
                         return
                     }
 //                log.finest { "$name [${cpu.pc.hex8}] <- received command = ${value.hex2}" }
                     log.finest { "$name <- received command = ${value.hex2}" }
-                    val newCmd = find<CMD> { value.asInt == it.OPCODE }
+                    val newCmd = find<CMD> { value.int == it.OPCODE }
                     if (newCmd != null) {
-                        if (newCmd == CMD.WRITE && statusRegister[SR.WIP.bit] == 1L) {
+                        if (newCmd == CMD.WRITE && statusRegister[SR.WIP.bit] == 1uL) {
                             log.warning { "Write operation already in process" }
                         } else {
                             cmd = newCmd
-                            stateRegister = 0
-                            addressRegister = 0
+                            stateRegister = 0u
+                            addressRegister = 0u
 //                        log.fine { "$name [${cpu.pc.hex8}] -> new cmd latched: $cmd" }
                             log.fine { "$name -> new cmd latched: $cmd" }
                         }
@@ -198,17 +196,17 @@ class M95160(parent: Module, name: String, val eeprom: File): Module(parent, nam
                 }
                 CMD.READ -> {
                     when (stateRegister) {
-                        0 -> {
+                        0uL -> {
 //                        log.finest { "$name [${cpu.pc.hex8}] <- received value = ${value.hex2}" }
                             log.finest { "$name <- received value = ${value.hex2}" }
-                            addressRegister = addressRegister.insert(value.toInt(), 15..8)
-                            stateRegister += 1
+                            addressRegister = addressRegister.insert(value, 15..8)
+                            stateRegister += 1u
                         }
-                        1 -> {
+                        1uL -> {
 //                        log.finest { "$name [${cpu.pc.hex8}] <- received value = ${value.hex2}" }
                             log.finest { "$name <- received value = ${value.hex2}" }
-                            addressRegister = addressRegister.insert(value.toInt(), 7..0)
-                            stateRegister += 1
+                            addressRegister = addressRegister.insert(value, 7..0)
+                            stateRegister += 1u
 //                        log.fine { "$name [${cpu.pc.hex8}] -> addr acquired: ${addr.hex4}" }
                             log.fine { "$name -> addr acquired: ${addressRegister.hex4}" }
                         }
@@ -218,31 +216,31 @@ class M95160(parent: Module, name: String, val eeprom: File): Module(parent, nam
 //                log.finest { "$name [${cpu.pc.hex8}] <- received value = ${value.hex2}" }
                     log.finest { "$name <- received value = ${value.hex2}" }
                     when {
-                        statusRegister[SR.WEL.bit] != 1L -> log.warning { "Write operation disabled" }
+                        statusRegister[SR.WEL.bit] != 1uL -> log.warning { "Write operation disabled" }
                         else -> {
                             statusRegister = statusRegister.set(SR.WIP.bit)
                             when (stateRegister) {
-                                0 -> {
-                                    addressRegister = addressRegister.insert(value.toInt(), 15..8)
-                                    stateRegister += 1
+                                0uL -> {
+                                    addressRegister = addressRegister.insert(value, 15..8)
+                                    stateRegister += 1u
                                 }
-                                1 -> {
-                                    addressRegister = addressRegister.insert(value.toInt(), 7..0)
-                                    stateRegister += 1
+                                1uL -> {
+                                    addressRegister = addressRegister.insert(value, 7..0)
+                                    stateRegister += 1u
                                 }
-                                2 -> {
+                                2uL -> {
                                     if (checkMemoryBlock(statusRegister, addressRegister)) {
-                                        content[addressRegister] = value.toByte()
-                                        stateRegister += 1
+                                        content[addressRegister.int] = value.byte
+                                        stateRegister += 1u
                                     } else {
-                                        stateRegister += 2
+                                        stateRegister += 2u
                                     }
                                 }
-                                3 -> {
-                                    addressRegister += 1
-                                    content[addressRegister] = value.toByte()
+                                3uL -> {
+                                    addressRegister += 1u
+                                    content[addressRegister.int] = value.byte
                                 }
-                                4 -> stateReset()
+                                4uL -> stateReset()
                             }
                         }
                     }
@@ -251,21 +249,22 @@ class M95160(parent: Module, name: String, val eeprom: File): Module(parent, nam
 //                log.finest { "$name [${cpu.pc.hex8}] <- received value = ${value.hex2}" }
                     log.finest { "$name <- received value = ${value.hex2}" }
                     statusRegister = value
-                    stateRegister = 0
+                    stateRegister = 0u
                     cmd = CMD.IDLE
                 }
                 CMD.WRIDorLID -> {
 //                log.finest { "$name [${cpu.pc.hex8}] <- received value = ${value.hex2}" }
                     log.finest { "$name <- received value = ${value.hex2}" }
                     when (stateRegister) {
-                        0 -> stateRegister += if (value[3] == 0L) 2 else 1
-                        1 -> TODO()
-                        2 -> {
-                            addressIdentificationPage = (value and 0b11111).toInt()
-                            stateRegister = 1
+                        0uL -> stateRegister += if (value[3] == 0uL) 2 else 1
+                        1uL -> TODO()
+                        2uL -> {
+                            addressIdentificationPage = value and 0b11111u
+                            stateRegister = 1u
                         }
-                        3 -> {
-                            identificationPage = identificationPage.insert(value, addressIdentificationPage + 7..addressIdentificationPage)
+                        3uL -> {
+                            val range = addressIdentificationPage.int + 7..addressIdentificationPage.int
+                            identificationPage = identificationPage.insert(value, range)
                         }
                     }
                 }
@@ -284,40 +283,12 @@ class M95160(parent: Module, name: String, val eeprom: File): Module(parent, nam
         }
     }
 
-    fun checkMemoryBlock(statusRegister: Long, address: Int): Boolean {
-        val memPart = statusRegister[SR.BP1.bit..SR.BP0.bit]
-        return when (memPart) {
-            0L -> true
-            1L -> address < 0x600
-            2L -> address < 0x400
-            3L -> false
+    fun checkMemoryBlock(statusRegister: ULong, address: ULong) =
+        when (statusRegister[SR.BP1.bit..SR.BP0.bit]) {
+            0uL -> true
+            1uL -> address < 0x600u
+            2uL -> address < 0x400u
+            3uL -> false
             else -> false
         }
-    }
-
-    override fun command(): String = "m95160"
-
-    override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
-            super.configure(parent, useParent)?.apply {
-                subparser("load").apply {
-                    variable<String>("path", help = "Load M95160 memory from file with specified path")
-                }
-            }
-
-    override fun process(context: IInteractive.Context): Boolean {
-        if (super.process(context))
-            return true
-
-        context.result = when (context.command()) {
-            "load" -> {
-                val path = context.getString("path")
-                gzipInputStreamIfPossible(path).read(content)
-                "File loaded successfully: ${content.getArray(0, 16).hexlify()}..."
-            }
-
-            else -> return false
-        }
-
-        return true
-    }
 }

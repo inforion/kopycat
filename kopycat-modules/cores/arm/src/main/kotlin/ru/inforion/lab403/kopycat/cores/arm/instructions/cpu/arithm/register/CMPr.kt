@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.arithm.register
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.AddWithCarry
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.Shift
@@ -37,9 +37,8 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class CMPr(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            var setFlags: Boolean,
            var rd: ARMRegister,
@@ -52,7 +51,7 @@ class CMPr(cpu: AARMCore,
     override val mnem = "CMP$mcnd"
 
     override fun execute() {
-        val shifted = Immediate<AARMCore>(Shift(rm.value(core), rm.dtyp.bits, shiftT, shiftN, core.cpu.flags.c.asInt))
+        val shifted = Immediate<AARMCore>(Shift(rm.value(core), rm.dtyp.bits, shiftT, shiftN, core.cpu.flags.c.int))
         val (result, carry, overflow) = AddWithCarry(rn.dtyp.bits, rn.value(core), shifted.inv(core), 1)
         FlagProcessor.processArithmFlag(core, result, carry, overflow)
     }

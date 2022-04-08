@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
-import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
@@ -39,14 +39,14 @@ class Bsr(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
 
     override fun execute() {
         val src = op2.value(core)
-        if (src == 0L) {
+        if (src == 0uL) {
             core.cpu.flags.zf = true
-            op1.value(core, 0L)
+            op1.value(core, 0uL)
         } else {
             core.cpu.flags.zf = false
             var temp = prefs.opsize.bits - 1
-            while (src[temp] == 0L) temp -= 1
-            op1.value(core, temp.asULong)
+            while (src[temp] == 0uL) temp -= 1
+            op1.value(core, temp.ulong_z)
         }
     }
 }

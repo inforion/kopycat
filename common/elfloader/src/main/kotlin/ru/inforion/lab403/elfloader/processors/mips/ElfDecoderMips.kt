@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,9 @@ package ru.inforion.lab403.elfloader.processors.mips
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.emptyOpt
+import ru.inforion.lab403.common.optional.opt
 import ru.inforion.lab403.elfloader.exceptions.EDecodeFault
 import ru.inforion.lab403.elfloader.ElfAccess
 import ru.inforion.lab403.elfloader.ElfFile
@@ -59,7 +62,7 @@ class ElfDecoderMips(file: ElfFile) : AElfDecoder(file) {
     var gcc = 0
         private set
 
-    var symbolTableSize : Long? = null
+    var symbolTableSize : Optional<ULong> = emptyOpt()
 
 
     //TODO: Change to header as parameter
@@ -72,31 +75,26 @@ class ElfDecoderMips(file: ElfFile) : AElfDecoder(file) {
     }
 
     //TODO: return Boolean as result of check
-    override fun checkSectionType(type: Int) {
-    }
+    override fun checkSectionType(type: Int) = Unit
 
-    override fun checkSectionFlags(flags: Int) {
-        if (flags and 0x10000000 != 0) // TODO: SHF_MIPS_GPREL as part of enum
+    override fun checkSectionFlags(flags: UInt) {
+        if (flags and 0x10000000u != 0u) // TODO: SHF_MIPS_GPREL as part of enum
             log.warning { "Warning! SHF_MIPS_GPREL flag is not implemented" }
     }
 
-    override fun checkSectionName(name: String, type: Int, flags: Int) : Boolean {
-        return when (name) {
-            ".MIPS.abiflags" -> (type != SHT_MIPS_ABIFLAGS.id)
-            ".MIPS.stubs" -> (type != SHT_PROGBITS.id)
-            else -> {
-                log.warning { "Non standard section name: $name" }
-                false
-            }
+    override fun checkSectionName(name: String, type: Int, flags: UInt) = when (name) {
+        ".MIPS.abiflags" -> type != SHT_MIPS_ABIFLAGS.id
+        ".MIPS.stubs" -> type != SHT_PROGBITS.id
+        else -> {
+            log.warning { "Non standard section name: $name" }
+            false
         }
     }
 
     //FIXME: SYMBOL TABLE SHOULD CALL THEM
-    override fun checkSymbolBinding(bind: Int) {
-    }
+    override fun checkSymbolBinding(bind: Int) = Unit
 
-    override fun checkSymbolType(type: Int) {
-    }
+    override fun checkSymbolType(type: Int) = Unit
 
     //TODO: change name!!!
     override fun checkSegmentType(type: Int) {
@@ -110,15 +108,15 @@ class ElfDecoderMips(file: ElfFile) : AElfDecoder(file) {
         log.warning { "MIPS platform-specific segment 0x${type.hex8} may be linker-dependent" }
     }
 
-    override fun checkSegmentFlags(flags: Int) { }
+    override fun checkSegmentFlags(flags: UInt) = Unit
 
-    override fun parseDynamic(hm: HashMap<Int, Long>, tag: Int, ptr: Long) {
+    override fun parseDynamic(hm: MutableMap<Int, ULong>, tag: Int, ptr: ULong) {
         when (tag) {
             DT_MIPS_RLD_VERSION.id -> { /* uclibc skips it */ }
             DT_MIPS_FLAGS.id -> { /* uclibc skips it */ }
             DT_MIPS_BASE_ADDRESS.id -> {  /* uclibc skips it */ }
             DT_MIPS_LOCAL_GOTNO.id -> hm[DT_MIPS_LOCAL_GOTNO.id] = ptr
-            DT_MIPS_SYMTABNO.id -> symbolTableSize = ptr
+            DT_MIPS_SYMTABNO.id -> symbolTableSize = ptr.opt
             DT_MIPS_UNREFEXTNO.id -> {  /* uclibc skips it */ }
             DT_MIPS_GOTSYM.id -> hm[DT_MIPS_GOTSYM.id] = ptr
             DT_MIPS_PLTGOT_GNU.id -> log.severe { "DT_MIPS_PLTGOT_GNU: Don't know what to do with it, hope it will work..." }
@@ -128,10 +126,10 @@ class ElfDecoderMips(file: ElfFile) : AElfDecoder(file) {
         }
     }
 
-    override fun applyStaticRelocation(rel: ElfRel, vaddr: Long, symbol: Long, got: Long?, data: Long): Long{
+    override fun applyStaticRelocation(rel: ElfRel, vaddr: ULong, symbol: ULong, got: Optional<ULong>, data: ULong): ULong {
         //I changed it in order of new relocation signature
         val S = symbol //file.symbolTable!![rel.sym].value
-        val A = rel.addend
+        val A = rel.addend.ulong_z
 
         return when (rel.type) {
             R_MIPS_32.id -> {
@@ -140,11 +138,11 @@ class ElfDecoderMips(file: ElfFile) : AElfDecoder(file) {
             }
             R_MIPS_26.id -> {
                 log.warning { "Relocation type: R_MIPS_26" }
-                (A + S) shr 2
+                (A + S) ushr 2
             }
             R_MIPS_JUMP_SLOT.id -> {
                 log.severe { "Relocation type: R_MIPS_JUMP_SLOT -> Ignore runtime relocations" }
-                0
+                0uL
             }
             R_MIPS_REL32.id -> {
                 data
@@ -161,7 +159,7 @@ class ElfDecoderMips(file: ElfFile) : AElfDecoder(file) {
 
     override fun getProgramHeaderTypeNameById(type: Int): String = MipsSegmentType.getNameById(type)
 
-    override fun fixPaddr(addr: Long): Long {
+    override fun fixPaddr(addr: ULong): ULong {
         return addr
         //return if (addr in 0x80000000..0xC0000000) addr and 0x1FFF_FFFF else addr
     }

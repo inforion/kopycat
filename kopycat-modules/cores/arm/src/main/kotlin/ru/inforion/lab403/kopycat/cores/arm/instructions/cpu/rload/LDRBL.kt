@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.Align
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -33,11 +34,11 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class LDRBL(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val add: Boolean,
             val rt: ARMRegister,
@@ -48,7 +49,7 @@ class LDRBL(cpu: AARMCore,
     // A8-421 ARM DDI 0406C.b ID072512
     override fun execute() {
         val base = Align(core.cpu.pc, 4)
-        val address = base + if (add) imm.zext else -imm.zext
+        val address = base + if (add) imm.value else -imm.value
         rt.value(core, core.inb(address like Datatype.DWORD))
     }
 }

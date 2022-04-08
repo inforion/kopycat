@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -87,8 +87,8 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/memcpy/
     val memcpy = object : APIFunction("memcpy") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val buf = os.abi.readBytes(argv[1], argv[2].asInt)
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val buf = os.abi.readBytes(argv[1], argv[2].int)
             os.abi.writeBytes(argv[0], buf)
             return retval(argv[0])
         }
@@ -102,7 +102,7 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strcpy/
     val strcpy = object : APIFunction("strcpy") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val dst = argv[0]
             val src = os.sys.readAsciiString(argv[1])
             os.sys.writeAsciiString(dst, src)
@@ -114,10 +114,10 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strncpy/
     val strncpy = object : APIFunction("strncpy") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val dst = argv[0]
             val src = os.sys.readAsciiString(argv[1])
-            val n = argv[2].asInt
+            val n = argv[2].int
             os.sys.writeAsciiString(dst, src[0..minOf(n, src.length)])
             return retval(dst)
         }
@@ -129,7 +129,7 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strcat/
     val strcat = object : APIFunction("strcat") {
         override val args = arrayOf(ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val deststr = os.sys.readAsciiString(argv[0])
             val srcstr = os.sys.readAsciiString(argv[1])
             os.sys.writeAsciiString(argv[0], deststr + srcstr)
@@ -141,10 +141,10 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strncat/
     val strncat = object : APIFunction("strncat") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val deststr = os.sys.readAsciiString(argv[0])
             val srcstr = os.sys.readAsciiString(argv[1])
-            val num = argv[2].asInt
+            val num = argv[2].int
             val res = deststr + srcstr[0..minOf(srcstr.length, num)]
             os.sys.writeAsciiString(argv[0], res)
             return retval(argv[0])
@@ -157,8 +157,8 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/memcmp/
     val memcmp = object : APIFunction("memcmp") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val num = argv[2].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val num = argv[2].int
             val data1 = os.abi.readBytes(argv[0], num)
             val data2 = os.abi.readBytes(argv[1], num)
             var res = 0
@@ -169,7 +169,7 @@ class StringAPI(os: VEOS<*>) : API(os) {
                     break
             }
 
-            return retval(res.asLong)
+            return retval(res.ulong_z)
         }
     }
 
@@ -177,10 +177,10 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strcmp/
     val strcmp = object : APIFunction("strcmp") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val str1 = os.sys.readAsciiString(argv[0])
             val str2 = os.sys.readAsciiString(argv[1])
-            return retval(str1.compareTo(str2).asLong)
+            return retval(str1.compareTo(str2).ulong_z)
         }
     }
 
@@ -193,13 +193,13 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strncmp/
     val strncmp = object : APIFunction("strncmp") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val n = argv[2].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val n = argv[2].int
             var str1 = os.sys.readAsciiString(argv[0])
             var str2 = os.sys.readAsciiString(argv[1])
             str1 = str1[0..minOf(n, str1.length)]
             str2 = str2[0..minOf(n, str2.length)]
-            return retval(str1.compareTo(str2).asLong)
+            return retval(str1.compareTo(str2).ulong_z)
         }
     }
 
@@ -212,11 +212,11 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/memchr/
     val memchr = object : APIFunction("memchr") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val buf = os.abi.readBytes(argv[0], argv[2].asInt)
-            val value = argv[1].asByte
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val buf = os.abi.readBytes(argv[0], argv[2].int)
+            val value = argv[1].byte
             val idx = buf.indexOfFirst { it == value }
-            val res = if (idx != -1) argv[0] + idx else 0
+            val res = if (idx != -1) argv[0] + idx else 0u
             return retval(res)
         }
     }
@@ -225,11 +225,11 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strchr/
     val strchr = object : APIFunction("strchr") {
         override val args = arrayOf(ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val s = os.sys.readAsciiString(argv[0])
-            val ch = argv[1].toChar()
+            val ch = argv[1].char
             val index = s.indexOfFirst { it == ch }
-            return if (index == -1) retval(0) else retval(argv[0] + index)
+            return if (index == -1) retval(0u) else retval(argv[0] + index)
         }
     }
 
@@ -238,7 +238,7 @@ class StringAPI(os: VEOS<*>) : API(os) {
     @APIFunc
     fun strcspn(str1: CharPointer, str2: CharPointer): size_t {
         val start = strpbrk(str1, str2)
-        return if (start.isNull) size_t(str1.string.length.ulong) else size_t((start.address - str1.address).ulong)
+        return if (start.isNull) size_t(str1.string.length.ulong_z) else size_t(start.address - str1.address)
     }
 
     // REVIEW: not tested
@@ -257,11 +257,11 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strrchr/
     val strrchr = object : APIFunction("strrchr") {
         override val args = arrayOf(ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val s = os.sys.readAsciiString(argv[0])
-            val ch = argv[1].toChar()
+            val ch = argv[1].char
             val index = s.lastIndexOf(ch)
-            return if (index == -1) retval(0) else retval(argv[0] + index)
+            return if (index == -1) retval(0u) else retval(argv[0] + index)
         }
     }
 
@@ -272,7 +272,7 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strstr/
     val strstr = object : APIFunction("strstr") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val haystack = os.sys.readAsciiString(argv[0])
             val needle = os.sys.readAsciiString(argv[1])
             val start = haystack.indexOf(needle)
@@ -289,8 +289,8 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/memset/
     val memset = object : APIFunction("memset") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val buf = ByteArray(argv[2].asInt) { argv[1].asByte }
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val buf = ByteArray(argv[2].int) { argv[1].byte }
             os.abi.writeBytes(argv[0], buf)
             return retval(argv[0])
         }
@@ -309,7 +309,7 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strlen/
     val strlen = object : APIFunction("strlen") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long) = retval(os.sys.readAsciiString(argv[0]).length.asLong)
+        override fun exec(name: String, vararg argv: ULong) = retval(os.sys.readAsciiString(argv[0]).length.ulong_z)
     }
 
     // REVIEW: --- POSIX extension of Stdio functions ---
@@ -318,10 +318,10 @@ class StringAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstring/strnlen/
     val strnlen = object : APIFunction("strnlen") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val maxLen = argv[1].asInt
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val maxLen = argv[1].int
             val res = minOf(os.sys.readAsciiString(argv[0]).length, maxLen)
-            return retval(res.asLong)
+            return retval(res.ulong_z)
         }
     }
 }

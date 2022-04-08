@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 // See A8.8.98
 class MCR(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val rd: ARMRegister,
             val opcode_1: Int,

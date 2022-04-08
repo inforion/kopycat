@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,9 +34,9 @@ class HWRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>("Hardware MIPS Re
     inner class ReadOnly(
             name: String,
             id: Int,
-            val output: (ReadOnly) -> Long
+            val output: (ReadOnly) -> ULong
     ) : Register(name, id) {
-        override var value: Long
+        override var value: ULong
             get() = output(this)
             set(value) = throw NotImplementedError("Write to $this not implemented!")
     }
@@ -52,7 +52,7 @@ class HWRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>("Hardware MIPS Re
      * or zero if no caches need be synchronized.
      * See that instruction’s description for the use of this value.
      */
-    val hw1 = ReadOnly("hw1", 1) { 0 }
+    val hw1 = ReadOnly("hw1", 1) { 0u }
 
     /**
      * High-resolution cycle counter. This register provides read access to the coprocessor 0 Count Register.
@@ -64,7 +64,7 @@ class HWRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>("Hardware MIPS Re
      * 2 CC register increments every second CPU cycle
      * 3 CC register increments every third CPU cycle
      */
-    val hw3 = ReadOnly("hw3", 3) { 1 }
+    val hw3 = ReadOnly("hw3", 3) { 1u }
 
     /**
      * User Local Register. This register provides read access to the coprocessor 0

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,88 +32,85 @@ import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Access.ANY
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.cores.v850es.enums.Regtype
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
+import java.util.*
 import ru.inforion.lab403.kopycat.cores.v850es.enums.CTRLR as eCTRLR
 import ru.inforion.lab403.kopycat.cores.v850es.enums.GPR as eGPR
 
 abstract class v850esRegister(
-        reg: Int,
-        val rtyp: Regtype,
-        access: AOperand.Access = ANY) :
-        ARegister<v850ESCore>(reg, access, DWORD) {
+    reg: Int,
+    val rtyp: Regtype,
+    access: Access = ANY
+) : ARegister<v850ESCore>(reg, access, DWORD) {
 
-    override fun toString(): String =
-        when (rtyp) {
-            Regtype.GPR -> eGPR.from(reg)
-            Regtype.CTRLR -> eCTRLR.from(reg)
-        }.name.toLowerCase()
+    override fun toString() = when (rtyp) {
+        Regtype.GPR -> eGPR.from(reg)
+        Regtype.CTRLR -> eCTRLR.from(reg)
+    }.name.lowercase()
 
     companion object {
-        fun gpr(id: Int): v850esRegister {
-            return when (id) {
-                eGPR.r0.id -> GPR.r0
-                eGPR.r1.id -> GPR.r1
-                eGPR.r2.id -> GPR.r2
-                eGPR.r3.id -> GPR.r3
-                eGPR.r4.id -> GPR.r4
-                eGPR.r5.id -> GPR.r5
-                eGPR.r6.id -> GPR.r6
-                eGPR.r7.id -> GPR.r7
-                eGPR.r8.id -> GPR.r8
-                eGPR.r9.id -> GPR.r9
-                eGPR.r10.id -> GPR.r10
-                eGPR.r11.id -> GPR.r11
-                eGPR.r12.id -> GPR.r12
-                eGPR.r13.id -> GPR.r13
-                eGPR.r14.id -> GPR.r14
-                eGPR.r15.id -> GPR.r15
-                eGPR.r16.id -> GPR.r16
-                eGPR.r17.id -> GPR.r17
-                eGPR.r18.id -> GPR.r18
-                eGPR.r19.id -> GPR.r19
-                eGPR.r20.id -> GPR.r20
-                eGPR.r21.id -> GPR.r21
-                eGPR.r22.id -> GPR.r22
-                eGPR.r23.id -> GPR.r23
-                eGPR.r24.id -> GPR.r24
-                eGPR.r25.id -> GPR.r25
-                eGPR.r26.id -> GPR.r26
-                eGPR.r27.id -> GPR.r27
-                eGPR.r28.id -> GPR.r28
-                eGPR.r29.id -> GPR.r29
-                eGPR.r30.id -> GPR.r30
-                eGPR.r31.id -> GPR.r31
-                eGPR.pc.id -> GPR.pc
-                else -> throw GeneralException("Unknown GPR id = $id")
-            }
+        fun gpr(id: Int) = when (id) {
+            eGPR.r0.id -> GPR.r0
+            eGPR.r1.id -> GPR.r1
+            eGPR.r2.id -> GPR.r2
+            eGPR.r3.id -> GPR.r3
+            eGPR.r4.id -> GPR.r4
+            eGPR.r5.id -> GPR.r5
+            eGPR.r6.id -> GPR.r6
+            eGPR.r7.id -> GPR.r7
+            eGPR.r8.id -> GPR.r8
+            eGPR.r9.id -> GPR.r9
+            eGPR.r10.id -> GPR.r10
+            eGPR.r11.id -> GPR.r11
+            eGPR.r12.id -> GPR.r12
+            eGPR.r13.id -> GPR.r13
+            eGPR.r14.id -> GPR.r14
+            eGPR.r15.id -> GPR.r15
+            eGPR.r16.id -> GPR.r16
+            eGPR.r17.id -> GPR.r17
+            eGPR.r18.id -> GPR.r18
+            eGPR.r19.id -> GPR.r19
+            eGPR.r20.id -> GPR.r20
+            eGPR.r21.id -> GPR.r21
+            eGPR.r22.id -> GPR.r22
+            eGPR.r23.id -> GPR.r23
+            eGPR.r24.id -> GPR.r24
+            eGPR.r25.id -> GPR.r25
+            eGPR.r26.id -> GPR.r26
+            eGPR.r27.id -> GPR.r27
+            eGPR.r28.id -> GPR.r28
+            eGPR.r29.id -> GPR.r29
+            eGPR.r30.id -> GPR.r30
+            eGPR.r31.id -> GPR.r31
+            eGPR.pc.id -> GPR.pc
+            else -> throw GeneralException("Unknown GPR id = $id")
         }
 
-        fun creg(id: Int): v850esRegister {
-            return when (id) {
-                eCTRLR.EIPC.id -> CTRLR.EIPC
-                eCTRLR.EIPSW.id -> CTRLR.EIPSW
-                eCTRLR.FEPC.id -> CTRLR.FEPC
-                eCTRLR.FEPSW.id -> CTRLR.FEPSW
-                eCTRLR.ECR.id -> CTRLR.ECR
-                eCTRLR.PSW.id -> CTRLR.PSW
-                eCTRLR.CTPC.id -> CTRLR.CTPC
-                eCTRLR.CTPSW.id -> CTRLR.CTPSW
-                eCTRLR.DBPC.id -> CTRLR.DBPC
-                eCTRLR.DBPSW.id -> CTRLR.DBPSW
-                eCTRLR.CTBP.id -> CTRLR.CTBP
-                eCTRLR.DIR.id -> CTRLR.DIR
-                else -> throw GeneralException("Unknown CTRL id = $id")
-            }
+        fun creg(id: Int) = when (id) {
+            eCTRLR.EIPC.id -> CTRLR.EIPC
+            eCTRLR.EIPSW.id -> CTRLR.EIPSW
+            eCTRLR.FEPC.id -> CTRLR.FEPC
+            eCTRLR.FEPSW.id -> CTRLR.FEPSW
+            eCTRLR.ECR.id -> CTRLR.ECR
+            eCTRLR.PSW.id -> CTRLR.PSW
+            eCTRLR.CTPC.id -> CTRLR.CTPC
+            eCTRLR.CTPSW.id -> CTRLR.CTPSW
+            eCTRLR.DBPC.id -> CTRLR.DBPC
+            eCTRLR.DBPSW.id -> CTRLR.DBPSW
+            eCTRLR.CTBP.id -> CTRLR.CTBP
+            eCTRLR.DIR.id -> CTRLR.DIR
+            else -> throw GeneralException("Unknown CTRL id = $id")
         }
     }
 
     sealed class GPR(id: Int) : v850esRegister(id, Regtype.GPR) {
-        override fun value(core: v850ESCore, data: Long) = core.cpu.regs.writeIntern(reg, data)
-        override fun value(core: v850ESCore): Long = core.cpu.regs.readIntern(reg)
+        override fun value(core: v850ESCore, data: ULong) = core.cpu.regs.writeIntern(reg, data)
+        override fun value(core: v850ESCore) = core.cpu.regs.readIntern(reg)
 
         object r0 : GPR(eGPR.r0.id) {
-            override fun value(core: v850ESCore): Long = 0
-            override fun value(core: v850ESCore, data: Long) = Unit
+            override fun value(core: v850ESCore) = 0uL
+            override fun value(core: v850ESCore, data: ULong) = Unit
         }
+
         object r1 : GPR(eGPR.r1.id)
         object r2 : GPR(eGPR.r2.id)
         object r3 : GPR(eGPR.r3.id)
@@ -149,8 +146,8 @@ abstract class v850esRegister(
     }
 
     sealed class CTRLR(id: Int) : v850esRegister(id, Regtype.CTRLR) {
-        override fun value(core: v850ESCore, data: Long) = core.cpu.cregs.writeIntern(reg, data)
-        override fun value(core: v850ESCore): Long = core.cpu.cregs.readIntern(reg)
+        override fun value(core: v850ESCore, data: ULong) = core.cpu.cregs.writeIntern(reg, data)
+        override fun value(core: v850ESCore) = core.cpu.cregs.readIntern(reg)
 
         object EIPC : CTRLR(eCTRLR.EIPC.id)
         object EIPSW : CTRLR(eCTRLR.EIPSW.id)

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special
 
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
@@ -35,7 +35,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 // See A8.8.111
 class MSR(cpu: AARMCore,
-          opcode: Long,
+          opcode: ULong,
           cond: Condition,
           val imm32: Immediate<AARMCore>,
           mask: Int,
@@ -43,16 +43,16 @@ class MSR(cpu: AARMCore,
         AARMInstruction(cpu, Type.VOID, cond, opcode, imm32) {
     override val mnem = "MSR$mcnd"
 
-    val writeNZCVQ = mask[3].toBool()
-    val writeG = mask[2].toBool()
+    val writeNZCVQ = mask[3].truth
+    val writeG = mask[2].truth
 
     override fun execute() {
         if(writeNZCVQ){
-            core.cpu.flags.n = imm32.value[31] == 1L
-            core.cpu.flags.z = imm32.value[30] == 1L
-            core.cpu.flags.c = imm32.value[29] == 1L
-            core.cpu.flags.v = imm32.value[28] == 1L
-            core.cpu.status.q = imm32.value[27] == 1L
+            core.cpu.flags.n = imm32.value[31] == 1uL
+            core.cpu.flags.z = imm32.value[30] == 1uL
+            core.cpu.flags.c = imm32.value[29] == 1uL
+            core.cpu.flags.v = imm32.value[28] == 1uL
+            core.cpu.status.q = imm32.value[27] == 1uL
         }
         if(writeG)
             core.cpu.status.ge = imm32.value[19..16]

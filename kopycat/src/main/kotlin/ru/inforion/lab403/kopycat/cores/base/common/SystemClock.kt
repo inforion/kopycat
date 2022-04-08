@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,18 +25,16 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import net.sourceforge.argparse4j.inf.ArgumentParser
 import ru.inforion.lab403.common.extensions.Time
-import ru.inforion.lab403.common.extensions.asLong
-import ru.inforion.lab403.common.extensions.choices
+import ru.inforion.lab403.common.extensions.double
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
-import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
-import java.util.logging.Level
 
 /**
  * {EN}
@@ -50,7 +48,7 @@ import java.util.logging.Level
 class SystemClock constructor(val core: AGenericCore, val frequency: Long, override val name: String) : ICoreUnit {
 
     companion object {
-        @Transient val log = logger(Level.WARNING)
+        @Transient val log = logger(WARNING)
     }
 
     /**
@@ -61,7 +59,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
     /**
      * {RU}Общее количество вызовов update системного времени{RU}
      */
-    var totalTicks: Long = 0
+    var totalTicks: ULong = 0u
         private set
 
     private val triggered = ArrayList<ATriggerable>(32)
@@ -79,7 +77,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
      */
     private fun updateAndTrigger(scaledCycles: Double) {
         totalCycles += scaledCycles
-        totalTicks += 1
+        totalTicks += 1u
 
         // ATTENTION: don't use for (k in indices) ... -> race conditions in core can occurred
 
@@ -127,7 +125,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
         private lateinit var clock: SystemClock
 
         // trigger counter
-        protected var triggered: Long = 0
+        protected var triggered: ULong = 0u
 
         // timer period in CPU clock cycles
         protected var period: Double = 0.0
@@ -147,7 +145,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
                     if (!field) {
                         // log.finest { "Enable timer: %s at %,d us".format(name, dev.timer.timestamp) }
                         reference = clock.totalCycles
-                        triggered = 0
+                        triggered = 0u
                         clock.timers.add(this)
                     }
                 } else {
@@ -169,7 +167,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
                 this.clock = clock
             } else if (this.clock != clock)
                 throw IllegalArgumentException("Wrong clock signal reconnected to timer")
-            this.period = conf.toDouble()
+            this.period = conf.double
             this.enabled = enabled
         }
 
@@ -184,7 +182,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
             enabled = false
             period = 0.0
             reference = 0.0
-            triggered = 0
+            triggered = 0u
         }
 
         override fun serialize(ctxt: GenericSerializer) = storeValues(
@@ -231,7 +229,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
         }
 
         override fun trigger() {
-            triggered += 1
+            triggered += 1u
         }
     }
 
@@ -241,11 +239,9 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
     fun connect(timer: ATriggerable, period: Long, run: Boolean = true) =
             timer.connect(this, period, null, run)
 
-    fun connect(timer: ATriggerable) =
-            timer.connect(this, 0, null, false)
+    fun connect(timer: ATriggerable) = timer.connect(this, 0, null, false)
 
     fun add(timer: ATriggerable): Boolean {
-        // log.finest { "%s enabled period = %d ref = %08X".format(timer.name, timer.period.asLong, cycles.asLong) }
         if (timer in timers) {
             log.warning { "Timer %d already enabled and trying to wind up it -> ignore".format(timer) }
             return false
@@ -260,15 +256,15 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
      * {EN}
      */
     @Deprecated("Use `time` instead", replaceWith = ReplaceWith("time"))
-    var timestamp: Long
+    var timestamp: ULong
         get() = time(Time.us)
         set(value) = time(value, Time.us)
 
-    fun time(unit: Time = Time.us): Long = (totalCycles * unit.divider / frequency).asLong
+    fun time(unit: Time = Time.us): ULong = (totalCycles * unit.divider.double / frequency.double).ulong
 
-    fun timeToCycles(value: Long, unit: Time = Time.us) = value.toDouble() * frequency / unit.divider
+    fun timeToCycles(value: ULong, unit: Time = Time.us) = value.double * frequency.double / unit.divider.double
 
-    fun time(value: Long, unit: Time = Time.us) {
+    fun time(value: ULong, unit: Time = Time.us) {
         totalCycles = timeToCycles(value, unit)
     }
 
@@ -284,26 +280,5 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
         // TODO: Remove backward compat. quirk ASAP
         val key = if ("totalCycles" !in snapshot) "ticks" else "totalCycles"
         totalCycles = loadValue(snapshot, key)
-    }
-
-    override fun command(): String? = "timer"
-
-    override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
-            super.configure(parent, useParent)?.apply {
-                choices("type", listOf("count", "timestamp"), help = "What to get?")
-            }
-
-    override fun process(context: IInteractive.Context): Boolean {
-        if (super.process(context))
-            return true
-
-        context.result = when (context.command()) {
-            "timestamp" -> "timestamp = %08X (%,d)".format(time(), time())
-            else -> return false
-        }
-
-        context.pop()
-
-        return true
     }
 }

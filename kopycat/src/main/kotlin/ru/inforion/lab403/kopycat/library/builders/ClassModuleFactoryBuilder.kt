@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,14 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.library.builders
 
-import com.fasterxml.jackson.module.kotlin.isKotlinClass
-import ru.inforion.lab403.common.extensions.DynamicClassLoader
+import ru.inforion.lab403.common.extensions.location2
 import ru.inforion.lab403.common.extensions.sure
-import ru.inforion.lab403.common.logging.FINE
-import ru.inforion.lab403.common.logging.FINEST
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.stringify
+import ru.inforion.lab403.common.reflection.isKotlinClass
+import ru.inforion.lab403.common.reflection.stringify
+import ru.inforion.lab403.common.utils.DynamicClassLoader
 import ru.inforion.lab403.kopycat.annotations.DontExportModule
 import ru.inforion.lab403.kopycat.cores.base.common.Component
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -40,10 +39,9 @@ import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
 import ru.inforion.lab403.kopycat.library.builders.api.AFileModuleFactoryBuilder
 import ru.inforion.lab403.kopycat.library.builders.api.IModuleFactory
 import ru.inforion.lab403.kopycat.library.builders.api.ModuleParameterInfo
+import ru.inforion.lab403.kopycat.library.name
 import java.io.File
-import java.lang.IllegalArgumentException
 import kotlin.reflect.KFunction
-import kotlin.reflect.KType
 import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.isSubclassOf
 import kotlin.reflect.jvm.javaType
@@ -53,7 +51,7 @@ class ClassModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFacto
         @Transient val log = logger(INFO)
 
         private fun getFileFromClass(klass: Class<*>): String {
-            val path = File(klass.protectionDomain.codeSource.location.path)
+            val path = File(klass.location2)
             val name = klass.canonicalName.replace(".", "/") + ".class"
             return File(path, name).path
         }
@@ -150,8 +148,6 @@ class ClassModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFacto
         return constructors.isNotEmpty()
     }
 
-    private fun getTypename(type: KType): String = type.javaType.typeName.substringAfterLast(".")
-
     override fun factory(name: String, registry: ModuleLibraryRegistry): List<IModuleFactory> = constructors.map { constructor ->
         object : IModuleFactory {
             override val canBeTop = with(constructor.parameters.first()) {
@@ -160,7 +156,7 @@ class ClassModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFacto
 
             override val parameters = constructor.parameters
                     .filter { it.index >= 2 }
-                    .map { ModuleParameterInfo(it.index, it.name!!, getTypename(it.type), it.isOptional) }
+                    .map { ModuleParameterInfo(it.index, it.name!!, it.type, it.isOptional) }
 
             private fun arguments(
                     parent: Component?,
@@ -185,14 +181,16 @@ class ClassModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFacto
             }.also {
                 log.finest {
                     val stringOfArguments = it
-                            .map { (param, value) -> "\t#${param.index} ${param.name}: ${param.type} = $value" }
+                            .map { (param, value) -> "\t#${param.index} ${param.name}: ${param.type.name} = $value" }
                             .joinToString("\n")
                     "\n${constructor.stringify()} -> \n$stringOfArguments"
                 }
             }
 
-            override fun create(parent: Component?, name: String, parameters: Map<String, Any?>) =
-                    constructor.callBy(arguments(parent, name, parameters))
+            override fun create(parent: Component?, name: String, parameters: Map<String, Any?>): Module {
+                val args = arguments(parent, name, parameters)
+                return constructor.callBy(args)
+            }
         }
     }
 }

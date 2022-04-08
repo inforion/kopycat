@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,8 +35,7 @@ import ru.inforion.lab403.kopycat.cores.ppc.enums.eOEA
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eUISA
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eVEA
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
-
+import java.util.*
 
 
 abstract class PPCRegister(
@@ -50,7 +49,7 @@ abstract class PPCRegister(
         Regtype.VEA -> first<eVEA> { it.id == reg }.name
         Regtype.OEA -> first<eOEA> {it.id == reg }.name
         else -> throw GeneralException("Not supported register type: ${rtyp.name}")
-    }.toLowerCase()
+    }.lowercase()
 
     companion object {
         fun uisa(id: Int) = when(id) {
@@ -200,8 +199,8 @@ abstract class PPCRegister(
 
 
     sealed class UISA(id: Int) : PPCRegister(id, Regtype.UISA) {
-        override fun value(core: PPCCore, data: Long) = core.cpu.regs.writeIntern(reg, data)
-        override fun value(core: PPCCore): Long = core.cpu.regs.readIntern(reg)
+        override fun value(core: PPCCore, data: ULong) = core.cpu.regs.writeIntern(reg, data)
+        override fun value(core: PPCCore): ULong = core.cpu.regs.readIntern(reg)
 
         //General-purpose registers
         object GPR0 : UISA(eUISA.GPR0.id)
@@ -298,24 +297,25 @@ abstract class PPCRegister(
     fun denied(reg: Int, op: String) {
         throw GeneralException("Temporary block to $op: $reg (${toString()})")
     }
-    fun denied_read(reg: Int) : Long {
+
+    fun denied_read(reg: Int) : ULong {
         denied(reg, "read")
-        return 0
+        return 0u
     }
 
     fun denied_write(reg: Int) = denied(reg, "write")
 
     sealed class VEA(id: Int) : PPCRegister(id, Regtype.VEA) {
-        override fun value(core: PPCCore, data: Long) = core.cpu.veaRegs.writeIntern(reg, data)
-        override fun value(core: PPCCore): Long = core.cpu.veaRegs.readIntern(reg)
+        override fun value(core: PPCCore, data: ULong) = core.cpu.veaRegs.writeIntern(reg, data)
+        override fun value(core: PPCCore): ULong = core.cpu.veaRegs.readIntern(reg)
 
         open class REG_DBG_DENIED(id: Int) : VEA(id) {
             override fun value(core: PPCCore) = denied_read(reg)
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_READ(id: Int) : VEA(id) {
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_WRITE(id: Int) : VEA(id) {
@@ -324,25 +324,25 @@ abstract class PPCRegister(
 
         //Time base facility (for reading)
         object TBL : REG_DBG_READ(eVEA.TBL.id) {
-            override fun value(core: PPCCore): Long = core.cpu.oeaRegs.readIntern(eOEA.TBL.id)
+            override fun value(core: PPCCore): ULong = core.cpu.oeaRegs.readIntern(eOEA.TBL.id)
         }
         object TBU : REG_DBG_READ(eVEA.TBU.id) {
-            override fun value(core: PPCCore): Long = core.cpu.oeaRegs.readIntern(eOEA.TBU.id)
+            override fun value(core: PPCCore): ULong = core.cpu.oeaRegs.readIntern(eOEA.TBU.id)
         }
     }
 
 
     sealed class OEA(id: Int) : PPCRegister(id, Regtype.OEA) {
-        override fun value(core: PPCCore, data: Long) = core.cpu.oeaRegs.writeIntern(reg, data)
-        override fun value(core: PPCCore): Long = core.cpu.oeaRegs.readIntern(reg)
+        override fun value(core: PPCCore, data: ULong) = core.cpu.oeaRegs.writeIntern(reg, data)
+        override fun value(core: PPCCore): ULong = core.cpu.oeaRegs.readIntern(reg)
 
         open class REG_DBG_DENIED(id: Int) : OEA(id) {
             override fun value(core: PPCCore) = denied_read(reg)
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_READ(id: Int) : OEA(id) {
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
         }
 
         open class REG_DBG_WRITE(id: Int) : OEA(id) {
@@ -357,12 +357,12 @@ abstract class PPCRegister(
         //Processor version register
         object PVR : OEA(eOEA.PVR.id) {
 
-            override fun value(core: PPCCore): Long {
+            override fun value(core: PPCCore): ULong {
                 log.severe { "Read from PVR!"}
-                return 0x80210000
+                return 0x80210000u // See 2.5.3
             }
 
-            override fun value(core: PPCCore, data: Long) = denied_write(reg)
+            override fun value(core: PPCCore, data: ULong) = denied_write(reg)
 
         }
 

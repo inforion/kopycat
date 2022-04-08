@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.tests
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -33,6 +33,7 @@ import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.BUS30
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.modules.memory.ROM
+import ru.inforion.lab403.kopycat.interfaces.*
 
 class MemoryChip(
         parent: Module,
@@ -56,12 +57,12 @@ class MemoryChip(
 
     override fun reset() {
         super.reset()
-        rom.outb(0x308, fwMode.asULong)
+        rom.outb(0x308u, fwMode.ulong_z)
     }
 
     init {
         rom.ports.mem.connect(buses.mem)
-        ram.ports.mem.connect(buses.mem, 0x1000_0000L)
+        ram.ports.mem.connect(buses.mem, 0x1000_0000u)
 
         ports.mem.connect(buses.mem)
     }

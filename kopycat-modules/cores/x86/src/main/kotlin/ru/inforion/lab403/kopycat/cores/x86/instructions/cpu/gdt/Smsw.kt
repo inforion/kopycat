@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,5 +37,5 @@ class Smsw(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<
         AX86Instruction(core, Type.VOID, opcode, prefs, operand) {
     override val mnem = "smsw"
 
-    override fun execute() = op1.value(core, core.cpu.cregs.cr0[15..0])
+    override fun execute() = op1.value(core, core.cpu.cregs.cr0.value[15..0])
 }

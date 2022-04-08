@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,43 +25,38 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.hardware.processors
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AFPU
-import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.CWRBank
 import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.FWRBank
-import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.SWRBank
+import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.serializer.deserialize
 import ru.inforion.lab403.kopycat.serializer.loadValue
 
 
 
-class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name) {
+class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name), IAutoSerializable {
     companion object {
         const val FPU_STACK_SIZE = 8
     }
 
-    override fun describe(): String = "FPU for x86"
-
     private var pos = 0
-    private val stack = Array(FPU_STACK_SIZE) { 0L }
+    private val stack = Array(FPU_STACK_SIZE) { 0uL }
     val fwr = FWRBank(core)
-    val cwr = CWRBank(core)
-    val swr = SWRBank(core)
 
-    operator fun set(i: Int, e: Long) {
+    operator fun set(i: Int, e: ULong) {
         stack[i] = e
     }
 
-    operator fun get(i: Int): Long = stack[i]
+    operator fun get(i: Int): ULong = stack[i]
 
-    fun push(e: Long) {
+    fun push(e: ULong) {
         stack[pos] = e
         pos++
     }
 
-    fun pop(): Long {
+    fun pop(): ULong {
         pos--
         return stack[pos]
     }
@@ -69,28 +64,30 @@ class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name) {
     fun pop(count: Int) = repeat(count) { pop() }
 
     override fun reset() {
-        stack.fill(0)
+        stack.fill(0u)
         fwr.reset()
-        cwr.reset()
-        swr.reset()
     }
+
+//    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+//        return mapOf(
+//                "fwr" to fwr.serialize(ctxt),
+//                "pos" to pos,
+//                "stack" to stack
+//        )
+//    }
+//
+//    @Suppress("UNCHECKED_CAST")
+//    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+//        fwr.deserialize(ctxt, snapshot["fwr"] as Map<String, String>)
+//        pos = loadValue(snapshot, "pos") { 0 }
+//        stack.deserialize<ULong, Int>(ctxt, snapshot["stack"]) { it.ulong_z }
+//    }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return mapOf(
-                "fwr" to fwr.serialize(ctxt),
-                "cwr" to cwr.serialize(ctxt),
-                "swr" to swr.serialize(ctxt),
-                "pos" to pos,
-                "stack" to stack
-        )
+        return super<IAutoSerializable>.serialize(ctxt)
     }
 
-    @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        fwr.deserialize(ctxt, snapshot["fwr"] as Map<String, String>)
-        cwr.deserialize(ctxt, snapshot["cwr"] as Map<String, String>)
-        swr.deserialize(ctxt, snapshot["swr"] as Map<String, String>)
-        pos = loadValue(snapshot, "pos") { 0 }
-        stack.deserialize<Long, Int>(ctxt, snapshot["stack"]) { it.asULong }
+        super<IAutoSerializable>.deserialize(ctxt, snapshot)
     }
 }

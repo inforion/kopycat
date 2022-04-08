@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,9 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
 import ru.inforion.lab403.common.extensions.ieee754
+import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
@@ -40,8 +43,8 @@ class Fdiv(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int,
     override val mnem = "fdiv"
 
     override fun execute() {
-        val a1 = op1.value(core).ieee754()
-        val a2 = op2.value(core).ieee754()
+        val a1 = op1.value(core).long.ieee754()
+        val a2 = op2.value(core).long.ieee754()
         if((a1.absoluteValue == Double.MAX_VALUE && a2.absoluteValue == Double.MAX_VALUE) ||
                 (a1 == 0.0 && a2 == 0.0)){
             throw x86HardwareException.FpuException(core.pc)
@@ -51,7 +54,7 @@ class Fdiv(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int,
         }
 
         val res = a1 / a2
-        op1.value(core, res.ieee754())
+        op1.value(core, res.ieee754AsUnsigned())
         core.fpu.pop(popCount)
     }
 }

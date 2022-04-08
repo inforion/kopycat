@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,8 +30,6 @@ import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -41,15 +39,15 @@ class Loopz(core: x86Core, opcode: ByteArray, prefs: Prefixes, val operand: AOpe
     override val mnem = "loopz"
 
     override fun execute() {
-        val ecx = x86Register.gpr(prefs.opsize, x86GPR.ECX.id)
-        val count = ecx.value(core) - 1
-        ecx.value(core, count)
-        if (core.cpu.flags.zf && count != 0L){
-            val eip = core.cpu.regs.eip + op1.value(core)
+        val ecx = core.cpu.regs.gpr(x86GPR.RCX, prefs.opsize)
+        val count = ecx.value - 1u
+        ecx.value = count
+        if (core.cpu.flags.zf && count != 0uL){
+            val eip = core.cpu.regs.eip.value + op1.value(core)
             if (!x86utils.isWithinCodeSegmentLimits(eip))
-                throw x86HardwareException.GeneralProtectionFault(core.pc, cs.value(core))
+                throw x86HardwareException.GeneralProtectionFault(core.pc, core.cpu.sregs.cs.value)
             // TODO: always write to eip?
-            core.cpu.regs.eip = eip
+            core.cpu.regs.eip.value = eip
         }
     }
 }

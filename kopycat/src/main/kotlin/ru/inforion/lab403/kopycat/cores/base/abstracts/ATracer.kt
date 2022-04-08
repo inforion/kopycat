@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
-import ru.inforion.lab403.common.extensions.asLong
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
@@ -53,7 +53,7 @@ import ru.inforion.lab403.kopycat.modules.BUS32
 abstract class ATracer<R: AGenericCore>(
         parent: Module?,
         name: String,
-        val memoryBusSize: Long = BUS32
+        val memoryBusSize: ULong = BUS32
 ): Module(parent, name), ITracer<R> {
 
     /**
@@ -98,12 +98,12 @@ abstract class ATracer<R: AGenericCore>(
          * {EN}
          */
         @Suppress("UNCHECKED_CAST")
-        override fun read(ea: Long, ss: Int, size: Int) = when (ss) {
+        override fun read(ea: ULong, ss: Int, size: Int) = when (ss) {
             TRACER_EVENT_PRE_EXECUTE -> preExecute(core as R)
             TRACER_EVENT_POST_EXECUTE -> postExecute(core as R, status[size])
             TRACER_EVENT_START -> TRACER_STATUS_SUCCESS.also { onStart(core as R) }
             TRACER_EVENT_STOP -> TRACER_STATUS_SUCCESS.also { onStop() }
-            TRACER_EVENT_WORKING -> working.asLong
+            TRACER_EVENT_WORKING -> working.ulong
             else -> throw IllegalArgumentException("Unknown tracer command!")
         }
     }
@@ -117,6 +117,7 @@ abstract class ATracer<R: AGenericCore>(
             message = "Start and stop executed on debugger.cont() and this method is redundant and should be avoided",
             level = DeprecationLevel.ERROR)
     inline fun run(block: () -> Unit) {
+        @Suppress("CAST_NEVER_SUCCEEDS")
         onStart(null as R)  // Because this function completely deprecated use this workaround and Kotlin eat this
         block()
         onStop()

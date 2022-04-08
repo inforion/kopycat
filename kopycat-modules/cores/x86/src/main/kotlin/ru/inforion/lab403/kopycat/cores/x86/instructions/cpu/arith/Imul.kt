@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.arith
 
+import ru.inforion.lab403.common.extensions.bigint
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRBL.al
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.eax
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.ax
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -42,33 +42,44 @@ class Imul(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
     override val mnem = "imul"
 
     override fun execute() {
-        when (operands.size) {
+        when (opcount) {
             1 -> {
                 when (op1.dtyp) {
                     Datatype.BYTE -> {
-                        core.cpu.regs.ax = al.ssext(core) * op1.ssext(core)
+                        core.cpu.regs.ax.value = core.cpu.regs.al.toOperand().usext(core) * op1.usext(core)
                     }
                     Datatype.WORD -> {
-                        val result = ax.ssext(core) * op1.ssext(core)
-                        core.cpu.regs.ax = result
-                        core.cpu.regs.dx = result ushr 16
+                        val result = core.cpu.regs.ax.toOperand().usext(core) * op1.usext(core)
+                        core.cpu.regs.ax.value = result
+                        core.cpu.regs.dx.value = result ushr 16
                     }
                     Datatype.DWORD -> {
-                        val result = eax.ssext(core) * op1.ssext(core)
-                        core.cpu.regs.eax = result
-                        core.cpu.regs.edx = result ushr 32
+                        val result = core.cpu.regs.eax.toOperand().usext(core) * op1.usext(core)
+                        core.cpu.regs.eax.value = result
+                        core.cpu.regs.edx.value = result ushr 32
+                    }
+                    Datatype.QWORD -> {
+                        val result = core.cpu.regs.rax.toOperand().ssext(core).bigint * op1.ssext(core).bigint
+                        core.cpu.regs.rax.value = result.ulong
+                        core.cpu.regs.rdx.value = (result ushr 64).ulong
                     }
                     else -> throw GeneralException("Incorrect datatype")
                 }
                 FlagProcessor.processOneOpImulFlag()
             }
             2 -> {
-                val result = op1.ssext(core) * op2.ssext(core)
+                val result = if (op1.dtyp == Datatype.QWORD)
+                    (op1.ssext(core).bigint * op2.ssext(core).bigint).ulong
+                else
+                    op1.usext(core) * op2.usext(core)
                 FlagProcessor.processTwoThreeOpImulFlag()
                 op1.value(core, result)
             }
             3 -> {
-                val result = op2.ssext(core) * op3.ssext(core)
+                val result = if (op1.dtyp == Datatype.QWORD)
+                    (op2.ssext(core).bigint * op3.ssext(core).bigint).ulong
+                else
+                    op2.usext(core) * op3.usext(core)
                 FlagProcessor.processTwoThreeOpImulFlag()
                 op1.value(core, result)
             }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,12 +51,12 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
 
     operator fun get(id: Int, sel: Int) = get(index(id, sel))
 
-    open inner class COP0Register(name: String, id: Int, val sel: Int = 0, default: Long = 0) :
+    open inner class COP0Register(name: String, id: Int, val sel: Int = 0, default: ULong = 0u) :
             Register(name, index(id, sel), default)
 
-    open inner class ReadOnly(name: String, id: Int, sel: Int, default: Long = 0) :
+    open inner class ReadOnly(name: String, id: Int, sel: Int, default: ULong = 0u) :
             COP0Register(name, id, sel, default) {
-        override var value: Long
+        override var value: ULong
             get() = super.value
             set(value) {
                 log.warning { "[${core.cpu.pc.hex8}] Store data to $this = ${value.hex8} -> ignored" }
@@ -67,10 +67,10 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
 
     inner class RANDOM : ReadOnly("Random", 1, 0) {
         private inline val lowerRandomBound get() = core.cop.regs.Wired.value
-        private inline val upperRandomBound get() = (core.mmu.tlbEntries - 1).asLong
+        private inline val upperRandomBound get() = (core.mmu.tlbEntries - 1).ulong_z
 
-        override var value: Long
-            get() = random.long(lowerRandomBound, upperRandomBound + 1)
+        override var value: ULong
+            get() = random.ulong(lowerRandomBound, upperRandomBound + 1u)
             set(value) { super.value = value }
 
         override fun reset() {
@@ -109,7 +109,7 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
     val EntryHi = ENTRY_HI()
 
     inner class COMPARE : COP0Register("Compare", 11) {
-        override var value: Long
+        override var value: ULong
             get() = super.value
 
             set(value) {
@@ -166,7 +166,7 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
         var MCU_ASE by fieldOf(22..14)
         var VS by fieldOf(9..5)
 
-        override var value: Long
+        override var value: ULong
             get() = super.value
             set(value) {
                 VS = value
@@ -229,11 +229,11 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
     val PRId = COP0Register("PRId", 15, 0, core.PRId)
 
     /* The fixed value of EBase31..30 forces the base to be in kseg0 or kseg1 */
-    inner class EBASE : COP0Register("EBase", 15, 1, 0x8000_0000) {
+    inner class EBASE : COP0Register("EBase", 15, 1, 0x8000_0000u) {
         var CPUNum by fieldOf(9..0)
         var ExceptionBase by fieldOf(29..12)
 
-        override var value: Long
+        override var value: ULong
             get() = super.value
             set(value) {
                 // we can't use these field inside register, because it will lead to recursion
@@ -250,7 +250,7 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
         var KU by fieldOf(27..25)
         var K0 by fieldOf(2..0)
 
-        override var value: Long
+        override var value: ULong
             get() = super.value
             set(value) {
                 // we can't use these field inside register, because it will lead to recursion

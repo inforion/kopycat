@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
-import ru.inforion.lab403.common.extensions.asLong
-import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
@@ -34,9 +34,11 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+import ru.inforion.lab403.kopycat.interfaces.*
+
 
 class LDRSBi(cpu: AARMCore,
-             opcode: Long,
+             opcode: ULong,
              cond: Condition,
              val index: Boolean,
              val add: Boolean,
@@ -51,7 +53,7 @@ class LDRSBi(cpu: AARMCore,
     override fun execute() {
         val offsetAddress = rn.value(core) + if (add) imm32.value else -imm32.value
         val address = if (index) offsetAddress else rn.value(core)
-        rt.value(core, signext(core.inb(address like Datatype.DWORD), 8).asLong)
+        rt.value(core, core.inb(address like Datatype.DWORD).signextRenameMeAfter(7))
         if (wback) rn.value(core, offsetAddress)
     }
 }

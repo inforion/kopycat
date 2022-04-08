@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,9 +26,10 @@
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.logicInt
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.truth
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.ppc.flags.FlagProcessor
+import ru.inforion.lab403.kopycat.cores.ppc.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCVariable
@@ -47,11 +48,11 @@ class cntlzwx(core: PPCCore, val fieldA: Int, val fieldB: Int, val fieldC: Int, 
     val result = PPCVariable(Datatype.DWORD)
 
     //Make fun, not var
-    private fun countLeadingZeroes(rsv: Long): Long {
-        for (i: Int in 31 downTo 0)
-            if (rsv[i].toBool())
-                return 31L - i.toLong()
-        return 32L
+    private fun countLeadingZeroes(rsv: ULong): ULong {
+        for (i in 31 downTo 0)
+            if (rsv[i].truth)
+                return 31uL - i.uint
+        return 32uL
     }
 
     override fun execute() {

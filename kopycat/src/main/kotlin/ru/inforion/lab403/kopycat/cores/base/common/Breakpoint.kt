@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ import java.io.Serializable
  * @property onBreak function to process on breakpoint activation
  * {EN}
  */
-data class Breakpoint(val ea: Long, val access: Access, val onBreak: ((ea: Long) -> Unit)?): Serializable {
+data class Breakpoint(val ea: ULong, val access: Access, val onBreak: ((ea: ULong) -> Unit)?): Serializable {
 
     /**
      * {RU}

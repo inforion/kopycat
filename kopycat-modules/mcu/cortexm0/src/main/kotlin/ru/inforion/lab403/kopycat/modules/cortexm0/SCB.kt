@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.cortexm0
 
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -39,7 +40,7 @@ import java.util.logging.Level
 
 class SCB(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.WARNING)
+        @Transient val log = logger(WARNING)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -49,7 +50,7 @@ class SCB(parent: Module, name: String) : Module(parent, name) {
 
     override val ports = Ports()
 
-    inner class CPUID_TYP : Register(ports.mem, 0, DWORD, "CPUID", 0x410C_C200, writable = false) {
+    inner class CPUID_TYP : Register(ports.mem, 0u, DWORD, "CPUID", 0x410C_C200u, writable = false) {
         var Revision by field(3..0)
         var PartNo by field(15..4)
         var Constant by field(19..16)
@@ -57,7 +58,7 @@ class SCB(parent: Module, name: String) : Module(parent, name) {
         var Implementer by field(31..24)
     }
 
-    inner class ICSR_TYP : Register(ports.mem, 0x4, DWORD, "ICSR") {
+    inner class ICSR_TYP : Register(ports.mem, 0x4u, DWORD, "ICSR") {
         var VECTACTIVE by field(5..0)
         var VECTPENDING by field(17..12)
         var ISRPENDING by bit(22)
@@ -67,7 +68,7 @@ class SCB(parent: Module, name: String) : Module(parent, name) {
         var PENDSVSET by bit(28)
         var NMIPENDSET by bit(31)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             if (NMIPENDSET == 1) ports.irq.request(2)
             if (PENDSVSET == 1) ports.irq.request(14)
@@ -75,29 +76,29 @@ class SCB(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    inner class AIRCR_TYP : Register(ports.mem, 0xC, DWORD, "AIRCR", 0xFA05_0000) {
+    inner class AIRCR_TYP : Register(ports.mem, 0xCu, DWORD, "AIRCR", 0xFA05_0000u) {
         var VECTCLRACTIVE by bit(1)
         var SYSRESETREQ by bit(2)
         var ENDIANESS by bit(15)
         var VECTKEY by field(31..16)
     }
 
-    inner class SCR_TYP : Register(ports.mem, 0x10, DWORD, "SCR") {
+    inner class SCR_TYP : Register(ports.mem, 0x10u, DWORD, "SCR") {
         var SLEEPONEXIT by bit(1)
         var SLEEPDEEP by bit(2)
         var SEVEONPEND by bit(4)
     }
 
-    inner class CCR_TYP : Register(ports.mem, 0x14, DWORD, "CCR", 0x204) {
+    inner class CCR_TYP : Register(ports.mem, 0x14u, DWORD, "CCR", 0x204u) {
         var UNALIGN_TRP by bit(3)
         var STKALIGN by bit(9)
     }
 
-    inner class SHPR2_TYP : Register(ports.mem, 0x1C, DWORD, "SHPR2") {
+    inner class SHPR2_TYP : Register(ports.mem, 0x1Cu, DWORD, "SHPR2") {
         var PRI_11 by field(31..24)
     }
 
-    inner class SHPR3_TYP : Register(ports.mem, 0x20, DWORD, "SHPR3") {
+    inner class SHPR3_TYP : Register(ports.mem, 0x20u, DWORD, "SHPR3") {
         var PRI_14 by field(23..16)
         var PRI_15 by field(31..24)
     }

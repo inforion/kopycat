@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,32 +27,34 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.string
 
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.enums.StringPrefix
+import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.ecx
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.cx
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-abstract class AStringInstruction(core: x86Core, opcode: ByteArray, prefs: Prefixes, val isRepeOrRepne:Boolean, vararg operands: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
+abstract class AStringInstruction(
+    core: x86Core,
+    opcode: ByteArray,
+    prefs: Prefixes,
+    val isRepeOrRepne: Boolean,
+    vararg operands: AOperand<x86Core>
+): AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
 
-    abstract protected fun executeStringInstruction()
+    protected abstract fun executeStringInstruction()
 
     final override fun execute() {
         if (prefs.string != StringPrefix.NO) {
             val isRepz = prefs.string == StringPrefix.REPZ
             val isRepnz = prefs.string == StringPrefix.REPNZ
-            val counter = if (prefs.is16BitAddressMode) cx else ecx
-            while (counter.value(core) != 0L) {
+            val counter = core.cpu.regs.gpr(x86GPR.RCX, prefs.addrsize).toOperand()
+            while (counter.value(core) != 0uL) {
                 // TODO: ServiceInterrupts()
                 executeStringInstruction()
-                counter.minus(core, 1L)
-//                val zf = counter.value(cpu) == 0L
-                if(isRepeOrRepne)
+                counter.minus(core, 1uL)
+                if (isRepeOrRepne)
                     if (isRepz && !core.cpu.flags.zf || isRepnz && core.cpu.flags.zf) break
             }
         } else executeStringInstruction()
-//        executeStringInstruction()
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,20 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.cores.v850es.hardware.processors
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.plus
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
-import java.util.logging.Level
 
 
 
 class v850ESCOP(core: v850ESCore, name: String) : ACOP<v850ESCOP, v850ESCore>(core, name) {
     companion object {
-        @Transient val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
     }
 
     override fun handleException(exception: GeneralException?): GeneralException? {
@@ -61,7 +62,7 @@ class v850ESCOP(core: v850ESCore, name: String) : ACOP<v850ESCOP, v850ESCore>(co
 
                 core.cpu.flags.ep = false
                 core.cpu.flags.id = true
-                core.cpu.pc = interrupt.vector.asULong
+                core.cpu.pc = interrupt.vector.ulong_z
             }
             interrupt.onInterrupt()
         }

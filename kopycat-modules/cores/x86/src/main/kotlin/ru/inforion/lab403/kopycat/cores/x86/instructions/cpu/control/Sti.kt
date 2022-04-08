@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,6 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.control
 
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.CTRLR.cr0
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -36,15 +34,15 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 class Sti(core: x86Core, opcode: ByteArray, prefs: Prefixes): AX86Instruction(core, Type.VOID, opcode, prefs) {
     override val mnem = "sti"
     override fun execute() {
-        val pe = cr0.pe(core)
+        val pe = core.cpu.cregs.cr0.pe
         if (!pe) {
-            x86Register.eflags.ifq(core, true)
+            core.cpu.flags.ifq = true
         } else {
-            val vm = x86Register.eflags.vm(core)
-            val iopl = x86Register.eflags.iopl(core)
+            val vm = core.cpu.flags.vm
+            val iopl = core.cpu.flags.iopl
             if (!vm) {
                 // TODO: iopl vs cpl
-                x86Register.eflags.ifq(core, true)
+                core.cpu.flags.ifq = true
             } else {
                 TODO()
             }

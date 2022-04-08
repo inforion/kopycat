@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("PropertyName", "unused")
+
 package ru.inforion.lab403.kopycat.veos.api.impl
 
 import ru.inforion.lab403.common.extensions.hex8
@@ -41,28 +43,28 @@ class QNXAPI(os: VEOS<*>) : API(os) {
     val _init_libc = nullsub("_init_libc")
     val __get_errno_ptr = object : APIFunction("__get_errno_ptr") {
         override val args = emptyArray<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.finest { "[0x${ra.hex8}] get_errno_ptr()" }
-            val p_errno = errno.allocated.address!!
+            val p_errno = errno.allocated.address.get
             return retval(p_errno)
         }
     }
     val __stackavail = object : APIFunction("__stackavail") {
         override val args = emptyArray<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.severe { "[0x${ra.hex8}] __stackavail returns always 0x1000 ... should be fixed" }
-            return retval(0x1000)
+            return retval(0x1000u)
         }
     }
     val __tls = object : APIFunction("__tls") {
         override val args = emptyArray<ArgType>()
-        override fun exec(name: String, vararg argv: Long) = TODO("retval(os.currentProcess.localStorageAddress)")
+        override fun exec(name: String, vararg argv: ULong) = TODO("retval(os.currentProcess.localStorageAddress)")
     }
 
 
     val MsgSendv = object : APIFunction("MsgSendv") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val coid = argv[0]
             val siov = argv[1]
             val sparts = argv[2]
@@ -76,7 +78,7 @@ class QNXAPI(os: VEOS<*>) : API(os) {
 
     val atomic_sub_value = object : APIFunction("atomic_sub_value") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val loc = argv[0]
             val decr = argv[1]
             val prev = os.abi.readInt(loc)
@@ -87,7 +89,7 @@ class QNXAPI(os: VEOS<*>) : API(os) {
 
     val atomic_add = object : APIFunction("atomic_add") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val loc = argv[0]
             val incr = argv[1]
             val prev = os.abi.readInt(loc)
@@ -98,7 +100,7 @@ class QNXAPI(os: VEOS<*>) : API(os) {
 
     val SyncMutexLock_r = object : APIFunction("SyncMutexLock_r") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val sync = argv[0]
             return void()
         }
@@ -109,54 +111,54 @@ class QNXAPI(os: VEOS<*>) : API(os) {
 
     val TimerCreate = object : APIFunction("TimerCreate") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val clockId = argv[0]
             val event = argv[1]
-            return retval(0)
+            return retval(0uL)
         }
     }
 
     val SignalProcmask = object : APIFunction("SignalProcmask") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int, ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val pid = argv[0]
             val tid = argv[1]
             val how = argv[2]
             val set = argv[3]
             val oldset = argv[4]
-            return retval(0)
+            return retval(0uL)
         }
     }
 
     val ChannelCreate = object : APIFunction("ChannelCreate") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             TODO("Not implemented")
         }
     }
 
     val ConnectAttach = object : APIFunction("ConnectAttach") {
         override val args = arrayOf(ArgType.Int, ArgType.Int, ArgType.Int, ArgType.Int, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val nd = argv[0]
             val pid = argv[1]
             val chid = argv[2]
             val index = argv[3]
             val flags = argv[4]
             log.finer { "Connect to QNX channel nd=${nd.hex8} pid=${pid.hex8} chid=${chid.hex8} index=${index.hex8} flags=${flags.hex8}" }
-            return retval(0)
+            return retval(0uL)
         }
     }
 
     val SchedCtl = object : APIFunction("SchedCtl") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val cmd = argv[0]
             val data = argv[1]
             val length = argv[2]
 
             log.finer { "Control the adaptive partitioning scheduler" }
-            return retval(0)
+            return retval(0uL)
         }
     }
 

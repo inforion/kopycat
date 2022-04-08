@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.veos
 
-import gnu.trove.map.hash.THashMap
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINEST
+import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.lazyTransient
+import ru.inforion.lab403.common.optional.orElse
+import ru.inforion.lab403.common.utils.lazyTransient
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
@@ -68,7 +69,7 @@ import kotlin.concurrent.withLock
 abstract class VEOS<C : AGenericCore> constructor(
         parent: Module,
         name: String,
-        val bus: Long = BUS32
+        val bus: ULong = BUS32
 ): ATracer<C>(parent, name, bus), IAutoSerializable {
 
     companion object {
@@ -101,14 +102,14 @@ abstract class VEOS<C : AGenericCore> constructor(
 
     fun addApi(vararg apis: API) = apis.forEach { addApi(it) }
 
-    fun initApi(argc: Long, argv: Long, envp: Long) = apiList.forEach { it.init(argc, argv, envp) }
+    fun initApi(argc: ULong, argv: ULong, envp: ULong) = apiList.forEach { it.init(argc, argv, envp) }
 
     // TODO: somehow move it to Process
     private fun setHandler(symbol: Symbol) {
         val api = apiList.find { api -> symbol.name in api.functions }
         if (api != null) {
             val func = api.functions.getValue(symbol.name)
-            val addr = func.address ?: symbol.address
+            val addr = func.address.orElse { symbol.address }
 
             currentProcess.setHandler(addr, Handler(symbol.name, addr, func))
 
@@ -139,12 +140,12 @@ abstract class VEOS<C : AGenericCore> constructor(
      * Early access memory (reserved for system use)
      * Should not be reset directly, use [systemDataAllocatorReset] instead
      */
-    var systemData = Allocator(sys, conf.systemDataStart, conf.systemDataEnd - 1)
+    var systemData = Allocator(sys, conf.systemDataStart, conf.systemDataEnd - 1u)
 
     // TODO: move it to System
     fun load(filename: String, argv: Array<String>) {
         currentMemory.reset()
-        currentMemory.allocate("system", systemData.startAddr.asLong, systemData.size.asInt)
+        currentMemory.allocate("system", systemData.startAddr, systemData.size.int)
 
         loader.load(filesystem.absolutePath(filename))
 
@@ -152,7 +153,7 @@ abstract class VEOS<C : AGenericCore> constructor(
         currentProcess.restoreState()
 
         // And load arguments
-        // TODO: move outside loader?
+        // TODO: move outside loader? Yes, it's fucked up already
         // TODO: make possible to work without restoration of state
         loader.loadArguments(argv)
     }
@@ -193,6 +194,7 @@ abstract class VEOS<C : AGenericCore> constructor(
     // Do not use it due runtime?
     fun loadLibrary(filename: String) = loader.loadLibrary(filesystem.absolutePath(filename))
 
+    @DontAutoSerialize
     private val processes = mutableListOf<Process>()
 
     var currentProcess: Process
@@ -209,36 +211,39 @@ abstract class VEOS<C : AGenericCore> constructor(
     private fun exitProcess(process: Process) {
         process.exit()
         if (process.memory.isUnused)
-            components.remove(process.memory.name)
+            components.remove(process.memory)
     }
 
     private fun resetProcesses() = processes.onEach { exitProcess(it) }.clear()
 
-    override fun reset() {
+    private fun resetInternal(processes: Boolean = true) {
         loader.reset()
         ioSystem.reset()
         filesystem.reset()
         network.reset()
 
-        resetProcesses()
+        if (processes)
+            resetProcesses()
 
         systemData.reset()
 
         processIds.reset()
     }
 
+    override fun reset() = resetInternal()
+
     // TODO: refactor this
-    var timestamp: Long = 0
+    var timestamp: ULong = 0u
         private set
 
     private val idleProcess by lazyTransient {
-        val memory = VirtualMemory(this@VEOS, "idleMemory", 0, 0)
+        val memory = VirtualMemory(this@VEOS, "idleMemory", 0uL, 0uL)
 
         object : Process(sys, -1, memory) {
             override val processType = "idle"
 
             init {
-                initContext(sys.idleProcessAddress, 0L, sys.idleProcessAddress)
+                initContext(sys.idleProcessAddress, 0uL, sys.idleProcessAddress)
             }
         }
     }
@@ -343,7 +348,7 @@ abstract class VEOS<C : AGenericCore> constructor(
     var state: State = State.Started
         private set
 
-    final override fun preExecute(core: C): Long {
+    final override fun preExecute(core: C): ULong {
 
         while (true) {
             val handler = currentProcess.getHandler(abi.programCounterValue)
@@ -356,7 +361,7 @@ abstract class VEOS<C : AGenericCore> constructor(
             val args = abi.getCArgs(handler.func.args)
 
             val result = try {
-                handler.func.exec(handler.name, *args.toLongArray())
+                handler.func.exec(handler.name, *args.toULongArray())
             } catch (error: MemoryAccessError) {
                 return scheduling.withLock {
                     // TODO: Wrong implementation
@@ -368,15 +373,13 @@ abstract class VEOS<C : AGenericCore> constructor(
                     } else {
                         log.finest { "[0x${abi.programCounterValue.hex8}] Application exited (Segmentation fault)" }
                         state = State.Exception
-                        log.severe { "$this -> $error" }
-                        error.printStackTrace()
+                        log.severe { "$this -> $error\n${error.stackTraceToString()}" }
                         TRACER_STATUS_STOP
                     }
                 }
             } catch (error: Throwable) {
                 state = State.Exception
-                log.severe { "[0x${abi.returnAddressValue.hex8}] $this -> $error" }
-                error.printStackTrace()
+                error.logStackTrace(log, "[0x${abi.returnAddressValue.hex8}] $this")
                 return TRACER_STATUS_STOP
             }
 
@@ -440,17 +443,18 @@ abstract class VEOS<C : AGenericCore> constructor(
     }
 
     // TODO: maybe merge with preExecute?
-    final override fun postExecute(core: C, status: Status): Long {
-        if (status != Status.CORE_EXECUTED) {
+    final override fun postExecute(core: C, status: Status): ULong {
+        if (status != Status.CORE_EXECUTED && status != Status.INTERNAL_EXCEPTION) {
             // may be this check is wrong but I think VEOS must have always core in 'clean' state
             log.severe { "CPU core in faulty state -> should not happen for VEOS: ${core.cpu.exception}" }
             return TRACER_STATUS_STOP
         }
-
-        val currentTime = core.clock.time()
-        if (currentTime - timestamp > conf.processSwitchPeriod) {
-            timestamp = currentTime
-            scheduling.withLock { schedule() }
+        if (conf.enableTimeScheduler) {
+            val currentTime = core.clock.time()
+            if (currentTime - timestamp > conf.processSwitchPeriod) {
+                timestamp = currentTime
+                scheduling.withLock { schedule() }
+            }
         }
         return TRACER_STATUS_SUCCESS
     }
@@ -470,15 +474,15 @@ abstract class VEOS<C : AGenericCore> constructor(
 
     private var copyId = 0
 
-    private fun createMemory(name: String) = VirtualMemory(this, name, 0, bus, abi.bigEndian)
+    private fun createMemory(name: String) = VirtualMemory(this, name, 0uL, bus, abi.bigEndian)
 
     private fun copyMemory(postfix: String): VirtualMemory {
         val memory = VirtualMemory(this, "${currentMemory.name}_$postfix${copyId++}", currentMemory.start, currentMemory.size, currentMemory.bigEndian)
 
         currentMemory.areasAsImmutable.forEach {
             check(it is Memory) { "copyMemory() supports only Memory areas!" }
-            val data = it.load(it.start, it.size.asInt)
-            memory.allocate(it.name, it.start, it.size.asInt, it.access, data)
+            val data = it.load(it.start, it.size.int)
+            memory.allocate(it.name, it.start, it.size.int, it.access, data)
         }
 
         return memory
@@ -507,21 +511,48 @@ abstract class VEOS<C : AGenericCore> constructor(
     fun findProcessById(id: Int) = processes.find { it.id == id }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        val backup = THashMap(components)
+        val backup = ArrayList(components)
         components.clear()
 
-        return super<IAutoSerializable>.serialize(ctxt).also {
-            components.putAll(backup)
+        val a = super<IAutoSerializable>.serialize(ctxt).also {
+            components.addAll(backup)
         }
+        val b = mapOf("processes" to processes.mapIndexed { i, it ->
+            ctxt.serializeItem(it, i.toString(), false)
+        })
+        return a + b
     }
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        reset()
+//        TODO: Is it necessary
+        resetInternal(!ctxt.doRestore)
         reconnect {
-            disconnectMemories()
-            components.filter { it.value is VirtualMemory }.keys.forEach { components.remove(it) }
+            if (!ctxt.doRestore) {
+                disconnectMemories()
+                components.removeIf { it is VirtualMemory }
+            }
             super<IAutoSerializable>.deserialize(ctxt, snapshot)
-            connectCurrentMemory()
+
+            // TODO: fix this hell
+            //  During restoration all processes should not be recreated.
+            //  So we should fix VirtualMemory-based custom mechanisms like this one
+            //  It's really ugly and may cause some bugs
+            val procSnapshot = snapshot["processes"] as List<Map<String, Any>>
+            if (ctxt.doRestore) {
+                check (processes.size == procSnapshot.size) { "Can't restore in case that process count differs" }
+                (processes zip procSnapshot).forEach { (proc, snapshot) ->
+                    proc.deserialize(ctxt, snapshot["snapshot"] as Map<String, Any>)
+                }
+            } else {
+                // processes-map is empty because of reset
+                processes.addAll(procSnapshot.mapIndexed { i, it ->
+                    ctxt.deserializeItem(it, i.toString()) as Process
+                })
+            }
+
+
+            if (!ctxt.doRestore)
+                connectCurrentMemory()
         }
     }
 }

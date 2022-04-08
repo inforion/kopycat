@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ class Prepare(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>
     override fun execute() {
         val listValue = op2.value(core)
         for (i in 0..11){
-            if(listValue[i] != 0L){
+            if(listValue[i] != 0uL){
                 val regId = when(i){
                     0 -> 30
                     1 -> 31
@@ -61,13 +61,13 @@ class Prepare(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>
                     11 -> 24
                     else -> throw GeneralException("Incorrect list index")
                 }
-                v850esMemory(Datatype.DWORD, core.cpu.regs.r3StackPointer - 4).value(core, v850esRegister.gpr(regId).value(core))
-                core.cpu.regs.r3StackPointer = core.cpu.regs.r3StackPointer - 4
+                v850esMemory(Datatype.DWORD, core.cpu.regs.r3StackPointer - 4u).value(core, v850esRegister.gpr(regId).value(core))
+                core.cpu.regs.r3StackPointer = core.cpu.regs.r3StackPointer - 4u
             }
         }
         core.cpu.regs.r3StackPointer = core.cpu.regs.r3StackPointer - (op1.value(core) shl 2)
 
-        if(operands.size == 3 && (op3 is v850esRegister || op3 is Immediate))
+        if(opcount == 3 && (op3 is v850esRegister || op3 is Immediate))
             core.cpu.regs.r30ElementPointer = op3.value(core)
     }
 }

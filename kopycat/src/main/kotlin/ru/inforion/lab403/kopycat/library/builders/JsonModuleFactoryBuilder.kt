@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,16 +26,16 @@
 package ru.inforion.lab403.kopycat.library.builders
 
 import ru.inforion.lab403.common.extensions.getInternalFileURL
-import ru.inforion.lab403.common.extensions.parseJson
+import ru.inforion.lab403.common.json.fromJson
+import ru.inforion.lab403.common.json.removeJsonComments
 import ru.inforion.lab403.common.proposal.*
 import ru.inforion.lab403.kopycat.cores.base.common.Component
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
 import ru.inforion.lab403.kopycat.library.builders.api.AFileModuleFactoryBuilder
 import ru.inforion.lab403.kopycat.library.builders.api.IModuleFactory
-import ru.inforion.lab403.kopycat.library.builders.api.ModuleParameterInfo
 import ru.inforion.lab403.kopycat.library.builders.text.PluginConfig
-import ru.inforion.lab403.kopycat.settings
+import ru.inforion.lab403.kopycat.library.builders.text.create
 import java.io.File
 
 class JsonModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFactoryBuilder(path) {
@@ -54,7 +54,7 @@ class JsonModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFactor
 
         return stream.runCatching {
             log.fine { "Loading $name from $jar" }
-            config = parseJson()
+            config = removeJsonComments().fromJson()
         }.onFailure {
             log.warning { "Error loading $name from $path\n${it.message}" }
         }.isSuccess

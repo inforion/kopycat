@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.cores.arm.common
 import org.junit.Assert
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.MHz
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -40,6 +41,8 @@ import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
 import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
+import ru.inforion.lab403.kopycat.interfaces.*
+
 
 class ModuleTest: Module(null, "Module Test") {
     inner class Buses: ModuleBuses(this) {
@@ -63,9 +66,9 @@ class ModuleTest: Module(null, "Module Test") {
     init {
         arm.ports.mem.connect(buses.mem)
         ram1.ports.mem.connect(buses.mem)
-        boot.ports.mem.connect(buses.mem, 0x0800_0000)
-        arm.cpu.pc = 0x0
-        arm.cpu.status.ISETSTATE = 1
+        boot.ports.mem.connect(buses.mem, 0x0800_0000u)
+        arm.cpu.pc = 0x0u
+        arm.cpu.status.ISETSTATE = 1u
         dbg.ports.breakpoint.connect(buses.mem)
         initializeAndResetAsTopInstance()
     }
@@ -73,7 +76,7 @@ class ModuleTest: Module(null, "Module Test") {
     private fun assert(expected: Boolean, actual: Boolean, type: String = "Module") =
             Assert.assertEquals("$type error: $expected != $actual", expected, actual)
 
-    private fun assert(expected: Long, actual: Long, type: String = "Module") =
+    private fun assert(expected: ULong, actual: ULong, type: String = "Module") =
             Assert.assertEquals("$type error: $expected != $actual", expected, actual)
 
     private fun assert(expected: String, actual: String, type: String = "Module") =
@@ -89,86 +92,86 @@ class ModuleTest: Module(null, "Module Test") {
         assert(false, isTracerPresent)
     }
     @Test(expected = AreaDefinitionError::class) fun voidTest1() {
-        Void(module.ports.slave16, 0x1_FFFF, 0x2_0000, "a", R_W)
+        Void(module.ports.slave16, 0x1_FFFFu, 0x2_0000u, "a", R_W)
     }
     @Test(expected = AreaDefinitionError::class) fun voidTest2() {
-        Void(module.ports.slave16, 0xEFFF, 0x1_0000, "a", R_W)
+        Void(module.ports.slave16, 0xEFFFu, 0x1_0000u, "a", R_W)
     }
     @Test fun voidTest3() {
-        val mem = Void(module.ports.slave16, 0x10, 0x20, "a", R_W)
-        this.assert(0, mem.read(DWORD, 0x18))
+        val mem = Void(module.ports.slave16, 0x10u, 0x20u, "a", R_W)
+        this.assert(0u, mem.read(DWORD, 0x18u))
     }
     @Test fun voidTest4() {
-        val mem = Void(module.ports.slave16, 0x10, 0x20, "a", R_W)
-        mem.write(DWORD, 0x18, 0xFFFF_FFFF)
-        this.assert(0, mem.read(DWORD, 0x18))
+        val mem = Void(module.ports.slave16, 0x10u, 0x20u, "a", R_W)
+        mem.write(DWORD, 0x18u, 0xFFFF_FFFFu)
+        this.assert(0u, mem.read(DWORD, 0x18u))
     }
     @Test(expected = AreaDefinitionError::class) fun memoryTest1() {
-        Memory(module.ports.slave16, 0x1_FFFF, 0x2_0000, "a", R_W)
+        Memory(module.ports.slave16, 0x1_FFFFu, 0x2_0000u, "a", R_W)
     }
     @Test(expected = AreaDefinitionError::class) fun memoryTest2() {
-        Memory(module.ports.slave16, 0xEFFF, 0x1_0000, "a", R_W)
+        Memory(module.ports.slave16, 0xEFFFu, 0x1_0000u, "a", R_W)
     }
     @Test fun memoryTest3() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.write(BYTE, 0x18, 0xFA)
-        this.assert(0xFA, mem.read(BYTE, 0x18))
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.write(BYTE, 0x18u, 0xFAu)
+        this.assert(0xFAu, mem.read(BYTE, 0x18u))
     }
     @Test fun memoryTest4() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.write(WORD, 0x18, 0xFEED)
-        this.assert(0xFEED, mem.read(WORD, 0x18))
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.write(WORD, 0x18u, 0xFEEDu)
+        this.assert(0xFEEDu, mem.read(WORD, 0x18u))
     }
     @Test fun memoryTest5() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.write(DWORD, 0x18, 0xFEED_BEEF)
-        this.assert(0xFEED_BEEF, mem.read(DWORD, 0x18))
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.write(DWORD, 0x18u, 0xFEED_BEEFu)
+        this.assert(0xFEED_BEEFu, mem.read(DWORD, 0x18u))
     }
     @Test fun memoryTest6() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.write(QWORD, 0x18, 0xEE_1234_FFFF_FFFF)
-        this.assert(0xEE_1234_FFFF_FFFF, mem.read(QWORD, 0x18))
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.write(QWORD, 0x18u, 0xEE_1234_FFFF_FFFFu)
+        this.assert(0xEE_1234_FFFF_FFFFu, mem.read(QWORD, 0x18u))
     }
     @Test fun memoryTest7() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.write(FWORD, 0x18, 0xFAFA_DADA_BABA)
-        this.assert(0xFAFA_DADA_BABA, mem.read(FWORD, 0x18))
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.write(FWORD, 0x18u, 0xFAFA_DADA_BABAu)
+        this.assert(0xFAFA_DADA_BABAu, mem.read(FWORD, 0x18u))
     }
     @Test fun memoryTest8() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.write(FWORD, 0x18, 0xFAFA_DADA_BABA)
-        this.assert(0xFAFA_DADA_BABA, mem.read(FWORD, 0x18))
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.write(FWORD, 0x18u, 0xFAFA_DADA_BABAu)
+        this.assert(0xFAFA_DADA_BABAu, mem.read(FWORD, 0x18u))
     }
     @Test(expected = MemoryAccessError::class) fun memoryTest9() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.write(0x18L, 0, 17, 0xFAFA_DADA_BABA)
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.write(0x18uL, 0, 17, 0xFAFA_DADA_BABAu)
     }
     @Test(expected = MemoryAccessError::class) fun memoryTest10() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.read(0x18, 0, 17)
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.read(0x18u, 0, 17)
     }
     @Test fun memoryTest11() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.store( 0x18, "Hello".toByteArray(Charsets.UTF_8))
-        val str = mem.load(0x18, 5).toString(Charsets.UTF_8)
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.store( 0x18u, "Hello".toByteArray(Charsets.UTF_8))
+        val str = mem.load(0x18u, 5).toString(Charsets.UTF_8)
         assert("Hello", str)
     }
     @Test fun memoryTest12() {
-        val mem = Memory(module.ports.slave32, 0x10, 0x20, "a", R_W)
-        mem.write( 0x18, "Hello".toByteArray(Charsets.UTF_8).inputStream())
-        val str = mem.load(0x18, 5).toString(Charsets.UTF_8)
+        val mem = Memory(module.ports.slave32, 0x10u, 0x20u, "a", R_W)
+        mem.write( 0x18u, "Hello".toByteArray(Charsets.UTF_8).inputStream())
+        val str = mem.load(0x18u, 5).toString(Charsets.UTF_8)
         assert("Hello", str)
     }
     @Test(expected = RegisterDefinitionError::class) fun registerTest1() {
-        Register(module.ports.slave16, 0x1_FFFF, DWORD, "a")
+        Register(module.ports.slave16, 0x1_FFFFu, DWORD, "a")
     }
     @Test fun registerTest2() {
-        val mem = Register(module.ports.slave16, 0xFAFA, DWORD, "a")
-        mem.write(BYTE, 0x18, 0xFA)
-        assert(0xFA, mem.read(BYTE, 0x18))
+        val mem = Register(module.ports.slave16, 0xFAFAu, DWORD, "a")
+        mem.write(BYTE, 0x18u, 0xFAu)
+        assert(0xFAu, mem.read(BYTE, 0x18u))
     }
     @Test fun registerTest3() {
-        val mem = Register(module.ports.slave16, 0xFAFA, DWORD, "a")
+        val mem = Register(module.ports.slave16, 0xFAFAu, DWORD, "a")
         assert("Module Test.Ports module:slave 16[Sx00010000]->a@FAFA[DWORD]", mem.toString())
     }
 }

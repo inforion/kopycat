@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,14 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("NOTHING_TO_INLINE")
+
 package ru.inforion.lab403.kopycat.library.builders.text
 
-class ParameterConfig(val name: String, val type: String, val default: Any? = null)
+import ru.inforion.lab403.common.extensions.sure
+import ru.inforion.lab403.kopycat.library.availableTypeMap
+
+class ParameterConfig(val name: String, val type: String, val default: Any? = null) {
+    internal inline fun getKType() = availableTypeMap[type.lowercase()]
+        .sure { "Can't find available class for name '${type.lowercase()}'" }
+}

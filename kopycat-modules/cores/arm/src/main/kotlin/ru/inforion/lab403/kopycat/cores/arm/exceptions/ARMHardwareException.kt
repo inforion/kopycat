@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,16 +30,16 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 
 
 
-abstract class ARMHardwareException(excCode: Enum<*>, where: Long, message: String? = null):
+abstract class ARMHardwareException(excCode: Enum<*>, where: ULong = ULong.MAX_VALUE, message: String? = null):
         HardwareException(excCode, where, message) {
     // TODO: Change pc value
-    object Overflow: ARMHardwareException(ExcCode.Overflow, -1)
-    object Unpredictable: ARMHardwareException(ExcCode.Unpredictable, -1)
-    object Undefined: ARMHardwareException(ExcCode.Undefined, -1)
-    object Unknown: ARMHardwareException(ExcCode.Unknown, -1)
+    object Overflow: ARMHardwareException(ExcCode.Overflow)
+    object Unpredictable: ARMHardwareException(ExcCode.Unpredictable)
+    object Undefined: ARMHardwareException(ExcCode.Undefined)
+    object Unknown: ARMHardwareException(ExcCode.Unknown)
 
-    object CVCException: ARMHardwareException(ExcCode.CVC, -1)
-    object DataAbortException: ARMHardwareException(ExcCode.DataAbort, -1)
-    object PrefetchAbortException: ARMHardwareException(ExcCode.PrefetchAbort, -1)
-    object AligmentFault: ARMHardwareException(ExcCode.AligmentFault, -1)
+    object CVCException: ARMHardwareException(ExcCode.CVC)
+    object DataAbortException: ARMHardwareException(ExcCode.DataAbort)
+    object PrefetchAbortException: ARMHardwareException(ExcCode.PrefetchAbort)
+    object AligmentFault: ARMHardwareException(ExcCode.AligmentFault)
 }

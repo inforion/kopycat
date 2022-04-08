@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -128,9 +128,9 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstdlib/atoi/
     val atoi = object : APIFunction("atoi") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val str = os.sys.readAsciiString(argv[0])
-            val res = if (str != "") str.toInt().asLong else 0L
+            val res = if (str != "") str.ulongByDec else 0uL
             return retval(res)
         }
     }
@@ -150,13 +150,13 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstdlib/strtol/
     val strtol = object : APIFunction("strtol") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val str = os.sys.readAsciiString(argv[0])
             val endptr = argv[1]
-            val base = argv[2].asInt
+            val base = argv[2]
 
-            val items = str.trim().splitWhitespaces()
-            val value = items[0].toLong(base)
+            val items = str.trim().splitBy(whitespaces)
+            val value = items[0].ulong(base.int)
 
             if (endptr != nullptr) {
                 val feedback = argv[0] + str.indexOf(items[0]) + items[0].length
@@ -175,22 +175,22 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstdlib/strtoul/
     val strtoul = object : APIFunction("strtoul") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val str = os.sys.readAsciiString(argv[0])
             val endptr = argv[1]
 
             log.config { "[0x${ra.hex8}] strtoul(str='$str' endptr=${endptr.hex8} base=${argv[2]})" }
 
-            val item = str.trim().splitWhitespaces().first()
+            val item = str.trim().splitBy(whitespaces).first()
 
-            val base = if (argv[2] == 0L) {
-                when {
+            val base = when {
+                argv[2] == 0uL -> when {
                     item.startsWith("0x") -> 16
                     item.startsWith("0") && item.length != 1 -> 8
                     else -> 10
                 }
+                else -> argv[2].int
             }
-            else argv[2].asInt
 
             val pattern = when {
                 base == 16 && item.startsWith("0x") -> item.substring(2)
@@ -198,9 +198,7 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
                 else -> item
             }
 
-            val value = runCatching {
-                pattern.toULong(base)
-            }.getOrDefault(0)
+            val value = runCatching { pattern.ulong(base) }.getOrDefault(0u)
 
             if (endptr != nullptr) {
                 val feedback = argv[0] + str.indexOf(item) + item.length
@@ -226,7 +224,7 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     @APIFunc
     fun calloc(num: size_t, size: size_t): VoidPointer {
         log.finest { "[0x${ra.hex8}] calloc(num=$num size=$size)" }
-        val address = sys.allocateClean((num * size).toInt())
+        val address = sys.allocateClean((num * size).int)
         return VoidPointer(sys, address)
     }
 
@@ -248,7 +246,7 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     @APIFunc
     fun malloc(size: size_t): VoidPointer {
         log.finest { "[0x${ra.hex8}] malloc(size=$size)" }
-        val address = sys.allocate(size.toInt())
+        val address = sys.allocate(size.int)
         return VoidPointer(sys, address)
     }
 
@@ -263,15 +261,15 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
             return VoidPointer.nullPtr(sys)
         }
 
-        val address = sys.allocate(size.toInt())
+        val address = sys.allocate(size.int)
 
         if (ptr.isNotNull) {
             val oldSize = sys.allocatedBlockSize(ptr.address) // REVIEW: rename function
             var oldData = sys.abi.readBytes(ptr.address, oldSize)
             sys.free(ptr.address)
 
-            if (oldSize > size.toInt())
-                oldData = oldData.copyOfRange(0, size.toInt())
+            if (oldSize > size.int)
+                oldData = oldData.copyOfRange(0, size.int)
 
             sys.abi.writeBytes(address, oldData)
         }
@@ -286,7 +284,7 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstdlib/abort/
     val abort = object : APIFunction("abort") {
         override val args = emptyArray<ArgType>()
-        override fun exec(name: String, vararg argv: Long) = terminate(0)
+        override fun exec(name: String, vararg argv: ULong) = terminate(0)
     }
 
     // TODO: convert to new API
@@ -300,9 +298,9 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstdlib/exit/
     val exit = object : APIFunction("exit") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.fine { "[0x${ra.hex8}] exit(code=${argv[0]})" }
-            return terminate(argv[0].asInt)
+            return terminate(argv[0].int)
         }
     }
 
@@ -310,7 +308,7 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstdlib/getenv/
     val getenv = object : APIFunction("getenv") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val varName = os.sys.readAsciiString(argv[0])
             log.fine { "[0x${ra.hex8}] getenv(name='$varName')" }
             val res = os.sys.getEnvironmentVariable(varName)
@@ -333,10 +331,10 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstdlib/qsort/
     @APIFunc
     fun qsort(ptr: BytePointer, count: Int, size: Int, comp: FunctionPointer) = /* void */
-            withCallback(ptr.address, count.asULong, size.asULong, comp.address) {
+            withCallback(ptr.address, count.ulong_z, size.ulong_z, comp.address) {
                 log.config { "[0x${ra.hex8}] qsort(ptr=$ptr count=${count.hex8} size=${size.hex8} comp=$comp)" }
                 val addresses = List(count) { ptr.address + it * size }
-                val sortedAddress = addresses.sortedWith { o1, o2 -> it.interrupt(comp.address, o1, o2).asInt }
+                val sortedAddress = addresses.sortedWith { o1, o2 -> it.interrupt(comp.address, o1, o2).int }
                 val sortedItems = sortedAddress.map { os.abi.readBytes(it, size) }
                 (addresses zip sortedItems).forEach { (address, item) -> os.abi.writeBytes(address, item) }
             }

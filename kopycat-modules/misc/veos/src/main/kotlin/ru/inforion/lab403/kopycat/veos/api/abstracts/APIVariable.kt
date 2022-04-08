@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,14 +27,16 @@ package ru.inforion.lab403.kopycat.veos.api.abstracts
 
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.emptyOpt
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.veos.VEOS
 
 class APIVariable(
-        val os: VEOS<*>,
-        name: String,
-        val datatype: Datatype,
-        address: Long? = null
+    val os: VEOS<*>,
+    name: String,
+    val datatype: Datatype,
+    address: Optional<ULong> = emptyOpt()
 ): APIObject(name, address) {
 
     companion object {
@@ -48,7 +50,7 @@ class APIVariable(
         fun pointer(os: VEOS<*>, name: String) = APIVariable(os, name, os.abi.types.pointer)
     }
 
-    fun allocate(data: Long = 0): Long {
+    fun allocate(data: ULong = 0uL): ULong {
         val address = os.sys.allocateSystemSymbol(name, datatype)
         log.config { "Allocating variable '${name}' at 0x${address.hex8} with value 0x${data.hex8}" }
         value = data
@@ -64,7 +66,7 @@ class APIVariable(
 
     override val address get() = os.sys.addressOfSymbol(name)
 
-    var value: Long
-        get() = os.abi.readMemory(address!!, datatype)
-        set(value) = os.abi.writeMemory(address!!, value, datatype)
+    var value: ULong
+        get() = os.abi.readMemory(address.get, datatype)
+        set(value) = os.abi.writeMemory(address.get, value, datatype)
 }

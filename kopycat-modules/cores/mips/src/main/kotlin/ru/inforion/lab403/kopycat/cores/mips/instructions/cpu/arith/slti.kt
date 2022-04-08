@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asLong
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRsImmInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -39,7 +39,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class slti(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         rt: MipsRegister,
         rs: MipsRegister,
         imm: MipsImmediate) : RtRsImmInsn(core, data, Type.VOID, rt, rs, imm)  {
@@ -50,6 +50,6 @@ class slti(
     override fun execute() {
         // ancient bug awaken here
         // 50026BC4 slti   $v0, $s2, 50 ; WTF??? 500267B4 addiu  $s2, $zero, -1
-        vrt = (vrs.asInt < imm.ssext.asInt).asLong
+        vrt = (vrs.int < imm.ssext.int).ulong
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb32
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.find
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.DecodeImmShift
@@ -41,7 +41,7 @@ class Thumb32DataProcessingRegDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 flags: Boolean,
                 rd: ARMRegister,
@@ -50,17 +50,17 @@ class Thumb32DataProcessingRegDecoder(
                 shiftT: SRType,
                 shiftN: Int,
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rd = gpr(data[11..8].asInt)
-        val rn = gpr(data[19..16].asInt)
-        val rm = gpr(data[3..0].asInt)
-        val setFlags = data[20] == 1L
+    override fun decode(data: ULong): AARMInstruction {
+        val cond = find { it.opcode == data[31..28].int } ?: Condition.AL
+        val rd = gpr(data[11..8].int)
+        val rn = gpr(data[19..16].int)
+        val rm = gpr(data[3..0].int)
+        val setFlags = data[20] == 1uL
         val type = data[5..4]
         val imm3 = data[14..12]
         val imm2 = data[7..6]
         val (shiftT, shiftN) = DecodeImmShift(type, (imm3 shl 2) + imm2)
         if (rd.desc.id in 15..13 || rn.desc.id in 15..13 || rm.desc.id in 15..13) throw Unpredictable
-        return constructor(core, data, cond, setFlags, rd, rn, rm, shiftT, shiftN.asInt, 2)
+        return constructor(core, data, cond, setFlags, rd, rn, rm, shiftT, shiftN.int, 2)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,11 +36,11 @@ class Finit(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "finit"
 
     override fun execute() {
-        core.fpu.fwr.FPUControlWord = 0x37F
-        core.fpu.fwr.FPUStatusWord = 0
-        core.fpu.fwr.FPUTagWord = 0xFFFF
-        core.fpu.fwr.FPUDataPointer = 0
-        core.fpu.fwr.FPUInstructionPointer = 0
-        core.fpu.fwr.FPULastInstructionOpcode = 0
+        core.fpu.fwr.FPUControlWord.value = 0x37Fu
+        core.fpu.fwr.FPUStatusWord.value = 0u
+        core.fpu.fwr.FPUTagWord.value = 0xFFFFu
+        core.fpu.fwr.FPUDataPointer.value = 0u
+        core.fpu.fwr.FPUInstructionPointer.value = 0u
+        core.fpu.fwr.FPULastInstructionOpcode.value = 0u
     }
 }

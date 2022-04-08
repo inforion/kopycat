@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.kopycat.interfaces.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.IMemoryStream
@@ -32,54 +35,54 @@ import ru.inforion.lab403.kopycat.interfaces.IReadWrite
 
 class StackStream(
         private val mem: IReadWrite,
-        where: Long,
+        where: ULong,
         val ssr: Int,
         val is16BitOperandMode: Boolean): IMemoryStream {
 
     enum class StackDirection { Increment, Decrement }
 
-    val discrete = if (is16BitOperandMode) 2 else 4
+    val discrete = if (is16BitOperandMode) 2u else 4u
 
-    override var position: Long = where
+    override var position: ULong = where
 
-    override var mark: Long = where
+    override var mark: ULong = where
         @Suppress("UNUSED_PARAMETER")
         set(value) = throw GeneralException("You can't change mark field in class StackStream!")
 
     override var last: Int = 0
 
-    override fun read(datatype: Datatype): Long {
+    override fun read(datatype: Datatype): ULong {
         val result = peek(datatype)
         if (datatype.bytes == 1)
 //            position += discrete + offset
             position += discrete
         else {
             if (!is16BitOperandMode && (datatype.bytes == 2))
-                position += 2
+                position += 2u
 //            position += datatype.bytes + offset
-            position += datatype.bytes
+            position += datatype.bytes.uint
         }
         return result
     }
 
-    override fun write(datatype: Datatype,  data: Long){
+    override fun write(datatype: Datatype,  data: ULong){
         if (datatype.bytes == 1)
             position -= discrete
         else {
             if (!is16BitOperandMode && (datatype.bytes == 2))
-                position -= 2
-            position -= datatype.bytes
+                position -= 2u
+            position -= datatype.bytes.uint
         }
         mem.write(datatype, position, data, ssr)
     }
 
-    override fun peek(datatype: Datatype): Long = mem.read(datatype, position, ssr)
+    override fun peek(datatype: Datatype): ULong = mem.read(datatype, position, ssr)
 
     override fun rewind() {
         position = mark
     }
 
-    override val offset: Int get() = (position - mark).toInt()
+    override val offset: Int get() = (position - mark).int
 
     override val data: ByteArray get() = throw GeneralException("No data in StackStream!")
 }

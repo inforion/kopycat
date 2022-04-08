@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,21 +27,20 @@ package ru.inforion.lab403.kopycat.modules.cores
 
 import ru.inforion.lab403.common.extensions.set
 import ru.inforion.lab403.common.extensions.swap32
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.hardware.processors.AARMCPU
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Endian
-import java.util.logging.Level
-
-
 
 class ARMDebugger(parent: Module, name: String, val endian: Endian): Debugger(parent, name) {
 
     constructor(parent: Module, name: String) : this(parent, name, Endian.LITTLE)
 
     companion object {
-        @Transient val log = logger(Level.WARNING)
+        @Transient val log = logger(WARNING)
 
         const val GDB_REGS_COUNT = 42
     }
@@ -54,7 +53,7 @@ class ARMDebugger(parent: Module, name: String, val endian: Endian): Debugger(pa
 
     private var wrongRegisterIndex = mutableSetOf<Int>()
 
-    override fun regRead(index: Int): Long {
+    override fun regRead(index: Int): ULong {
         val value = when (index) {
             // GPR
             in 0..14 -> cpu.reg(index)
@@ -64,14 +63,14 @@ class ARMDebugger(parent: Module, name: String, val endian: Endian): Debugger(pa
                 if (cpu.CurrentInstrSet() == AARMCore.InstructionSet.THUMB) (pc set 0) else pc
             }
             // FPU
-            in 16..24 -> 0
+            in 16..24 -> 0u
             // CPSR
-            25 -> cpu.flags()
+            25 -> cpu.flags().ulong
             else -> {
                 // TODO: https://youtrack.lab403.inforion.ru/issue/KC-1600
                 if (wrongRegisterIndex.add(index))
                     log.severe { "Reading unknown register index = $index -> This message will be print only once!" }
-                0
+                0u
             }
         }
         val dataToRead = if (endian == Endian.BIG) value.swap32() else value
@@ -79,7 +78,7 @@ class ARMDebugger(parent: Module, name: String, val endian: Endian): Debugger(pa
         return dataToRead
     }
 
-    override fun regWrite(index: Int, value: Long) {
+    override fun regWrite(index: Int, value: ULong) {
         val dataToWrite = if (endian == Endian.BIG) value.swap32() else value
         when (index) {
             // GPR

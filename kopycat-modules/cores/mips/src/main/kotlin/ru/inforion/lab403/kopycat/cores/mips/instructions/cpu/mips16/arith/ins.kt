@@ -1,0 +1,57 @@
+/*
+ *
+ * This file is part of Kopycat emulator software.
+ *
+ * Copyright (C) 2022 INFORION, LLC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * Non-free licenses may also be purchased from INFORION, LLC, 
+ * for users who do not want their programs protected by the GPL. 
+ * Contact us for details kopycat@inforion.ru
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
+package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.mips16.arith
+
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
+import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+
+/**
+ * Created by shiftdj on 21.06.2021.
+ */
+
+// ins ry, rx, pos, size
+// ins ry, $0, pos, size
+class ins(
+        core: MipsCore,
+        data: ULong,
+        val rx: MipsRegister,
+        val ry: MipsRegister,
+        val lsb: MipsImmediate,
+        val msb: MipsImmediate,
+        val flag: Boolean) : AMipsInstruction(core, data, Type.VOID, rx, ry, lsb, msb) {
+
+    override val mnem = "ins"
+
+    override fun execute() {
+        val range = msb.value.int..lsb.value.int
+        val filler = if (flag) rx.value(core)[range] else 0uL
+
+        ry.value(core, ry.value(core).insert(filler, range))
+    }
+}

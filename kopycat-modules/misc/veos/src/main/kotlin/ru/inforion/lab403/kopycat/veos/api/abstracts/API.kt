@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,6 +29,8 @@ import org.jetbrains.kotlin.utils.addToStdlib.cast
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.emptyOpt
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
@@ -80,11 +82,11 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
             .map { it.key to it.value as T }
             .toMap()
 
-    class APIType<T : Any>(val cls: Class<out T>, val type: ArgType, val cast: (index: Int, value: Long) -> T) : Serializable
+    class APIType<T : Any>(val cls: Class<out T>, val type: ArgType, val cast: (index: Int, value: ULong) -> T) : Serializable
 
     class APIRetType<T : Any>(val cls: Class<out T>, val toResult: (T) -> APIResult) : Serializable
 
-    protected inline fun <reified T : Any> type(type: ArgType, noinline cast: (index: Int, value: Long) -> T) =
+    protected inline fun <reified T : Any> type(type: ArgType, noinline cast: (index: Int, value: ULong) -> T) =
             APIType(T::class.java, type, cast).also { apiTypes.add(it) }
 
     protected inline fun <reified T : Any> ret(noinline toResult: (T) -> APIResult) =
@@ -132,7 +134,7 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
 
         override val args = types.map { it.type }.toTypedArray()
 
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val arguments = (argv zip types).mapIndexed { i, (value, type) -> type.cast(i, value) }.toTypedArray()
 
             val result = try {
@@ -179,11 +181,11 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
     @DontAutoSerialize
     val functions by lazy { availableCallbacks<APIFunction>() + ngFunctions }
 
-    class nullsub(name: String, address: Long? = null) : APIFunction(name, address) {
+    class nullsub(name: String, address: Optional<ULong> = emptyOpt()) : APIFunction(name, address) {
         override val args = emptyArray<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.finer { "<$name> is dummyFunc" }
-            return retval(0)
+            return retval(0uL)
         }
     }
 
@@ -192,7 +194,7 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
      * have something especial to do with that then
      * main function putMainArgs should be override
      */
-    open fun init(argc: Long, argv: Long, envp: Long) = Unit
+    open fun init(argc: ULong, argv: ULong, envp: ULong) = Unit
 
     open fun setErrno(error: Exception?): Unit = throw NotImplementedError("setErrno() is not implemented!")
 
@@ -214,7 +216,7 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
 
     private val cherubims = mutableMapOf<ArgumentList, Cherubim>()
 
-    protected fun withCallback(vararg args: Long, block: (Cherubim) -> Any?): APIResult {
+    protected fun withCallback(vararg args: ULong, block: (Cherubim) -> Any?): APIResult {
         val key = ArgumentList(*args, os.abi.returnAddressValue)
         val localCherub = cherubims[key]
         if (localCherub == null) {
@@ -223,8 +225,9 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
             thread {
                 val result = when (val returned = block(newCherubim)) { // TODO: use new API lambdas
                     is Unit -> APIResult.Void()
-                    is Int -> APIResult.Value(returned.asULong)
-                    is Long -> APIResult.Value(returned)
+                    is Int -> APIResult.Value(returned.ulong_z)
+                    is Long -> APIResult.Value(returned.ulong)
+                    is ULong -> APIResult.Value(returned)
                     else -> TODO("Not implemented result type")
                 }
                 cherubims.remove(key)
@@ -268,7 +271,7 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
      * @param message is a message provider function
      * {EN}
      */
-    protected inline fun segfault(condition: Boolean, address: Long = -1, message: () -> String) {
+    protected inline fun segfault(condition: Boolean, address: ULong = -1uL, message: () -> String) {
         if (condition) throw MemoryAccessError(ra, address, AccessAction.LOAD, message())
     }
 
@@ -286,16 +289,16 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
             segfault(pointer.isNull, pointer.address, message)
 
     init {
-        type(ArgType.Char) { _, it -> it.asChar }
-        type(ArgType.Short) { _, it ->it.asShort }
-        type(ArgType.Int) { _, it ->it.asInt }
-        type(ArgType.Long) { _, it -> it }
+        type(ArgType.Char) { _, it -> it.char }
+        type(ArgType.Short) { _, it ->it.short }
+        type(ArgType.Int) { _, it ->it.int }
+        type(ArgType.Long) { _, it -> it.long }
         type(ArgType.LongLong) { _, it -> LongLong(it like os.abi.types.longLong) }
 
-        type(ArgType.Char) { _, it -> it.asByte }
+        type(ArgType.Char) { _, it -> it.byte }
         type(ArgType.Short) { _, it -> it.ushort }
         type(ArgType.Int) { _, it -> it.uint }
-        type(ArgType.LongLong) { _, it -> it.ulong }
+        type(ArgType.LongLong) { _, it -> it }
 
         val sizetArgType = when (os.abi.sizetDatatype) {
             Datatype.QWORD -> ArgType.LongLong
@@ -303,7 +306,7 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
             else -> TODO("Not implemented for ${os.abi.sizetDatatype}")
         }
 
-        type(sizetArgType) { _, it -> Sizet((it like os.abi.sizetDatatype).ulong) }
+        type(sizetArgType) { _, it -> Sizet((it like os.abi.sizetDatatype)) }
 
         type(ArgType.Pointer) { _, it -> BytePointer(os.sys, it) }
         type(ArgType.Pointer) { _, it -> CharPointer(os.sys, it) }
@@ -316,18 +319,18 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
         type(ArgType.Pointer /* TODO: may cause bug if stack is empty */) { i, it -> VaArgs(os.sys, i) }
         type(ArgType.Pointer) { _, it -> VaList(os.sys, it) }
 
-        ret<Char> { APIResult.Value(it.asLong) }
-        ret<Short> { APIResult.Value(it.asLong) }
-        ret<Int> { APIResult.Value(it.asLong) }
-        ret<Long> { APIResult.Value(it, ArgType.Long) }
-        ret<LongLong>  { APIResult.Value(it.toLong(), ArgType.LongLong) }
+        ret<Char> { APIResult.Value(it.ulong_s) }
+        ret<Short> { APIResult.Value(it.ulong_s) }
+        ret<Int> { APIResult.Value(it.ulong_s) }
+        ret<Long> { APIResult.Value(it.ulong, ArgType.Long) }
+        ret<LongLong>  { APIResult.Value(it.ulong, ArgType.LongLong) }
 
-        ret<Sizet> { APIResult.Value(it.toLong(), sizetArgType) }
+        ret<Sizet> { APIResult.Value(it.ulong, sizetArgType) }
 
-        ret<Byte> { APIResult.Value(it.asLong) }
-        ret<UShort> { APIResult.Value(it.long) }
-        ret<UInt> { APIResult.Value(it.long) }
-        ret<ULong> { APIResult.Value(it.long) }
+        ret<Byte> { APIResult.Value(it.ulong_z) }
+        ret<UShort> { APIResult.Value(it.ulong_z) }
+        ret<UInt> { APIResult.Value(it.ulong_z) }
+        ret<ULong> { APIResult.Value(it) }
 
         ret<BytePointer> { APIResult.Value(it.address) }
         ret<CharPointer> { APIResult.Value(it.address) }

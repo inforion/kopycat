@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("PropertyName", "unused")
+
 package ru.inforion.lab403.kopycat.veos.api.impl
 
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
@@ -49,19 +51,19 @@ class ELFAPI(os: VEOS<*>) : API(os) {
                 ArgType.Pointer, ArgType.Pointer, ArgType.Pointer
         )
 
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val main = argv[0]
             val argc = argv[1]
             val _argv = argv[2]
 
             /* The environment begins right after argv.  */
-            var __environ = os.abi.readInt(_argv + (argc + 1) * 4)
+            var __environ = os.abi.readInt(_argv + (argc + 1u) * 4u)
 
             /* If the first thing after argv is the arguments
              * then the environment is empty. */
             if (__environ == os.abi.readInt(_argv)) {
                 /* Make __environ point to the NULL at argv[argc] */
-                __environ = os.abi.readInt(_argv + argc * 4)
+                __environ = os.abi.readInt(_argv + argc * 4u)
             }
 
             // TODO: Init/fini
@@ -86,19 +88,19 @@ class ELFAPI(os: VEOS<*>) : API(os) {
                 ArgType.Pointer     // void* stack_end
         )
 
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             val main = argv[0]
             val argc = argv[1]
             val _argv = argv[2]
 
             /* The environment begins right after argv.  */
-            var __environ = os.abi.readInt(_argv + (argc + 1) * 4)
+            var __environ = os.abi.readInt(_argv + (argc + 1u) * 4u)
 
             /* If the first thing after argv is the arguments
              * then the environment is empty. */
             if (__environ == os.abi.readInt(_argv)) {
                 /* Make __environ point to the NULL at argv[argc] */
-                __environ = os.abi.readInt(_argv + argc * 4)
+                __environ = os.abi.readInt(_argv + argc * 4u)
             }
 
             // TODO: Init/fini

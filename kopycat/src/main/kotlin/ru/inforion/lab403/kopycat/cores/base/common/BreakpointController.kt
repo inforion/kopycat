@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
+import ru.inforion.lab403.common.extensions.Dictionary
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
@@ -49,7 +50,7 @@ class BreakpointController: Serializable {
         @Transient private val log = logger(FINE)
     }
 
-    private val store = HashMap<Long, Breakpoint>(0x1000)
+    private val store = Dictionary<ULong, Breakpoint>(0x1000)
 
     /**
      * {RU}
@@ -70,7 +71,7 @@ class BreakpointController: Serializable {
      * @return is success (true/false)
      * {EN}
      */
-    fun add(ea: Long, bpAccess: Breakpoint.Access, onBreak: ((ea: Long) -> Unit)? = null): Boolean {
+    fun add(ea: ULong, bpAccess: Breakpoint.Access, onBreak: ((ea: ULong) -> Unit)? = null): Boolean {
         if (ea in store) {
             log.warning { "Breakpoint already setup here ea=0x${ea.hex}" }
             return false
@@ -93,9 +94,9 @@ class BreakpointController: Serializable {
      * @return is success (true/false)
      * {EN}
      */
-    fun remove(ea: Long) = store.remove(ea) != null
+    fun remove(ea: ULong) = store.remove(ea) != null
 
-    fun oneshot(ea: Long, bpAccess: Breakpoint.Access, onBreak: (ea: Long) -> Unit) = add(ea, bpAccess) {
+    fun oneshot(ea: ULong, bpAccess: Breakpoint.Access, onBreak: (ea: ULong) -> Unit) = add(ea, bpAccess) {
         onBreak(it)
         remove(it)
     }
@@ -120,7 +121,7 @@ class BreakpointController: Serializable {
      * {EN}
      */
     @Suppress("UNUSED_PARAMETER")
-    fun check(pAddr: Long, vAddr: Long, bpAccess: Breakpoint.Access): Boolean {
+    fun check(pAddr: ULong, vAddr: ULong, bpAccess: Breakpoint.Access): Boolean {
         val bpt = lookup(pAddr)
         if (bpt != null) return bpt.check(bpAccess)
         return false
@@ -141,7 +142,7 @@ class BreakpointController: Serializable {
      * @return found breakpoint or null is it not found.
      * {EN}
      */
-    fun lookup(addr: Long) = store[addr]
+    fun lookup(addr: ULong) = store[addr]
 
     /**
      * {EN}Delete all breakpoints from [BreakpointController]{EN}

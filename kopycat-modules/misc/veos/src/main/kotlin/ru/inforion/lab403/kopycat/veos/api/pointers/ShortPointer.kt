@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,18 +25,17 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.pointers
 
-import ru.inforion.lab403.common.extensions.asShort
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
 
-class ShortPointer constructor(sys: System, address: Long) : Pointer<Short>(sys, address) {
+class ShortPointer constructor(sys: System, address: ULong) : Pointer<Short>(sys, address) {
     companion object {
-        fun nullPtr(sys: System) = ShortPointer(sys, 0)
+        fun nullPtr(sys: System) = ShortPointer(sys, 0uL)
 
         fun allocate(sys: System, count: Int = 1) = ShortPointer(sys, sys.allocateClean(count * sys.sizeOf.short))
     }
 
-    override fun get(index: Int) = sys.abi.readShort(address + index * sys.sizeOf.short).asShort
-    override fun set(index: Int, value: Short) = sys.abi.writeShort(address + index * sys.sizeOf.short, value.asULong)
+    override fun get(index: Int) = sys.abi.readShort(address + index * sys.sizeOf.short).short
+    override fun set(index: Int, value: Short) = sys.abi.writeShort(address + index * sys.sizeOf.short, value.ulong_z)
 }

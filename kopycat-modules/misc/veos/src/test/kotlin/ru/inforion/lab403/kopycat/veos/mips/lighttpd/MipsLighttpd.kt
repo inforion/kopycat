@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,10 +47,10 @@ internal class MipsLighttpd {
     companion object {
         val log = logger()
 
-        const val maxStepsCount = 6000000
-        const val fdeventPollAddress = 0x00404988L
-        const val failAddress = 0x0043AEC8L
-        const val connectionCloseAddress = 0x00407C08L
+        const val maxStepsCount = 6000000u
+        const val fdeventPollAddress = 0x00404988uL
+        const val failAddress = 0x0043AEC8uL
+        const val connectionCloseAddress = 0x00407C08uL
         const val httpOk = "HTTP/1.0 200 OK\r\n"
     }
 
@@ -72,10 +72,10 @@ internal class MipsLighttpd {
     @Test
     fun lighttpdVeosTestVulnerability() {
         val top = constructTop()
-        val kopycat = Kopycat(null).also { it.open(top, false, null) }
+        val kopycat = Kopycat(null).also { it.open(top, null, false) }
 
         var socket: Socket? = null
-        val data = "GET / HTTP/1.1\r\n${"Connection: keep-alive\r\n"*2} ${"a"*128}\r\n\r\n".convertToBytes()
+        val data = "GET / HTTP/1.1\r\n${"Connection: keep-alive\r\n"*2} ${"a"*128}\r\n\r\n".bytes
         kopycat.run { step, core ->
             if (core.pc == fdeventPollAddress && socket == null) {
                 val tcpSocket = top.veos.network.socketByPort(80)
@@ -94,10 +94,10 @@ internal class MipsLighttpd {
     @Test
     fun lighttpdVeosTestGet() {
         val top = constructTop()
-        val kopycat = Kopycat(null).also { it.open(top, false, null) }
+        val kopycat = Kopycat(null).also { it.open(top, null, false) }
 
         var socket: Socket? = null
-        val data = "GET / HTTP/1.0\r\n\r\n".convertToBytes()
+        val data = "GET / HTTP/1.0\r\n\r\n".bytes
         var found = false
         kopycat.run { step, core ->
             if (core.pc == fdeventPollAddress && socket == null) {
@@ -112,7 +112,7 @@ internal class MipsLighttpd {
             if (socket != null) {
                 val inputStream = socket!!.inputStream
                 if (inputStream.available() > 1000) { // To receive body of response
-                    val response = inputStream.readNBytes(inputStream.available()).convertToString()
+                    val response = inputStream.readNBytes(inputStream.available()).string
                     log.info { response }
                     assertTrue { response.startsWith(httpOk) }
                     found = true
@@ -130,7 +130,7 @@ internal class MipsLighttpd {
         val top = constructTop()
         val kopycat = Kopycat(null).also {
             it.setSnapshotsDirectory(tempDir.absolutePath)
-            it.open(top, false, null)
+            it.open(top, null, false)
         }
 
         val server = PseudoSocketFile(80)
@@ -147,7 +147,7 @@ internal class MipsLighttpd {
         kopycat.restore()
 
         val acceptor = (top.veos.network.getVirtualSocketByName("server") as PseudoSocketFile).control.acceptor(1234)
-        acceptor.control.append("GET / HTTP/1.0\r\n\r\n".convertToBytes())
+        acceptor.control.append("GET / HTTP/1.0\r\n\r\n".bytes)
 
         kopycat.run { step, core ->
             step < maxStepsCount && core.pc != connectionCloseAddress
@@ -155,6 +155,6 @@ internal class MipsLighttpd {
 
         assertEquals(connectionCloseAddress, kopycat.pcRead())
         assertFalse { kopycat.hasException() }
-        assertTrue { acceptor.control.get().convertToString().startsWith(httpOk) } // TODO: bug: too early access
+        assertTrue { acceptor.control.get().string.startsWith(httpOk) } // TODO: bug: too early access
     }
 }

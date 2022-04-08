@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,12 +36,10 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class jr(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         rs: MipsRegister) : RsInsn(core, data, Type.IND_JUMP, rs) {
 
     override val mnem = "jr"
-
-    override val isRet: Boolean get() = rs.isStackPointer(core)
 
     override fun execute() {
         core.cpu.branchCntrl.schedule(vrs)

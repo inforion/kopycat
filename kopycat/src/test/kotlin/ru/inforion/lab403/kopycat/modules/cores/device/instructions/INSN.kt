@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,9 +26,9 @@
 package ru.inforion.lab403.kopycat.modules.cores.device.instructions
 
 object INSN {
-    const val ADD = 0x0AA0_BEEFL
-    const val MOV = 0x0AA0_DEADL
-    const val MUL = 0x0AA0_C0DEL
-    const val SUB = 0x0AA0_AFFEL
-    const val INF = 0xFFFF_FFFFL  // INFINITE LOOP INSTRUCTION
+    const val ADD = 0x0AA0_BEEFuL
+    const val MOV = 0x0AA0_DEADuL
+    const val MUL = 0x0AA0_C0DEuL
+    const val SUB = 0x0AA0_AFFEuL
+    const val INF = 0xFFFF_FFFFuL  // INFINITE LOOP INSTRUCTION
 }

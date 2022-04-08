@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.v850es.instructions.cpu.arithm
 
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.v850es.exceptions.v850ESHardwareException
@@ -48,13 +50,13 @@ class Div(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
 
     // Format XI - reg1, reg2, reg3
     override fun execute() {
-        val a1 = op1.value(core)
+        val a1 = op1.value(core).long
         if (a1 == 0L) throw v850ESHardwareException.DivisionByZero
         val res1 = op2.ssext(core) / a1
         val res2 = op2.ssext(core) % a1
-        result.value(core, res1)
+        result.value(core, res1.ulong)
         FlagProcessor.processDivFlag(core, result, op1, op2)
         op2.value(core, result)
-        op3.value(core, res2)
+        op3.value(core, res2.ulong)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,7 +32,7 @@ import ru.inforion.lab403.kopycat.veos.kernel.System
 // Calling-convention-placed list of arguments
 // Warning: we can't just read from stack, because some of arguments can be passed by registers
 // Superclass is VaList - to be able to pass VaArgs to VaList-functions (ex. sprintf -> vsprintf)
-class VaArgs(sys: System, var offset: Int): VaList(sys, 0) {
+class VaArgs(sys: System, var offset: Int): VaList(sys, 0u) {
     override fun hasNext() = true
     override fun next() = sys.abi.getArg(offset, sys.abi.gprDatatype).also { offset++ }
 }

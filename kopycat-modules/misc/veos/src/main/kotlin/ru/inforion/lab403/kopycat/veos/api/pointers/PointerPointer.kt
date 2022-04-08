@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,16 +25,17 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.pointers
 
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
 
-class PointerPointer constructor(sys: System, address: Long) : Pointer<Long>(sys, address) {
+class PointerPointer constructor(sys: System, address: ULong) : Pointer<ULong>(sys, address) {
     companion object {
-        fun nullPtr(sys: System) = PointerPointer(sys, 0)
+        fun nullPtr(sys: System) = PointerPointer(sys, 0uL)
 
         fun allocate(sys: System, count: Int = 1) = PointerPointer(sys, sys.allocateClean(count * sys.sizeOf.pointer))
     }
 
     override fun get(index: Int) = sys.abi.readPointer(address + index * sys.sizeOf.pointer)
-    override fun set(index: Int, value: Long) = sys.abi.writePointer(address + index * sys.sizeOf.pointer, value)
+    override fun set(index: Int, value: ULong) = sys.abi.writePointer(address + index * sys.sizeOf.pointer, value)
 }

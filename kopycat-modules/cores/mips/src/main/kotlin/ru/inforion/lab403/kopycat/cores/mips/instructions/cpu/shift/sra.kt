@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
-import ru.inforion.lab403.common.extensions.toULong
+import ru.inforion.lab403.common.extensions.ashr
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong_s
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtSaInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -41,7 +43,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * in the emptied bits; the word result is placed in GPR rd. The bit-shift amount is specified by sa.
  */
 class sra(core: MipsCore,
-          data: Long,
+          data: ULong,
           rd: MipsRegister,
           rs: MipsRegister,
           sa: MipsImmediate) : RdRtSaInsn(core, data, Type.VOID, rd, rs, sa) {
@@ -49,6 +51,6 @@ class sra(core: MipsCore,
     override val mnem = "sra"
 
     override fun execute() {
-        vrd = (vrt.toInt() shr vsa).toULong()
+        vrd = (vrt.int ashr vsa).ulong_s
     }
 }

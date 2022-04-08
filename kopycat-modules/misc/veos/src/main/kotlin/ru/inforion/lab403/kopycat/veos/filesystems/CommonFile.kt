@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,20 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.toFile
-import ru.inforion.lab403.common.proposal.attributes
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IOFileExists
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONoSuchFileOrDirectory
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotFoundError
+import ru.inforion.lab403.kopycat.veos.filesystems.attributes.veosAttributes
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import java.io.File
 import java.io.RandomAccessFile
-import java.nio.file.Files
-import java.nio.file.attribute.BasicFileAttributes
-import java.nio.file.attribute.PosixFileAttributeView
-import java.nio.file.attribute.PosixFileAttributes
 
 
 class CommonFile(val path: String, private val flags: AccessFlags) : IRandomAccessFile {
@@ -74,13 +69,13 @@ class CommonFile(val path: String, private val flags: AccessFlags) : IRandomAcce
         file.write(data)
     }
 
-    override fun seek(position: Long) = file.seek(position)
+    override fun seek(position: ULong) = file.seek(position.long)
 
-    override fun tell() = file.filePointer
+    override fun tell() = file.filePointer.ulong
 
-    override fun size(): Long = file.length()
+    override fun size(): ULong = file.length().ulong
 
-    override fun available() = (file.length() - file.filePointer).asInt
+    override fun available() = (file.length() - file.filePointer).int
 
     override fun readable() = available() > 0
 
@@ -98,5 +93,5 @@ class CommonFile(val path: String, private val flags: AccessFlags) : IRandomAcce
         }
     }
 
-    override fun attributes() = path.toFile().attributes()
+    override fun attributes() = path.toFile().veosAttributes()
 }

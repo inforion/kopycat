@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,18 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
-import ru.inforion.lab403.common.extensions.toULong
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.extensions.long_s
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.Near
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
+import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-class x86Near(dtyp: Datatype, offset: Int, override val ssr: x86Register = cs) : Near<x86Core>(offset, dtyp) {
-    override fun value(core: x86Core): Long = offset.toULong()
+class x86Near private constructor(dtyp: Datatype, val x86offset: ULong, override val ssr: x86Register) :
+    Near<x86Core>(x86offset.int, dtyp) {
 
-    override fun toString(): String = if (offset > 0) {
-        "0x%04X".format(offset)
-    } else {
-        "-0x%04X".format(offset)
-    }
+    constructor(dtyp: Datatype, offset: ULong, prefixes: Prefixes) :
+            this(dtyp, offset, prefixes.ssr())
+
+    override fun value(core: x86Core) = x86offset
+    override fun toString() = if (x86offset.long > 0) "0x%04X".format(x86offset.long) else "-0x%04X".format(x86offset.long)
 }

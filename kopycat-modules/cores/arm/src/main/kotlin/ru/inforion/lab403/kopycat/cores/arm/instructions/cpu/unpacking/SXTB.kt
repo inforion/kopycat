@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unpacking
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asLong
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.arm.ROR
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -37,9 +37,8 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class SXTB(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            val rd: ARMRegister,
            val rm: ARMRegister,
@@ -49,7 +48,7 @@ class SXTB(cpu: AARMCore,
     override val mnem = "SXTB$mcnd"
 
     override fun execute() {
-        val rotated = ROR(rm.value(core), 32, rotate.value(core).asInt)
-        rd.value(core, signext(rotated[7..0], 8).asLong)
+        val rotated = ROR(rm.value(core), 32, rotate.value(core).int)
+        rd.value(core, rotated[7..0].signextRenameMeAfter(7))
     }
 }

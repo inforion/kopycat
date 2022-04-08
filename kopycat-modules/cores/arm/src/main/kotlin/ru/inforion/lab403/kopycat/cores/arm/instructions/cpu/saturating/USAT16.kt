@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.saturating
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asLong
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.arm.SInt
 import ru.inforion.lab403.kopycat.cores.arm.UnsignedSatQ
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -37,9 +37,8 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class USAT16(cpu: AARMCore,
-             opcode: Long,
+             opcode: ULong,
              cond: Condition,
              val rd: ARMRegister,
              private val saturateTo: Immediate<AARMCore>,
@@ -48,10 +47,10 @@ class USAT16(cpu: AARMCore,
     override val mnem = "USAT16$mcnd"
 
     override fun execute() {
-        val (result1, sat1) = UnsignedSatQ(SInt(rn.bits(core, 15..0), 32).asInt, saturateTo.value.asInt)
-        val (result2, sat2) = UnsignedSatQ(SInt(rn.bits(core, 31..16), 32).asInt, saturateTo.value.asInt)
-        rd.bits(core, 15..0, result1.asLong)
-        rd.bits(core, 31..16, result2.asLong)
+        val (result1, sat1) = UnsignedSatQ(SInt(rn.bits(core, 15..0), 32).int, saturateTo.value.int)
+        val (result2, sat2) = UnsignedSatQ(SInt(rn.bits(core, 31..16), 32).int, saturateTo.value.int)
+        rd.bits(core, 15..0, result1.ulong_z)
+        rd.bits(core, 31..16, result2.ulong_z)
         if(sat1 || sat2) FlagProcessor.processSatFlag(core)
     }
 }

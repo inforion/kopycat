@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,8 +23,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("NOTHING_TO_INLINE")
+
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
+import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.emptyOpt
+import ru.inforion.lab403.common.optional.opt
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.base.CpuRegister
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
@@ -44,39 +49,26 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
     // TODO: enum for cp0-cp15
     inner class COP(parent: Component, val ind: Int) : Component(parent, "cop$ind") {
 
-        inline fun assert_value(a: Int, b: Int, msg: String) {
+        private inline fun assert_value(a: Int, b: Int, msg: String) {
             if (a != b) throw GeneralException("Forbidden combination for $msg: $a != $b")
         }
 
-        inline fun assert_access(a: AccessAction, b: AccessAction, msg: String) {
+        private inline fun assert_access(a: AccessAction, b: AccessAction, msg: String) {
             if (a != b) throw GeneralException("${a.name} access denied for group \"$msg\"")
         }
 
-        inline fun operate_register(
-                reg: CpuRegister,
-                value: Long?,
-                access: AccessAction,
-                logName: String? = null
-        ): Long? {
-
-            when (access) {
-                AccessAction.LOAD -> {
-//                    if (logName != null)
-//                        log.info { "Read from $logName: ${reg.value.hex8}" }
-                    return reg.value
-                }
-                AccessAction.STORE -> {
-                    value!!
-//                    if (logName != null)
-//                        log.info { "Write to $logName: ${reg.value.hex8} -> ${value.hex8}" }
-                    reg.value = value
-                }
-                else -> throw GeneralException("Only LOAD and STORE allowed")
-            }
-            return null
+        private inline fun operate_register(
+            reg: CpuRegister,
+            value: Optional<ULong>,
+            access: AccessAction,
+            name: String?
+        ) = when (access) {
+            AccessAction.LOAD -> reg.value.opt
+            AccessAction.STORE -> value.also { reg.value = it.get }
+            else -> throw GeneralException("Only LOAD and STORE allowed")
         }
 
-        fun execute(opc1: Int, opc2: Int, crn: Int, crm: Int, value: Long?, access: AccessAction): Long? {
+        fun execute(opc1: Int, opc2: Int, crn: Int, crm: Int, value: Optional<ULong>, access: AccessAction): Optional<ULong> {
             if (ind != 15) // Now only cp15
                 TODO("Not implemented")
             // See D12.7.1 in ARM architecture reference manual
@@ -114,11 +106,11 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                                     when (access) {
                                         AccessAction.LOAD -> {
 //                                            log.info { "Read from SCTLR: ${reg.value.hex8}" }
-                                            return reg.value
+                                            return reg.value.opt
                                         }
                                         AccessAction.STORE -> {
                                             // Get rid of deprecated (fixed) values
-                                            val maskedValue = (value!! and reg.mask) or reg.default
+                                            val maskedValue = (value.get and reg.mask) or reg.default
 
 //                                            log.info { "Write to SCTLR: ${reg.value.hex8} -> ${maskedValue.hex8}" }
 
@@ -136,7 +128,6 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                                         }
                                         else -> throw GeneralException("Only LOAD and STORE allowed")
                                     }
-                                    return null
                                 }
                                 else -> TODO("Not implemented: $opc2")
                             }
@@ -167,7 +158,7 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                 3 -> { // See Figure B3-29
                     assert_value(crm, 0, "crm")
                     assert_value(opc2, 0, "opc2")
-                    return operate_register(core.cpu.vmsa.dacr, value, access)//"DACR")
+                    return operate_register(core.cpu.vmsa.dacr, value, access, "DACR")
                 }
                 5 -> { // Fault Status Registers
                     assert_value(crm, 0, "crm")
@@ -341,7 +332,7 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                                     return operate_register(core.cpu.vmsa.contextidr, value, access, "CONTEXTIDR")
                                 }
                                 3 -> { // TPIDRURO, User Read Only, RW
-                                    return operate_register(core.cpu.vmsa.tpidruro, value, access)
+                                    return operate_register(core.cpu.vmsa.tpidruro, value, access, "TPIDRURO")
                                 }
                                 else -> TODO("Not implemented: $opc2")
                             }
@@ -351,20 +342,18 @@ class ARMv6COP(cpu: AARMCore, name: String) : AARMCOP(cpu, name) {
                 }
                 else -> TODO("Not implemented: $crn")
             }
-            return null
+            return emptyOpt()
         }
-
     }
 
     val cops = Array(16) { i -> COP(this, i) }
 
-    override fun Coproc_SendOneWord(opc1: Int, opc2: Int, crn: Int, crm: Int, cp_num: Int, value: Long) {
-        cops[cp_num].execute(opc1, opc2, crn, crm, value, AccessAction.STORE)
+    override fun Coproc_SendOneWord(opc1: Int, opc2: Int, crn: Int, crm: Int, cp_num: Int, value: ULong) {
+        cops[cp_num].execute(opc1, opc2, crn, crm, value.opt, AccessAction.STORE)
     }
 
-    override fun Coproc_GetOneWord(opc1: Int, opc2: Int, crn: Int, crm: Int, cp_num: Int): Long {
-        return cops[cp_num].execute(opc1, opc2, crn, crm, null, AccessAction.LOAD)!!
-    }
+    override fun Coproc_GetOneWord(opc1: Int, opc2: Int, crn: Int, crm: Int, cp_num: Int): ULong =
+        cops[cp_num].execute(opc1, opc2, crn, crm, emptyOpt(), AccessAction.LOAD).get
 
     override fun handleException(exception: GeneralException?): GeneralException? {
         when(exception) {

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,17 +30,15 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 class x86FprRegister(reg: Int) : ARegister<x86Core>(reg, Access.ANY) {
 
-    override fun value(core: x86Core): Long = core.fpu[reg]
+    override fun value(core: x86Core): ULong = core.fpu[reg]
 
-    override fun value(core: x86Core, data: Long) {
+    override fun value(core: x86Core, data: ULong) {
         core.fpu[reg] = data
     }
 
-    fun push(core: x86Core, data: Long){
+    fun push(core: x86Core, data: ULong){
         core.fpu.push(data)
     }
 
-    override fun toString(): String {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
+    override fun toString() = "fpr[${reg}]"
 }

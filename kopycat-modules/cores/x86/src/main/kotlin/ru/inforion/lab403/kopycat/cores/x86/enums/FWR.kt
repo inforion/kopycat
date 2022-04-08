@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ enum class FWR(val id: Int) {
     LIO(2);
 
     companion object {
-        val COUNT: Int get() = FWR.values().size
-        fun from(id: Int): FWR = FWR.values().first { it.id == id }
+        val COUNT get() = values().size
+        fun from(id: Int) = values().first { it.id == id }
     }
 }

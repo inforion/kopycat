@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,10 +23,13 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("PrivatePropertyName", "UNUSED_ANONYMOUS_PARAMETER")
+
 package ru.inforion.lab403.kopycat.cores.v850es.hardware.systemdc
 
-import gnu.trove.map.hash.THashMap
+import ru.inforion.lab403.common.extensions.dictionary
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.InstructionTable
@@ -57,16 +60,15 @@ import ru.inforion.lab403.kopycat.cores.v850es.instructions.cpu.special.*
 import ru.inforion.lab403.kopycat.cores.v850es.instructions.cpu.store.*
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
-import java.util.logging.Level
 import kotlin.collections.set
 
 
 class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
     companion object {
-        @Transient val log = logger(Level.FINE)
+        @Transient val log = logger(FINE)
     }
     override val name: String = "v850ES System Decoder"
-    private val cache = THashMap<Long, AV850ESInstruction>(1024*1024)
+    private val cache = dictionary<ULong, AV850ESInstruction>(1024*1024)
 
     // verified
     private val addRrDc = FormatI(core, ::Add)
@@ -195,8 +197,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val k_opcode = InstructionTable(
             2, 4,
-            { data: Long -> data[17] },
-            { data: Long -> data[22..21] },
+            { data -> data[17] },
+            { data -> data[22..21] },
             /////           0,0                 0,1                 1,0                 1,1
             /*0*/          divhRrrDc,          divhRrDc,           divRrDc,            divRrDc,
             /*1*/          divhuRrDc,          divhuRrDc,          divuRrDc,           divuRrDc
@@ -204,8 +206,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val j_opcode = InstructionTable(
             2, 4,
-            { data: Long -> data[17] },
-            { data: Long -> data[22..21] },
+            { data -> data[17] },
+            { data -> data[22..21] },
             /////           0,0                 0,1                 1,0                 1,1
             /*0*/          sasfCrDc,           mulRrrDc,           mulIrrDc,           mulIrrDc,
             /*1*/          sasfCrDc,           muluRrrDc,          muluIrrDc,          muluIrrDc
@@ -213,8 +215,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val i_opcode = InstructionTable(
             2, 2,
-            { data: Long -> data[18] },
-            { data: Long -> data[17] },
+            { data -> data[18] },
+            { data -> data[17] },
             /////           0                   1
             /*0*/          bswRrDc,            bshRrDc,
             /*1*/          hswRrDc,            null/*Undefined*/
@@ -222,8 +224,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val h_opcode = InstructionTable(
             4, 2,
-            { data: Long -> data[15..14] },
-            { data: Long -> if(data[13..11] == 0L) 0 else 1},
+            { data -> data[15..14] },
+            { data -> if (data[13..11] == 0uL) 0u else 1u },
             /////           0                   1
             /*0,0*/        diDc,               null, /*Undefined*/
             /*0,1*/        null, /*Undefined*/ null, /*Undefined*/
@@ -233,8 +235,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val g_opcode = InstructionTable(
             2, 2,
-            { data: Long -> data[18] },
-            { data: Long -> data[17] },
+            { data -> data[18] },
+            { data -> data[17] },
             /////           0                   1
             /*0,0*/        retiDc,             null,/*Undefined*/
             /*0,1*/        ctretDc,            dbretDc
@@ -242,8 +244,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val f_opcode = InstructionTable(
             2, 2,
-            { data: Long -> data[18] },
-            { data: Long -> data[17] },
+            { data -> data[18] },
+            { data -> data[17] },
             /////           0                   1
             /*0,0*/        set1RrDc,           not1RrDc,
             /*0,1*/        clr1RrDc,           tst1RrDc
@@ -251,8 +253,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val e_opcode = InstructionTable(
             16, 4,
-            { data: Long -> data[26..23] },
-            { data: Long -> data[22..21] },
+            { data -> data[26..23] },
+            { data -> data[22..21] },
             /////           0,0                 0,1                 1,0                 1,1
             /*0,0,0,0*/    setfCrDc,           ldsrRrDc,           stsrRrDc,           null,/*Undefined*/
             /*0,0,0,1*/    shrRrDc,            sarRrDc,            shlRrDc,            f_opcode,
@@ -274,8 +276,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_1_opcode = InstructionTable(
             3, 2,
-            { data: Long -> if (data[15..11] == 0L) 0 else if (data[15..11] == 0x1FL) 1 else 2 },   // reg2
-            { data: Long -> if(data[4..0] == 0L) 0 else 1},                                         // reg1
+            { data -> if (data[15..11] == 0uL) 0u else if (data[15..11] == 0x1FuL) 1u else 2u },     // reg2
+            { data -> if (data[4..0] == 0uL) 0u else 1u },                                           // reg1
             /////           0                   1
             /*0*/          null,               switchRDC,/*switch*/
             /*1*/          dbtrapDc,/*dbtrap*/ divhRrDc,/*divh*/
@@ -284,8 +286,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_2_opcode = InstructionTable(
             2, 2,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },    // reg2
-            { data: Long -> data[4]},
+            { data -> if (data[15..11] == 0uL) 0u else 1u },    // reg2
+            { data -> data[4] },
             /////           0                   1
             /*0*/          jmpRDc,/*jmp*/      jmpRDc,/*jmp*/
             /*1*/          sldbuDrDc,/*SLD.BU*/sldhuDrDc/*SLD.HU*/
@@ -293,8 +295,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_3_opcode = InstructionTable(
             2, 4,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },    // reg2
-            { data: Long -> data[6..5]},
+            { data -> if (data[15..11] == 0uL) 0u else 1u },    // reg2
+            { data -> data[6..5] },
             /////           0,0                 0,1                 1,0                 1,1
             /*0*/          zxbRDc,             sxbRDc,             zxhRDc,             sxhRDc,
             /*1*/          satsubrRrDc,        satsubrRrDc,        sataddRrDC,         mulhRrDc
@@ -302,8 +304,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_4_opcode = InstructionTable(
             2, 2,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },// reg2
-            { data: Long -> data[5]},
+            { data -> if (data[15..11] == 0uL) 0u else 1u },// reg2
+            { data -> data[5] },
             /////           0                   1
             /*0*/          calltIDc,           calltIDc,
             /*1*/          movIrDc,            sataddIrDC
@@ -311,8 +313,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_5_opcode = InstructionTable(
             2, 1,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },// reg2
-            { data: Long -> 0 },
+            { data -> if (data[15..11] == 0uL) 0u else 1u },// reg2
+            { data -> 0u },
             /////           0
             /*0*/          null,
             /*1*/          mulhIrDc
@@ -320,8 +322,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_6_opcode = InstructionTable(
             2, 1,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },// reg2
-            { data: Long -> 0 },
+            { data -> if (data[15..11] == 0uL) 0u else 1u },// reg2
+            { data -> 0u },
             /////           0
             /*0*/          movIrDc32,
             /*1*/          moveaIrrDc
@@ -329,8 +331,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_7_opcode = InstructionTable(
             2, 2,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },// reg2
-            { data: Long -> data[5] },
+            { data -> if (data[15..11] == 0uL) 0u else 1u },// reg2
+            { data -> data[5] },
             /////           0                   1
             /*0*/          disposeIlrDc,       disposeIlrDc,
             /*1*/          movhiIrrDc,         satsubiIrrDC
@@ -338,8 +340,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_8_opcode = InstructionTable(
             2, 1,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },// reg2
-            { data: Long -> 0 },
+            { data -> if (data[15..11] == 0uL) 0u else 1u },// reg2
+            { data -> 0u },
             /////           0
             /*0*/          null,/*Undefined*/
             /*1*/          mulhiIrrDc
@@ -347,8 +349,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_9_opcode = InstructionTable(
             2, 2,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },// reg2
-            { data: Long -> data[16] },
+            { data -> if (data[15..11] == 0uL) 0u else 1u },// reg2
+            { data -> data[16] },
             /////           0                 1
             /*0*/          jarlDrDc,         prepareLiiDc,
             /*1*/          jarlDrDc,         ldbuDrrDc
@@ -356,16 +358,16 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val a_10_opcode = InstructionTable(
             1, 2,
-            { data: Long -> 0 },
-            { data: Long -> if (data[15..11] == 0L && data[4..0] == 0L) 0 else 1},      // reg1
+            { data -> 0u },
+            { data -> if (data[15..11] == 0uL && data[4..0] == 0uL) 0u else 1u },      // reg1
             /////           0                   1
             /*0*/          nopDc,/*Nop*/      movRrDc
     )
 
     private val ae_opcode = InstructionTable(
             2, 2,
-            { data: Long -> if (data[15..11] == 0L) 0 else 1 },
-            { data: Long -> data[16] },
+            { data -> if (data[15..11] == 0uL) 0u else 1u },
+            { data -> data[16] },
             /////           0                   1
             /*0*/          e_opcode,           null,/*Undefined*/
             /*1*/          e_opcode,           ldhuDrrDc/*HERE LD.HU!!!*/
@@ -373,8 +375,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val d_opcode = InstructionTable(
             2, 2,
-            { data: Long -> data[15] },
-            { data: Long -> data[14] },
+            { data -> data[15] },
+            { data -> data[14] },
             /////           0                   1
             /*0*/          set1BdDc,           not1BdDc,
             /*1*/          clr1BdDc,           tst1BdDc
@@ -382,8 +384,8 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val c_opcode = InstructionTable(
             4, 2,
-            { data: Long -> data[6..5] },
-            { data: Long -> data[16] },
+            { data -> data[6..5] },
+            { data -> data[16] },
             /////           0                   1
             /*0,1*/        null,               null,
             /*1,1*/        ldhDrrDc,           ldwDrrDc,
@@ -393,16 +395,16 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
 
     private val b_opcode = InstructionTable(
             1, 2,
-            { data: Long -> 0 },
-            { data: Long -> data[0] },
+            { data -> 0u },
+            { data -> data[0] },
             /////           0                   1
             /*1,0,1,0*/    sldwDrDc,           sstwRdDc
     )
 
     private val a_opcode = InstructionTable(
             16, 4,
-            { data: Long -> data[10..7] },
-            { data: Long -> data[6..5] },
+            { data -> data[10..7] },
+            { data -> data[6..5] },
             /////           0,0                 0,1                 1,0                 1,1
             /*0,0,0,0*/    a_10_opcode,        notRrDc,            a_1_opcode,         a_2_opcode,
             /*0,0,0,1*/    a_3_opcode,         a_3_opcode,         a_3_opcode,         a_3_opcode,
@@ -422,9 +424,9 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
             /*1,1,1,1*/    a_9_opcode,         a_9_opcode,         d_opcode,           ae_opcode
     )
 
-    fun fetch(where: Long): Long = core.fetch(where, 0, 8)
+    fun fetch(where: ULong) = core.fetch(where, 0, 8)
 
-    fun decode(where: Long): AV850ESInstruction {
+    fun decode(where: ULong): AV850ESInstruction {
         val data = fetch(where)
         var insn = cache[data]
         if (insn != null) return insn
@@ -434,11 +436,9 @@ class v850ESSystemDecoder(val core: v850ESCore) : ICoreUnit {
         return insn
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+    override fun serialize(ctxt: GenericSerializer) =
         throw UnsupportedOperationException("not implemented")
-    }
 
-    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) =
         throw UnsupportedOperationException("not implemented")
-    }
 }

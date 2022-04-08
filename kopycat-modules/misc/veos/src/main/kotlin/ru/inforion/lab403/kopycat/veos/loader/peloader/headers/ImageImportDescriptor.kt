@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,54 +25,48 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.veos.loader.peloader.PEFile
 import ru.inforion.lab403.kopycat.veos.loader.peloader.string
 import java.nio.ByteBuffer
 
-
-
 class ImageImportDescriptor(private val peFile: PEFile, private val input: ByteBuffer) {
 
-    val characteristics = input.int.asULong  /* 0 for terminating null import descriptor  */
+    val characteristics = input.int.ulong_z  /* 0 for terminating null import descriptor  */
     val originalFirstThunk = characteristics /* RVA to original unbound IAT */
-    val timeDateStamp = input.int.asULong	/* 0 if not bound,
+    val timeDateStamp = input.int.ulong_z	/* 0 if not bound,
 				 * -1 if bound, and real date\time stamp
 				 *    in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT
 				 * (new BIND)
 				 * otherwise date/time stamp of DLL bound to
 				 * (Old BIND)
 				 */
-    val forwarderChain = input.int.asULong /* -1 if no forwarders */
-    val name = input.int.asULong
+    val forwarderChain = input.int.ulong_z /* -1 if no forwarders */
+    val name = input.int.ulong_z
     /* RVA to IAT (if bound this IAT has actual addresses) */
-    val	firstThunk = input.int.asULong
+    val	firstThunk = input.int.ulong_z
 
     val nameString: String get() {
-        input.position(peFile.rva2foa(name).toInt())
+        input.position(peFile.rva2foa(name).int)
         return input.string
     }
 
-    fun readThunkTable(rva: Long): Array<ImageThunkData> {
+    fun readThunkTable(rva: ULong): Array<ImageThunkData> {
         val thunksList = mutableListOf<ImageThunkData>()
-        val origin = peFile.rva2foa(rva).toInt()
+        val origin = peFile.rva2foa(rva).int
         input.position(origin)
         while (true) {
             val thunk = ImageThunkData(peFile, input, rva + input.position() - origin)
-            if (thunk.addressOfData == 0L)
+            if (thunk.addressOfData == 0uL)
                 break
             thunksList.add(thunk)
         }
         return thunksList.toTypedArray()
     }
 
-    val lookupTable by lazy {
-        readThunkTable(originalFirstThunk)
-    }
+    val lookupTable by lazy { readThunkTable(originalFirstThunk) }
 
-    val addressTable by lazy {
-        readThunkTable(firstThunk)
-    }
+    val addressTable by lazy { readThunkTable(firstThunk) }
 
     val importsByName by lazy {
         lookupTable.filter { !it.ordinal }.map { it.toImageImportByName() }.toTypedArray()

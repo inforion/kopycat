@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.shift
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.SRType.SRType_ASR
 import ru.inforion.lab403.kopycat.cores.arm.Shift_C
 import ru.inforion.lab403.kopycat.cores.arm.UInt
@@ -38,9 +38,8 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class ASRr(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            private val setFlags: Boolean,
            val rd: ARMRegister,
@@ -51,8 +50,8 @@ class ASRr(cpu: AARMCore,
     private var result = ARMVariable(Datatype.DWORD)
 
     override fun execute() {
-        val shiftN = UInt(rm.value(core), rm.dtyp.bits).asInt
-        val (res, carry) = Shift_C(rn.value(core), 32, SRType_ASR, shiftN, core.cpu.flags.c.asInt)
+        val shiftN = UInt(rm.value(core), rm.dtyp.bits).int
+        val (res, carry) = Shift_C(rn.value(core), 32, SRType_ASR, shiftN, core.cpu.flags.c.int)
         result.value(core, res)
         rd.value(core, result)
         if (setFlags)

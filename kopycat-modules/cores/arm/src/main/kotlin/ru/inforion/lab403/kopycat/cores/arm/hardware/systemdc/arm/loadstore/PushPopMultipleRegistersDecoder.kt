@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,13 +40,13 @@ class PushPopMultipleRegistersDecoder(
         val isLoad: Boolean,
         private val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 registers: ARMRegisterList,
                 unalignedAllowed: Boolean,
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
 
-    override fun decode(data: Long): AARMInstruction {
+    override fun decode(data: ULong): AARMInstruction {
         val cond = cond(data)
         val registers = list(data[15..0])
         if (isLoad && registers.hasStackPointer(core) && core.cpu.ArchVersion() >= 7)

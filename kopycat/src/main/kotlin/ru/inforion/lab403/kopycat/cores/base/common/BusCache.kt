@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import gnu.trove.map.hash.THashMap
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.sumByLong
-import ru.inforion.lab403.common.extensions.sure
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericDebugger
@@ -43,7 +40,6 @@ import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
 import ru.inforion.lab403.kopycat.interfaces.IReadWrite
 import ru.inforion.lab403.kopycat.settings
 import java.io.Serializable
-import java.util.logging.Level
 
 /**
  * {RU}
@@ -91,10 +87,10 @@ internal class BusCache(private val myBus: Bus): Serializable {
          */
         private inline fun <T: IFetchReadWrite>beforeAction(
                 source: MasterPort,
-                ea: Long,
+                ea: ULong,
                 rw: T,
                 LorS: AccessAction,
-                value: Long) = when (LorS) {
+                value: ULong) = when (LorS) {
             FETCH -> rw.beforeFetch(source, ea)
             LOAD -> rw.beforeRead(source, ea)
             STORE -> rw.beforeWrite(source, ea, value)
@@ -223,10 +219,10 @@ internal class BusCache(private val myBus: Bus): Serializable {
      * @property offset offset from primitive start
      * {EN}
      */
-    class Entry(var rw: IFetchReadWrite?, var offset: Long, var module: Module?): Serializable {
-        fun fetch(ss: Int, size: Int): Long = rw!!.fetch(offset, ss, size)
-        fun read(ss: Int, size: Int): Long = rw!!.read(offset, ss, size)
-        fun write(ss: Int, size: Int, value: Long) = rw!!.write(offset, ss, size, value)
+    class Entry(var rw: IFetchReadWrite?, var offset: ULong, var module: Module?): Serializable {
+        fun fetch(ss: Int, size: Int): ULong = rw!!.fetch(offset, ss, size)
+        fun read(ss: Int, size: Int): ULong = rw!!.read(offset, ss, size)
+        fun write(ss: Int, size: Int, value: ULong) = rw!!.write(offset, ss, size, value)
 
         override fun toString() = "offset=0x${offset.hex8} $rw"
     }
@@ -250,7 +246,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
      * @property endAddress  end address of area relative to the current bus
      * {EN}
      */
-    private data class BusCachedArea(val area: Module.Area, val portOffset: Long): Serializable {
+    private data class BusCachedArea(val area: Module.Area, val portOffset: ULong): Serializable {
         val startAddress = area.start + portOffset
         val endAddress = area.end + portOffset
 
@@ -274,15 +270,15 @@ internal class BusCache(private val myBus: Bus): Serializable {
      * @property address register address relative current bus
      * {EN}
      */
-    private data class BusCachedRegister(val register: Module.Register, val portOffset: Long): Serializable {
+    private data class BusCachedRegister(val register: Module.Register, val portOffset: ULong): Serializable {
         val address = register.address + portOffset
 
         override fun toString(): String = "${address.hex8} -> $register"
     }
 
-    private val entry = Entry(null, 0, null)
+    private val entry = Entry(null, 0u, null)
     private val cachedAreas = ArrayList<BusCachedArea>()
-    private val cachedRegs = THashMap<Long, ArrayList<BusCachedRegister>>()
+    private val cachedRegs = dictionary<ULong, ArrayList<BusCachedRegister>>()
 
     /**
      * {RU}
@@ -344,7 +340,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
         cachedAreas.sortBy { it.startAddress }
         cachedRegs.values.forEach { regs -> regs.sortBy { it.address } }
         // фильтр с дебагером связан с тем, что он охватывает все адресное пространство и в сумме оно всегда будет большое
-        val totalRamSize = cachedAreas.filter { it.area.port.module !is Debugger }.sumByLong { it.area.size }
+        val totalRamSize = cachedAreas.filter { it.area.port.module !is Debugger }.sumOf { it.area.size }
         require(!settings.hasConstraints || totalRamSize <= settings.maxPossibleRamSize) {
             "RAM address space too large [${totalRamSize.hex8} <= ${settings.maxPossibleRamSize.hex8}]"
         }
@@ -379,7 +375,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
         return "$areasString$regsString"
     }
 
-    private inline fun findTranslator(source: MasterPort, ea: Long, ss: Int, size: Int, LorS: AccessAction, value: Long): Entry? {
+    private inline fun findTranslator(source: MasterPort, ea: ULong, ss: Int, size: Int, LorS: AccessAction, value: ULong): Entry? {
         var result: Entry? = null
 
         for (conn in myBus.translators) {
@@ -387,7 +383,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
             val found = conn.port.find(source, ea - conn.offset, ss, size, LorS, value)
             if (found != null) {
                 if (result != null)
-                    throw MemoryAccessError(-1, ea, LorS, "More then one rw in address ${ea.hex8}")
+                    throw MemoryAccessError(ULONG_MAX, ea, LorS, "More then one rw in address ${ea.hex8}")
                 result = found
             }
         }
@@ -395,7 +391,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
         return result
     }
 
-    private inline fun findArea(source: MasterPort, ea: Long, LorS: AccessAction, value: Long): Entry? {
+    private inline fun findArea(source: MasterPort, ea: ULong, LorS: AccessAction, value: ULong): Entry? {
         var result: Entry? = null
 
         for (k in cachedAreas.indices) {
@@ -423,7 +419,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
         return result
     }
 
-    private inline fun findReg(source: MasterPort, ea: Long, LorS: AccessAction, value: Long): Entry? {
+    private inline fun findReg(source: MasterPort, ea: ULong, LorS: AccessAction, value: ULong): Entry? {
         val regs = cachedRegs[ea] ?: return null
         var result: Entry? = null
 
@@ -432,8 +428,8 @@ internal class BusCache(private val myBus: Bus): Serializable {
             val relativeAddress = ea - it.portOffset
             if (beforeAction(source, relativeAddress, it.register, LorS, value)) {
                 if (result != null)
-                    throw MemoryAccessError(-1, ea, LorS,
-                            "More then one register in address ${ea.hex8}" +
+                    throw MemoryAccessError(ULONG_MAX, ea, LorS,
+                        "More then one register in address ${ea.hex8}" +
                                     "\n${result.rw} and ${it.register}")
                 with(entry) {
                     rw = it.register
@@ -475,7 +471,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
      * @return found primitive in class [BusCache.Entry] or null if no primitive found
      * {EN}
      */
-    internal inline fun find(source: MasterPort, ea: Long, ss: Int, size: Int, LorS: AccessAction, value: Long): Entry? {
+    internal inline fun find(source: MasterPort, ea: ULong, ss: Int, size: Int, LorS: AccessAction, value: ULong): Entry? {
         // It is not error! You MUST call findTranslator and findArea at any time e.g. debugger
         // because we need to trigger beforeRead and beforeWrite methods of areas
         // to make possible handle breakpoints
@@ -483,7 +479,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
         val foundArea = findArea(source, ea, LorS, value)
         if (foundTrans != null) {
             if (foundArea != null)
-                throw MemoryAccessError(-1, ea, LorS, "More then one primitives in address ${ea.hex8}")
+                throw MemoryAccessError(-1uL, ea, LorS, "More then one primitives in address ${ea.hex8}")
             return foundTrans
         }
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,14 +38,13 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class wsbh(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         rd: MipsRegister,
         rt: MipsRegister) : RdRtInsn(core, data, Type.VOID, rd, rt) {
 
     override val mnem = "wsbh"
 
     override fun execute() {
-//        rd = rt[23..16].shl(16) or rt[31..24].shl(24) or rt[7..0] or rt[15..8].shl(8)
         vrd = vrt[31..24].shl(16) or vrt[23..16].shl(24) or vrt[15..8] or vrt[7..0].shl(8)
     }
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,17 +25,17 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.common.extensions.asUInt
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.int_z
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.veos.loader.peloader.enums.ImageFileMachine
 import java.nio.ByteBuffer
 
 class ImageFileHeader(input: ByteBuffer) {
-    val machine = ImageFileMachine.fromValue(input.short.asUInt)
-    val numberOfSections = input.short.asUInt
-    val timeDateStamp = input.int.asULong
-    val pointerToSymbolTable = input.int.asULong
-    val numberOfSymbols = input.int.asULong
-    val sizeOfOptionalHeader = input.short.asUInt
-    val characteristics = input.short.asUInt
+    val machine = ImageFileMachine.fromValue(input.short.int_z)
+    val numberOfSections = input.short.int_z
+    val timeDateStamp = input.int.ulong_z
+    val pointerToSymbolTable = input.int.ulong_z
+    val numberOfSymbols = input.int.ulong_z
+    val sizeOfOptionalHeader = input.short.int_z
+    val characteristics = input.short.int_z
 }

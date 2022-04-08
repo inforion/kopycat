@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.dataproc
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.cat
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.arm.ARMExpandImm_C
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
@@ -40,23 +37,23 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 object MovImmediateDecoder {
     class A1(cpu: AARMCore) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
+        override fun decode(data: ULong): AARMInstruction {
             val cond = cond(data)
-            val rd = gpr(data[15..12].asInt)
-            val (imm32, carry) = ARMExpandImm_C(data[11..0], core.cpu.flags.c.asInt)
+            val rd = gpr(data[15..12].int)
+            val (imm32, carry) = ARMExpandImm_C(data[11..0], core.cpu.flags.c.int)
             val imm = imm(imm32, true)
-            val setflags = data[20] == 1L
-            return MOVi(core, data, cond, setflags, carry.toBool(), rd, imm, 4)
+            val setflags = data[20] == 1uL
+            return MOVi(core, data, cond, setflags, carry.truth, rd, imm, 4)
         }
     }
 
     class A2(cpu: AARMCore) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
+        override fun decode(data: ULong): AARMInstruction {
             val cond = cond(data)
-            val rd = gpr(data[15..12].asInt)
+            val rd = gpr(data[15..12].int)
             val imm4 = data[19..16]
             val imm12 = data[11..0]
-            val imm = imm(cat(imm4, imm12, 11), true)
+            val imm = imm(cat(imm4.int, imm12.int, 11).ulong_z, true)
             if (rd.isProgramCounter(core)) throw ARMHardwareException.Unpredictable
             return MOVi(core, data, cond, false, false, rd, imm, 4)
         }

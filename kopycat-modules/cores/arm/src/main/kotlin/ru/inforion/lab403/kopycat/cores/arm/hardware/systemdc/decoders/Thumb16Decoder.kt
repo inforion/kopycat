@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -270,7 +270,7 @@ class Thumb16Decoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
                     "1101xx" to condBranch,
                     "11100x" to bt2))
 
-    override fun decode(data: Long): AARMInstruction {
+    override fun decode(data: ULong): AARMInstruction {
         val decoder = iset.lookup(data, core.cpu.pc)
 //        log.info { "Decoder = $decoder" }
         return decoder.decode(data)

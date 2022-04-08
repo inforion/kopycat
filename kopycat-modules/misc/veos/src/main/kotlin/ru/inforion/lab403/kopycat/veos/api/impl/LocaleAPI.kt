@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.veos.api.impl
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.CONFIG
-import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
@@ -63,11 +62,11 @@ class LocaleAPI(os: VEOS<*>) : API(os) {
         val table = CTypeB.data
         val size = table.size * os.sys.sizeOf.short // sizeof(uint16_t)
         val buffer = ByteBuffer.allocate(size).order(os.currentMemory.endian)
-        table.forEach { buffer.putShort(it.asShort) }
+        table.forEach { buffer.putShort(it.short) }
         os.sys.allocateArray(buffer.array(), os.systemData)
     }
 
-    override fun init(argc: Long, argv: Long, envp: Long) {
+    override fun init(argc: ULong, argv: ULong, envp: ULong) {
         // Allocate __ctype_b table
         if (ctype_b.linked) ctype_b.value = ctype_b_table
     }
@@ -75,10 +74,10 @@ class LocaleAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/clocale/setlocale
     val setlocale = object : APIFunction("setlocale") {
         override val args = arrayOf(ArgType.Int, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val category = first<PosixAPI.LC> { it.id == argv[0].asInt }
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val category = first<PosixAPI.LC> { it.id == argv[0].int }
             val locale = argv[1]
-            if (locale != 0L) {
+            if (locale != 0uL) {
                 val localeString = os.sys.readAsciiString(locale)
                 check(localeString == "C" || localeString.isEmpty()) { "[0x${ra.hex8}] setlocale $category = $localeString failed" }
                 log.fine { "[0x${ra.hex8}] setlocale($category=$localeString) in ${os.currentProcess}" }
@@ -91,9 +90,9 @@ class LocaleAPI(os: VEOS<*>) : API(os) {
     @DontAutoSerialize
     private val lconv_c by lazy {
         lconv.allocate(sys).apply {
-            val CHAR_MAX = 127.asByte
+            val CHAR_MAX = 127.byte
             val empty = sys.allocateAsciiString("")
-            val numempty = sys.allocateAsciiString(byteArrayOf(CHAR_MAX, 0x00).convertToString())
+            val numempty = sys.allocateAsciiString(byteArrayOf(CHAR_MAX, 0x00).string)
 
             decimal_point = sys.allocateAsciiString(".")
             thousands_sep = sys.allocateAsciiString(" ")
@@ -201,6 +200,6 @@ class LocaleAPI(os: VEOS<*>) : API(os) {
         if (!ctype_b.linked) {
             ctype_b.allocated.value = ctype_b_table
         }
-        return VoidPointer(sys, ctype_b.address!!)
+        return VoidPointer(sys, ctype_b.address.get)
     }
 }

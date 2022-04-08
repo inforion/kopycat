@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,34 +25,32 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.structs
 
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.veos.loader.peloader.headers.ImageSectionHeader
 import java.nio.ByteBuffer
 
 
 
 
-class PESection(private val input: ByteBuffer, val header: ImageSectionHeader, val base: Long) {
+class PESection(private val input: ByteBuffer, val header: ImageSectionHeader, val base: ULong) {
 
     val name get() = header.name
     val size get() = header.virtualSize
     val start get() = base + header.virtualAddress
-    val end get() = base + header.virtualAddress + header.virtualSize - 1
+    val end get() = base + header.virtualAddress + header.virtualSize - 1u
     val rawSize get() = header.sizeOfRawData
 
-    val defaultAlignedSize get() = alignedSize(0x1000)
+    val defaultAlignedSize get() = alignedSize(0x1000u)
 
-    fun alignedSize(alignment: Int): Long {
+    fun alignedSize(alignment: UInt): ULong {
         val floored = (size / alignment) * alignment
-        return if (floored == size)
-            size
-        else
-            floored + alignment
+        return if (floored == size) size else floored + alignment
     }
 
     val data: ByteArray get() {
-        val result = ByteArray(size.toInt())
-        input.position(header.pointerToRawData.toInt())
-        val readSize = minOf(rawSize, size).toInt()
+        val result = ByteArray(size.int)
+        input.position(header.pointerToRawData.int)
+        val readSize = minOf(rawSize, size).int
         input.get(result, 0, readSize)
         return result
     }

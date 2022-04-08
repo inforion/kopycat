@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,10 +37,10 @@ import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
 class FormatV(core: v850ESCore, val construct: constructor) : ADecoder<AV850ESInstruction>(core) {
 
-    override fun decode(s: Long): AV850ESInstruction {
-        val value = signext(s[31..16].insert(s[5..0], 21..16), 21).asLong
+    override fun decode(s: ULong): AV850ESInstruction {
+        val value = s[31..16].insert(s[5..0], 21..16).signextRenameMeAfter(20)
         val disp = v850esImmediate(Datatype.DWORD, value, true)
-        val reg2 = v850esRegister.gpr(s[15..11].asInt)
+        val reg2 = v850esRegister.gpr(s[15..11].int)
 
         return construct(core, 4, arrayOf(disp, reg2))
     }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -133,27 +133,27 @@ class CompactFlash(
     }
 
     val terminal = object : Area(ports.ata,"DATA") {
-        override fun fetch(ea: Long, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
+        override fun fetch(ea: ULong, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
 
-        override fun read(ea: Long, ss: Int, size: Int) = when (ss) {
-            ATA_PARAM_AREA -> parameters.getInt(ea.asInt, size, LITTLE_ENDIAN)
+        override fun read(ea: ULong, ss: Int, size: Int) = when (ss) {
+            ATA_PARAM_AREA -> parameters.getInt(ea.int, size, LITTLE_ENDIAN).ulong
 
             ATA_DATA_AREA -> {
                 require(size == 1)
-                content.position(ea.asInt)
-                content.get().asULong
+                content.position(ea.int)
+                content.get().ulong_z
             }
 
             else -> throw GeneralException("Unknown type: $ss")
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) = when (ss) {
-            ATA_PARAM_AREA -> parameters.putInt(ea.asInt, value, size, LITTLE_ENDIAN)
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = when (ss) {
+            ATA_PARAM_AREA -> parameters.putInt(ea.int, value.long, size, LITTLE_ENDIAN)
 
             ATA_DATA_AREA -> {
                 require(size == 1)
-                content.position(ea.asInt)
-                content.put(value.asByte)
+                content.position(ea.int)
+                content.put(value.byte)
                 Unit
             }
 

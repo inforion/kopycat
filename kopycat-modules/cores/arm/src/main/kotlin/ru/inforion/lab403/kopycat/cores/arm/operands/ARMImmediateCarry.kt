@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,10 +32,10 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
  * *** opcode-processing operands - Immediate ***
  */
 
-class ARMImmediateCarry constructor(private val rimm: Int, private val shifter: Long) : AARMShift() {
+class ARMImmediateCarry constructor(private val rimm: Int, private val shifter: ULong) : AARMShift() {
 
     override fun toString(): String = "#$shifter"
 
-    override fun value(core: AARMCore): Long = shifter
-    override fun carry(core: AARMCore): Boolean = if (rimm == 0) core.cpu.flags.c else shifter[31] == 1L
+    override fun value(core: AARMCore): ULong = shifter
+    override fun carry(core: AARMCore): Boolean = if (rimm == 0) core.cpu.flags.c else shifter[31] == 1uL
 }

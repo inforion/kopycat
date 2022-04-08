@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ class Sar(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
     override val mnem = "sar"
 
     override fun execute() {
-//        val res = op2.value(cpu) shr op1.value(cpu).toInt()
+//        val res = op2.value(cpu) shr op1.value(cpu).int
 //        op2.value(cpu, res)
 //        FlagProcessor.processShrSarFlag(cpu, res, op1.value(cpu), op2.value(cpu), op1.dtyp, op1.dtyp, op2.dtyp)
         throw GeneralException("Not implemented")

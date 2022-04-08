@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.cores.msp430.instructions.cpu.branch
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.msp430.instructions.AMSP430Instruction
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 
@@ -38,8 +39,8 @@ class Reti(core: MSP430Core, size: Int, vararg operands: AOperand<MSP430Core>):
 
     override fun execute() {
         val stack = core.cpu.regs.r1StackPointer
-        core.cpu.regs.r2StatusRegister = core.inw(stack + 0)
-        core.cpu.regs.r0ProgramCounter = core.inw(stack + 2)
-        core.cpu.regs.r1StackPointer = stack + 4
+        core.cpu.regs.r2StatusRegister = core.inw(stack + 0u)
+        core.cpu.regs.r0ProgramCounter = core.inw(stack + 2u)
+        core.cpu.regs.r1StackPointer = stack + 4u
     }
 }

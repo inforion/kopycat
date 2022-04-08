@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,16 +35,16 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 class Aaa(core: x86Core, opcode: ByteArray, prefs: Prefixes): AX86Instruction(core, Type.VOID, opcode, prefs) {
     override val mnem = "aaa"
     override fun execute() {
-        var al = core.cpu.regs.al
+        var al = core.cpu.regs.al.value
         val isOverflow: Boolean
 
-        if ((al and 0xF > 9) or core.cpu.flags.af){
-            al += 6
-            core.cpu.regs.ah = core.cpu.regs.ah + 1
+        if ((al and 0xFu > 9u) or core.cpu.flags.af){
+            al += 6u
+            core.cpu.regs.ah.value++
             isOverflow = true
         } else
             isOverflow = false
         FlagProcessor.processAsciiAdjustFlag(core, isOverflow)
-        core.cpu.regs.al = al and 0xF
+        core.cpu.regs.al.value = al and 0xFu
     }
 }

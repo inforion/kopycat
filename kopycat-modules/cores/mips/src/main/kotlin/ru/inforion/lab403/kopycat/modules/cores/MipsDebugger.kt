@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,20 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
+import ru.inforion.lab403.common.extensions.truth
+import ru.inforion.lab403.common.extensions.clr
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.set
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
-import java.util.logging.Level
+import ru.inforion.lab403.kopycat.cores.mips.enums.InstructionSet
 
 
 class MipsDebugger(parent: Module, name: String): Debugger(parent, name) {
     companion object {
-        @Transient val log = logger(Level.WARNING)
+        @Transient val log = logger(WARNING)
 
         const val REG_LO = 0x20
         const val REG_HI = 0x21
@@ -57,11 +62,11 @@ class MipsDebugger(parent: Module, name: String): Debugger(parent, name) {
         REG_HI -> mips.cpu.hi
         REG_EPC -> mips.cop.regs.EPC.value
         REG_CAUSE -> mips.cop.regs.Cause.value
-        REG_PC -> mips.cpu.pc
+        REG_PC -> if (mips.cpu.iset == InstructionSet.MIPS32) mips.cpu.pc else (mips.cpu.pc set 0)
         else -> mips.cpu.regs.read(index)
     }
 
-    override fun regWrite(index: Int, value: Long) = when (index) {
+    override fun regWrite(index: Int, value: ULong) = when (index) {
         REG_STATUS -> mips.cop.regs.Status.value = value
 
         REG_LO -> mips.cpu.lo = value
@@ -71,7 +76,8 @@ class MipsDebugger(parent: Module, name: String): Debugger(parent, name) {
         REG_CAUSE -> mips.cop.regs.Cause.value = value
 
         REG_PC -> {
-            mips.cpu.branchCntrl.setIp(value)
+            mips.cpu.branchCntrl.setIp(value clr 0)
+            mips.cpu.iset = if (value[0].truth) InstructionSet.MIPS16 else InstructionSet.MIPS32
             // dirty hack to make possible reset exception bypassing IDA Pro
             mips.cpu.resetFault()
         }

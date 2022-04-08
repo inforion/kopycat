@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -298,7 +298,7 @@ class Thumb32Decoder(cpu: AARMCore) : ADecoder<AARMInstruction>(cpu) {
                     "11, 0111xxx, -" to longMulAccumulateDiv,
                     "11, 1xxxxxx, -" to copAdvancedFP))
 
-    override fun decode(data: Long): AARMInstruction {
+    override fun decode(data: ULong): AARMInstruction {
         return iset.lookup(data, core.cpu.pc).decode(data)
     }
 }

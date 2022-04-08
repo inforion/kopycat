@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,11 +32,11 @@ import ru.inforion.lab403.kopycat.veos.kernel.System
 import ru.inforion.lab403.kopycat.veos.ports.cstdlib.EOF
 
 
-class FILE constructor(sys: System, address: Long) : StructPointer(sys, address) {
+class FILE constructor(sys: System, address: ULong) : StructPointer(sys, address) {
     companion object {
         const val sizeOf = 8
 
-        fun nullPtr(sys: System) = FILE(sys, 0)
+        fun nullPtr(sys: System) = FILE(sys, 0uL)
 
         fun allocate(sys: System) = FILE(sys, sys.allocateClean(sizeOf)).apply { ungot = EOF }
 
@@ -76,9 +76,9 @@ class FILE constructor(sys: System, address: Long) : StructPointer(sys, address)
     private inline fun <T>runWithEOF(block: (FILE) -> T) = runCatching(block).onFailure { isEOF = true }.getOrThrow()
 
     fun read() = runWithError {
-        if (haveUngot) ungot.asInt.also { ungot = EOF } else {
+        if (haveUngot) ungot.also { ungot = EOF } else {
             val data = sys.filesystem.read(fd, 1)
-            if (data.isNotEmpty()) data.single().asUInt else {
+            if (data.isNotEmpty()) data.single().int_z else {
                 EOF.also { isEOF = true }
             }
         }
@@ -86,7 +86,7 @@ class FILE constructor(sys: System, address: Long) : StructPointer(sys, address)
 
     fun read(size: Int) = runWithEOF {
             val (newSize, extra) = if (haveUngot)
-                size - 1 to byteArrayOf(ungot.asByte).also { ungot = EOF }
+                size - 1 to byteArrayOf(ungot.byte).also { ungot = EOF }
             else
                 size to byteArrayOf()
 
@@ -101,7 +101,7 @@ class FILE constructor(sys: System, address: Long) : StructPointer(sys, address)
 
     fun unget(character: Int) {
         check(!haveUngot) { "Double unget" }
-        ungot = character.asByte.asUInt
+        ungot = character.byte.int_z
     }
 
     fun write(byte: Int) = runWithError {
@@ -113,15 +113,15 @@ class FILE constructor(sys: System, address: Long) : StructPointer(sys, address)
         if (isOpened) sys.filesystem.write(fd, bytes) // IONotFoundError -> EBADF
     }
 
-    fun write(string: String) = write(string.convertToBytes())
+    fun write(string: String) = write(string.bytes)
 
     fun close() {
         sys.filesystem.close(fd) // IONotFoundError -> EBADF
         isOpened = false
     }
 
-    fun seek(offset: Long, whence: Int) {
-        val seek = first<FileSystem.Seek> { it.id == whence }
+    fun seek(offset: ULong, whence: Int) {
+        val seek = first<FileSystem.Seek> { it.id == whence } // NoSuchElementException
         sys.filesystem.seek(fd, offset, seek) // IONotFoundError -> EBADF
     }
 

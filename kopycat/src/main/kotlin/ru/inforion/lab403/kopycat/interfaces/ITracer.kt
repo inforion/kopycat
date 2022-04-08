@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,20 +30,23 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 
 
+@Suppress("INAPPLICABLE_JVM_NAME")
 interface ITracer<R: AGenericCore>: ICoreUnit {
     /**
      * {EN}This method is called before each instruction executed{EN}
      *
      * {RU}Метод вызывается каждый раз перед выполнением инструкции{RU}
      */
-    fun preExecute(core: R): Long
+    @JvmName("preExecute")
+    fun preExecute(core: R): ULong
 
     /**
      * {EN}This method is called after each instruction executed{EN}
      *
      * {RU}Метод вызывается каждый раз после выполнения инструкции{RU}
      */
-    fun postExecute(core: R, status: Status): Long
+    @JvmName("postExecute")
+    fun postExecute(core: R, status: Status): ULong
 
     /**
      * {EN}This method is called before device is running{EN}

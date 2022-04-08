@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@
 package ru.inforion.lab403.kopycat.veos.api.pointers
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.optional.*
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.veos.kernel.System
 import kotlin.reflect.KMutableProperty0
@@ -35,10 +36,10 @@ import kotlin.reflect.KProperty
 
 
  
-open class StructPointer(sys: System, address: Long) : Pointer<Byte>(sys, address) {
+open class StructPointer(sys: System, address: ULong) : Pointer<Byte>(sys, address) {
 
     inner class bit(val holder: KMutableProperty0<Int>, val n: Int) {
-        operator fun getValue(thisRef: StructPointer, property: KProperty<*>) = holder.get()[n].toBool()
+        operator fun getValue(thisRef: StructPointer, property: KProperty<*>) = holder.get()[n].truth
         operator fun setValue(thisRef: StructPointer, property: KProperty<*>, value: Boolean) {
             val data = holder.get()
             holder.set(if (value) data set n else data clr n)
@@ -75,16 +76,22 @@ open class StructPointer(sys: System, address: Long) : Pointer<Byte>(sys, addres
         operator fun setValue(thisRef: StructPointer, property: KProperty<*>, value: Long) = setLong(offset, value).also { cache = value }
     }
 
-    inner class longlong(val offset: Int): IAutoSerializable {
-        private var cache: Long? = null
-        operator fun getValue(thisRef: StructPointer, property: KProperty<*>) = cache ?: getLongLong(offset).also { cache = it }
-        operator fun setValue(thisRef: StructPointer, property: KProperty<*>, value: Long) = setLongLong(offset, value).also { cache = value }
+    inner class ulong(val offset: Int): IAutoSerializable {
+        private var cache: Optional<ULong> = emptyOpt()
+        operator fun getValue(thisRef: StructPointer, property: KProperty<*>) = cache.orElse { getULong(offset).also { cache = it.opt } }
+        operator fun setValue(thisRef: StructPointer, property: KProperty<*>, value: ULong) = setULong(offset, value).also { cache = value.opt }
+    }
+
+    inner class ulonglong(val offset: Int): IAutoSerializable {
+        private var cache: Optional<ULong> = emptyOpt()
+        operator fun getValue(thisRef: StructPointer, property: KProperty<*>) = cache.orElse { getULongLong(offset).also { cache = it.opt } }
+        operator fun setValue(thisRef: StructPointer, property: KProperty<*>, value: ULong) = setULongLong(offset, value).also { cache = value.opt }
     }
 
     inner class pointer(val offset: Int): IAutoSerializable {
-        private var cache: Long? = null
-        operator fun getValue(thisRef: StructPointer, property: KProperty<*>) = cache ?: getPointer(offset).also { cache = it }
-        operator fun setValue(thisRef: StructPointer, property: KProperty<*>, value: Long) = setPointer(offset, value).also { cache = value }
+        private var cache: Optional<ULong> = emptyOpt()
+        operator fun getValue(thisRef: StructPointer, property: KProperty<*>) = cache.orElse { getPointer(offset).also { cache = it.opt } }
+        operator fun setValue(thisRef: StructPointer, property: KProperty<*>, value: ULong) = setPointer(offset, value).also { cache = value.opt }
     }
 
     inner class intarray(val offset: Int, val size: Int): IAutoSerializable {
@@ -99,28 +106,31 @@ open class StructPointer(sys: System, address: Long) : Pointer<Byte>(sys, addres
         operator fun setValue(thisRef: StructPointer, property: KProperty<*>, value: ByteArray) = setBytes(offset, value).also { cache = value }
     }
 
-    override fun get(index: Int) = sys.abi.readChar(address + index * sys.sizeOf.char).asByte
-    override fun set(index: Int, value: Byte) = sys.abi.writeChar(address + index * sys.sizeOf.char, value.asULong)
+    override fun get(index: Int) = sys.abi.readChar(address + index * sys.sizeOf.char).byte
+    override fun set(index: Int, value: Byte) = sys.abi.writeChar(address + index * sys.sizeOf.char, value.ulong_z)
 
-    inline fun getBoolean(offset: Int) = sys.abi.readChar(address + offset).toBool()
-    inline fun setBoolean(offset: Int, value: Boolean) = sys.abi.writeChar(address + offset, value.asLong)
+    inline fun getBoolean(offset: Int) = sys.abi.readChar(address + offset).truth
+    inline fun setBoolean(offset: Int, value: Boolean) = sys.abi.writeChar(address + offset, value.ulong)
 
-    inline fun getShort(offset: Int) = sys.abi.readShort(address + offset).asShort
-    inline fun setShort(offset: Int, value: Short) = sys.abi.writeShort(address + offset, value.asULong)
+    inline fun getShort(offset: Int) = sys.abi.readShort(address + offset).short
+    inline fun setShort(offset: Int, value: Short) = sys.abi.writeShort(address + offset, value.ulong_z)
 
-    inline fun getInt(offset: Int) = sys.abi.readInt(address + offset).asInt
-    inline fun setInt(offset: Int, value: Int) = sys.abi.writeInt(address + offset, value.asULong)
+    inline fun getInt(offset: Int) = sys.abi.readInt(address + offset).int
+    inline fun setInt(offset: Int, value: Int) = sys.abi.writeInt(address + offset, value.ulong_z)
 
-    inline fun getLong(offset: Int) = sys.abi.readLong(address + offset)
-    inline fun setLong(offset: Int, value: Long) = sys.abi.writeLong(address + offset, value)
+    inline fun getLong(offset: Int) = sys.abi.readLong(address + offset).long
+    inline fun setLong(offset: Int, value: Long) = sys.abi.writeLong(address + offset, value.ulong)
 
-    inline fun getLongLong(offset: Int) = sys.abi.readLongLong(address + offset)
-    inline fun setLongLong(offset: Int, value: Long) = sys.abi.writeLongLong(address + offset, value)
+    inline fun getULong(offset: Int) = sys.abi.readLong(address + offset)
+    inline fun setULong(offset: Int, value: ULong) = sys.abi.writeLong(address + offset, value)
+
+    inline fun getULongLong(offset: Int) = sys.abi.readLongLong(address + offset)
+    inline fun setULongLong(offset: Int, value: ULong) = sys.abi.writeLongLong(address + offset, value)
 
     inline fun getPointer(offset: Int) = sys.abi.readPointer(address + offset)
-    inline fun setPointer(offset: Int, value: Long) = sys.abi.writePointer(address + offset, value)
+    inline fun setPointer(offset: Int, value: ULong) = sys.abi.writePointer(address + offset, value)
 
-    inline fun getInts(offset: Int, size: Int) = IntArray(size) { getInt(offset + it * sys.sizeOf.int).asInt }
+    inline fun getInts(offset: Int, size: Int) = IntArray(size) { getInt(offset + it * sys.sizeOf.int) }
     inline fun setInts(offset: Int, value: IntArray) = value.forEachIndexed { i, v -> setInt(offset + i * sys.sizeOf.int, v) }
 
     inline fun getBytes(offset: Int, size: Int) = sys.abi.readBytes(address + offset, size)

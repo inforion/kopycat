@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
+import ru.inforion.lab403.common.extensions.hex4
+import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.Far
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-class x86Far(address: Long, val ss: Long) : Far<x86Core>(address, Datatype.DWORD) {
-    override fun value(dev: x86Core): Long = address
-    override fun toString(): String = "%04X:%08X".format(ss, address)
+class x86Far(address: ULong, val ss: ULong) : Far<x86Core>(address, Datatype.DWORD) {
+    override fun value(core: x86Core) = address
+    override fun toString() = "${ss.hex4}:${address.hex8}"
 }

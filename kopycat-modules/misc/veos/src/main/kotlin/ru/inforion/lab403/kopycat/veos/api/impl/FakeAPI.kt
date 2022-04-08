@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.impl
 
+import ru.inforion.lab403.common.optional.opt
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API
@@ -34,14 +35,14 @@ import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 
 class FakeAPI(os: VEOS<*>): API(os) {
 
-    val _init = object : APIFunction("_init", 0x001010ACL) {
+    val _init = object : APIFunction("_init", 0x001010ACuL.opt) {
         override val args  = emptyArray<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.fine { ".init_proc" }
             return void()
         }
     }
 
-    val semaphore_lockw = nullsub("HBSemaphoreAccess__lockW", 0x0031_39B0)
+    val semaphore_lockw = nullsub("HBSemaphoreAccess__lockW", 0x0031_39B0uL.opt)
 
 }

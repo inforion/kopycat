@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * To execute a logical right-rotate of a word by a fixed id of bits
  */
 class rotr(core: MipsCore,
-           data: Long,
+           data: ULong,
            rd: MipsRegister,
            rs: MipsRegister,
            sa: MipsImmediate) : RdRtSaInsn(core, data, Type.VOID, rd, rs, sa) {

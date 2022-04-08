@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.ports.sysdep
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.veos.kernel.System
 import ru.inforion.lab403.kopycat.veos.ports.signal.sigaction
 import ru.inforion.lab403.kopycat.veos.ports.stat.stat64_arm
@@ -33,29 +33,29 @@ import ru.inforion.lab403.kopycat.veos.ports.stat.stat_arm
 import ru.inforion.lab403.kopycat.veos.ports.stat.stat
 
 object ARM : ASystemDep(O_LARGEFILE = 0x20000 /* 0400000 */) {
-    override fun toSigaction(sys: System, address: Long) = sigaction(sys, address)
+    override fun toSigaction(sys: System, address: ULong) = sigaction(sys, address)
 
-    override fun toStat(sys: System, address: Long, stat: stat) = with(stat_arm(sys, address)) {
+    override fun toStat(sys: System, address: ULong, stat: stat) = with(stat_arm(sys, address)) {
         st_dev = stat.st_dev
-        st_ino = stat.st_ino.asInt
-        st_mode = stat.st_mode.asInt
-        st_nlink = stat.st_nlink.asInt
-        st_uid = stat.st_uid.asInt
-        st_gid = stat.st_gid.asInt
+        st_ino = stat.st_ino.int
+        st_mode = stat.st_mode.int
+        st_nlink = stat.st_nlink.int
+        st_uid = stat.st_uid.int
+        st_gid = stat.st_gid.int
         st_rdev = stat.st_rdev
-        st_size = stat.st_size.asInt
-        st_blksize = stat.st_blksize.asInt
-        st_blocks = stat.st_blocks.asInt
-        st_atime = stat.st_atime.asInt
-        st_mtime = stat.st_mtime.asInt
-        st_ctime = stat.st_ctime.asInt
+        st_size = stat.st_size.int
+        st_blksize = stat.st_blksize.int
+        st_blocks = stat.st_blocks.int
+        st_atime = stat.st_atime.int
+        st_mtime = stat.st_mtime.int
+        st_ctime = stat.st_ctime.int
     }
 
-    override fun toStat64(sys: System, address: Long, stat: stat) = with(stat64_arm(sys, address)) {
+    override fun toStat64(sys: System, address: ULong, stat: stat) = with(stat64_arm(sys, address)) {
         st_dev = stat.st_dev
         st_ino = stat.st_ino
-        st_mode = stat.st_mode.asInt
-        st_nlink = stat.st_nlink.asInt
+        st_mode = stat.st_mode.int
+        st_nlink = stat.st_nlink.int
         st_uid = stat.st_uid
         st_gid = stat.st_gid
         st_rdev = stat.st_rdev

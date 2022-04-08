@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,6 +27,8 @@ package ru.inforion.lab403.kopycat.modules.cores
 
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.swap32
+import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -37,23 +39,23 @@ import java.util.logging.Level
 
 class PPCDebugger(parent: Module, name: String): Debugger(parent, name) {
     companion object {
-        @Transient val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
     }
 
     override fun ident() = "ppc"
 
-    override fun registers(): MutableList<Long> {
+    override fun registers(): MutableList<ULong> {
         val core = core as PPCCore
-        val result = mutableListOf<Long>().apply {
+        val result = mutableListOf<ULong>().apply {
             addAll(Array(eUISA.GPR31.id + 1) { k -> regRead(eUISA.GPR0.id + k) })
-            addAll(Array(64) {it.toLong() or 0x80000000})
+            addAll(Array(64) { it.ulong_z or 0x80000000uL })
             add(regRead(eUISA.PC.id))
             add(core.cpu.oeaRegs.readIntern(eOEA.MSR.id))
             add(regRead(eUISA.CR.id))
             add(regRead(eUISA.LR.id))
             add(regRead(eUISA.CTR.id))
             add(regRead(eUISA.XER.id))
-            addAll(Array(32) {it.toLong() or 0xFF000000})
+            addAll(Array(32) { it.ulong_z or 0xFF000000uL })
 
 
             /*//addAll(Array(32) { k -> readRegister(eUISA.FPR0.id + k) })
@@ -81,7 +83,7 @@ class PPCDebugger(parent: Module, name: String): Debugger(parent, name) {
         return result
     }
 
-    override fun regWrite(index: Int, value: Long) {
+    override fun regWrite(index: Int, value: ULong) {
         val core = core as PPCCore
         val data = value.swap32()
         if ((index >= eUISA.GPR0.id) && (index <= eUISA.GPR31.id)) {

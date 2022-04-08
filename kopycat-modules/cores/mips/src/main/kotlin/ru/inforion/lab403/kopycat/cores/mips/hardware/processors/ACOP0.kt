@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
@@ -44,25 +45,25 @@ import java.util.logging.Level
 
 abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core, name) {
     companion object {
-        @Transient val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
     }
 
     val cntrls = RSVDBank()
     val regs = CPRBank(core)
 
-    override fun createException(name: String, where: Long, vAddr: Long, action: AccessAction) = when (name) {
+    override fun createException(name: String, where: ULong, vAddr: ULong, action: AccessAction) = when (name) {
         "TLBInvalid" -> TLBInvalid(action, where, vAddr)
         "TLBMiss" -> TLBMiss(action, where, vAddr)
         "TLBModified" -> TLBModified(where, vAddr)
         else -> throw IllegalArgumentException("Exception $name not implemented here!")
     }
 
-    fun setCountCompareTimerBits(oldCnt: Long, newCnt: Long) {
+    fun setCountCompareTimerBits(oldCnt: ULong, newCnt: ULong) {
         if (regs.Compare.value in oldCnt until newCnt) {
             if (core.ArchitectureRevision > 1) {
-                val IPTI = regs.IntCtl.IPTI.asInt
+                val IPTI = regs.IntCtl.IPTI.int
                 if (IPTI >= 2) {
-                    regs.Cause.IP7_0 = regs.Cause.IP7_0 or (1L shl IPTI)
+                    regs.Cause.IP7_0 = regs.Cause.IP7_0 or (1uL shl IPTI)
                     regs.Cause.TI = true
                 }
             } else {
@@ -74,9 +75,9 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
     fun clearCountCompareTimerBits() {
         if (core.ArchitectureRevision > 1) {
             regs.Cause.TI = false
-            val IPTI = regs.IntCtl.IPTI.asInt
+            val IPTI = regs.IntCtl.IPTI.int
             if (IPTI >= 2) {
-                regs.Cause.IP7_0 = regs.Cause.IP7_0 and (1L shl IPTI).inv()
+                regs.Cause.IP7_0 = regs.Cause.IP7_0 and inv(1uL shl IPTI)
             }
         } else {
             regs.Cause.IP7 = false
@@ -117,7 +118,7 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
         countCompareCycles += countCompareInc
 
         if (countCompareCycles >= 1) {
-            val decimal = countCompareCycles.asInt
+            val decimal = countCompareCycles.int
             countCompareCycles -= decimal
 
             val oldCnt = regs.Count.value

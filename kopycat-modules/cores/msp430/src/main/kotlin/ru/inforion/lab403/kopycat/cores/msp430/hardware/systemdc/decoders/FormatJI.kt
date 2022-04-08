@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,9 +36,9 @@ import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 
 
 class FormatJI(core: MSP430Core, val construct:  constructorCond) : MSP430Decoder(core) {
-    override fun decode(s: Long): AMSP430Instruction {
-        val imm = MSP430Immediate(WORD, signext(s[9..0], 10).asLong, true)
-        val cond = find<Condition> { it.opcode == s[12..10].asInt }
+    override fun decode(s: ULong): AMSP430Instruction {
+        val imm = MSP430Immediate(WORD, s[9..0].signextRenameMeAfter( 9), true)
+        val cond = find<Condition> { it.opcode == s[12..10].int }
         return construct(core, 2, cond!!, arrayOf(imm))
     }
 }

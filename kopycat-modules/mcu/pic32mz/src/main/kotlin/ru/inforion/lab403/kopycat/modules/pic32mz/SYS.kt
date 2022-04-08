@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,10 +36,10 @@ class SYS(parent: Module, name: String) : Module(parent, name) {
 
     override val ports = Ports()
 
-    val CFGCON = ComplexRegister(ports.mem, 0x0000, "CFGCON")
-    val DEVID = ComplexRegister(ports.mem, 0x0020, "DEVID")
-    val SYSKEY = ComplexRegister(ports.mem, 0x0030, "SYSKEY")
-    val CFGEBIA = ComplexRegister(ports.mem, 0x00C0, "CFGEBIA")
-    val CFGEBIC = ComplexRegister(ports.mem, 0x00D0, "CFGEBIC")
-    val CFGPG = ComplexRegister(ports.mem,0x00E0, "CFGPG")
+    val CFGCON = ComplexRegister(ports.mem, 0x0000u, "CFGCON")
+    val DEVID = ComplexRegister(ports.mem, 0x0020u, "DEVID")
+    val SYSKEY = ComplexRegister(ports.mem, 0x0030u, "SYSKEY")
+    val CFGEBIA = ComplexRegister(ports.mem, 0x00C0u, "CFGEBIA")
+    val CFGEBIC = ComplexRegister(ports.mem, 0x00D0u, "CFGEBIC")
+    val CFGPG = ComplexRegister(ports.mem,0x00E0u, "CFGPG")
 }

@@ -1,0 +1,92 @@
+/*
+ *
+ * This file is part of Kopycat emulator software.
+ *
+ * Copyright (C) 2022 INFORION, LLC
+ *
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
+ * 
+ * Non-free licenses may also be purchased from INFORION, LLC, 
+ * for users who do not want their programs protected by the GPL. 
+ * Contact us for details kopycat@inforion.ru
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
+ *
+ */
+package ru.inforion.lab403.elfloader
+
+import org.junit.Test
+import ru.inforion.lab403.common.extensions.unhexlify
+import ru.inforion.lab403.common.logging.logger
+import java.nio.ByteBuffer
+import kotlin.test.assertEquals
+
+internal class ElfFileSectionHeaderTest {
+    companion object {
+        private val log = logger()
+    }
+
+    private val data: String
+    private val data_bytes: ByteBuffer
+    private val elf: ElfFile
+
+    init {
+        data = "7F454C460101010000000000000000000200080001000000700E4000340000003400000007100010340020000800280018001500"+
+
+                "000000000000000000000000000000000000000000000000000000000000000000000000000000001B00000001000000"+
+                "0200000034014000340100001300000000000000000000000100000000000000230000002A0000700200000048014000"+
+                "480100001800000000000000000000000800000018000000320000000600007002000000600140006001000018000000"+
+                "000000000000000004000000180000003B00000006000000020000007801400078010000D80000000700000000000000"+
+                "040000000800000044000000050000000200000050024000500200003C01000006000000000000000400000004000000"+
+                "4A0000000B000000020000008C0340008C03000080020000070000000100000004000000100000005200000003000000"+
+                "020000000C0640000C06000096010000000000000000000001000000000000005A000000FFFFFF6F02000000A2074000"+
+                "A2070000500000000600000000000000020000000200000067000000FEFFFF6F02000000F4074000F407000070000000"+
+                "070000000200000004000000000000007600000001000000060000007008400070080000701800000000000000000000"+
+                "10000000000000007C0000000100000006000000E0204000E02000001002000000000000000000000400000000000000"+
+                "880000000100000002000000F0224000F022000060020000000000000000000010000000000000009000000001000000"+
+                "030000005025410050250000100100000000000000000000100000000000000096000000010000000300000060264100"+
+                "6026000004000000000000000000000004000000000000009F000000010000000300001070264100702600009C000000"+
+                "00000000000000001000000004000000A40000000800000003000000102741000C270000100100000000000000000000"+
+                "1000000000000000A90000000100000030000000000000000C2700003400000000000000000000000100000001000000"+
+                "B200000001000000000000000000000040270000A001000000000000000000000400000000000000B7000000F5FFFF6F"+
+                "0000000000000000E02800001000000000000000000000000100000000000000C7000000010000000000000000000000"+
+                "F0280000000000000000000000000000010000000000000011000000030000000000000000000000F4030000D5000000"+
+                "0000000000000000010000000000000001000000020000000000000000000000F0280000A0050000170000001E000000"+
+                "040000001000000009000000030000000000000000000000902E0000F103000000000000000000000100000000000000"+
+
+                "002E73796D746162002E737472746162002E7368737472746162002E696E74657270002E4D4950532E616269666C6167"+
+                "73002E726567696E666F002E64796E616D6963002E68617368002E64796E73796D002E64796E737472002E676E752E76"+
+                "657273696F6E002E676E752E76657273696F6E5F72002E74657874002E4D4950532E7374756273002E726F6461746100"+
+                "2E64617461002E726C645F6D6170002E676F74002E627373002E636F6D6D656E74002E706472002E676E752E61747472"+
+                "696275746573002E6D64656275672E616269333200"
+        data_bytes = ByteBuffer.wrap(data.unhexlify())      // raw bytes, BigEndian order
+        elf = ElfFile(data_bytes)
+    }
+
+    @Test
+    fun testSectionHeadersCount() {
+        assertEquals(24, elf.sectionHeaderTable.size)
+    }
+
+    @Test
+    fun testSectionNames() {
+        val sections = arrayOf("", ".interp", ".MIPS.abiflags", ".reginfo", ".dynamic", ".hash", ".dynsym", ".dynstr",
+                ".gnu.version", ".gnu.version_r", ".text", ".MIPS.stubs", ".rodata", ".data", ".rld_map", ".got", ".bss",
+                ".comment", ".pdr", ".gnu.attributes", ".mdebug.abi32", ".shstrtab", ".symtab", ".strtab")
+        val pairs = sections.zip(elf.sectionHeaderTable)
+        pairs.forEach {
+          //  it.second.loadName(data_bytes, elf.stringTableOffset)
+            assertEquals(it.first, it.second.name)
+        }
+    }
+}

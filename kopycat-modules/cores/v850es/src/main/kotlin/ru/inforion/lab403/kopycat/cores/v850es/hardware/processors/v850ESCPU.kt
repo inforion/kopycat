@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.v850es.hardware.processors
 
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
 import ru.inforion.lab403.kopycat.cores.v850es.enums.GPR
@@ -47,12 +48,12 @@ import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
  */
 class v850ESCPU(val v850es: v850ESCore, name: String): ACPU<v850ESCPU, v850ESCore, AV850ESInstruction, GPR>(v850es, name) {
 
-    override fun reg(index: Int): Long = regs[index].value(v850es)
-    override fun reg(index: Int, value: Long) = regs[index].value(v850es, value)
+    override fun reg(index: Int) = regs[index].value(v850es)
+    override fun reg(index: Int, value: ULong) = regs[index].value(v850es, value)
     override fun count() = regs.count()
     override fun flags() = flags.value
 
-    override var pc: Long
+    override var pc: ULong
         get() = regs.pc
         set(value) { regs.pc = value }
 
@@ -76,7 +77,7 @@ class v850ESCPU(val v850es: v850ESCore, name: String): ACPU<v850ESCPU, v850ESCor
 
     override fun execute(): Int {
         insn.execute()
-        regs.pc += insn.size
+        regs.pc += insn.size.uint
         return 1  // TODO: get from insn.execute()
     }
 

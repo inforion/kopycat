@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,12 +26,13 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.stack
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.CTRLR.cr0
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.eflags
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -41,16 +42,38 @@ class Pushf(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "pushf"
 
     override fun execute() {
-        val pe = cr0.pe(core)
-        val vm = eflags.vm(core)
-        val iopl = eflags.iopl(core)
-        if (pe || pe && (!vm || vm && iopl == 3)) {
-            val eflags = eflags.value(core) or 0x0002L
-            if (!prefs.is16BitOperandMode) {
-                x86utils.push(core, eflags and 0xFCFFFF, Datatype.DWORD, prefs)
-            } else {
+        val pe = core.cpu.cregs.cr0.pe
+        val vm = core.cpu.flags.vm
+        val iopl = core.cpu.flags.iopl
+        val eflags = core.cpu.flags.eflags.value or 0x0002uL // Reserved, always 1 in EFLAGS
+
+        // Default 64-bit operand size
+        // All instructions, except far branches, that implicitly reference the RSP
+        if (core.is64bit)
+            prefs.rexW = true
+
+        // Real-Address Mode, Protected mode, or Virtual-8086 mode with IOPL equal to 3 (merged with 64-bit mode)
+        if (!pe || /*pe &&*/ (!vm || (vm && iopl == 3uL)) || core.is64bit) {
+            if (prefs.opsize != Datatype.WORD)
+                // VM and RF bits are cleared in image stored on the stack
+                x86utils.push(core, eflags and 0xFCFFFFu, prefs.opsize, prefs)
+            else
                 x86utils.push(core, eflags[15..0], Datatype.WORD, prefs)
-            }
-        } else throw x86HardwareException.GeneralProtectionFault(core.pc, 0)
+        } /*else if (core.is64bit) { // In 64-bit Mode
+            // Default 64-bit operand size
+            // All instructions, except far branches, that implicitly reference the RSP
+            if (prefs.opsize == Datatype.QWORD)
+                // VM and RF bits are cleared in image stored on the stack
+                x86utils.push(core, eflags and 0xFCFFFFu, Datatype.QWORD, prefs)
+            else
+                x86utils.push(core, eflags[15..0], Datatype.WORD, prefs)
+        }*/ else { // In Virtual-8086 Mode with IOPL less than 3
+            if (!core.cpu.cregs.cr4.vme || prefs.opsize == Datatype.DWORD)
+                throw x86HardwareException.GeneralProtectionFault(core.pc, 0u) // Trap to virtual-8086 monitor
+            val tempFlags = eflags[15..0]
+                .insert(core.cpu.flags.eflags.vif, 9) // VIF replaces IF
+                .insert(0b11u, 13..12)          // IOPL is set to 3 in image stored on the stack
+            x86utils.push(core, tempFlags, Datatype.WORD, prefs)
+        }
     }
 }

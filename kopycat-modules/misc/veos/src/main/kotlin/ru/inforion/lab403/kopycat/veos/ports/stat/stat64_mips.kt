@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,26 +28,26 @@ package ru.inforion.lab403.kopycat.veos.ports.stat
 import ru.inforion.lab403.kopycat.veos.api.pointers.StructPointer
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
-class stat64_mips(sys: System, address: Long) : StructPointer(sys, address) {
+class stat64_mips(sys: System, address: ULong) : StructPointer(sys, address) {
     companion object {
         const val sizeOf = 0xA0
 
-        fun nullPtr(sys: System) = stat64_mips(sys, 0)
+        fun nullPtr(sys: System) = stat64_mips(sys, 0u)
 
         fun allocate(sys: System) = stat64_mips(sys, sys.allocateClean(sizeOf))
     }
 
-    var st_dev by longlong(0x0)
-    var st_ino by longlong(0x10)
+    var st_dev by ulonglong(0x0)
+    var st_ino by ulonglong(0x10)
     var st_mode by int(0x18)
-    var st_nlink by longlong(0x1C)
+    var st_nlink by ulonglong(0x1C)
     var st_uid by int(0x20)
     var st_gid by int(0x24)
-    var st_rdev by longlong(0x28)
-    var st_size by longlong(0x38)
-    var st_atime by longlong(0x40)
-    var st_mtime by longlong(0x48)
-    var st_ctime by longlong(0x50)
-    var st_blksize by longlong(0x58)
-    var st_blocks by longlong(0x60)
+    var st_rdev by ulonglong(0x28)
+    var st_size by ulonglong(0x38)
+    var st_atime by ulonglong(0x40)
+    var st_mtime by ulonglong(0x48)
+    var st_ctime by ulonglong(0x50)
+    var st_blksize by ulonglong(0x58)
+    var st_blocks by ulonglong(0x60)
 }

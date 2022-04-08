@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,16 +36,16 @@ class WindowsProcess(
         memory: VirtualMemory // TODO: Ugly, make default & move outside ctor, or lateinit var
 ) : Process(sys, id, memory) {
 
-    var segmentFS = 0L
+    var segmentFS = 0uL
 
-    override fun initProcess(entryPoint: Long) {
+    override fun initProcess(entryPoint: ULong) {
         super.initProcess(entryPoint)
 
         segmentFS = memory.allocateByAlignment("fs", 0x1000)!!.first
 
         // TODO: as structure, in Windows Process (Thread)
-        sys.abi.writePointer(segmentFS + 0x4, stackBottom)
-        sys.abi.writePointer(segmentFS + 0x18, segmentFS) // Linear address of TEB
+        sys.abi.writePointer(segmentFS + 0x4u, stackBottom)
+        sys.abi.writePointer(segmentFS + 0x18u, segmentFS) // Linear address of TEB
     }
 
 }

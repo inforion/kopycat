@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.modules.common
 
+import ru.inforion.lab403.common.extensions.ULONG_MAX
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -45,10 +48,10 @@ import java.util.logging.Level
  * ```
  */
 
-class Hub(parent: Module, name: String, vararg val outs: Pair<String, Long>) : Module(parent, name) {
+class Hub(parent: Module, name: String, vararg val outs: Pair<String, ULong>) : Module(parent, name) {
 
     companion object {
-        @Transient val log = logger(Level.CONFIG)
+        @Transient val log = logger(CONFIG)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -58,13 +61,14 @@ class Hub(parent: Module, name: String, vararg val outs: Pair<String, Long>) : M
 
     override val ports = Ports()
 
-    val MEM_SPACE = object : Area(ports.input, 0L, BUS32 - 1, "HUB_AREA") {
-        override fun fetch(ea: Long, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
+    val MEM_SPACE = object : Area(ports.input, 0uL, BUS32 - 1u, "HUB_AREA") {
+        override fun fetch(ea: ULong, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            val ports = ports.outputs.filter { output -> output.find(output, ea, ss, size, AccessAction.LOAD, 0) != null }
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            val ports = ports.outputs.filter { output -> output.find(output, ea, ss, size, AccessAction.LOAD, 0u) != null }
             if (ports.size != 1) {
-                throw MemoryAccessError(-1, ea, AccessAction.LOAD,
+                throw MemoryAccessError(
+                    ULong.MAX_VALUE, ea, AccessAction.LOAD,
                         if (ports.isEmpty())
                             "No area or register found at address ${ea.hex8} at hub ${this.name}"
                         else
@@ -73,10 +77,10 @@ class Hub(parent: Module, name: String, vararg val outs: Pair<String, Long>) : M
             return ports.first().read(ea, ss, size)
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             val areas = ports.outputs.filter { output -> output.find(output, ea, ss, size, AccessAction.STORE, value) != null }
             if (areas.isEmpty())
-                throw MemoryAccessError(-1, ea, AccessAction.STORE, "No area or register found at address ${ea.hex8} at hub ${this.name}")
+                throw MemoryAccessError(ULONG_MAX, ea, AccessAction.STORE, "No area or register found at address ${ea.hex8} at hub ${this.name}")
             areas.forEach { it.write(ea, ss, size, value) }
         }
     }

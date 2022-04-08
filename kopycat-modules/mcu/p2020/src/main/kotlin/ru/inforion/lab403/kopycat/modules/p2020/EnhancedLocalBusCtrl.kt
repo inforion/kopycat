@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,23 +23,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("PropertyName", "PropertyName", "MemberVisibilityCanBePrivate", "unused")
+
 package ru.inforion.lab403.kopycat.modules.p2020
 
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.BUS32
 
 
- 
-class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: Long = 0xFE00_0000) : Module(parent, name) {
+// P2020 - 0xFE00_0000
+class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: ULong = 0xFF00_0000u) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
         val inp: Translator
@@ -54,36 +56,44 @@ class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: Lo
 
     // MAX: 512 Mb
     fun startAddress(n: Int) = when (n) {
-        0 -> 0x0000_0000L
-        1 -> 0x2000_0000L
-        2 -> 0x4000_0000L
-        3 -> 0x6000_0000L
-        4 -> 0x8000_0000L
-        5 -> 0xA000_0000L
-        6 -> 0xC000_0000L
-        7 -> 0xE000_0000L
+        0 -> 0x0000_0000uL
+        1 -> 0x2000_0000uL
+        2 -> 0x4000_0000uL
+        3 -> 0x6000_0000uL
+        4 -> 0x8000_0000uL
+        5 -> 0xA000_0000uL
+        6 -> 0xC000_0000uL
+        7 -> 0xE000_0000uL
         else -> throw GeneralException("Wrong n: $n")
     }
 
-    fun segRange(n: Int): LongRange {
-        val ba = getBR(n).BA.toLong() shl 15
-        val am = getOR(n).AM.toLong() shl 15
-        return ba..(ba + (am.inv() and 0xFFFF_FFFF))
+    fun maskToSizeString(mask: ULong): String {
+        val size = (inv(mask) mask 32) + 1u
+        if (size < 0x10_0000u) // 1 Mb
+            return "${size / 0x400u} Kb"
+        if (size < 0x4000_0000u) // 1 Gb
+            return "${size / 0x10_0000u} Mb"
+        return "${size / 0x4000_0000u} Gb"
     }
 
+    fun segRange(n: Int): ULongRange {
+        val ba = getBR(n).BA shl 15
+        val am = getOR(n).AM shl 15
+        return ba..ba + (inv(am) and 0xFFFF_FFFFu)
+    }
 
     inner class Filter(parent: Module) : AddressTranslator(parent, "filter", BUS32) {
-        override fun translate(ea: Long, ss: Int, size: Int, LorS: AccessAction): Long {
+        override fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong {
             // Bypass ignored
             if (eLBC_LBCR.LDIS == 0) {
                 for (i in 0..7) {
                     val br = getBR(i)
                     val range = segRange(i)
-                    if (br.V.toBool() && (ea in range))
+                    if (br.V.truth && (ea in range))
                         return startAddress(i) + (ea - range.first)
                 }
             }
-            return 0xFFFF_FFFF // Stub - to avoid wrong access
+            return 0xFFFF_FFFFu // Stub - to avoid wrong access
         }
     }
 
@@ -124,7 +134,7 @@ class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: Lo
 
 
     //TODO: not fully implemented
-    inner class ELBC_BR(val n: Int) : Register(ports.ctrl, 0x5000 + 8 * n.toLong(), Datatype.DWORD, "eLBC_BR$n") {
+    inner class ELBC_BR(val n: Int) : Register(ports.ctrl, 0x5000uL + 8 * n, DWORD, "eLBC_BR$n") {
         var BA by field(31..15)
         var PS by field(12..11)
         var DECC by field(10..9)
@@ -137,16 +147,19 @@ class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: Lo
             super.reset()
             if (n == 0) {
                 V = 1
-                BA = romResetAddress.toInt() shr 15
+                BA = romResetAddress ushr 15
             }
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             log.severe {"eLBC_BR$n: V = $V"}
-            when (MSEL) {
+            when (MSEL.int) {
                 Mode.GPCM.msel -> log.severe {"eLBC_BR$n: GPCM mode"}
                 Mode.FCM.msel -> log.severe {"eLBC_BR$n: FCM mode"}
+                Mode.UPMA.msel -> log.severe {"eLBC_BR$n: UPMA mode"}
+                Mode.UPMB.msel -> log.severe {"eLBC_BR$n: UPMB mode"}
+                Mode.UPMC.msel -> log.severe {"eLBC_BR$n: UPMC mode"}
                 else -> throw GeneralException("eLBC_BR$n: unimplemented MSEL mode: $MSEL")
             }
             log.severe { "$name: Base address = ${(BA shl 15).hex8}" }
@@ -156,7 +169,7 @@ class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: Lo
 
 
     //TODO: not fully implemented
-    inner class ELBC_OR(val n: Int) : Register(ports.ctrl, 0x5004 + 8 * n.toLong(), Datatype.DWORD, "eLBC_OR$n") {
+    inner class ELBC_OR(val n: Int) : Register(ports.ctrl, 0x5004uL + 8 * n, DWORD, "eLBC_OR$n") {
         // GPCM mode (eLBC_ORg)
         var AM by field(31..15)
         var BCTLD by bit(12)
@@ -183,25 +196,26 @@ class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: Lo
         override fun reset() {
             super.reset()
             if (n == 0)
-                data = 0x000_0FF7
+                data = 0x000_0FF7u
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            val br = getBR(n)
-            when (br.MSEL) {
-                Mode.GPCM.msel -> {
-                    log.severe { "$name: Mask = ${(AM shl 15).hex8}" }
-                }
-                Mode.FCM.msel -> {
-                    log.severe { "$name: Mask = ${(AM shl 15).hex8}" }
-                }
-                else -> throw GeneralException("Unimplemented eLBC mode")
-            }
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+//            val br = getBR(n)
+//            when (br.MSEL) {
+//                Mode.GPCM.msel -> {
+//                    log.severe { "$name: Mask = ${(AM shl 15).hex8}" }
+//                }
+//                Mode.FCM.msel -> {
+//                    log.severe { "$name: Mask = ${(AM shl 15).hex8}" }
+//                }
+//                else -> throw GeneralException("Unimplemented eLBC mode")
+//            }
             super.write(ea, ss, size, value)
+            log.severe { "$name: Size = ${maskToSizeString(AM shl 15)}" }
         }
     }
 
-    inner class ELBC_LBCR : Register(ports.ctrl, 0x50D0, Datatype.DWORD, "eLBC_LBCR") {
+    inner class ELBC_LBCR : Register(ports.ctrl, 0x50D0u, DWORD, "eLBC_LBCR") {
         var LDIS by bit(31)
         var BCTLC by field(23..22)
         var AHD by bit(21)
@@ -210,20 +224,20 @@ class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: Lo
         var BMT by field(15..8)
         var BMTPS by field(3..0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            log.severe { "$name: Local bus ${if (LDIS.toBool()) "disabled" else "enabled"}" }
+            log.severe { "$name: Local bus ${if (LDIS.truth) "disabled" else "enabled"}" }
         }
     }
 
-    inner class ELBC_LCCR : Register(ports.ctrl, 0x50D4, Datatype.DWORD, "eLBC_LCCR") {
+    inner class ELBC_LCCR : Register(ports.ctrl, 0x50D4u, DWORD, "eLBC_LCCR") {
         var PBYP by bit(31)
         var EADC by field(17..16)
         var CLKDIV by field(4..0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            log.severe { "$name: Local bus ${if (PBYP.toBool()) "bypassed" else "enabled"}" }
+            log.severe { "$name: Local bus ${if (PBYP.truth) "bypassed" else "enabled"}" }
         }
     }
 

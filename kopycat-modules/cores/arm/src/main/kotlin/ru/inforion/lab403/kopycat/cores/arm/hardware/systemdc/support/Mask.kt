@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,7 +31,7 @@ import ru.inforion.lab403.common.extensions.set
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import java.io.Serializable
 
-class Mask private constructor(val pandm: Long, val porm: Long, val mandm: Long, val morm: Long): Serializable {
+class Mask private constructor(val pandm: ULong, val porm: ULong, val mandm: ULong, val morm: ULong): Serializable {
     class PatternInvalidError(message: String): GeneralException(message)
 
     companion object {
@@ -41,12 +41,12 @@ class Mask private constructor(val pandm: Long, val porm: Long, val mandm: Long,
 
         private fun validate(raw: String): Boolean = regex matches raw.trim()
 
-        private fun m0(raw: String, offset: Int): Long =
-                preprocess(raw).foldIndexed(0x0000_0000L) { k, r, c ->
+        private fun m0(raw: String, offset: Int): ULong =
+                preprocess(raw).foldIndexed(0x0000_0000uL) { k, r, c ->
                     if (c == '1') r set (k + offset) else r }
 
-        private fun m1(raw: String, offset: Int): Long =
-                preprocess(raw).foldIndexed(0xFFFF_FFFFL) { k, r, c ->
+        private fun m1(raw: String, offset: Int): ULong =
+                preprocess(raw).foldIndexed(0xFFFF_FFFFuL) { k, r, c ->
                     if (c == '0') r clr (k + offset) else r }
 
         private fun getPosPart(raw: String): String {
@@ -61,7 +61,7 @@ class Mask private constructor(val pandm: Long, val porm: Long, val mandm: Long,
             return if (result != missingDelimiterValue) result.trim() else ""
         }
 
-        private fun getRaw(andm: Long, orm: Long): String {
+        private fun getRaw(andm: ULong, orm: ULong): String {
             return (31 downTo 0).joinToString("") { k ->
                 val b1 = andm[k]
                 val b2 = orm[k]
@@ -75,15 +75,15 @@ class Mask private constructor(val pandm: Long, val porm: Long, val mandm: Long,
             val pos = getPosPart(raw)
             val neg = getNegPart(raw)
 
-            var m0p = 0x0000_0000L
-            var m1p = 0xFFFF_FFFFL
+            var m0p = 0x0000_0000uL
+            var m1p = 0xFFFF_FFFFuL
             if (!pos.isBlank() && pos != "-" && pos.any { it != 'x' }) {
                 m0p = m0(pos, offset)
                 m1p = m1(pos, offset)
             }
 
-            var m0n = 0xFFFF_FFFFL
-            var m1n = 0x0000_0000L
+            var m0n = 0xFFFF_FFFFuL
+            var m1n = 0x0000_0000uL
 
             // neg.all { it == 'x' } = true for empty collections
             if (neg.isNotBlank()) {
@@ -126,22 +126,22 @@ class Mask private constructor(val pandm: Long, val porm: Long, val mandm: Long,
     private val me = "${getRaw(pandm, porm)}|${getRaw(mandm, morm)}"
 
     private constructor() : this(
-            0x0000_0000,
-            0xFFFF_FFFF,
-            0xFFFF_FFFF,
-            0x0000_0000)
+            0x0000_0000u,
+            0xFFFF_FFFFu,
+            0xFFFF_FFFFu,
+            0x0000_0000u)
 
-    fun suit(value: Long): Boolean =
+    fun suit(value: ULong): Boolean =
             ((value and pandm == pandm) && (value or porm == porm)) &&
             ((value and mandm == mandm) && (value or morm == morm)).not()
 
-    fun isNegEmpty(): Boolean = mandm == 0xFFFF_FFFFL && morm == 0x0000_0000L
-    fun isPosEmpty(): Boolean = pandm == 0x0000_0000L && porm == 0xFFFF_FFFFL
+    fun isNegEmpty(): Boolean = mandm == 0xFFFF_FFFFuL && morm == 0x0000_0000uL
+    fun isPosEmpty(): Boolean = pandm == 0x0000_0000uL && porm == 0xFFFF_FFFFuL
     fun isEmpty(): Boolean = isPosEmpty() && isNegEmpty()
 
     operator fun plus(other: Mask): Mask {
-        val nMandm: Long
-        val nMorm: Long
+        val nMandm: ULong
+        val nMorm: ULong
 
         val nPandm = pandm or other.pandm
         val nPorm = porm and other.porm

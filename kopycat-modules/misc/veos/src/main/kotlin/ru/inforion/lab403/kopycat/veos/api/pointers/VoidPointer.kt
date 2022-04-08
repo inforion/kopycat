@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,8 +29,8 @@ import ru.inforion.lab403.kopycat.veos.kernel.System
 
 
 
-class VoidPointer constructor(sys: System, address: Long) : Pointer<Unit>(sys, address) {
+class VoidPointer constructor(sys: System, address: ULong) : Pointer<Unit>(sys, address) {
     companion object {
-        fun nullPtr(sys: System) = VoidPointer(sys, 0)
+        fun nullPtr(sys: System) = VoidPointer(sys, 0uL)
     }
 }

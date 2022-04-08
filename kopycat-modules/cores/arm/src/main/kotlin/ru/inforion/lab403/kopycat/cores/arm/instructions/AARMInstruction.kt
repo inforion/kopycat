@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,14 +31,14 @@ import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 abstract class AARMInstruction(
         core: AARMCore,
         type: Type,
         val cond: Condition,
-        val opcode: Long,
+        val opcode: ULong,
         vararg operands: AOperand<AARMCore>,
-        override val size: Int = 4) : AInstruction<AARMCore>(core, type, *operands) {
+        override val size: Int = 4
+) : AInstruction<AARMCore>(core, type, *operands) {
 
     val mcnd = if (cond != Condition.AL && cond != Condition.UN) "$cond" else ""
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb16
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.find
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -41,18 +41,18 @@ class ThumbMulDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 setFlags: Boolean,
                 rd: ARMRegister,
                 rm: ARMRegister,
                 rn: ARMRegister,
                 size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rn = core.cpu.regs[data[5..3].asInt].toOperand()
-        val rd = core.cpu.regs[data[2..0].asInt].toOperand()
-        val rm = core.cpu.regs[data[2..0].asInt].toOperand()
+    override fun decode(data: ULong): AARMInstruction {
+        val cond = find { it.opcode == data[31..28].int } ?: Condition.AL
+        val rn = core.cpu.regs[data[5..3].int].toOperand()
+        val rd = core.cpu.regs[data[2..0].int].toOperand()
+        val rm = core.cpu.regs[data[2..0].int].toOperand()
         val setFlags = !core.cpu.InITBlock()
         if(core.cpu.ArchVersion() < 6 && rd.desc == rn.desc) throw Unpredictable
         return constructor(core, data, cond, setFlags, rd, rn, rm, 2)

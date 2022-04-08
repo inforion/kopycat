@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,19 +23,25 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("NOTHING_TO_INLINE")
+
 package ru.inforion.lab403.elfloader
 
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.elfloader.exceptions.EMajorBitUnsupported
 
+inline fun assertMajorBit(value: UInt) {
+    if (value.int < 0) throw EMajorBitUnsupported("Assertion fault: value is interpreting as negative")
+}
 
-fun assertMajorBit(value: Int) {
+inline fun assertMajorBit(value: Int) {
     if (value < 0) throw EMajorBitUnsupported("Assertion fault: value is interpreting as negative")
 }
 
-fun assertMajorBit(value: Short) {
-    if(value < 0) throw EMajorBitUnsupported("Assertion fault: value is interpreting as negative")
+inline fun assertMajorBit(value: Short) {
+    if (value < 0) throw EMajorBitUnsupported("Assertion fault: value is interpreting as negative")
 }
 
-fun assertMajorBit(value: Byte) {
-    if(value < 0) throw EMajorBitUnsupported("Assertion fault: value is interpreting as negative")
+inline fun assertMajorBit(value: Byte) {
+    if (value < 0) throw EMajorBitUnsupported("Assertion fault: value is interpreting as negative")
 }

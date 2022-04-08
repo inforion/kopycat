@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.convert
 
-import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.toULong
+import ru.inforion.lab403.common.extensions.float
+import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.mips.instructions.FdFsInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -39,7 +40,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class cvt_s_w(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         fd: MipsRegister,
         fs: MipsRegister
 ) : FdFsInsn(core, data, Type.VOID, fd, fs) {
@@ -47,9 +48,9 @@ class cvt_s_w(
     override val mnem = "cvt.s.w"
 
     override fun execute() {
-        val single = vfs.toFloat()
-        val int = single.ieee754()
-        vfd = int.toULong()
+        val single = vfs.float
+        val int = single.ieee754AsUnsigned()
+        vfd = int.ulong_z
 //        log.warning { "[%08X] $mnem $op1:$op2 = $int".format(cpu.pc) }
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
-import ru.inforion.lab403.common.extensions.asByte
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.byte
 import ru.inforion.lab403.common.extensions.emptyString
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.truth
+import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.logging.ALL
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -41,7 +42,7 @@ import java.util.logging.Level
 class BT(parent: Module, name: String) : Module(parent, name) {
 
     companion object {
-        @Transient private val log = logger(Level.ALL)
+        @Transient private val log = logger(ALL)
 
         private class Buffer(capacity: Int) {
             private val buffer: ByteArray = ByteArray(capacity) { 0 }
@@ -101,9 +102,9 @@ class BT(parent: Module, name: String) : Module(parent, name) {
     private val connection = "0 4cb199dccd22 Connected IAP"
     private var defaultLocalName = "BT module v1.0"
 
-    private fun btTermWrite(byte: Byte): Unit = ports.bt_m.write(UART_MASTER_BUS_DATA, 0, 1, byte.asULong)
-    private fun btTermRead(): Byte = ports.bt_m.read(UART_MASTER_BUS_DATA, 0, 1).asByte
-    private fun btTermRxUnderflow(): Boolean = ports.bt_m.read(UART_MASTER_BUS_PARAM, UART_MASTER_RX_UNDERFLOW, 0).toBool()
+    private fun btTermWrite(byte: Byte): Unit = ports.bt_m.write(UART_MASTER_BUS_DATA, 0, 1, byte.ulong_z)
+    private fun btTermRead(): Byte = ports.bt_m.read(UART_MASTER_BUS_DATA, 0, 1).byte
+    private fun btTermRxUnderflow(): Boolean = ports.bt_m.read(UART_MASTER_BUS_PARAM, UART_MASTER_RX_UNDERFLOW, 0).truth
 
     private fun usartWrite(timeoutMillis: Long = 10000, checkRate: Long = 100, transmit: (Unit) -> Unit) {
         val waitStarted = System.currentTimeMillis()
@@ -126,11 +127,9 @@ class BT(parent: Module, name: String) : Module(parent, name) {
             readable = false,
             level = Level.SEVERE
     ) {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (ss) {
-                UART_SLAVE_DATA_RECEIVED -> {
-                    dataReceived()
-                }
+                UART_SLAVE_DATA_RECEIVED -> dataReceived()
             }
         }
 
@@ -146,10 +145,6 @@ class BT(parent: Module, name: String) : Module(parent, name) {
     private val bluetoothProxy = object : UartTerminal(this@BT, "${this@BT.name} AT&AB proxy") {
         override fun onByteTransmitReady(byte: Byte) {
             buffer.add(byte)
-
-//            log.info("get byte [$byte]")
-//            log.info("buffer: [$buffer]")
-//            log.info("buffer: [${buffer.contentToString()}]")
 
             btTermWrite(byte)
             processMessage(buffer.contentToString())
@@ -223,10 +218,8 @@ class BT(parent: Module, name: String) : Module(parent, name) {
 
         private fun respond(msg: String) {
             usartWrite {
-                msg.toByteArray().forEach { byte ->
-                    this.write(byte)
-                }
-                this.write('\r'.toByte())
+                msg.forEach { byte -> write(byte) }
+                write('\r')
             }
         }
     }
@@ -235,5 +228,4 @@ class BT(parent: Module, name: String) : Module(parent, name) {
         buses.connect(ports.usart_m, bluetoothProxy.ports.term_s)
         buses.connect(ports.usart_s, bluetoothProxy.ports.term_m)
     }
-
 }

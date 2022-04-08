@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("MemberVisibilityCanBePrivate", "unused", "MemberVisibilityCanBePrivate")
+
 package ru.inforion.lab403.elfloader
 
 import ru.inforion.lab403.common.logging.logger
@@ -49,6 +51,7 @@ import ru.inforion.lab403.elfloader.headers.ElfSectionHeader
 import ru.inforion.lab403.elfloader.processors.AElfDecoder
 import ru.inforion.lab403.elfloader.processors.arm.ElfDecoderArm
 import ru.inforion.lab403.elfloader.processors.mips.ElfDecoderMips
+import ru.inforion.lab403.elfloader.processors.ppc.ElfDecoderPPC
 import ru.inforion.lab403.elfloader.processors.x86.ElfDecoderX86
 import ru.inforion.lab403.elfloader.tables.ElfGnuHashTable
 import ru.inforion.lab403.elfloader.tables.ElfHashTable
@@ -89,7 +92,7 @@ class ElfFile(val input: ByteBuffer) {
     val version: Int
 
     //ELF entry address
-    val entry: Long
+    val entry: UInt
 
     //Program header table's offset
     var phoff: Int = 0
@@ -98,7 +101,7 @@ class ElfFile(val input: ByteBuffer) {
     var shoff: Int = 0
 
     //Processor-specific flags
-    val flags: Int
+    val flags: UInt
 
     //ELF header's size
     val ehsize: Short
@@ -119,30 +122,30 @@ class ElfFile(val input: ByteBuffer) {
     var shstrndx: Short = SHN_UNDEF.id
 
     //TODO: optimize it?
-    fun getOffsetByAddress(vAddr: Long): Int {
+    fun getOffsetByAddress(vAddr: ULong): Int {
 //        val section = sectionHeaderTable.filter { it.flags and SHF_ALLOC.id != 0 }.find { vAddr in it.addr until (it.addr + it.size) }
         val segment = programHeaderTable.find { vAddr in it.vaddr until (it.vaddr + maxOf(it.memsz, it.filesz)) }
                 ?: throw EBadAddressValue("Virtual address in unallocated zone")
-        return (segment.offset + (vAddr - segment.vaddr.asInt)).toInt()
+        return (vAddr - segment.vaddr.int + segment.offset).int
 //        return (section.offset + (vAddr - section.addr.asInt)).toInt()
     }
 
     fun sectionHeaderAddr(name: String) = sectionHeaderTable.find { it.name == name }?.addr
 
     //TODO: optimize it?
-    fun getSectionByOffset(offset: Long): ElfSectionHeader? = sectionHeaderTable.find {
-        (offset in it.offset..(it.offset + it.size)) && (it.type != SHT_GROUP.id)
+    fun getSectionByOffset(offset: Int): ElfSectionHeader? = sectionHeaderTable.find {
+        (offset in it.offset..it.offset + it.size) && (it.type != SHT_GROUP.id)
     }
 
 
-    val dynamicSegment: HashMap<Int, Long>? by lazy {
+    val dynamicSegment: Map<Int, ULong>? by lazy {
         val ph = programHeaderTable.find { it.type == PT_DYNAMIC.id }
         if (ph != null) {
-            val hm = HashMap<Int, Long>()
+            val hm = dictionary<Int, ULong>()
             input.position(ph.offset)
             read@ for (i in 0 until ph.filesz) {
                 val tag = input.int
-                val ptr = input.int.toULong()
+                val ptr = input.int.ulong_z
                 when (tag) {
                     DT_NULL.id -> break@read
                     DT_NEEDED.id -> dynsegNeeded.add(ptr)
@@ -154,30 +157,30 @@ class ElfFile(val input: ByteBuffer) {
         } else null// ElfDynamicSegment(ph.offset, ph.filesz)
     }
 
-    val dynsegNeeded = mutableListOf<Long>()
+    val dynsegNeeded = mutableListOf<ULong>()
 
-    val dynsegPltGotPtr: Long? get() = dynamicSegment!![DT_PLTGOT.id]
-    val dynsegPltRelTablePtr: Long? get() = dynamicSegment!![DT_JMPREL.id]
-    val dynsegPltRelSize: Long? get() = dynamicSegment!![DT_PLTRELSZ.id]
-    val dynsegPltRelType: Long? get() = dynamicSegment!![DT_PLTREL.id]
-    val dynsegHashTablePtr: Long? get() = dynamicSegment!![DT_HASH.id]
-    val dynsegGnuHashTablePtr: Long? get() = dynamicSegment!![DT_GNU_HASH.id]
-    val dynsegStringTablePtr: Long? get() = dynamicSegment!![DT_STRTAB.id]
-    val dynsegStringTableSize: Long? get() = dynamicSegment!![DT_STRSZ.id]
-    val dynsegSymbolTablePtr: Long? get() = dynamicSegment!![DT_SYMTAB.id]
-    val dynsegSymbolTableEntry: Long? get() = dynamicSegment!![DT_SYMENT.id]
-    val dynsegRelaTablePtr: Long? get() = dynamicSegment!![DT_RELA.id]
-    val dynsegRelaTableSize: Long? get() = dynamicSegment!![DT_RELASZ.id]
-    val dynsegRelaTableEntry: Long? get() = dynamicSegment!![DT_RELAENT.id]
-    val dynsegRelTablePtr: Long? get() = dynamicSegment!![DT_REL.id]
-    val dynsegRelTableSize: Long? get() = dynamicSegment!![DT_RELSZ.id]
-    val dynsegRelTableEntry: Long? get() = dynamicSegment!![DT_RELENT.id]
-    val dynsegInitArrayPtr: Long? get() = dynamicSegment!![DT_INIT_ARRAY.id]
-    val dynsegInitArraySize: Long? get() = dynamicSegment!![DT_INIT_ARRAYSZ.id]
-    val dynsegFiniArrayPtr: Long? get() = dynamicSegment!![DT_FINI_ARRAY.id]
-    val dynsegFiniArraySize: Long? get() = dynamicSegment!![DT_FINI_ARRAYSZ.id]
-    val dynsegInitPtr: Long? get() = dynamicSegment!![DT_INIT.id] //TODO: Use it
-    val dynsegFiniPtr: Long? get() = dynamicSegment!![DT_FINI.id]
+    val dynsegPltGotPtr get() = dynamicSegment!![DT_PLTGOT.id]
+    val dynsegPltRelTablePtr get() = dynamicSegment!![DT_JMPREL.id]
+    val dynsegPltRelSize get() = dynamicSegment!![DT_PLTRELSZ.id]
+    val dynsegPltRelType get() = dynamicSegment!![DT_PLTREL.id]
+    val dynsegHashTablePtr get() = dynamicSegment!![DT_HASH.id]
+    val dynsegGnuHashTablePtr get() = dynamicSegment!![DT_GNU_HASH.id]
+    val dynsegStringTablePtr get() = dynamicSegment!![DT_STRTAB.id]
+    val dynsegStringTableSize get() = dynamicSegment!![DT_STRSZ.id]
+    val dynsegSymbolTablePtr get() = dynamicSegment!![DT_SYMTAB.id]
+    val dynsegSymbolTableEntry get() = dynamicSegment!![DT_SYMENT.id]
+    val dynsegRelaTablePtr get() = dynamicSegment!![DT_RELA.id]
+    val dynsegRelaTableSize get() = dynamicSegment!![DT_RELASZ.id]
+    val dynsegRelaTableEntry get() = dynamicSegment!![DT_RELAENT.id]
+    val dynsegRelTablePtr get() = dynamicSegment!![DT_REL.id]
+    val dynsegRelTableSize get() = dynamicSegment!![DT_RELSZ.id]
+    val dynsegRelTableEntry get() = dynamicSegment!![DT_RELENT.id]
+    val dynsegInitArrayPtr get() = dynamicSegment!![DT_INIT_ARRAY.id]
+    val dynsegInitArraySize get() = dynamicSegment!![DT_INIT_ARRAYSZ.id]
+    val dynsegFiniArrayPtr get() = dynamicSegment!![DT_FINI_ARRAY.id]
+    val dynsegFiniArraySize get() = dynamicSegment!![DT_FINI_ARRAYSZ.id]
+    val dynsegInitPtr get() = dynamicSegment!![DT_INIT.id] //TODO: Use it
+    val dynsegFiniPtr get() = dynamicSegment!![DT_FINI.id]
 
 
     //If you have a question, why both Array and MutabelList are used here:
@@ -202,13 +205,18 @@ class ElfFile(val input: ByteBuffer) {
                 log.fine { "MIPS machine" }
                 ElfDecoderMips(this)
             }
+            EM_PPC.id -> {
+                log.fine { "PowerPC machine" }
+                ElfDecoderPPC(this)
+            }
+
             else -> throw EDecodeFault("Machine $machine isn't implemented")     // TODO("Machine $machine isn't implemented")
         }
     }
 
     //We should check type
     val sectionHeaderTable by lazy {
-        Array(shnum.toInt()) { input.elfSectionHeader(this, it, shoff, shentsize) }
+        Array(shnum.int_z) { input.elfSectionHeader(this, it, shoff, shentsize) }
     }
 //    Sequence<ElfSectionHeader> get() = Sequence {
 //    val sectionHeaderTable by lazy {
@@ -216,17 +224,17 @@ class ElfFile(val input: ByteBuffer) {
 //        Sequence { ElfIterator(shnum.asUInt) { ElfSectionHeader(input, shoff, shentsize, it, stringTableOffset)}}
 //    }
 
-    val programHeaderTable by lazy { Array(phnum.toInt()) { ElfProgramHeader.fromPosition(input, phoff, phentsize, it) } }
+    val programHeaderTable by lazy { Array(phnum.int_z) { ElfProgramHeader.fromPosition(input, phoff, phentsize, it) } }
 
     val sectionLoading by lazy {
-        sectionHeaderTable.find { it.flags and SHF_ALLOC.id != 0 } != null
+        sectionHeaderTable.find { it.flags and SHF_ALLOC.id != 0u } != null
     }
 
     //String table link
     val stringTableIndex: Int? by lazy {
         when (shstrndx) {
             SHN_ABS.id, SHN_COMMON.id, SHN_UNDEF.id -> null
-            in 0 until shnum -> shstrndx.toInt()
+            in 0 until shnum -> shstrndx.int_z
             else -> null
         }
     }
@@ -238,7 +246,7 @@ class ElfFile(val input: ByteBuffer) {
 
         var prev = 0
         return bytes.mapIndexed { i, byte ->
-            if (byte.toInt() == 0) i else null
+            if (byte.int_z == 0) i else null
         }.filterNotNull().map {
             val range = prev until it
             prev = it + 1
@@ -287,7 +295,7 @@ class ElfFile(val input: ByteBuffer) {
     val symStringTable: Map<Int, String>? by lazy {
         val symtab = sectionHeaderTable.find { it.type == SHT_SYMTAB.id }
         if (symtab != null) {
-            if (symtab.link == shstrndx.toInt())
+            if (symtab.link == shstrndx.int_z)
                 sectionStringTable
             else {
                 val sect = sectionHeaderTable[symtab.link]
@@ -301,7 +309,7 @@ class ElfFile(val input: ByteBuffer) {
             val offset = dynsegStringTablePtr
             val size = dynsegStringTableSize
             if ((offset != null) && (size != null))
-                readStringTable(getOffsetByAddress(offset), size.toInt())
+                readStringTable(getOffsetByAddress(offset), size.int)
             else null
         } else null
     }
@@ -319,7 +327,7 @@ class ElfFile(val input: ByteBuffer) {
             if (ptr != null) {
                 val offset = getOffsetByAddress(ptr)
                 //val symtabOffset = getOffsetByAddress(dynsegStringTablePtr!!)
-                val entsize = dynsegSymbolTableEntry!!.toInt()
+                val entsize = dynsegSymbolTableEntry!!.int
                 Array(dynsymCount) {
                     ElfSymbol(this, input, offset + it * entsize, dynsymStringTable!!,/*symtabOffset,*/ it)
                 }
@@ -330,7 +338,7 @@ class ElfFile(val input: ByteBuffer) {
 
     val hashTable: IHashTable? by lazy {
         val hash = sectionHeaderTable.find { it.type == SHT_HASH.id }
-        val gnuHash = sectionHeaderTable.find { it.type == SHT_GNU_HASH.id }
+        val gnuHash = sectionHeaderTable.find { it.type == SHT_GNU_HASH.id && it.name == ".gnu.hash "}
         when {
             dynamicSegment != null -> {
                 dynsegHashTablePtr?.let {
@@ -358,65 +366,65 @@ class ElfFile(val input: ByteBuffer) {
         val dynRelocs = mutableListOf<ElfRel>()
         if (dynamicSegment != null) {
             dynsegPltRelTablePtr?.let { ptr ->
-                val isRela = dynsegPltRelType!!.toInt() == DT_RELA.id
+                val isRela = dynsegPltRelType!!.int == DT_RELA.id
                 val entsize = (if (isRela) dynsegRelaTableEntry else dynsegRelTableEntry)
                         ?: throw EDynamicTagUndefined("Plt relocation entry size is undefined")
                 val size = dynsegPltRelSize ?: throw EDynamicTagUndefined("Plt relocation table size is undefined")
-                val n = (size / entsize).toInt()
-                dynRelocs += List(n) { input.elfRel(it, getOffsetByAddress(ptr), entsize.toInt(), isRela) }
+                val n = (size / entsize).int
+                dynRelocs += List(n) { input.elfRel(it, getOffsetByAddress(ptr), entsize.int, isRela) }
             }
 
             dynsegRelaTablePtr?.let { ptr ->
                 val entsize = dynsegRelaTableEntry ?: throw EDynamicTagUndefined("Relocation entry size is undefined")
                 val size = dynsegRelaTableSize ?: throw EDynamicTagUndefined("Relocation table size is undefined")
-                val n = (size / entsize).toInt()
-                dynRelocs += List(n) { input.elfRel(it, getOffsetByAddress(ptr), entsize.toInt(), true) }
+                val n = (size / entsize).int
+                dynRelocs += List(n) { input.elfRel(it, getOffsetByAddress(ptr), entsize.int, true) }
             }
 
             dynsegRelTablePtr?.let { ptr ->
                 val entsize = dynsegRelTableEntry ?: throw EDynamicTagUndefined("Relocation entry size is undefined")
                 val size = dynsegRelTableSize ?: throw EDynamicTagUndefined("Relocation table size is undefined")
-                val n = (size / entsize).toInt()
-                dynRelocs += List(n) { input.elfRel(it, getOffsetByAddress(ptr), entsize.toInt(), false) }
+                val n = (size / entsize).int
+                dynRelocs += List(n) { input.elfRel(it, getOffsetByAddress(ptr), entsize.int, false) }
             }
         }
         dynRelocs
     }
 
-    val initArray: Array<Long>? by lazy {
+    val initArray: Array<ULong>? by lazy {
         val initArraySection = sectionHeaderTable.find { it.name == ".init_array" }
         when {
             initArraySection != null -> {
                 val size = initArraySection.size
                 input.position(initArraySection.offset)
-                Array(size / 4) { input.int.toULong() }
+                Array(size / 4) { input.int.ulong_z }
             }
             dynamicSegment != null -> {
                 val ptr = dynsegInitArrayPtr
                 if (ptr != null) {
                     val size = dynsegInitArraySize ?: throw EDynamicTagUndefined("Init array size is undefined")
                     input.position(getOffsetByAddress(ptr))
-                    Array((size / 4).toInt()) { input.int.toULong() }
+                    Array(size.int / 4) { input.int.ulong_z }
                 } else null
             }
             else -> null
         }
     }
 
-    val finiArray: Array<Long>? by lazy {
+    val finiArray: Array<ULong>? by lazy {
         val finiArraySection = sectionHeaderTable.find { it.name == ".fini_array" }
         when {
             finiArraySection != null -> {
                 val size = finiArraySection.size
                 input.position(finiArraySection.offset)
-                Array(size / 4) { input.int.toULong() }
+                Array(size / 4) { input.int.ulong_z }
             }
             dynamicSegment != null -> {
                 val ptr = dynsegFiniArrayPtr
                 if (ptr != null) {
                     val size = dynsegFiniArraySize ?: throw EDynamicTagUndefined("Fini array size is undefined")
                     input.position(getOffsetByAddress(ptr))
-                    Array((size / 4).toInt()) { input.int.toULong() }
+                    Array(size.int / 4) { input.int.ulong_z }
                 } else null
             }
             else -> null
@@ -428,7 +436,7 @@ class ElfFile(val input: ByteBuffer) {
     var globalOffsetTable: Int? = null
 
     //TODO: remove it?
-    val relIndexes: HashMap<String, IntRange> = HashMap()
+    val relIndexes = dictionary<String, IntRange>()
 
     init {
         val magic = input.int
@@ -471,7 +479,7 @@ class ElfFile(val input: ByteBuffer) {
         }
 
         //TODO: change to specification names
-        when (headerVersion.toInt()) {
+        when (headerVersion.int_z) {
             EV_NONE.id -> throw EBadElfHeader("Invalid ELF header version")
             EV_CURRENT.id -> {
                 log.fine { "Valid ELF header version" }
@@ -489,10 +497,10 @@ class ElfFile(val input: ByteBuffer) {
         type = input.short
         machine = input.short
         version = input.int
-        entry = input.int.toULong()
+        entry = input.uint
         phoff = input.int
         shoff = input.int
-        flags = input.int
+        flags = input.uint
         ehsize = input.short
         phentsize = input.short
         phnum = input.short
@@ -535,40 +543,44 @@ class ElfFile(val input: ByteBuffer) {
             else -> throw EBadElfHeader("Unknown ELF version: $headerVersion")
         }
 
-        log.info { "entry=0x${entry.hex8} phoff=0x${phoff.hex8} shoff=0x${shoff.hex8} flags=${Integer.toBinaryString(flags)} ehsize=0x${ehsize.hex4} phentsize=0x${phentsize.hex4} phnum=$phnum shentsize=0x${shentsize.hex4} shnum=$shnum shstrndx=$shstrndx" }
+        log.info { "entry=0x${entry.hex8} phoff=0x${phoff.hex8} shoff=0x${shoff.hex8} flags=${flags.binary} ehsize=0x${ehsize.hex4} phentsize=0x${phentsize.hex4} phnum=$phnum shentsize=0x${shentsize.hex4} shnum=$shnum shstrndx=$shstrndx" }
         decoder.checkFlags()
 
-        if (ehsize.toInt() != 0x34)
+        if (ehsize.int_z != 0x34)
             throw EBadElfHeader("Invalid ELF header size: $ehsize (0x${ehsize.hex4}) bytes")
+
+        // TODO: pass as argument
+        // TODO: set as false due to not regular ELF
+        val throwOnInvalidSection = false
 
         sectionHeaderTable.forEach { sh ->
             with(sh) {
-                val trueFlags = flags and 0b111
+                val trueFlags = flags and 0b111u
                 val invalid: Boolean = when (name) {
-                    ".bss" -> ((type != SHT_NOBITS.id) || (trueFlags != (SHF_ALLOC.id or SHF_WRITE.id)))
-                    ".comment" -> ((type != SHT_PROGBITS.id) || (trueFlags != 0))
-                    ".data" -> ((type != SHT_PROGBITS.id) || (trueFlags != (SHF_ALLOC.id or SHF_WRITE.id)))
-                    ".data1" -> ((type != SHT_PROGBITS.id) || (trueFlags != (SHF_ALLOC.id or SHF_WRITE.id)))
-                    ".debug" -> ((type != SHT_PROGBITS.id) || (trueFlags != 0))
-                    ".dynamic" -> ((type != SHT_DYNAMIC.id) || (trueFlags and SHF_ALLOC.id == 0) || (trueFlags and SHF_EXECINSTR.id != 0)) //SHF_WRITE is proc-spec
-                    ".dynstr" -> ((type != SHT_STRTAB.id) || (flags != SHF_ALLOC.id))
-                    ".dynsym" -> ((type != SHT_DYNSYM.id) || (flags != SHF_ALLOC.id))
-                    ".fini" -> ((type != SHT_PROGBITS.id) || (flags != (SHF_ALLOC.id or SHF_EXECINSTR.id)))
-                    ".hash" -> ((type != SHT_HASH.id) || (flags != SHF_ALLOC.id))
-                    ".init" -> ((type != SHT_PROGBITS.id) || (flags != (SHF_ALLOC.id or SHF_EXECINSTR.id)))
-                    ".interp" -> ((type != SHT_PROGBITS.id) || ((flags != SHF_ALLOC.id) and (flags != 0)))
-                    ".line" -> ((type != SHT_PROGBITS.id) || (flags != 0))
-                    ".note" -> ((type != SHT_NOTE.id) || (flags != 0))
-                    ".rodata" -> ((type != SHT_PROGBITS.id) || (flags and SHF_ALLOC.id == 0))
-                    ".rodata1" -> ((type != SHT_PROGBITS.id) || (flags != SHF_ALLOC.id))
-                    ".shstrtab" -> ((type != SHT_STRTAB.id) || (flags != 0))
-                    ".strtab" -> ((type != SHT_STRTAB.id) || ((flags != SHF_ALLOC.id) and (flags != 0)))
-                    ".symtab" -> ((type != SHT_SYMTAB.id) || ((flags != SHF_ALLOC.id) and (flags != 0)))
-                    ".text" -> ((type != SHT_PROGBITS.id) || (flags != (SHF_ALLOC.id or SHF_EXECINSTR.id)))
-                    ".gnu.hash " -> ((type != SHT_GNU_HASH.id) || (flags != SHF_ALLOC.id))
-                    ".gnu.version" -> ((type != SHT_GNU_VERSYM.id) || (flags != SHF_ALLOC.id))
-                    ".gnu.version_d" -> ((type != SHT_GNU_VERDEF.id) || (flags != SHF_ALLOC.id))
-                    ".gnu.version_r" -> ((type != SHT_GNU_VERNEED.id) || (flags != SHF_ALLOC.id))
+                    ".bss" -> type != SHT_NOBITS.id || trueFlags != SHF_ALLOC.id or SHF_WRITE.id
+                    ".comment" -> type != SHT_PROGBITS.id || trueFlags != 0u
+                    ".data" -> type != SHT_PROGBITS.id || trueFlags != SHF_ALLOC.id or SHF_WRITE.id
+                    ".data1" -> type != SHT_PROGBITS.id || trueFlags != SHF_ALLOC.id or SHF_WRITE.id
+                    ".debug" -> type != SHT_PROGBITS.id || trueFlags != 0u
+                    ".dynamic" -> type != SHT_DYNAMIC.id || trueFlags and SHF_ALLOC.id == 0u || trueFlags and SHF_EXECINSTR.id != 0u //SHF_WRITE is proc-spec
+                    ".dynstr" -> type != SHT_STRTAB.id || flags != SHF_ALLOC.id
+                    ".dynsym" -> type != SHT_DYNSYM.id || flags != SHF_ALLOC.id
+                    ".fini" -> type != SHT_PROGBITS.id || flags != SHF_ALLOC.id or SHF_EXECINSTR.id
+                    ".hash" -> type != SHT_HASH.id || flags != SHF_ALLOC.id
+                    ".init" -> type != SHT_PROGBITS.id || flags != SHF_ALLOC.id or SHF_EXECINSTR.id
+                    ".interp" -> type != SHT_PROGBITS.id || flags != SHF_ALLOC.id && flags != 0u
+                    ".line" -> type != SHT_PROGBITS.id || flags != 0u
+                    ".note" -> type != SHT_NOTE.id || flags != 0u
+                    ".rodata" -> type != SHT_PROGBITS.id || flags and SHF_ALLOC.id == 0u
+                    ".rodata1" -> type != SHT_PROGBITS.id || flags != SHF_ALLOC.id
+                    ".shstrtab" -> type != SHT_STRTAB.id || flags != 0u
+                    ".strtab" -> type != SHT_STRTAB.id || flags != SHF_ALLOC.id && flags != 0u
+                    ".symtab" -> type != SHT_SYMTAB.id || flags != SHF_ALLOC.id && flags != 0u
+                    ".text" -> type != SHT_PROGBITS.id || flags != SHF_ALLOC.id or SHF_EXECINSTR.id
+                    ".gnu.hash " -> type != SHT_GNU_HASH.id || flags != SHF_ALLOC.id
+                    ".gnu.version" -> type != SHT_GNU_VERSYM.id || flags != SHF_ALLOC.id
+                    ".gnu.version_d" -> type != SHT_GNU_VERDEF.id || flags != SHF_ALLOC.id
+                    ".gnu.version_r" -> type != SHT_GNU_VERNEED.id || flags != SHF_ALLOC.id
                     ".got" -> false
                     ".plt" -> false
                     ".got.plt" -> false
@@ -583,20 +595,24 @@ class ElfFile(val input: ByteBuffer) {
                         }
                     }
                 }
-                if (invalid)
-                    throw EBadSection("Not valid $name section (${type.hex8}, ${flags.hex8})")
+                if (invalid) {
+                    val msg = "Not valid $name section (${type.hex8}, ${flags.hex8})"
+                    if (throwOnInvalidSection)
+                        throw EBadSection(msg)
+                    log.severe { msg }
+                }
             }
-            if (sh.flags and SHF_MASKPROC.id != 0) {
+            if (sh.flags and SHF_MASKPROC.id != 0u) {
                 log.warning { "Section \"${sh.name}\"(${sh.ind}) has processor-specific flags" }
                 decoder.checkSectionFlags(sh.flags)
             }
         }
 
         if (!sectionLoading) {
-            if (flags and PF_MASKOS.id != 0)
+            if (flags and PF_MASKOS.id != 0u)
                 log.severe { "There are OS-specific flags" }
 
-            if (flags and PF_MASKPROC.id != 0)
+            if (flags and PF_MASKPROC.id != 0u)
                 decoder.checkSegmentFlags(flags)
         }
     }

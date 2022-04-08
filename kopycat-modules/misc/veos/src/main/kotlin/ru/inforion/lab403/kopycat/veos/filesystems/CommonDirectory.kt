@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,11 +27,11 @@ package ru.inforion.lab403.kopycat.veos.filesystems
 
 import ru.inforion.lab403.common.extensions.div
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.attributes
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONoSuchFileOrDirectory
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotFoundError
+import ru.inforion.lab403.kopycat.veos.filesystems.attributes.veosAttributes
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IBasicFile
 import java.io.File
 import java.nio.file.attribute.BasicFileAttributes
@@ -61,7 +61,7 @@ class CommonDirectory(val path: String) : IBasicFile, Iterable<CommonDirectory.D
 
     override fun writable() = false
 
-    override fun attributes() = file.attributes()
+    override fun attributes() = file.veosAttributes()
 
     class DirectoryIterator(val file: File, desc: Int) : Iterator<Descriptor>, IAutoSerializable {
         private val dirs = file.list() ?: throw IONotFoundError(desc)
@@ -72,7 +72,7 @@ class CommonDirectory(val path: String) : IBasicFile, Iterable<CommonDirectory.D
 
         override fun next(): Descriptor {
             val name = dirs[idx++]
-            val attributes = (file / name).attributes()
+            val attributes = (file / name).veosAttributes()
             return Descriptor(name, attributes)
         }
     }

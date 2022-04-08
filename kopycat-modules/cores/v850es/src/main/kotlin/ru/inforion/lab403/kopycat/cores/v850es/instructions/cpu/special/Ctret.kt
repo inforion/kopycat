@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.v850es.instructions.cpu.special
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.v850es.instructions.AV850ESInstruction
 import ru.inforion.lab403.kopycat.cores.v850es.operands.v850esRegister.CTRLR
@@ -41,7 +42,7 @@ class Ctret(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
     // Format X - imm
     override fun execute() {
         // insnSize add in CPU execute
-        GPR.pc.value(core, CTRLR.CTPC.value(core) - size)
+        GPR.pc.value(core, CTRLR.CTPC.value(core) - size.uint)
         CTRLR.PSW.value(core, CTRLR.CTPSW.value(core))
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,11 +27,9 @@ package ru.inforion.lab403.kopycat.cores.ppc.exceptions
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.toBool
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eIrq
-import ru.inforion.lab403.kopycat.cores.ppc.enums.eMSR
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_Embedded
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_e500v2
@@ -40,11 +38,11 @@ import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 abstract class PPCHardwareException(
         irq: eIrq,
-        where: Long,
+        where: ULong,
         val what: String = "undefined"): HardwareException(irq, where) {
 
 
-    fun address(core: PPCCore): Long = PPCRegister_Embedded.OEAext.IVPR.value(core)[31..16] or when (excCode as eIrq) {
+    fun address(core: PPCCore): ULong = PPCRegister_Embedded.OEAext.IVPR.value(core)[31..16] or when (excCode as eIrq) {
         eIrq.CriticalInput -> PPCRegister_e500v2.OEAext.IVOR0           // Ignored: no information
         eIrq.MachineCheck -> PPCRegister_e500v2.OEAext.IVOR1            // Ignored: no need
         eIrq.DataStorage -> PPCRegister_e500v2.OEAext.IVOR2             // Implemented
@@ -68,18 +66,14 @@ abstract class PPCHardwareException(
         //eIrq.ProcessorDoorbell.irq -> PPCRegister_e500v2.OEAext.IVOR36
         //eIrq.ProcessorCritDoorbell.irq -> PPCRegister_e500v2.OEAext.IVOR37
         else -> throw GeneralException("Wrong interrupt irq ${excCode.irq}")
-    }.value(core) and 0xFFFF_FFF0 // Clear lower 4 bit
+    }.value(core) and 0xFFFF_FFF0u // Clear lower 4 bit
 
     override fun toString() = "$prefix[${where.hex8}] $what"
-    open fun interrupt(core: PPCCore) {
-        val msr = PPCRegister.OEA.MSR.value(core)
-        PPCRegister.OEA.SRR0.value(core, where)
-        PPCRegister.OEA.SRR1.value(core, msr)
 
-        PPCRegister.OEA.MSR.value(core, 0L)
-        core.cpu.msrBits.CE = msr[eMSR.CE.bit].toBool()
-        core.cpu.msrBits.ME = msr[eMSR.ME.bit].toBool()
-        core.cpu.msrBits.DE = msr[eMSR.DE.bit].toBool()
+    open fun interrupt(core: PPCCore) {
+//        val msr = PPCRegister.OEA.MSR.value(core)
+        PPCRegister.OEA.SRR0.value(core, where)
+
         core.pc = address(core)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,7 +33,7 @@ import ru.inforion.lab403.kopycat.veos.kernel.System
 import kotlin.reflect.KProperty
 
 
-open class Pointer<T>(val sys: System, val address: Long): IAutoSerializable {
+open class Pointer<T>(val sys: System, val address: ULong): IAutoSerializable {
 
     open inner class field(val index: Int) {
         var cache: T? = null
@@ -49,8 +49,8 @@ open class Pointer<T>(val sys: System, val address: Long): IAutoSerializable {
     open operator fun get(index: Int): T = throw NotImplementedError("Can't dereference void pointer to get value")
     open operator fun set(index: Int, value: T): Unit = throw NotImplementedError("Can't dereference void pointer to set value")
 
-    inline val isNull get() = address == 0L
-    inline val isNotNull get() = address != 0L
+    inline val isNull get() = address == 0uL
+    inline val isNotNull get() = address != 0uL
 
     inline fun free() = sys.free(address)
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.msp430.hardware.systemdc
 
-import gnu.trove.map.hash.THashMap
+import ru.inforion.lab403.common.extensions.dictionary
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
@@ -45,7 +46,6 @@ import ru.inforion.lab403.kopycat.cores.msp430.instructions.cpu.common.Sxt
 import ru.inforion.lab403.kopycat.cores.msp430.instructions.cpu.logic.*
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
-import java.util.logging.Level
 
 
 
@@ -55,11 +55,11 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
     }
 
     companion object {
-        @Transient val log = logger(Level.FINE)
+        @Transient val log = logger(FINE)
     }
 
     override val name: String = "MSP430 System Decoder"
-    private val cache = THashMap<Long, AMSP430Instruction>(1024*1024)
+    private val cache = dictionary<ULong, AMSP430Instruction>(1024*1024)
 
     //Soa - Single-operand arithmetic
     private val rrcSoaDc = FormatII(core, ::Rrc)
@@ -89,8 +89,8 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
 
     private val soa_reti_opcode = InstructionTable(
             1, 2,
-            { data: Long -> 0 },
-            { data: Long -> if (data[6..0] == 0L) 1 else 0}, //RETI has constant signature
+            { data: ULong -> 0u },
+            { data: ULong -> if (data[6..0] == 0uL) 1u else 0u }, //RETI has constant signature
             /////        0               1
             /*0*/       null,   retiSoaDc
     )
@@ -98,8 +98,8 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
 
     private val soa_1_opcode = InstructionTable(
             2, 2,
-            { data: Long -> data[9] },
-            { data: Long -> data[8] },
+            { data: ULong -> data[9] },
+            { data: ULong -> data[8] },
             /////        0           1
             /*0*/       swpbSoaDc,  sxtSoaDc,
             /*1*/       callSoaDc,  null
@@ -108,8 +108,8 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
 
     private val soa_0_opcode = InstructionTable(
             2, 2,
-            { data: Long -> data[9] },
-            { data: Long -> data[8] },
+            { data: ULong -> data[9] },
+            { data: ULong -> data[8] },
             /////        0           1
             /*0*/       rrcSoaDc,   rraSoaDc,
             /*1*/       pushSoaDc,  soa_reti_opcode
@@ -118,8 +118,8 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
 
     private val soa_opcode = InstructionTable(
             4, 2,
-            { data: Long -> data[7..6] },  //7th bit defines purpose of 6th
-            { data: Long -> if (data[11..10] == 0L) 1 else 0 }, //SOA opcodes signature: 000100...
+            { data: ULong -> data[7..6] },  //7th bit defines purpose of 6th
+            { data: ULong -> if (data[11..10] == 0uL) 1u else 0u }, //SOA opcodes signature: 000100...
             /////        0               1
             /*0,0*/     null,           soa_0_opcode,
             /*0,1*/     null,           soa_0_opcode,
@@ -129,8 +129,8 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
 
     private val base_opcode = InstructionTable(
             4, 4,
-            { data: Long -> data[15..14] },
-            { data: Long -> data[13..12] },
+            { data: ULong -> data[15..14] },
+            { data: ULong -> data[13..12] },
             /////        0,0             0,1         1,0         1,1
             /*0,0*/     null,   soa_opcode, jcCjDc,     jcCjDc,
             /*0,1*/     movToaDc,       addToaDc,   addcToaDc,  subcToaDc,
@@ -138,9 +138,9 @@ class MSP430SystemDecoder(val core: MSP430Core) : ICoreUnit {
             /*1,1*/     bicToaDc,       bisToaDc,   xorToaDc,   andToaDc
     )
 
-    fun fetch(where: Long): Long = core.fetch(where, 0, 8)
+    fun fetch(where: ULong): ULong = core.fetch(where, 0, 8)
 
-    fun decode(where: Long): AMSP430Instruction {
+    fun decode(where: ULong): AMSP430Instruction {
         val data = fetch(where)
 //        var insn = cache[data]  TODO! cache is disabled for easy debugging
 //        if (insn != null) return insn

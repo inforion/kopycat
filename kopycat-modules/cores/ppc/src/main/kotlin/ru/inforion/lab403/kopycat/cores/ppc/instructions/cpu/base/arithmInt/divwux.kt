@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,7 @@ package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.arithmInt
 
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.ppc.flags.FlagProcessor
+import ru.inforion.lab403.kopycat.cores.ppc.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCVariable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
@@ -45,7 +45,7 @@ class divwux(core: PPCCore, val overflow: Boolean, val record: Boolean, vararg o
         val opA = op2.value(core)
         val opB = op3.value(core)
 
-        val inv = (opB == 0L)
+        val inv = (opB == 0uL)
         if (!inv) {
             result.value(core, opA / opB)
 
@@ -54,6 +54,7 @@ class divwux(core: PPCCore, val overflow: Boolean, val record: Boolean, vararg o
             if (record)
                 FlagProcessor.processCR0(core, result)
         }
+
         if (overflow)
             FlagProcessor.processOverflowDiv(core, inv)
     }

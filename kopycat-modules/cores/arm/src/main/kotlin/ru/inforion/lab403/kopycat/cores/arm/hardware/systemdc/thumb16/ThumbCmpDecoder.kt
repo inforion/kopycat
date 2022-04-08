@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb16
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.SRType.SRType_LSL
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -41,13 +41,13 @@ object ThumbCmpDecoder {
     class ImmT1(cpu: AARMCore,
                 val constructor: (
                         cpu: AARMCore,
-                        opcode: Long,
+                        opcode: ULong,
                         cond: Condition,
                         rn: ARMRegister,
                         imm32: Immediate<AARMCore>,
                         size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
-            val rn = gpr(data[10..8].asInt)
+        override fun decode(data: ULong): AARMInstruction {
+            val rn = gpr(data[10..8].int)
             val imm32 = Immediate<AARMCore>(data[7..0])
             return constructor(core, data, Condition.AL, rn, imm32, 2)
         }
@@ -55,7 +55,7 @@ object ThumbCmpDecoder {
     class RegT1(cpu: AARMCore,
                 val constructor: (
                         cpu: AARMCore,
-                        opcode: Long,
+                        opcode: ULong,
                         cond: Condition,
                         setFlags: Boolean,
                         rd: ARMRegister,
@@ -64,16 +64,16 @@ object ThumbCmpDecoder {
                         shiftT: SRType,
                         shiftN: Int,
                         size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
-            val rn = gpr(data[2..0].asInt)
-            val rm = gpr(data[5..3].asInt)
+        override fun decode(data: ULong): AARMInstruction {
+            val rn = gpr(data[2..0].int)
+            val rm = gpr(data[5..3].int)
             return constructor(core, data, Condition.AL, false, rn, rn, rm, SRType_LSL, 0, 2)
         }
     }
     class RegT2(cpu: AARMCore,
                 val constructor: (
                         cpu: AARMCore,
-                        opcode: Long,
+                        opcode: ULong,
                         cond: Condition,
                         setFlags: Boolean,
                         rd: ARMRegister,
@@ -82,9 +82,9 @@ object ThumbCmpDecoder {
                         shiftT: SRType,
                         shiftN: Int,
                         size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
-            val m = data[6..3].asInt
-            val n = ((data[7] shl 3) + data[2..0]).asInt
+        override fun decode(data: ULong): AARMInstruction {
+            val m = data[6..3].int
+            val n = ((data[7] shl 3) + data[2..0]).int
             val rn = gpr(n)
             val rm = gpr(m)
             if(n < 8 && m < 8) throw Unpredictable

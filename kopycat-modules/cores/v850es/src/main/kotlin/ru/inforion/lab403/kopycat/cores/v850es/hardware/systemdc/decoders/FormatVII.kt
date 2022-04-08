@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -43,12 +43,12 @@ class FormatVII(
         val construct: constructor, val dtyp: Datatype, val lsb: Int = -1
 ) : ADecoder<AV850ESInstruction>(core) {
 
-    override fun decode(s: Long): AV850ESInstruction {
-        val reg1 = v850esRegister.gpr(s[4..0].asInt)
-        val reg2 = v850esRegister.gpr(s[15..11].asInt)
-        val bit = if (lsb != -1) s[lsb] else 0
+    override fun decode(s: ULong): AV850ESInstruction {
+        val reg1 = v850esRegister.gpr(s[4..0].int)
+        val reg2 = v850esRegister.gpr(s[15..11].int)
+        val bit = if (lsb != -1) s[lsb] else 0u
         val offset = cat(s[31..17], bit, 0)
-        val imm = v850esImmediate(Datatype.DWORD, signext(offset, 16).asLong, true)
+        val imm = v850esImmediate(Datatype.DWORD, offset.signextRenameMeAfter(15), true)
         val disp = v850esDisplacement(dtyp, reg1, imm)
         return construct(core, 4, arrayOf(reg2, disp))
     }

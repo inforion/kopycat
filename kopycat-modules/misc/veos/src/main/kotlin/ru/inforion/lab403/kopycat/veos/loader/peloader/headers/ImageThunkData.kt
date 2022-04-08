@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,21 +25,22 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.veos.loader.peloader.PEFile
 import java.nio.ByteBuffer
 
 
-class ImageThunkData(private val peFile: PEFile, private val input: ByteBuffer, val importAddress: Long) {
-    val forwarderString = input.int.asULong
+class ImageThunkData(private val peFile: PEFile, private val input: ByteBuffer, val importAddress: ULong) {
+    val forwarderString = input.int.ulong_z
     val function = forwarderString
     val addressOfData = forwarderString
-    val ordinal = (forwarderString ushr 30 == 1L)
-
+    val ordinal = (forwarderString ushr 30 == 1uL)
 
     fun toImageImportByName(): ImageImportByName {
         require (!ordinal) {"Can't translate for ordinal system"}
-        input.position(peFile.rva2foa(addressOfData).toInt())
+        input.position(peFile.rva2foa(addressOfData).int)
         return ImageImportByName(input)
     }
 }

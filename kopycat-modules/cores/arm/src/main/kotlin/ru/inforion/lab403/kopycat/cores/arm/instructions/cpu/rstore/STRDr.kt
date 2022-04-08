@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rstore
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.HaveLPAE
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -34,9 +35,11 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+import ru.inforion.lab403.kopycat.interfaces.*
+
 
 class STRDr(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val index: Boolean,
             val add: Boolean,
@@ -52,11 +55,11 @@ class STRDr(cpu: AARMCore,
         val offsetAddress = rn.value(core) + if (add) rm.value(core) else -rm.value(core)
         val address = if (index) offsetAddress else rn.value(core)
 
-        if(HaveLPAE() && address[2..0] == 0L)
+        if(HaveLPAE() && address[2..0] == 0uL)
             throw GeneralException("Not implemented!")
         else {
-            core.outl((address + 0) like Datatype.DWORD, rt.value(core))
-            core.outl((address + 4) like Datatype.DWORD, rt2.value(core))
+            core.outl((address + 0u) like Datatype.DWORD, rt.value(core))
+            core.outl((address + 4u) like Datatype.DWORD, rt2.value(core))
         }
         if (wback) rn.value(core, offsetAddress)
     }

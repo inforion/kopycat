@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb16
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.UN
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -34,16 +34,16 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload.LDRL
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 class ThumbLoadLiteralDecoder(cpu: AARMCore) : ADecoder<AARMInstruction>(cpu) {
-    private fun decodeT1(data: Long): AARMInstruction {
-        val rt = gpr(data[10..8].asInt)
+    private fun decodeT1(data: ULong): AARMInstruction {
+        val rt = gpr(data[10..8].int)
         val imm32 = imm(data[7..0] shl 2, false)
         return LDRL(core, data, UN, true, rt, imm32, 2)
     }
 
-    private fun decodeT2(data: Long): AARMInstruction = TODO()
+    private fun decodeT2(data: ULong): AARMInstruction = TODO()
 
-    override fun decode(data: Long): AARMInstruction {
-        return if (data[15..11] == 0b01001L) {
+    override fun decode(data: ULong): AARMInstruction {
+        return if (data[15..11] == 0b01001uL) {
             decodeT1(data)
         } else {
             decodeT2(data)

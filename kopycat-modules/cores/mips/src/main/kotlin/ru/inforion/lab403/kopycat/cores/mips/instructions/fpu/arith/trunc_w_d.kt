@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.arith
 
 import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.toULong
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong_s
 import ru.inforion.lab403.kopycat.cores.mips.instructions.FdFsInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -38,7 +39,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * Floating Point Convert to Double Floating Point
  */
 class trunc_w_d(core: MipsCore,
-                data: Long,
+                data: ULong,
                 fd: MipsRegister,
                 fs: MipsRegister) : FdFsInsn(core, data, Type.VOID, fd, fs) {
 
@@ -46,8 +47,8 @@ class trunc_w_d(core: MipsCore,
 
     override fun execute() {
         val double = dfs.ieee754()
-        val int = double.toInt()
-        vfd = int.toULong()
+        val int = double.int
+        vfd = int.ulong_s
 //        log.warning { "[%08X] $mnem $op1, $op3 [$double -> $int]".format(cpu.pc) }
     }
 }

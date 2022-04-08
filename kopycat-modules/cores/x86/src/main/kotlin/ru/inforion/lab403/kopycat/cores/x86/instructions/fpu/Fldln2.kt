@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.math
+import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
+import ru.inforion.lab403.common.math.math
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
@@ -40,6 +40,6 @@ class Fldln2(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperan
     override val mnem = "fldln2"
 
     override fun execute() {
-        (op1 as x86FprRegister).push(core, math.loge(2.0).ieee754())
+        (op1 as x86FprRegister).push(core, math.loge(2.0).ieee754AsUnsigned())
     }
 }

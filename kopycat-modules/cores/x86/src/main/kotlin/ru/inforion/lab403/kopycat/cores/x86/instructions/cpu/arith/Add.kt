@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ class Add(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
         val a1 = op1.value(core)
         val a2 = op2.value(core)
         val res = a1 + a2
-        val result = Variable<x86Core>(0, op1.dtyp)
+        val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
         FlagProcessor.processAddSubCmpFlag(core, result, op1, op2, false)
         op1.value(core, result)

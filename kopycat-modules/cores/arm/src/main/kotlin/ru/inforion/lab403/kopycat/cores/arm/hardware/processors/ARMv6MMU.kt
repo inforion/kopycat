@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,7 +23,9 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-@file:Suppress("NOTHING_TO_INLINE")
+@file:Suppress("NOTHING_TO_INLINE", "LocalVariableName", "MemberVisibilityCanBePrivate", "UNUSED_PARAMETER",
+    "FunctionName"
+)
 
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
@@ -39,6 +41,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
@@ -55,11 +58,11 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
     val acore = parent as AARMv6Core
 
     // See B3.19.2
-    inline fun FCSETranslate(va: Long): Long {
-        if (va[31..25] == 0L)
+    inline fun FCSETranslate(va: ULong): ULong {
+        if (va[31..25] == 0uL)
             //mva = FCSEIDR.PID:va<24:0>;
             // If FCSE is not implemented, FCSEIDR.PID is '0000000'
-            return va and bitMask(24..0)
+            return va and ubitMask64(24..0)
         return va
     }
 
@@ -70,7 +73,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         return when {
             rgn == 0b00 -> 0b0000 // Non-cacheable
             rgn and 1 == 1 -> { // Write-Back
-                val invbit = ((rgn shr 1) xor 1)
+                val invbit = ((rgn ushr 1) xor 1)
                 (invbit shl 2) or 0b1011
             }
             else -> 0b1010 // Write-Through
@@ -102,12 +105,12 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         TODO("TLBLookupCameFromCacheMaintenance")
     }
 
-    fun EncodeLDFSR(x: DAbort, y: Int): Long {
+    fun EncodeLDFSR(x: DAbort, y: Int): ULong {
         TODO("EncodeLDFSR")
     }
 
     // See B2.4.10
-    inline fun EncodeSDFSR(type: DAbort, level: Int): Long {
+    inline fun EncodeSDFSR(type: DAbort, level: Int): ULong {
         val levelbit = level and 0b10
         val result: Int = when (type) {
             DAbort.AccessFlag -> if (level == 1) 0b00011 else 0b00110
@@ -129,12 +132,12 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             DAbort.ICacheMaint -> 0b00100
             else -> TODO("UNKNOWN")
         }
-        return result.toLong()
+        return result.ulong_z
     }
 
     // See B2.4.10
-    fun DataAbort(vaddress: Long,
-                  ipaddress: Long,
+    fun DataAbort(vaddress: ULong,
+                  ipaddress: ULong,
                   domain: Int,
                   level: Int,
                   iswrite: Boolean,
@@ -148,7 +151,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
         // TODO: Only VMSA implementation
         if (!taketohypmode) {
-            var DFSRString = 0L
+            var DFSRString = 0uL
 
             if (type in setOf(DAbort.AsyncParity, DAbort.AsyncExternal, DAbort.AsyncWatchpoint) ||
                     (type == DAbort.SyncWatchpoint /*&& DBGDIDR.Version <= 4*/)) {
@@ -196,12 +199,12 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                                 DAbort.SyncExternalonWalk, DAbort.SyncParityonWalk)) ||
                         (/*!HaveLPAE() && */false && type == DAbort.Permission))
                 if (domain_valid) {
-                    DFSRString = DFSRString.insert(domain.toLong(), 7..4)
+                    DFSRString = DFSRString.insert(domain.ulong_z, 7..4)
                 } else {
 //                    DFSRString < 7:4> = bits(4) UNKNOWN;
                 }
                 val sdfsr = EncodeSDFSR(type, level)
-                DFSRString = if (sdfsr[4] == 1L) (DFSRString set 10) else (DFSRString clr 10)
+                DFSRString = if (sdfsr[4] == 1uL) (DFSRString set 10) else (DFSRString clr 10)
                 DFSRString = DFSRString.insert(sdfsr[3..0], 3..0)
             }
             acore.cpu.vmsa.dfsr.bits13_0 = DFSRString
@@ -266,15 +269,15 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
     }
 
     class FullAddress(
-            var physicalAddress: Long = 0L, // 40 bits
+            var physicalAddress: ULong = 0uL, // 40 bits
             var ns: Boolean = false, // false = Secure, true = Non-secure
 
 
             // Non-standard option:
-            var mask: Long = 0L
+            var mask: ULong = 0uL
     ): ISerializable {
 
-        fun updateAddress(mva: Long) {
+        fun updateAddress(mva: ULong) {
             physicalAddress = (physicalAddress and mask) or (mva and mask.inv())
         }
 
@@ -358,8 +361,8 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
     }
 
     fun TranslationTableWalkLD(
-            ia: Long,
-            va: Long,
+            ia: ULong,
+            va: ULong,
             is_write: Boolean,
             stage1: Boolean,
             s2fs1walk: Boolean,
@@ -369,8 +372,8 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
     fun CheckPermissionS2(
             perms: Permissions,
-            mva: Long,
-            ipa: Long,
+            mva: ULong,
+            ipa: ULong,
             level: Int,
             is_write: Boolean,
             s2fs1walk: Boolean) {
@@ -386,7 +389,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
     // the accesses generated from that requires a second stage of translation
     fun SecondStageTranslate(
             s1outaddrdesc: AddressDescriptor,
-            mva: Long,
+            mva: ULong,
             size: Int,
             is_write: Boolean): AddressDescriptor {
 
@@ -427,14 +430,14 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
     }
 
 
-    abstract class FirstLevelTLBEntry(val l1desc: Long) : ISerializable{
-        abstract fun getRecord(mva: Long, is_write: Boolean): TLBRecord
+    abstract class FirstLevelTLBEntry(val l1desc: ULong) : ISerializable{
+        abstract fun getRecord(mva: ULong, is_write: Boolean): TLBRecord
     }
 
-    inner class Fault(l1desc: Long): FirstLevelTLBEntry(l1desc) {
-        override fun getRecord(mva: Long, is_write: Boolean): TLBRecord {
+    inner class Fault(l1desc: ULong): FirstLevelTLBEntry(l1desc) {
+        override fun getRecord(mva: ULong, is_write: Boolean): TLBRecord {
             val taketohypmode = false
-            val IA = 0L // 40 bits
+            val IA = 0uL // 40 bits
             val ipavalid = false
             val stage2 = false
             val LDFSRformat = false
@@ -453,20 +456,20 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) = Unit
     }
 
-    inner class Page(l1desc: Long): FirstLevelTLBEntry(l1desc) {
+    inner class Page(l1desc: ULong): FirstLevelTLBEntry(l1desc) {
         val l2descs = Array<TLBRecord?>(256) { null }
 
-        val domain = l1desc[8..5].toInt()
+        val domain = l1desc[8..5].int
         val level = 2
-        val pxn = l1desc[2].toBool()
-        val NS = l1desc[3].toBool()
+        val pxn = l1desc[2].truth
+        val NS = l1desc[3].truth
 
-        override fun getRecord(mva: Long, is_write: Boolean): TLBRecord {
+        override fun getRecord(mva: ULong, is_write: Boolean): TLBRecord {
             val l2ind = mva[19..12]
-            val tl2desc = l2descs[l2ind.toInt()]
+            val tl2desc = l2descs[l2ind.int]
 
             val desc = if (tl2desc != null) tl2desc else {
-                val l2descaddr = (l1desc and bitMask(31..10)) or (mva[19..12] shl 2)
+                val l2descaddr = (l1desc and ubitMask64(31..10)) or (mva[19..12] shl 2)
 
                 if (!(!acore.cpu.haveVirtExt || acore.cpu.IsSecure()))
                     throw NotImplementedError("SecondStageTranslate")
@@ -476,19 +479,19 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                     throw NotImplementedError("Big endian")
 
                 val taketohypmode = false
-                val IA = 0L // 40 bits
+                val IA = 0uL // 40 bits
                 val ipavalid = false
                 val stage2 = false
                 val LDFSRformat = false
                 val s2fs1walk = false
-                if (l2desc[1..0] == 0b00L)
+                if (l2desc[1..0] == 0b00uL)
                     DataAbort(mva, IA, domain, level, is_write, DAbort.Translation,
                             taketohypmode, stage2, ipavalid, LDFSRformat, s2fs1walk)
 
-                val S = l2desc[10].toBool()
-                val ap = ((l2desc[9] shl 2) or l2desc[5..4]).toInt()
-                val nG = l2desc[11].toBool()
-                if (acore.cpu.vmsa.sctlr.afe && l2desc[4] == 0L) {
+                val S = l2desc[10].truth
+                val ap = (l2desc[9] shl 2 or l2desc[5..4]).int
+                val nG = l2desc[11].truth
+                if (acore.cpu.vmsa.sctlr.afe && l2desc[4] == 0uL) {
                     when {
                         acore.cpu.vmsa.sctlr.ha -> DataAbort(mva, IA, domain, level, is_write, DAbort.AccessFlag,
                                 taketohypmode, stage2, ipavalid, LDFSRformat, s2fs1walk)
@@ -500,18 +503,18 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
                 val xn: Boolean
                 val blocksize: Int
-                val physicaladdress: Long
-                val mask: Long
-                if (l2desc[1]== 0L) {// Large page
-                    xn = l2desc[15].toBool()
+                val physicaladdress: ULong
+                val mask: ULong
+                if (l2desc[1]== 0uL) {// Large page
+                    xn = l2desc[15].truth
                     blocksize = 64
-                    mask = bitMask(31..16)
+                    mask = ubitMask64(31..16)
                     physicaladdress = (l2desc and mask) or (mva and mask.inv())
                 }
                 else { // Small page
-                    xn = l2desc[0].toBool()
+                    xn = l2desc[0].truth
                     blocksize = 4
-                    mask = bitMask(31..12)
+                    mask = ubitMask64(31..12)
                     physicaladdress = (l2desc and mask) or (mva and mask.inv())
                 }
 
@@ -538,7 +541,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                         level = level,
                         blocksize = blocksize
                 )
-                l2descs[l2ind.toInt()] = result
+                l2descs[l2ind.int] = result
                 result
             }
             desc.addrdesc.paddress.updateAddress(mva)
@@ -559,28 +562,28 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
     }
 
-    inner class Section(l1desc: Long, mva: Long): FirstLevelTLBEntry(l1desc) {
-        val texcb = ((l1desc[14..12] shl 2) or (l1desc[3] shl 1) or l1desc[2]).toInt()
-        val S = l1desc[16].toBool()
-        val ap = ((l1desc[15] shl 2) or l1desc[11..10]).toInt()
-        val xn = l1desc[4].toBool()
-        val pxn = l1desc[0].toBool()
-        val nG = l1desc[17].toBool()
+    inner class Section(l1desc: ULong, mva: ULong): FirstLevelTLBEntry(l1desc) {
+        val texcb = (l1desc[14..12] shl 2 or (l1desc[3] shl 1) or l1desc[2]).int
+        val S = l1desc[16].truth
+        val ap = (l1desc[15] shl 2 or l1desc[11..10]).int
+        val xn = l1desc[4].truth
+        val pxn = l1desc[0].truth
+        val nG = l1desc[17].truth
         val level = 1
-        val NS = l1desc[19].toBool()
+        val NS = l1desc[19].truth
         val entry: TLBRecord
 
         init {
             val domain: Int
             val blocksize: Int
-            val physicaladdressext: Long
-            val physicaladdress: Long
-            val mask: Long
-            if (l1desc[18] == 0L) { // Section
-                domain = l1desc[8..5].toInt()
+            val physicaladdressext: ULong
+            val physicaladdress: ULong
+            val mask: ULong
+            if (l1desc[18] == 0uL) { // Section
+                domain = l1desc[8..5].int
                 blocksize = 1024
-                physicaladdressext = 0b00000000L
-                mask = bitMask(31..20)
+                physicaladdressext = 0b00000000uL
+                mask = ubitMask64(31..20)
                 physicaladdress = (l1desc and mask) or (mva and mask.inv())
             }
             else // Supersection
@@ -611,7 +614,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             )
         }
 
-        override fun getRecord(mva: Long, is_write: Boolean): TLBRecord {
+        override fun getRecord(mva: ULong, is_write: Boolean): TLBRecord {
             entry.addrdesc.paddress.updateAddress(mva)
             return entry
         }
@@ -634,11 +637,11 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         tlb_fast.fill(null)
     }
 
-    fun getTLBRecord(mva: Long, is_write: Boolean): TLBRecord {
-        val ttbr: Long // 64 bits
-        val ttbcrN = acore.cpu.vmsa.ttbcr.n.toInt()
+    fun getTLBRecord(mva: ULong, is_write: Boolean): TLBRecord {
+        val ttbr: ULong // 64 bits
+        val ttbcrN = acore.cpu.vmsa.ttbcr.n.int
 
-        val n = if (ttbcrN == 0 || mva[31..(32-ttbcrN)] == 0L) {
+        val n = if (ttbcrN == 0 || mva[31..(32-ttbcrN)] == 0uL) {
             ttbr = acore.cpu.vmsa.ttbr0.value
             ttbcrN
         }
@@ -648,15 +651,15 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         }
 
         val ind = mva[(31-n)..20]
-        val flte = tlb_fast[ind.toInt()]
+        val flte = tlb_fast[ind.int]
         val entry = if (flte != null) flte else {
             if (!(!acore.cpu.haveVirtExt || acore.cpu.IsSecure()))
                 throw NotImplementedError("Second stage was not tested")
 
-            val l1descaddr = ttbr and bitMask(31..(14 - n)) or (mva[(31-n)..20] shl 2)
+            val l1descaddr = ttbr and ubitMask64(31..(14 - n)) or (mva[(31-n)..20] shl 2)
             val l1desc = ports.outp.inl(l1descaddr)
 
-            when (l1desc[1..0].toInt()) {
+            when (l1desc[1..0].int) {
                 0b00 -> { // Fault, Reserved
                     Fault(l1desc)
                 }
@@ -668,12 +671,12 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                 }
             }
         }
-        tlb_fast[ind.toInt()] = entry
+        tlb_fast[ind.int] = entry
         return entry.getRecord(mva, is_write)
     }
 
 
-    inline fun TranslateAddressVFast(ea: Long, ss: Int, size: Int, LorS: AccessAction): Long {
+    inline fun TranslateAddressVFast(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong {
         if (!enabled) // TODO: refactor
             return ea
 
@@ -686,8 +689,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         val tlbrecordS1: TLBRecord
         try {
             tlbrecordS1 = getTLBRecord(ea, LorS == AccessAction.STORE)
-        }
-        catch (e: ARMHardwareException.DataAbortException) {
+        } catch (e: ARMHardwareException.DataAbortException) {
             if (LorS == AccessAction.FETCH)
                 throw ARMHardwareException.PrefetchAbortException
             throw e
@@ -707,7 +709,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
 
     // See B3.19.6
-    fun TranslationTableWalkSD(mva: Long, is_write: Boolean, size: Int): TLBRecord {
+    fun TranslationTableWalkSD(mva: ULong, is_write: Boolean, size: Int): TLBRecord {
 
         // this is only called when the MMU is enabled
         val result: TLBRecord
@@ -716,7 +718,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
         // variables for DAbort function
         val taketohypmode = false
-        val IA = 0L // 40 bits
+        val IA = 0uL // 40 bits
         val ipavalid = false
         val stage2 = false
         val LDFSRformat = false
@@ -726,10 +728,10 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         var domain = 0 // 4 bits
 
         // Determine correct Translation Table Base Register to use.
-        val ttbr: Long // 64 bits
-        var n = acore.cpu.vmsa.ttbcr.n.toInt()
+        val ttbr: ULong // 64 bits
+        var n = acore.cpu.vmsa.ttbcr.n.int
 
-        val disabled = if (n == 0 || mva[31..(32-n)] == 0L){
+        val disabled = if (n == 0 || mva[31..(32-n)] == 0uL){
             ttbr = acore.cpu.vmsa.ttbr0.value
 //            acore.cpu.vmsa.ttbcr.pd0
             false
@@ -748,7 +750,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 //                    taketohypmode, stage2, ipavalid, LDFSRformat, s2fs1walk);
         }
 
-//        val tlbEntry = tlb[mva[(31-n)..20].toInt()]
+//        val tlbEntry = tlb[mva[(31-n)..20].int]
 //        if (tlbEntry != null) {
 //            val physicaladdress = (tlbEntry.addrdesc.paddress.physicalAddress and bitMask(31..20)) or
 //                    (mva and bitMask(19..0))
@@ -758,7 +760,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
         // Obtain First level descriptor.
         val paddress = FullAddress(
-                physicalAddress = ttbr and bitMask(31..(14 - n)) or (mva[(31-n)..20] shl 2),
+                physicalAddress = ttbr and ubitMask64(31..(14 - n)) or (mva[(31-n)..20] shl 2),
                 ns = !acore.cpu.IsSecure()
         )
 
@@ -771,21 +773,21 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         */
         val innerattrs: Int
         val innerhints: Int
-        if (ttbr[0] == 0L) {
+        if (ttbr[0] == 0uL) {
             val hintsattrs = ConvertAttrsHints(0b00)
-            innerattrs = hintsattrs[1..0].toInt()
-            innerhints = hintsattrs[3..2].toInt()
+            innerattrs = hintsattrs[1..0]
+            innerhints = hintsattrs[3..2]
         } else {
             // l1descaddr.memattrs.innerattrs = IMPLEMENTATION_DEFINED 10 or 11;
             // l1descaddr.memattrs.innerhints = IMPLEMENTATION_DEFINED 01 or 11;
             TODO("Not implemented")
         }
 
-        val hintsattrs = ConvertAttrsHints(ttbr[4..3].toInt())
+        val hintsattrs = ConvertAttrsHints(ttbr[4..3].int)
         val memattrs = MemoryAttributes(
                 type = MemType.Normal,
-                shareable = ttbr[1] == 1L,
-                outersharable = ttbr[5] == 0L,
+                shareable = ttbr[1] == 1uL,
+                outersharable = ttbr[5] == 0uL,
 
                 outerattrs = hintsattrs[1..0],
                 outerhints = hintsattrs[3..2],
@@ -819,9 +821,9 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         val level: Int
         val NS: Boolean
         val blocksize: Int
-        val physicaladdressext: Long
-        val physicaladdress: Long
-        when (l1desc[1..0].toInt()) {
+        val physicaladdressext: ULong
+        val physicaladdress: ULong
+        when (l1desc[1..0].int) {
             0b00 -> { // Fault, Reserved
                 level = 1
                 DataAbort(mva, IA, domain, level, is_write, DAbort.Translation,
@@ -829,16 +831,16 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                 throw IllegalStateException("Unreachable code")
             }
             0b01 -> { // Large page or Small page
-                domain = l1desc[8..5].toInt()
+                domain = l1desc[8..5].int
                 level = 2
-                pxn = l1desc[2].toBool()
-                NS = l1desc[3].toBool()
+                pxn = l1desc[2].truth
+                NS = l1desc[3].truth
 
                 // Obtain Second level descriptor.
                 l2descaddr = AddressDescriptor(
                         memattrs = l1descaddr.memattrs,
                         paddress = FullAddress(
-                                physicalAddress = (l1desc and bitMask(31..10)) or (mva[19..12] shl 2),
+                                physicalAddress = (l1desc and ubitMask64(31..10)) or (mva[19..12] shl 2),
                                 ns = /* if IsSecure() then '0' else '1'; */ false
                         )
 
@@ -856,14 +858,14 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 //                        l2desc = BigEndianReverse(l2desc,4);
 
                 // Process Second level descriptor.
-                if (l2desc[1..0] == 0b00L)
+                if (l2desc[1..0] == 0b00uL)
                     DataAbort(mva, IA, domain, level, is_write, DAbort.Translation,
                             taketohypmode, stage2, ipavalid, LDFSRformat, s2fs1walk)
 
-                S = l2desc[10].toBool()
-                ap = ((l2desc[9] shl 2) or l2desc[5..4]).toInt()
-                nG = l2desc[11].toBool()
-                if (acore.cpu.vmsa.sctlr.afe && l2desc[4] == 0L) {
+                S = l2desc[10].truth
+                ap = ((l2desc[9] shl 2) or l2desc[5..4]).int
+                nG = l2desc[11].truth
+                if (acore.cpu.vmsa.sctlr.afe && l2desc[4] == 0uL) {
                     when {
                         acore.cpu.vmsa.sctlr.ha -> DataAbort(mva, IA, domain, level, is_write, DAbort.AccessFlag,
                                 taketohypmode, stage2, ipavalid, LDFSRformat, s2fs1walk)
@@ -873,30 +875,30 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                     }
                 }
 
-                if (l2desc[1]== 0L) {// Large page
+                if (l2desc[1]== 0uL) {// Large page
 //                    texcb = l2desc < 14:12, 3, 2>;
-                    xn = l2desc[15].toBool()
+                    xn = l2desc[15].truth
                     blocksize = 64
-                    physicaladdressext = 0b00000000L
-                    physicaladdress = (l2desc and bitMask(31..16)) or (mva and bitMask(15..0))
+                    physicaladdressext = 0b00000000uL
+                    physicaladdress = (l2desc and ubitMask64(31..16)) or (mva and ubitMask64(15..0))
                 }
                 else { // Small page
 //                    texcb = l2desc<8:6,3,2>;
-                    xn = l2desc[0].toBool()
+                    xn = l2desc[0].truth
                     blocksize = 4
-                    physicaladdressext = 0b00000000L
-                    physicaladdress = (l2desc and bitMask(31..12)) or (mva and bitMask(11..0))
+                    physicaladdressext = 0b00000000uL
+                    physicaladdress = (l2desc and ubitMask64(31..12)) or (mva and ubitMask64(11..0))
                 }
             }
             else -> { // Section or Supersection
-                texcb = ((l1desc[14..12] shl 2) or (l1desc[3] shl 1) or l1desc[2]).toInt()
-                S = l1desc[16].toBool()
-                ap = ((l1desc[15] shl 2) or l1desc[11..10]).toInt()
-                xn = l1desc[4].toBool()
-                pxn = l1desc[0].toBool()
-                nG = l1desc[17].toBool()
+                texcb = ((l1desc[14..12] shl 2) or (l1desc[3] shl 1) or l1desc[2]).int
+                S = l1desc[16].truth
+                ap = (l1desc[15] shl 2 or l1desc[11..10]).int
+                xn = l1desc[4].truth
+                pxn = l1desc[0].truth
+                nG = l1desc[17].truth
                 level = 1
-                NS = l1desc[19].toBool()
+                NS = l1desc[19].truth
 
                 // Not implemented in VMSAv6
 //                if (sctlr.afe && l1desc[10] == 0L) {
@@ -914,11 +916,11 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 //                }
 
 
-                if (l1desc[18] == 0L) { // Section
-                    domain = l1desc[8..5].toInt()
+                if (l1desc[18] == 0uL) { // Section
+                    domain = l1desc[8..5].int
                     blocksize = 1024
-                    physicaladdressext = 0b00000000L
-                    physicaladdress = (l1desc and bitMask(31..20)) or (mva and bitMask(19..0))
+                    physicaladdressext = 0b00000000uL
+                    physicaladdress = (l1desc and ubitMask64(31..20)) or (mva and ubitMask64(19..0))
                 }
                 else {// Supersection
 //                    domain = 0b0000
@@ -967,7 +969,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
                 blocksize = blocksize
         )
 
-//        this.tlb[mva[(31-n)..20].toInt()] = result
+//        this.tlb[mva[(31-n)..20].int] = result
 
         return result
     }
@@ -980,14 +982,14 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
     // VMSA Long-descriptor format
     // VMSA Short-descriptor format
     // PMSA format.
-    fun CheckPermission(perms: Permissions, mva: Long, level: Int, domain: Int, isWrite: Boolean,
+    fun CheckPermission(perms: Permissions, mva: ULong, level: Int, domain: Int, isWrite: Boolean,
                         isPriv: Boolean, taketohypmode: Boolean, LDFSRformat: Boolean) {
 
         // variable for the DataAbort function with fixed values
         val secondstageabort = false
         val ipavalid = false
         val s2fs1walk = false
-        val ipa = 0L //bits(40) UNKNOWN;
+        val ipa = 0uL //bits(40) UNKNOWN;
         if (acore.cpu.vmsa.sctlr.afe)
             perms.ap = perms.ap or 1
 
@@ -1014,9 +1016,9 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
     }
 
     // See B3.19.4
-    fun CheckDomain(domain: Int, mva: Long, level: Int, isWrite: Boolean): Boolean {
+    fun CheckDomain(domain: Int, mva: ULong, level: Int, isWrite: Boolean): Boolean {
         // variables used for dataabort function
-        val ipaddress = 0L // UNKNOWN
+        val ipaddress = 0uL // UNKNOWN
         val taketohypmode = false
         val secondstageabort = false
         val ipavalid = false
@@ -1025,21 +1027,21 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
         val bitpos = 2*domain
         val permissionCheck: Boolean
         when (acore.cpu.vmsa.dacr.value[(bitpos + 1)..bitpos] ) {
-            0b00L -> {
+            0b00uL -> {
                 DataAbort(mva, ipaddress, domain, level, isWrite, DAbort.Domain, taketohypmode, secondstageabort,
                         ipavalid, LDFSRformat, s2fs1walk)
                 throw IllegalStateException("Unreachable code")
             }
-            0b01L -> permissionCheck = true
-            0b10L -> throw ARMHardwareException.Unpredictable
-            0b11L -> permissionCheck = false
+            0b01uL -> permissionCheck = true
+            0b10uL -> throw ARMHardwareException.Unpredictable
+            0b11uL -> permissionCheck = false
             else -> throw IllegalStateException("Unreachable code")
         }
         return permissionCheck
     }
 
     // See B3.19.3
-    inline fun TranslateAddressV(ea: Long, ss: Int, size: Int, LorS: AccessAction): Long {
+    inline fun TranslateAddressV(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong {
         if (!enabled) // TODO: refactor
             return ea
 
@@ -1131,7 +1133,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
     }
 
-    override fun translate(ea: Long, ss: Int, size: Int, LorS: AccessAction): Long  = TranslateAddressVFast(ea, ss, size, LorS) //TranslateAddressV(ea, ss, size, LorS)
+    override fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong  = TranslateAddressVFast(ea, ss, size, LorS) //TranslateAddressV(ea, ss, size, LorS)
 
     /*
     snapshot = mapOf(
@@ -1171,15 +1173,15 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             tlb_fast[i] = if (recordSnapshot == null) null else {
                 val l1desc = recordSnapshot["l1desc"] as Long
                 val entry = recordSnapshot["entry"] as Map<String, Any>
-                when(l1desc[1..0].toInt()) {
+                when(l1desc[1..0].int) {
                     0b00 -> { // Fault, Reserved
-                        Fault(l1desc)
+                        Fault(l1desc.ulong)
                     }
                     0b01 -> { // Large page or Small page
-                        Page(l1desc).apply { deserialize(ctxt, entry) }
+                        Page(l1desc.ulong).apply { deserialize(ctxt, entry) }
                     }
                     else -> { // Section or Supersection
-                        Section(l1desc, 0L).apply { deserialize(ctxt, entry) }
+                        Section(l1desc.ulong, 0uL).apply { deserialize(ctxt, entry) }
                     }
                 }
             }

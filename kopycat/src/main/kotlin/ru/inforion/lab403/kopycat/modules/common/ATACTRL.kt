@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,6 +37,7 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.serializer.*
+import ru.inforion.lab403.kopycat.interfaces.*
 import java.nio.ByteBuffer
 import java.util.logging.Level.FINER
 import java.util.logging.Level.FINEST
@@ -92,21 +93,21 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
         rewind()
     }
 
-    private fun readParameters(buf: ByteBuffer) = buf.rewrite(ports.ata.load(0, ATA_SECTOR_SIZE, ATA_PARAM_AREA))
+    private fun readParameters(buf: ByteBuffer) = buf.rewrite(ports.ata.load(0u, ATA_SECTOR_SIZE, ATA_PARAM_AREA))
 
-    private fun readParameter(id: Int): Long = ports.ata.inw(2 * id.asULong, ATA_PARAM_AREA)
-    private fun writeParameter(id: Int, value: Int) = ports.ata.outw(2 * id.asULong, value.asULong, ATA_PARAM_AREA)
+    private fun readParameter(id: Int): ULong = ports.ata.inw(2u * id.ulong_z, ATA_PARAM_AREA)
+    private fun writeParameter(id: Int, value: Int) = ports.ata.outw(2u * id.ulong_z, value.ulong_z, ATA_PARAM_AREA)
 
     private fun readSector(buf: ByteBuffer, lba: Int, offset: Int = 0) =
             buf.rewrite(ports.ata.load(getAddress(lba, offset), ATA_SECTOR_SIZE, ATA_DATA_AREA))
     private fun writeSector(buf: ByteBuffer, lba: Int, offset: Int = 0) =
             ports.ata.store(getAddress(lba, offset), buf.array(), ATA_DATA_AREA)
 
-    private fun getAddress(lba: Int, offset: Int) = (lba * ATA_SECTOR_SIZE + offset).asULong
+    private fun getAddress(lba: Int, offset: Int) = (lba * ATA_SECTOR_SIZE + offset).ulong_z
 
     private fun getLogicalBlockAddress(): Int {
         return if (ATA_SDH.LBA == 1) {
-            insert(ATA_SDH.HS.asULong, 27..24)
+            insert(ATA_SDH.HS, 27..24)
                     .insert(ATA_CYL_HI.data, 23..16)
                     .insert(ATA_CYL_LO.data, 15..8)
                     .insert(ATA_SECTOR.data, 7..0)
@@ -117,11 +118,11 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
             val sector = ATA_SECTOR.data
             val cyl = insert(ATA_CYL_HI.data, 15..8)
                     .insert(ATA_CYL_LO.data, 7..0)
-            (cyl * heads + head) * sectors + (sector - 1)
-        }.asInt
+            (cyl * heads + head) * sectors + (sector - 1u)
+        }.int
     }
 
-    private fun getSectorsCount(): Int = ATA_SECCNT.data.asInt
+    private fun getSectorsCount(): Int = ATA_SECCNT.data.int
 
     val readyTimer = object : SystemClock.OneshotTimer("ATA Work Ready Timer") {
 
@@ -133,7 +134,7 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
             if (ATA_DCONTROL.IEn == 0)
                 ports.irq.request(0)
 
-            ATA_ERROR.data = error.id.asULong
+            ATA_ERROR.data = error.id.ulong_z
 
             if (error != ERROR.NO_ERROR_DETECTED) {
                 error = ERROR.NO_ERROR_DETECTED
@@ -154,8 +155,8 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
                 }
 
                 COMMAND.ATA_CMD_INITP -> {
-                    writeParameter(55, ATA_SDH.HS + 1)  // currentHeads
-                    writeParameter(56, ATA_SECCNT.data.asInt)  // currentSectors
+                    writeParameter(55, ATA_SDH.HS.int + 1)  // currentHeads
+                    writeParameter(56, ATA_SECCNT.data.int)  // currentSectors
                     command = COMMAND.ATA_CMD_IDLE
                 }
 
@@ -177,9 +178,9 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    val ATA_DATA = object : Register(ports.io, 0x1F0, WORD, "ATA_DATA") {
+    val ATA_DATA = object : Register(ports.io, 0x1F0u, WORD, "ATA_DATA") {
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             when (command) {
                 COMMAND.ATA_CMD_IDLE -> {
                     log.warning { "Reading when IDLE state..." }
@@ -187,8 +188,8 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
 
                 COMMAND.ATA_CMD_IDENT_DEV -> {
                     val result = when (size) {
-                        WORD.bytes -> buffer.short.asULong
-                        BYTE.bytes -> buffer.byte.asULong
+                        WORD.bytes -> buffer.short.ulong_z
+                        BYTE.bytes -> buffer.byte.ulong_z
                         else -> throw IllegalArgumentException("Wrong datatype!")
                     }
 
@@ -202,8 +203,8 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
 
                 COMMAND.ATA_CMD_READ -> {
                     val result = when (size) {
-                        WORD.bytes -> buffer.short.asULong.swap16()
-                        BYTE.bytes -> buffer.byte.asULong
+                        WORD.bytes -> buffer.short.ulong_z.swap16()
+                        BYTE.bytes -> buffer.byte.ulong_z
                         else -> throw IllegalArgumentException("Wrong datatype!")
                     }
 
@@ -225,10 +226,10 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
                 else -> log.warning { "ATA command data read processing not implemented: $command" }
             }
 
-            return 0
+            return 0u
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
             when (command) {
@@ -238,8 +239,8 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
 
                 COMMAND.ATA_CMD_WRITE -> {
                     when (size) {
-                        WORD.bytes -> buffer.putShort(value.swap16().asShort)
-                        BYTE.bytes -> buffer.put(value.asByte)
+                        WORD.bytes -> buffer.putShort(value.swap16().short)
+                        BYTE.bytes -> buffer.put(value.byte)
                         else -> throw IllegalArgumentException("Wrong datatype!")
                     }
 
@@ -263,43 +264,43 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    val ATA_FEATURE = Register(ports.io, 0x1F1, BYTE,"ATA_FEATURE", readable = false, level = FINER)
-    val ATA_ERROR = Register(ports.io, 0x1F1, BYTE,"ATA_ERROR", writable = false)
+    val ATA_FEATURE = Register(ports.io, 0x1F1u, BYTE,"ATA_FEATURE", readable = false, level = FINER)
+    val ATA_ERROR = Register(ports.io, 0x1F1u, BYTE,"ATA_ERROR", writable = false)
 
-    val ATA_SECCNT = object : Register(ports.io, 0x1F2, BYTE, "ATA_SECCNT", level = FINER) {
-        override fun read(ea: Long, ss: Int, size: Int): Long = if (ATA_SDH.DRV == 0) 0x01 else 0 // ata signature
+    val ATA_SECCNT = object : Register(ports.io, 0x1F2u, BYTE, "ATA_SECCNT", level = FINER) {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = if (ATA_SDH.DRV == 0) 0x01u else 0u // ata signature
     }
 
-    val ATA_SECTOR = object : Register(ports.io, 0x1F3, BYTE, "ATA_SECTOR", level = FINER) {
-        override fun read(ea: Long, ss: Int, size: Int): Long = if (ATA_SDH.DRV == 0) 0x01 else 0 // ata signature
+    val ATA_SECTOR = object : Register(ports.io, 0x1F3u, BYTE, "ATA_SECTOR", level = FINER) {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = if (ATA_SDH.DRV == 0) 0x01u else 0u // ata signature
     }
 
-    val ATA_CYL_LO = object : Register(ports.io,0x1F4, BYTE, "ATA_CYL_LO", level = FINER) {
-        override fun read(ea: Long, ss: Int, size: Int): Long = 0x00 // ata signature
+    val ATA_CYL_LO = object : Register(ports.io,0x1F4u, BYTE, "ATA_CYL_LO", level = FINER) {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = 0x00u // ata signature
     }
-    val ATA_CYL_HI = object : Register(ports.io, 0x1F5, BYTE, "ATA_CYL_HI", level = FINER) {
-        override fun read(ea: Long, ss: Int, size: Int): Long = 0x00 // ata signature
+    val ATA_CYL_HI = object : Register(ports.io, 0x1F5u, BYTE, "ATA_CYL_HI", level = FINER) {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = 0x00u // ata signature
     }
 
-    inner class ATA_SDH_CLASS(address: Long) : Register(ports.io, address, BYTE, "ATA_SDH", level = FINER) {
+    inner class ATA_SDH_CLASS(address: ULong) : Register(ports.io, address, BYTE, "ATA_SDH", level = FINER) {
         var LBA by bit(6)
         var DRV by bit(4)
         var HS by field(3..0)
     }
 
-    val ATA_SDH = ATA_SDH_CLASS(0x1F6)
+    val ATA_SDH = ATA_SDH_CLASS(0x1F6u)
 
-    val ATA_STATUS = Register(ports.io, 0x1F7, BYTE, "ATA_STATUS", writable = false, level = FINEST)
+    val ATA_STATUS = Register(ports.io, 0x1F7u, BYTE, "ATA_STATUS", writable = false, level = FINEST)
 
-    val ATA_COMMAND = object : Register(ports.io, 0x1F7, BYTE, "ATA_COMMAND", readable = false, level = FINEST) {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+    val ATA_COMMAND = object : Register(ports.io, 0x1F7u, BYTE, "ATA_COMMAND", readable = false, level = FINEST) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
-            val cmd = find<COMMAND> { data.asInt == it.id }
+            val cmd = find<COMMAND> { data.int == it.id }
 
             ATA_ASTATUS.RDY = 0
             ATA_ASTATUS.BUSY = 1
-            ATA_ERROR.data = 0
+            ATA_ERROR.data = 0u
 
             readyTimer.enabled = true
 
@@ -333,7 +334,7 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    inner class ATA_RO_ASTATUS_CLASS(address: Long) : Register(
+    inner class ATA_RO_ASTATUS_CLASS(address: ULong) : Register(
             ports.io, address, BYTE, "ATA_ASTATUS", writable = false, level = FINEST) {
 
 //        The busy bit is set when the CompactFlash Memory Card has access to the command buffer and registers and
@@ -367,7 +368,7 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
         var ERR by bit(0)
     }
 
-    inner class ATA_WO_DCONTROL_CLASS(address: Long) : Register(
+    inner class ATA_WO_DCONTROL_CLASS(address: ULong) : Register(
             ports.io, address, BYTE, "ATA_DCONTROL", readable = false) {
 
 //        This bit is ignored by the CompactFlash Memory Card.
@@ -386,7 +387,7 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
 //        This bit is ignored by the CompactFlash Memory Card.
         val D0 by bit(0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
             if (D3 != 1) log.warning { "D3 bit written by 0" }
@@ -402,10 +403,10 @@ class ATACTRL(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    val ATA_ASTATUS = ATA_RO_ASTATUS_CLASS(0x3F6)
-    val ATA_DCONTROL = ATA_WO_DCONTROL_CLASS(0x3F6)
+    val ATA_ASTATUS = ATA_RO_ASTATUS_CLASS(0x3F6u)
+    val ATA_DCONTROL = ATA_WO_DCONTROL_CLASS(0x3F6u)
 
-    val ATA_ADDRESS = Register(ports.io, 0x3F7, BYTE, "ATA_ADDRESS")
+    val ATA_ADDRESS = Register(ports.io, 0x3F7u, BYTE, "ATA_ADDRESS")
 
     override fun initialize(): Boolean {
         if (!super.initialize()) return false

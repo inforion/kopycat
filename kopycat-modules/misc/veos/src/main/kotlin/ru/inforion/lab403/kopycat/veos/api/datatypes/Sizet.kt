@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,64 +27,67 @@
 
 package ru.inforion.lab403.kopycat.veos.api.datatypes
 
+import ru.inforion.lab403.common.extensions.*
 
-inline class Sizet constructor(val data: ULong) : Comparable<Sizet>  {
 
-    /**
-     * Compares this value with the specified value for order.
-     * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
-     * or a positive number if it's greater than other.
-     */
-    inline operator fun compareTo(other: Byte): Int = toULong().compareTo(other.toULong())
+@JvmInline
+value class Sizet constructor(val data: ULong) : Comparable<Sizet>  {
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: Short): Int = toULong().compareTo(other.toULong())
+    inline operator fun compareTo(other: Byte): Int = ulong.compareTo(other.ulong_z)
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: Int): Int = toULong().compareTo(other.toULong())
+    inline operator fun compareTo(other: Short): Int = ulong.compareTo(other.ulong_z)
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: Long): Int = toULong().compareTo(other.toULong())
+    inline operator fun compareTo(other: Int): Int = ulong.compareTo(other.ulong_z)
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: UByte): Int = toULong().compareTo(other.toULong())
+    inline operator fun compareTo(other: Long): Int = ulong.compareTo(other.ulong)
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: UShort): Int = toULong().compareTo(other.toULong())
+    inline operator fun compareTo(other: UByte): Int = ulong.compareTo(other.ulong_z)
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: UInt): Int = toULong().compareTo(other.toULong())
+    inline operator fun compareTo(other: UShort): Int = ulong.compareTo(other.ulong_z)
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: ULong): Int = toULong().compareTo(other)
+    inline operator fun compareTo(other: UInt): Int = ulong.compareTo(other.ulong_z)
+
+    /**
+     * Compares this value with the specified value for order.
+     * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
+     * or a positive number if it's greater than other.
+     */
+    inline operator fun compareTo(other: ULong): Int = ulong.compareTo(other)
 
     /**
      * Compares this value with the specified value for order.
@@ -92,102 +95,102 @@ inline class Sizet constructor(val data: ULong) : Comparable<Sizet>  {
      * or a positive number if it's greater than other.
      */
     @Suppress("OVERRIDE_BY_INLINE")
-    override inline operator fun compareTo(other: Sizet): Int = toULong().compareTo(other.toULong())
+    override inline operator fun compareTo(other: Sizet): Int = ulong.compareTo(other.ulong)
 
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Byte): Sizet = plus(other.toULong())
+    inline operator fun plus(other: Byte): Sizet = plus(other.ulong_z)
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Short): Sizet = plus(other.toULong())
+    inline operator fun plus(other: Short): Sizet = plus(other.ulong_z)
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Int): Sizet = plus(other.toULong())
+    inline operator fun plus(other: Int): Sizet = plus(other.ulong_z)
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Long): Sizet = plus(other.toULong())
+    inline operator fun plus(other: Long): Sizet = plus(other.ulong)
     /** Adds the other value to this value. */
-    inline operator fun plus(other: UByte): Sizet = plus(other.toULong())
+    inline operator fun plus(other: UByte): Sizet = plus(other.ulong_z)
     /** Adds the other value to this value. */
-    inline operator fun plus(other: UShort): Sizet = plus(other.toULong())
+    inline operator fun plus(other: UShort): Sizet = plus(other.ulong_z)
     /** Adds the other value to this value. */
-    inline operator fun plus(other: UInt): Sizet = plus(other.toULong())
+    inline operator fun plus(other: UInt): Sizet = plus(other.ulong_z)
     /** Adds the other value to this value. */
-    inline operator fun plus(other: ULong): Sizet = Sizet(toULong().plus(other))
+    inline operator fun plus(other: ULong): Sizet = Sizet(ulong.plus(other))
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Sizet): Sizet = plus(other.toULong())
+    inline operator fun plus(other: Sizet): Sizet = plus(other.ulong)
 
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Byte): Sizet = minus(other.toULong())
+    inline operator fun minus(other: Byte): Sizet = minus(other.ulong_z)
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Short): Sizet = minus(other.toULong())
+    inline operator fun minus(other: Short): Sizet = minus(other.ulong_z)
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Int): Sizet = minus(other.toULong())
+    inline operator fun minus(other: Int): Sizet = minus(other.ulong_z)
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Long): Sizet = minus(other.toULong())
+    inline operator fun minus(other: Long): Sizet = minus(other.ulong)
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: UByte): Sizet = minus(other.toULong())
+    inline operator fun minus(other: UByte): Sizet = minus(other.ulong_z)
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: UShort): Sizet = minus(other.toULong())
+    inline operator fun minus(other: UShort): Sizet = minus(other.ulong_z)
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: UInt): Sizet = minus(other.toULong())
+    inline operator fun minus(other: UInt): Sizet = minus(other.ulong_z)
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: ULong): Sizet = Sizet(toULong().minus(other))
+    inline operator fun minus(other: ULong): Sizet = Sizet(ulong.minus(other))
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Sizet): Sizet = minus(other.toULong())
+    inline operator fun minus(other: Sizet): Sizet = minus(other.ulong)
 
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Byte): Sizet = times(other.toULong())
+    inline operator fun times(other: Byte): Sizet = times(other.ulong_z)
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Short): Sizet = times(other.toULong())
+    inline operator fun times(other: Short): Sizet = times(other.ulong_z)
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Int): Sizet = times(other.toULong())
+    inline operator fun times(other: Int): Sizet = times(other.ulong_z)
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Long): Sizet = times(other.toULong())
+    inline operator fun times(other: Long): Sizet = times(other.ulong)
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: UByte): Sizet = times(other.toULong())
+    inline operator fun times(other: UByte): Sizet = times(other.ulong_z)
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: UShort): Sizet = times(other.toULong())
+    inline operator fun times(other: UShort): Sizet = times(other.ulong_z)
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: UInt): Sizet = times(other.toULong())
+    inline operator fun times(other: UInt): Sizet = times(other.ulong_z)
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: ULong): Sizet = Sizet(toULong().times(other))
+    inline operator fun times(other: ULong): Sizet = Sizet(ulong.times(other))
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Sizet): Sizet = times(other.toULong())
+    inline operator fun times(other: Sizet): Sizet = times(other.ulong)
 
     /** Divides this value by the other value. */
-    inline operator fun div(other: Byte): Sizet = div(other.toULong())
+    inline operator fun div(other: Byte): Sizet = div(other.ulong_z)
     /** Divides this value by the other value. */
-    inline operator fun div(other: Short): Sizet = div(other.toULong())
+    inline operator fun div(other: Short): Sizet = div(other.ulong_z)
     /** Divides this value by the other value. */
-    inline operator fun div(other: Int): Sizet = div(other.toULong())
+    inline operator fun div(other: Int): Sizet = div(other.ulong_z)
     /** Divides this value by the other value. */
-    inline operator fun div(other: Long): Sizet = div(other.toULong())
+    inline operator fun div(other: Long): Sizet = div(other.ulong)
     /** Divides this value by the other value. */
-    inline operator fun div(other: UByte): Sizet = div(other.toULong())
+    inline operator fun div(other: UByte): Sizet = div(other.ulong_z)
     /** Divides this value by the other value. */
-    inline operator fun div(other: UShort): Sizet = div(other.toULong())
+    inline operator fun div(other: UShort): Sizet = div(other.ulong_z)
     /** Divides this value by the other value. */
-    inline operator fun div(other: UInt): Sizet = div(other.toULong())
+    inline operator fun div(other: UInt): Sizet = div(other.ulong_z)
     /** Divides this value by the other value. */
-    inline operator fun div(other: ULong): Sizet = Sizet(toULong().div(other))
+    inline operator fun div(other: ULong): Sizet = Sizet(ulong.div(other))
     /** Divides this value by the other value. */
-    inline operator fun div(other: Sizet): Sizet = div(other.toULong())
+    inline operator fun div(other: Sizet): Sizet = div(other.ulong)
 
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Byte): Sizet = rem(other.toULong())
+    inline operator fun rem(other: Byte): Sizet = rem(other.ulong_z)
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Short): Sizet = rem(other.toULong())
+    inline operator fun rem(other: Short): Sizet = rem(other.ulong_z)
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Int): Sizet = rem(other.toULong())
+    inline operator fun rem(other: Int): Sizet = rem(other.ulong_z)
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Long): Sizet = rem(other.toULong())
+    inline operator fun rem(other: Long): Sizet = rem(other.ulong)
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: UByte): Sizet = rem(other.toULong())
+    inline operator fun rem(other: UByte): Sizet = rem(other.ulong_z)
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: UShort): Sizet = rem(other.toULong())
+    inline operator fun rem(other: UShort): Sizet = rem(other.ulong_z)
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: UInt): Sizet = rem(other.toULong())
+    inline operator fun rem(other: UInt): Sizet = rem(other.ulong_z)
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: ULong): Sizet = Sizet(toULong().rem(other))
+    inline operator fun rem(other: ULong): Sizet = Sizet(ulong.rem(other))
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Sizet): Sizet = rem(other.toULong())
+    inline operator fun rem(other: Sizet): Sizet = rem(other.ulong)
 
     /** Increments this value. */
     inline operator fun inc(): Sizet = Sizet(data.inc())
@@ -195,7 +198,7 @@ inline class Sizet constructor(val data: ULong) : Comparable<Sizet>  {
     inline operator fun dec(): Sizet = Sizet(data.dec())
 
     /** Creates a range from this value to the specified [other] value. */
-    inline operator fun rangeTo(other: Sizet): LongRange = LongRange(toLong(), other.toLong())
+    inline operator fun rangeTo(other: Sizet): ULongRange = ULongRange(ulong, other.ulong)
 
     /** Performs a bitwise AND operation between the two values. */
     inline infix fun and(other: Sizet): Sizet = Sizet(data and other.data)
@@ -209,51 +212,51 @@ inline class Sizet constructor(val data: ULong) : Comparable<Sizet>  {
     /**
      * Converts this [Sizet] value to [Byte].
      */
-    inline fun toByte(): Byte = data.toByte()
+    inline val byte: Byte get() = data.byte
     /**
      * Converts this [Sizet] value to [Short].
      */
-    inline fun toShort(): Short = data.toShort()
+    inline val short: Short get() = data.short
     /**
      * Converts this [Sizet] value to [Int].
      */
-    inline fun toInt(): Int = data.toInt()
+    inline val int: Int get() = data.int
     /**
      * Converts this [Sizet] value to [Long].
      */
-    inline fun toLong(): Long = data.toLong()
+    inline val long: Long get() = data.long
     /**
      * Converts this [Sizet] value to [UByte].
      */
-    inline fun toUByte(): UByte = data.toUByte()
+    inline val ubyte: UByte get() = data.ubyte
     /**
      * Converts this [Sizet] value to [UShort].
      */
-    inline fun toUShort(): UShort = data.toUShort()
+    inline val ushort: UShort get() = data.ushort
     /**
      * Converts this [Sizet] value to [UInt].
      */
-    inline fun toUInt(): UInt = data.toUInt()
+    inline val uint: UInt get() = data.uint
     /**
      * Converts this [Sizet] value to [ULong].
      */
-    inline fun toULong(): ULong = data
+    inline val ulong: ULong get() = data
 
     /**
      * Converts this [Sizet] value to [Float].
      *
      * The resulting `Float` value represents the same numerical value as this `SizeT`.
      */
-    inline fun toFloat(): Float = data.toFloat()
+    inline val float: Float get() = data.float
     /**
      * Converts this [Sizet] value to [Double].
      *
      * The resulting `Double` value represents the same numerical value as this `SizeT`.
      */
-    inline fun toDouble(): Double = data.toDouble()
+    inline val double: Double get() = data.double
 
     /** Returns this value. */
-    inline fun toSizeT(): Sizet = this
+    inline val size_t: Sizet get() = this
 
     override fun toString(): String = data.toString()
 }

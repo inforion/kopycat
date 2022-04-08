@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,17 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AContext
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 
 class MIPSContext(abi: MIPSABI) : AContext<MipsCore>(abi) {
 
-    override var programCounterValue: Long = 0
+    override var programCounterValue: ULong = 0u
 
     override fun save() {
         super.save()
-        programCounterValue = abi.programCounterValue - if (abi.core.cpu.branchCntrl.isDelaySlot) 4 else 0
+        programCounterValue = abi.programCounterValue - if (abi.core.cpu.branchCntrl.isDelaySlot) 4u else 0u
     }
 
     override fun load() {
@@ -43,13 +44,13 @@ class MIPSContext(abi: MIPSABI) : AContext<MipsCore>(abi) {
         abi.core.cpu.branchCntrl.setIp(programCounterValue)
     }
 
-    override fun store(address: Long) {
+    override fun store(address: ULong) {
         abi.writeMemory(address, programCounterValue, abi.gprDatatype)
-        super.store(address + abi.gprDatatype.bytes)
+        super.store(address + abi.gprDatatype.bytes.uint)
     }
 
-    override fun restore(address: Long) {
+    override fun restore(address: ULong) {
         programCounterValue = abi.readMemory(address, abi.gprDatatype)
-        super.restore(address + abi.gprDatatype.bytes)
+        super.restore(address + abi.gprDatatype.bytes.uint)
     }
 }

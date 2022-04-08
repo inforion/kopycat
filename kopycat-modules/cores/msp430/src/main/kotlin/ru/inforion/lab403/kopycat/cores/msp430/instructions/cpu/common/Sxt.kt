@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.msp430.instructions.cpu.common
 
 import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.msp430.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.msp430.instructions.AMSP430Instruction
@@ -41,7 +42,7 @@ class Sxt(core: MSP430Core, size: Int, vararg operands: AOperand<MSP430Core>):
     private val result = MSP430Variable(op1.dtyp)
 
     override fun execute() {
-        val res = signext(op1.value(core), 8).toLong()
+        val res = op1.value(core).signextRenameMeAfter(7)
         result.value(core, res)
         FlagProcessor.processSxtFlag(core, result)
         op1.value(core, result)

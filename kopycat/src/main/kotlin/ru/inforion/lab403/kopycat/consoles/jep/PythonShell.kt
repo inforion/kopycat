@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.consoles.jep
 
-import ru.inforion.lab403.common.extensions.splitWhitespaces
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.extensions.Shell
+import ru.inforion.lab403.common.extensions.splitBy
+import ru.inforion.lab403.common.extensions.whitespaces
+import ru.inforion.lab403.common.utils.Shell
 
 class PythonShell(command: String) {
     companion object {
@@ -35,7 +37,7 @@ class PythonShell(command: String) {
     }
 
     // split to make possible get command like py -3.8
-    val command = command.splitWhitespaces().toTypedArray()
+    val command = command.splitBy(whitespaces).toTypedArray()
 
     data class Version(val major: Int, val minor: Int, val micro: Int)
 
@@ -54,7 +56,7 @@ class PythonShell(command: String) {
 
         val tokens = output.removePrefix("Python").trim().split(".")
 
-        val version = Version(tokens[0].toInt(), tokens[1].toInt(), tokens[2].toInt())
+        val version = Version(tokens[0].int, tokens[1].int, tokens[2].int)
 
         log.config { "Python $version" }
 

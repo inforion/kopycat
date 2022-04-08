@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,48 +25,29 @@
  */
 package ru.inforion.lab403.elfloader
 
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.TestInstance
-import ru.inforion.lab403.common.logging.logger
+import org.junit.Test
 import ru.inforion.lab403.common.extensions.unhexlify
 import ru.inforion.lab403.elfloader.ElfRel.Companion.elfRel
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.test.assertEquals
 
 internal class ElfRelTest {
-    companion object {
-        val log = logger()
-    }
-
     private val data = "3400000001A73A003800000001493D003C00000001DB3B00"
-    private val dataBytes: ByteBuffer
-    private val reloc: ElfRel
-
-    init {
-        dataBytes = ByteBuffer.wrap(data.unhexlify()).apply { order(ByteOrder.LITTLE_ENDIAN) }
-        reloc = dataBytes.elfRel(0, 0, 0x08,  false)
-    }
+    private val dataBytes = ByteBuffer.wrap(data.unhexlify()).apply { order(ByteOrder.LITTLE_ENDIAN) }
+    private val reloc = dataBytes.elfRel(0, 0, 0x08,  false)
 
     @Test
-    fun testRelocVaddr() {
-        assertEquals(0x00000034, reloc.vaddr)
-    }
+    fun testRelocVaddr() = assertEquals(0x00000034u, reloc.vaddr)
 
     @Test
-    fun testRelocType() {
-        assertEquals(0x01, reloc.type)
-    }
+    fun testRelocType() = assertEquals(0x01, reloc.type)
 
     @Test
-    fun testRelocSym() {
-        assertEquals(0x00003AA7, reloc.sym)
-    }
+    fun testRelocSym() = assertEquals(0x00003AA7, reloc.sym)
 
     @Test
-    fun testRelocAddend() {
-        assertEquals(0, reloc.addend)
-    }
+    fun testRelocAddend() = assertEquals(0, reloc.addend)
 
 
 }

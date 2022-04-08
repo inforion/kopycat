@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,23 +26,26 @@
 package ru.inforion.lab403.kopycat.cores.mips.integration
 
 import org.junit.Test
-import ru.inforion.lab403.common.extensions.DynamicClassLoader
-import ru.inforion.lab403.kopycat.Kopycat
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.utils.DynamicClassLoader
 import ru.inforion.lab403.kopycat.auxiliary.PerformanceTester
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.mips.enums.GPR
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
 import ru.inforion.lab403.kopycat.modules.tests.TestMipsDevice
 import ru.inforion.lab403.kopycat.modules.tests.TestMipsDeviceNoProxy
-import java.util.logging.Level
 
 
 class MipsSimplePerformanceTest {
     private val fakeCount = 4
-    private val entryPoint = 0x800002F8L
-    private val exitPoint = 0x800003E4L
-    private val stackStart = 0x97000000L
+    private val entryPoint = 0x800002F8uL
+    private val exitPoint = 0x800003E4uL
+    private val stackStart = 0x97000000uL
     private val registry = ModuleLibraryRegistry.create()
+
+    private fun resourceOrThrow(path: String) =
+        DynamicClassLoader.getResourceAsStream(path)
+            ?: throw RuntimeException("Resource '$path' not found!")
 
     private fun test(top: () -> Module) {
 //        ModuleLibraryRegistry.log.level = Level.WARNING
@@ -54,7 +57,7 @@ class MipsSimplePerformanceTest {
         }.afterReset {
             it.core.reg(GPR.SP.id, stackStart)
             it.core.pc = entryPoint
-        }.apply { run(5, 1) }
+        }.apply { run(1, 1) }
     }
 
     @Test
@@ -69,8 +72,8 @@ class MipsSimplePerformanceTest {
     @Test
     fun idleTestNoProxyNoJson() = test { TestMipsDeviceNoProxy(null, "top", 1, fakeCount) }
 
-    private val testMipsDeviceJson = DynamicClassLoader.getResourceAsStream("modules/TestMipsDeviceJson.json")
-    private val testMipsDeviceNoProxyJson = DynamicClassLoader.getResourceAsStream("modules/TestMipsDeviceNoProxyJson.json")
+    private val testMipsDeviceJson = resourceOrThrow("modules/TestMipsDeviceJson.json")
+    private val testMipsDeviceNoProxyJson = resourceOrThrow("modules/TestMipsDeviceNoProxyJson.json")
 
     @Test
     fun memcpyTestProxyJson() = test {

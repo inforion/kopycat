@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -51,7 +51,7 @@ class Hsw(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
     override fun execute() {
         val a1 = op2.value(core)
         val res = a1[31..16].insert(a1[15..0], 31..16)
-        FlagProcessor.processSwapFlag(core, result) { it.word(core, 0) == 0L || it.word(core, 1) == 0L }
+        FlagProcessor.processSwapFlag(core, result) { it.word(core, 0) == 0uL || it.word(core, 1) == 0uL }
         op3.value(core, res)
     }
 }

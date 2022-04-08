@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.hints
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.find
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.ARMExpandImm
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
@@ -42,16 +42,16 @@ class MSRImmDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 imm32: Immediate<AARMCore>,
                 mask: Int,
                 write_cpsr: Boolean) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
+    override fun decode(data: ULong): AARMInstruction {
+        val cond = find { it.opcode == data[31..28].int } ?: Condition.AL
         val imm32 = imm(ARMExpandImm(data[11..0]), true)
-        val mask = data[19..16].toInt()
-        val write_cpsr = data[22].toBool()
+        val mask = data[19..16].int
+        val write_cpsr = data[22].truth
         return constructor(core, data, cond, imm32, mask, write_cpsr)
     }
 }

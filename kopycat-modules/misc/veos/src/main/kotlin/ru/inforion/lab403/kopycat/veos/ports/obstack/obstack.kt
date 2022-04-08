@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ import ru.inforion.lab403.kopycat.veos.api.pointers.BytePointer
 import ru.inforion.lab403.kopycat.veos.api.pointers.StructPointer
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
-class obstack(sys: System, address: Long) : StructPointer(sys, address) {
+class obstack(sys: System, address: ULong) : StructPointer(sys, address) {
     // type: long
     /* 00 */ var chunkSize by int(0x00) /* preferred size to allocate chunks in */
     /* 04 */ private var chunkPointer by pointer(0x04) /* address of current struct obstack_chunk */

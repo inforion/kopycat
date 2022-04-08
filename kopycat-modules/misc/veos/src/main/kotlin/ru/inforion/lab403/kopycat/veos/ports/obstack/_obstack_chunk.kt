@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,10 +29,10 @@ import ru.inforion.lab403.kopycat.veos.api.pointers.BytePointer
 import ru.inforion.lab403.kopycat.veos.api.pointers.StructPointer
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
-class _obstack_chunk(sys: System, address: Long) : StructPointer(sys, address) {
+class _obstack_chunk(sys: System, address: ULong) : StructPointer(sys, address) {
     var limit by pointer(0x00)
     private var prevPointer by pointer(0x04)
-    val contents get() = BytePointer(sys, 0x08)
+    val contents get() = BytePointer(sys, 0x08u)
 
     var prev: _obstack_chunk
         get() = _obstack_chunk(sys, prevPointer)

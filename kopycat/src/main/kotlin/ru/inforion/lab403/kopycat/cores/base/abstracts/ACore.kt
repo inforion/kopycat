@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,20 +25,17 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
-import net.sourceforge.argparse4j.inf.ArgumentParser
-import ru.inforion.lab403.common.extensions.Time
-import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
-import ru.inforion.lab403.kopycat.cores.base.common.CoreInfo
+import ru.inforion.lab403.kopycat.cores.base.debug.CoreInfo
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.enums.Status.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.*
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
-import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.storeValues
 
@@ -68,6 +65,7 @@ import ru.inforion.lab403.kopycat.serializer.storeValues
  * MIPS32 24K	    604 MIPS    400 MHz     1.51	2006
  * {RU}
  **/
+@Suppress("INAPPLICABLE_JVM_NAME")
 abstract class ACore<
         R: ACore<R, U, P>,  // Recursive generic resolution
         U: ACPU<U, R, *, *>,
@@ -157,8 +155,8 @@ abstract class ACore<
     /**
      * {EN}Make pretty text view with maximum information about occurred exception{EN}
      */
-    private fun explain(exception: Throwable?, comment: String) =
-            "$this $exception pc=0x${cpu.pc.hex} time=${clock.time(Time.ns)} ns -> $comment"
+    private fun Throwable?.explain(comment: String) =
+            "${this@ACore} $this pc=0x${cpu.pc.hex} time=${clock.time(Time.ns)} ns -> $comment"
 
     private inline fun processBlock(block: () -> Unit): Status {
         cpu.exception = null
@@ -175,8 +173,9 @@ abstract class ACore<
      * {EN}
      */
     private fun processUnhandledException(): Status {
-        log.severe { explain(cpu.exception!!,
-                "CPU in faulty state! If debugger support you may reset exception by setting PC") }
+        val exception = cpu.exception
+            ?: throw IllegalStateException("CPU was deserialized from faulty snapshot -> this should not happen")
+        log.severe { exception.explain("CPU in faulty state! If debugger support you may reset exception by setting PC") }
         return UNBEARABLE_EXCEPTION
     }
 
@@ -199,7 +198,7 @@ abstract class ACore<
 
         when (exception) {
             is BreakpointException -> {
-                log.config { explain(exception, "stop at breakpoint hit") }
+                log.fine { exception.explain("stop at ${exception.breakpoint}") }
                 cpu.fault = false
                 return BREAKPOINT_EXCEPTION
             }
@@ -210,19 +209,19 @@ abstract class ACore<
                 val exc = cop.handleException(exception)
 
                 if (exc == null) {
-                    log.finest { explain(exc, "handled by coprocessor") }
+                    log.finest { exc.explain("handled by coprocessor") }
                     cpu.fault = false
                     return INTERNAL_EXCEPTION
                 }
 
-                log.warning { explain(exception, "coprocessor can't handle exception ... pass to debugger") }
+                log.warning { exception.explain("coprocessor can't handle exception ... pass to debugger") }
             }
 
-            is DecoderException -> log.warning { explain(exception, "instruction decoding error...") }
+            is DecoderException -> log.warning { exception.explain("instruction decoding error: ${exception.data.hex}") }
 
-            is UnsupportedInstructionException -> log.warning { explain(exception, "unsupported instruction found...") }
+            is UnsupportedInstructionException -> log.warning { exception.explain("unsupported instruction found...") }
 
-            else -> log.warning { explain(exception, "unknown exception passed to debugger...") }
+            else -> log.warning { exception.explain("unknown exception passed to debugger...") }
         }
 
         return unbearableExceptionAndTrace()
@@ -237,8 +236,7 @@ abstract class ACore<
      */
     private fun processJavaException(throwable: Throwable): Status {
         val exception = GeneralException(throwable.toString())
-        log.severe { explain(throwable, "Core halted!") }
-        throwable.printStackTrace()
+        log.severe { "${throwable.explain("Core halted!")}\n${throwable.stackTraceToString()}" }
         cpu.exception = exception
         cpu.fault = true
         return unbearableExceptionAndTrace()
@@ -319,6 +317,13 @@ abstract class ACore<
     internal fun execute() = monitor { doExecuteInstruction() }
 
     /**
+     * {EN}
+     * Should be executed after [Debugger] call [ATracer.postExecute] method
+     * {EN}
+     */
+    internal fun epilog() = info.epilog()
+
+    /**
      * {RU}
      * Обработка прерываний, декодирование и выполнение инструкции
      *
@@ -339,6 +344,7 @@ abstract class ACore<
         doProcessInterrupts()
         doDecodeInstruction()
         doExecuteInstruction()
+        epilog()
     }
 
     override fun reset() {
@@ -347,18 +353,20 @@ abstract class ACore<
         info.reset()
     }
 
-    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues("stage" to stage)
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+        "stage" to stage,
+        "clock" to clock.serialize(ctxt),
+        "info" to info.serialize(ctxt)
+    )
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
-        stage = loadEnum(snapshot, "stage")
-    }
+        val clockSnapshot = snapshot["clock"]
+        val infoSnapshot = snapshot["info"]
 
-    @Suppress("UNCHECKED_CAST")
-    override fun restore(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        val snapshotValues = snapshot["components"] as Map<String, Any>
-        snapshotValues.forEach { (cName, cData) -> components[cName]?.restore(ctxt, cData as HashMap<String, Any>) }
         stage = loadEnum(snapshot, "stage")
+        if (clockSnapshot != null) clock.deserialize(ctxt, clockSnapshot.cast())
+        if (infoSnapshot != null) info.deserialize(ctxt, infoSnapshot.cast())
     }
 
     override fun stringify() = buildString {
@@ -369,54 +377,9 @@ abstract class ACore<
         fpu?.let { append(it.stringify()) }
     }
 
-    /**
-     * {RU}
-     * Настройка парсера аргументов командной строки.
-     * Для использования команд в консоли эмулятора.
-     *
-     * @param parent родительский парсер, к которому будут добавлены новые аргументы
-     * @param useParent необходимость использования родительского парсера
-     * @return парсер аргументов
-     * {RU}
-     */
-    override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
-            super.configure(parent, useParent).apply {
-                clock.configure(this)
-            }
-
-    /**
-     * {RU}
-     * Обработка аргументов командной строки.
-     * Для использования команд в консоли эмулятора.
-     *
-     * @param context контекст интерактивной консоли
-     * @return результат обработки команд (true/false)
-     * {RU}
-     */
-    override fun process(context: IInteractive.Context): Boolean {
-        if (super.process(context))
-            return true
-
-        if (context.command() == clock.command()) {
-            return clock.process(context)
-        }
-
-        return false
-    }
-
-    /**
-     * {RU}
-     * Имя команды для текущего класса в интерактивной консоли эмулятора.
-     * Для использования команд в консоли эмулятора.
-     *
-     * @return строковое имя команды
-     * {RU}
-     */
-    final override fun command(): String = "core"
-
-    final override fun fetch(ea: Long, ss: Int, size: Int): Long = cpu.ports.mem.fetch(ea, ss, size)
-    final override fun read(ea: Long, ss: Int, size: Int): Long = cpu.ports.mem.read(ea, ss, size)
-    final override fun write(ea: Long, ss: Int, size: Int, value: Long): Unit = cpu.ports.mem.write(ea, ss, size, value)
+    final override fun fetch(ea: ULong, ss: Int, size: Int): ULong = cpu.ports.mem.fetch(ea, ss, size)
+    final override fun read(ea: ULong, ss: Int, size: Int): ULong = cpu.ports.mem.read(ea, ss, size)
+    final override fun write(ea: ULong, ss: Int, size: Int, value: ULong): Unit = cpu.ports.mem.write(ea, ss, size, value)
 
     /**
      * {EN}
@@ -429,12 +392,14 @@ abstract class ACore<
     /**
      * {RU}Задать значение регистра общего назначения по его индексу{RU}
      */
-    fun reg(index: Int): Long = cpu.reg(index)
+    @JvmName("reg")
+    fun reg(index: Int): ULong = cpu.reg(index)
 
     /**
      * {RU}Получить общее количество регистров общего назначения{RU}
      */
-    fun reg(index: Int, value: Long): Unit = cpu.reg(index, value)
+    @JvmName("reg")
+    fun reg(index: Int, value: ULong): Unit = cpu.reg(index, value)
 
     /**
      * {RU}Прочитать все регистры CPU{RU}
@@ -445,9 +410,11 @@ abstract class ACore<
      * {RU}Прочитать значения флагов CPU{RU}
      */
     @ExperimentalWarning
+    @JvmName("flags")
     fun flags() = cpu.flags()
 
-    var pc: Long
+    @get:JvmName("getPc")
+    var pc: ULong
         get() = cpu.pc
         set(value) {
             cpu.pc = value

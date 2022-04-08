@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,7 +42,7 @@ class Lar(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
         val result = if(prefs.is16BitOperandMode){
             TODO()
         } else {
-            desc.dataHi and 0xF0FF00L
+            desc.dataHi and 0xF0FF00uL
         }
         op1.value(core, result)
         core.cpu.flags.zf = true

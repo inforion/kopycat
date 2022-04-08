@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,6 +38,6 @@ class Jc(core: MSP430Core, size: Int, val cond : Condition, vararg operands: AOp
 
     override fun execute() {
         if(FlagCondition.CheckCondition(core, cond))
-            core.cpu.regs.r0ProgramCounter += 2 * op1.value(core)
+            core.cpu.regs.r0ProgramCounter += 2u * op1.value(core)
     }
 }

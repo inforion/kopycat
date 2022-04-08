@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,19 +29,23 @@ package ru.inforion.lab403.kopycat.cores.ppc.exceptions
 
 object PPCExceptionHolder_Embedded : IPPCExceptionHolder {
 
-    override fun accessDataException(where: Long, write: Boolean): PPCHardwareException {
+    override fun accessDataException(where: ULong, write: Boolean): PPCHardwareException {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun accessInstructionException(where: Long): PPCHardwareException {
+    override fun accessInstructionException(where: ULong): PPCHardwareException {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun tlbDataException(where: Long, write: Boolean, ea: Long, AS: Long): PPCHardwareException {
+    override fun tlbDataException(where: ULong, write: Boolean, ea: ULong, AS: ULong): PPCHardwareException {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
-    override fun tlbInstructionException(where: Long, ea: Long, AS: Long): PPCHardwareException {
+    override fun tlbInstructionException(where: ULong, ea: ULong, AS: ULong): PPCHardwareException {
         TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    }
+
+    override fun systemCallException(where: ULong): PPCHardwareException {
+        TODO("Not yet implemented")
     }
 }

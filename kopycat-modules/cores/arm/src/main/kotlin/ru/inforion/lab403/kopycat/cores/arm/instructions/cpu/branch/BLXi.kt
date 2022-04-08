@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,16 +32,15 @@ import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.ARM
-import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.CURRENT
-
+import ru.inforion.lab403.kopycat.modules.cores.AARMCore.*
+import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet.*
 
 
 class BLXi(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            val imm32: Immediate<AARMCore>,
-           private val targetInstrSet: AARMCore.InstructionSet,
+           private val targetInstrSet: InstructionSet,
            size: Int = 4):
         AARMInstruction(cpu, Type.COND_JUMP, cond, opcode, imm32, size = size) {
 
@@ -51,9 +50,9 @@ class BLXi(cpu: AARMCore,
         val pc = core.cpu.pc
 
         if (core.cpu.CurrentInstrSet() == ARM) {
-            core.cpu.regs.lr.value = pc - 4
+            core.cpu.regs.lr.value = pc - 4u
         } else {
-            core.cpu.regs.lr.value = cat(pc[31..1], 1, 0)
+            core.cpu.regs.lr.value = cat(pc[31..1], 1u, 0)
         }
 
         val targetAddress = if (targetInstrSet == ARM) {

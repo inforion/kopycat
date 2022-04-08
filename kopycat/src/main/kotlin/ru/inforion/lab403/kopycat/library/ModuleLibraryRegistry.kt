@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,11 @@ package ru.inforion.lab403.kopycat.library
 
 import org.reflections.util.ClasspathHelper
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.json.fromJson
+import ru.inforion.lab403.common.json.removeJsonComments
 import ru.inforion.lab403.common.logging.CONFIG
-import ru.inforion.lab403.common.proposal.subtypesScan
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.scanner.scanSubtypesOf
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.library.builders.JsonModuleFactoryBuilder
 import ru.inforion.lab403.kopycat.library.builders.text.PluginConfig
@@ -38,31 +40,30 @@ import ru.inforion.lab403.kopycat.library.types.LibraryInfo
 import ru.inforion.lab403.kopycat.settings
 import java.io.File
 import java.io.InputStream
-import java.util.logging.Level
 
 
 class ModuleLibraryRegistry constructor(
-        val regCfgLine: String?,
-        val libCfgLine: String?,
-        vararg libraries: ModuleFactoryLibrary
+    val regCfgLine: String?,
+    val libCfgLine: String?,
+    vararg libraries: ModuleFactoryLibrary
 ) {
     companion object {
         @Transient
         val log = logger(CONFIG)
 
-        private val systemJarOrClassPath = this::class.java.location
+        private val systemJarOrClassPath = this::class.java.location2
 
         private fun getLibraryNameFromClasspath(cls: Class<*>, prefix: String) =
                 cls.name.removePrefix("$prefix.").substringBefore(".")
 
         private fun loadSystemLibraries(internalClassDirectory: String): Array<ModuleFactoryLibrary> {
-            val packages = subtypesScan<Module>(internalClassDirectory)
+            val packages = internalClassDirectory.scanSubtypesOf<Module>()
                     .filter {
                         // we should not load in system loader any classes that not in .../main or kopycat-X.Y.AB.jar
                         it.name.startsWith("$internalClassDirectory.") && (
-                                it.location == systemJarOrClassPath ||
-                                        it.location.endsWith(settings.systemModulesMainPath) ||
-                                        it.location.endsWith(settings.systemModulesTestPath))
+                                it.location2 == systemJarOrClassPath ||
+                                        it.location2.endsWith(settings.systemModulesMainPath) ||
+                                        it.location2.endsWith(settings.systemModulesTestPath))
                     }.map {
                         getLibraryNameFromClasspath(it, internalClassDirectory)
                     }.distinct()
@@ -85,9 +86,9 @@ class ModuleLibraryRegistry constructor(
                 .distinct()
 
         private fun <T>Class<out T>.isModuleClasspath(dir: String) =
-                name.startsWith("$dir.") && location != systemJarOrClassPath
+                name.startsWith("$dir.") && location2 != systemJarOrClassPath
 
-        private fun parseClasspathRegistry(dir: String) = subtypesScan<Module>(dir)
+        private fun parseClasspathRegistry(dir: String) = dir.scanSubtypesOf<Module>()
                 .filter { cls ->
                     cls.isModuleClasspath(dir).also { log.finest { "Found class: $cls -> module: $it" } }
                 }.map {
@@ -210,7 +211,8 @@ class ModuleLibraryRegistry constructor(
      * {EN}Load module with [name] from specified json in [stream] and parameters [parameters]{EN}
      */
     fun json(parent: Module?, stream: InputStream, name: String, vararg parameters: Any?) =
-            JsonModuleFactoryBuilder.JsonModule(null, this, parent, name, stream.parseJson(), *parameters)
+            JsonModuleFactoryBuilder.JsonModule(null, this, parent, name,
+                stream.removeJsonComments().fromJson(), *parameters)
 
     /**
      * {EN}Load module with [name] from specified json with path [path] and parameters [parameters]{EN}

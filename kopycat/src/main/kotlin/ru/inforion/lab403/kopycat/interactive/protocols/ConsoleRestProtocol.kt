@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,9 +27,9 @@ package ru.inforion.lab403.kopycat.interactive.protocols
 
 import io.javalin.Javalin
 import io.javalin.core.plugin.Plugin
-import ru.inforion.lab403.common.extensions.applyRoutes
-import ru.inforion.lab403.common.extensions.getAny
-import ru.inforion.lab403.common.extensions.postAny
+import ru.inforion.lab403.common.javalin.applyRoutes
+import ru.inforion.lab403.common.javalin.getAny
+import ru.inforion.lab403.common.javalin.postAny
 import ru.inforion.lab403.kopycat.consoles.AConsole
 
 class ConsoleRestProtocol(private val console: AConsole): Plugin {

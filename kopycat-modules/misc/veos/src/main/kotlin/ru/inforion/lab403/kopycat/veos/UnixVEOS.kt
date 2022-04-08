@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ import ru.inforion.lab403.kopycat.veos.loader.UnixOsLoader
 import ru.inforion.lab403.kopycat.veos.ports.posix.PosixThread
 
 
-class UnixVEOS<C : AGenericCore>(parent: Module, name: String, bus: Long = BUS32) : VEOS<C>(parent, name, bus) {
+class UnixVEOS<C : AGenericCore>(parent: Module, name: String, bus: ULong = BUS32) : VEOS<C>(parent, name, bus) {
     override val loader = UnixOsLoader(this)
 
     override fun initialize(): Boolean {

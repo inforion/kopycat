@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.support
 
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
 import ru.inforion.lab403.kopycat.interfaces.ITableEntry
 import java.io.Serializable
-import java.util.logging.Level
 
 class Table(
         name: String,
@@ -39,7 +39,7 @@ class Table(
         decoders: Array<Pair<String, ITableEntry?>>) : Stub(name) {
 
     companion object {
-        @Transient private val log = logger(Level.INFO)
+        @Transient private val log = logger(INFO)
     }
 
     data class Entry(val ord: Int, val pattern: String, val mask: Mask, val table: ITableEntry?): Serializable
@@ -52,7 +52,7 @@ class Table(
         Entry(k, pattern, mask, table)
     }
 
-    fun lookup(data: Long, where: Long): ADecoder<AARMInstruction> {
+    fun lookup(data: ULong, where: ULong): ADecoder<AARMInstruction> {
         var table = this
         var localEntries = entries
         do {

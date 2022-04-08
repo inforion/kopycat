@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asLong
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.kernel.Symbol
@@ -44,9 +43,9 @@ class WindowsLoader(val os: VEOS<*>) : ALoader(os) {
     override fun loadArguments(args: Array<String>) {
         check(os.currentProcess.contextInitialized) { "Context wasn't initialized" }
 
-        val argc = args.size.asLong
+        val argc = args.size.ulong_z
         val envs = os.sys.allocateEnvironmentArray()
-        val _args = (args.asList()).map { os.sys.allocateAsciiString(it) } + 0L
+        val _args = (args.asList()).map { os.sys.allocateAsciiString(it) } + 0uL
 
         val envi = _args.size
 
@@ -56,7 +55,7 @@ class WindowsLoader(val os: VEOS<*>) : ALoader(os) {
 //        os.abi.push(argc)
 
         val argv = os.sys.allocateArray(os.abi.types.pointer, arglist)
-        val envp = argv + (os.abi.types.pointer.bytes * envi)
+        val envp = argv + os.abi.types.pointer.bytes * envi
 
         os.initApi(argc, argv, envp) // TODO: may cause bugs
     }
@@ -69,7 +68,8 @@ class WindowsLoader(val os: VEOS<*>) : ALoader(os) {
     }
 
     // TODO: entity of symbol
-    private fun ImageThunkData.toSymbol(base: Long): Symbol = Symbol(toImageImportByName().name, base + importAddress)
+    private fun ImageThunkData.toSymbol(base: ULong)
+    = Symbol(toImageImportByName().name, base + importAddress)
 
     override fun load(filename: String) {
         val pe = PELoader.fromPath(filename)
@@ -87,7 +87,7 @@ class WindowsLoader(val os: VEOS<*>) : ALoader(os) {
         pe.imports.forEach {dll ->
             mapDynamicSymbols += dll.addressTable.map {
                 it.toSymbol(baseAddress).apply {
-                    rDataBuffer.putInt((it.importAddress - rData.header.virtualAddress).asInt, address.asInt)
+                    rDataBuffer.putInt((it.importAddress - rData.header.virtualAddress).int, address.int)
                     type = Symbol.Type.External
                 }
             }
@@ -97,28 +97,23 @@ class WindowsLoader(val os: VEOS<*>) : ALoader(os) {
 
 
         sections.forEach {
-            os.currentMemory.allocate(it.name, it.start, it.defaultAlignedSize.asInt, it.header.characteristics.asAccess, it.data)
+            os.currentMemory.allocate(
+                it.name, it.start, it.defaultAlignedSize.int, it.header.characteristics.asAccess, it.data)
         }
-        os.currentMemory.allocate(rData.name, rData.start, rData.defaultAlignedSize.asInt, rData.header.characteristics.asAccess, rDataBuffer.array())
+
+        os.currentMemory.allocate(
+            rData.name, rData.start,
+            rData.defaultAlignedSize.int, rData.header.characteristics.asAccess,
+            rDataBuffer.array())
 
         os.currentProcess.initProcess(pe.entryPoint)
     }
 
-    override fun loadLibrary(filename: String) {
-        TODO("Not yet implemented")
-    }
+    override fun loadLibrary(filename: String): Unit = TODO("Not yet implemented")
 
-    override fun findSymbol(module: String, symbol: String): Symbol? {
-        TODO("Not yet implemented")
-    }
+    override fun findSymbol(module: String, symbol: String): Symbol? = TODO("Not yet implemented")
 
-    override fun moduleAddress(module: String): Long {
-        TODO("Not yet implemented")
-    }
+    override fun moduleAddress(module: String): ULong = TODO("Not yet implemented")
 
-    override fun moduleName(address: Long): String {
-        TODO("Not yet implemented")
-    }
-
-
+    override fun moduleName(address: ULong): String = TODO("Not yet implemented")
 }

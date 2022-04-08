@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 // TODO: collapse with MSR
 class MSRsl(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val rn: ARMRegister,
             val mask: Int,
@@ -48,7 +48,7 @@ class MSRsl(cpu: AARMCore,
         else {
             // Does not affect execution state bits other than E
             core.cpu.CPSRWriteByInstr(rn.value(core), mask, false)
-            if (core.cpu.sregs.cpsr.m == 0b11010L && core.cpu.sregs.cpsr.j && core.cpu.sregs.cpsr.t)
+            if (core.cpu.sregs.cpsr.m == 0b11010uL && core.cpu.sregs.cpsr.j && core.cpu.sregs.cpsr.t)
                 throw ARMHardwareException.Unpredictable
         }
     }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,21 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.interactive.protocols
 
-import ru.inforion.lab403.common.extensions.JavalinServer
-import ru.inforion.lab403.common.extensions.stopAndWait
+import ru.inforion.lab403.common.javalin.JavalinServer
+import ru.inforion.lab403.common.javalin.stopAndWait
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
 import kotlin.test.assertTrue
 
-fun withKopycatRest(block: (kopycat: Kopycat, modules: MutableList<Module>) -> Unit) {
+fun withKopycatRest(port: Int, block: (kopycat: Kopycat, modules: MutableList<Module>) -> Unit) {
     val restModules = mutableListOf<Module>()
     val temp = createTempDir()
     val kopycat = Kopycat(ModuleLibraryRegistry.create()).also { it.setSnapshotsDirectory(temp.absolutePath) }
     val kopycatProtocol = KopycatRestProtocol(kopycat, restModules)
     val registryProtocol = RegistryRestProtocol(kopycat.registry, restModules)
 
-    val server = JavalinServer(KopycatRestProtocolUnitTest.port, kopycatProtocol, registryProtocol)
+    val server = JavalinServer(port, kopycatProtocol, registryProtocol)
     try {
         block(kopycat, restModules)
     } finally {

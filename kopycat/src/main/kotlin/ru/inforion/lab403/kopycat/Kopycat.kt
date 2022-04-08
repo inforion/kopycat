@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,9 @@
  */
 package ru.inforion.lab403.kopycat
 
-import net.sourceforge.argparse4j.inf.ArgumentParser
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.logging.CONFIG
+import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.AGenericDebugger
@@ -41,18 +41,20 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_STOP
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
-import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT
+import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
+import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType.*
 import ru.inforion.lab403.kopycat.interfaces.IDebugger
-import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.interfaces.ITracer
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
 import ru.inforion.lab403.kopycat.serializer.Serializer
+import ru.inforion.lab403.kopycat.settings.snapshotFileExtension
+import java.io.Closeable
+import java.io.File
 import java.lang.reflect.InvocationTargetException
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.concurrent.thread
 
-@Suppress("unused")
 /**
  * {EN}
  * Basic constructor of Kopycat emulator
@@ -60,10 +62,12 @@ import kotlin.concurrent.thread
  * @param registry modules library registry
  * {EN}
  */
-class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, IDebugger {
+@Suppress("INAPPLICABLE_JVM_NAME")
+class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Closeable {
 
     companion object {
-        @Transient val log = logger(CONFIG)
+        @Transient
+        val log = logger(INFO)
 
         /**
          * {EN}
@@ -77,11 +81,11 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
          * {EN}
          */
         fun getHomeDir(): String {
-            val env = System.getenv(settings.envHomeVariableName)
+            val env = environment[settings.envHomeVariableName]
 
             val home = if (env != null) env else {
                 log.info { "System environment variable '${settings.envHomeVariableName}' isn't set using parent of 'user.dir'" }
-                System.getProperty("user.dir")
+                javaWorkingDirectory
             }
 
             return home.toFile().absolutePath
@@ -118,13 +122,11 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
 
     class InitializeKopycatException(description: String) : Exception(description)
 
-    enum class STATE { WORKING, DISABLED, AWAIT, MALFORMED }
-
     /**
      * {EN}Default folder to store and load snapshots{EN}
      */
     var snapshotsDir = getWorkingDir()
-        private set (value) {
+        private set(value) {
             log.info { "Change snapshots directory to '$value'" }
             field = value
         }
@@ -132,12 +134,14 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
     var working: Boolean = true
         private set
 
-    private var topModule: Module? = null
     private var serializer: GenericSerializer? = null
+
+    private var topModule: Module? = null
     private var gdbServer: GDBServer? = null
 
-    val top get() = topModule!!
-    val gdb get() = gdbServer!!
+    val top get() = requireNotNull(topModule) { "Top module wasn't initialized" }
+    val gdb get() = requireNotNull(gdbServer) { "GDB wasn't initialized" }
+
     val debugger get() = top.debugger
     val tracer get() = top.tracer
     val core get() = top.core
@@ -146,7 +150,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
         snapshotsDir = getWorkingDir(path)
     }
 
-    fun open(top: Module, traceable: Boolean, gdb: GDBServer?) {
+    fun open(top: Module, gdb: GDBServer?, traceable: Boolean) {
         if (traceable) {
             // isDebuggerPresented can't be used before initializeAndResetAsTopInstance() called
             val debugger = top.findComponentByClass<AGenericDebugger>()
@@ -184,42 +188,36 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
             }
             gdbServer = gdb.also { it.debuggerModule(top.debugger) }
         }
-        return
     }
 
     fun open(
-            name: String,
-            library: String,
-            snapshot: String?,
-            parameters: String?,
-            traceable: Boolean,
-            gdb: GDBServer?
+        name: String,
+        library: String,
+        snapshot: String?,
+        parameters: String?,
+        gdb: GDBServer?,
+        traceable: Boolean
     ) {
         val top = instantiate(name, library, parameters)
-
-        open(top, traceable, gdb)
-
-        if (snapshot != null) {
-            val path = snapshotsDir / snapshot
-            serializer = Serializer(topModule!!, false).deserialize(path)
-        }
+        open(top, gdb, traceable)
+        if (snapshot != null) load(snapshot)
     }
 
     private fun instantiate(
-            name: String,
-            library: String,
-            parameters: String?
+        name: String,
+        library: String,
+        parameters: String?
     ) = try {
         registry!![library].instantiate(null, name, "top", parameters ?: "")
     } catch (error: InvocationTargetException) {
         val prms = if (parameters != null) " with $parameters" else ""
         log.severe { "Can't create module top[$name]$prms, see stack trace below if available..." }
-        error.cause?.printStackTrace()
+        error.cause?.logStackTrace(log)
         throw InitializeKopycatException("Can't instantiate top module")
     }
 
-    class Hook(val onStep: (step: Long, core: AGenericCore) -> Boolean) : AGenericTracer(null, "hook") {
-        var steps: Long = 0
+    class Hook(val onStep: (step: ULong, core: AGenericCore) -> Boolean) : AGenericTracer(null, "hook") {
+        var steps: ULong = 0u
             private set
         var startTime: Long = 0
             private set
@@ -227,25 +225,25 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
             private set
 
         override fun preExecute(core: AGenericCore) =
-                if (!onStep(steps, core)) TRACER_STATUS_STOP else TRACER_STATUS_SUCCESS
+            if (!onStep(steps, core)) TRACER_STATUS_STOP else TRACER_STATUS_SUCCESS
 
-        override fun postExecute(core: AGenericCore, status: Status) = TRACER_STATUS_SUCCESS.also { steps += 1 }
+        override fun postExecute(core: AGenericCore, status: Status) = TRACER_STATUS_SUCCESS.also { steps++ }
 
         override fun onStart(core: AGenericCore) {
-            steps = 0
-            startTime = System.currentTimeMillis()
+            steps = 0u
+            startTime = currentTimeMillis
             log.info { "Emulation started with hook..." }
         }
 
         override fun onStop() {
-            stopTime = System.currentTimeMillis()
+            stopTime = currentTimeMillis
             val deltaTimeSec = (stopTime - startTime) / 1000 + 1
             val mips = steps / deltaTimeSec
-            log.info { "Emulation running on %,d sec., IPS = %,d".format(deltaTimeSec, mips) }
+            log.info { "Emulation running on %,d sec., IPS = %,d".format(deltaTimeSec, mips.long) }
         }
     }
 
-    fun <T: AGenericCore> hook(vararg newTracers: ITracer<T>): Boolean {
+    fun <T : AGenericCore> hook(vararg newTracers: ITracer<T>): Boolean {
         if (top.isTracerPresent && top.tracer is ComponentTracer) {
             val tracer = top.tracer as ComponentTracer
             @Suppress("UNCHECKED_CAST")
@@ -256,7 +254,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
         }
     }
 
-    fun hook(onStep: (step: Long, core: AGenericCore) -> Boolean): Hook? {
+    fun hook(onStep: (step: ULong, core: AGenericCore) -> Boolean): Hook? {
         if (top.isTracerPresent && top.tracer is ComponentTracer) {
             val tracer = top.tracer as ComponentTracer
             val newTracer = Hook(onStep)
@@ -281,44 +279,21 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
         }
     }
 
-    fun profileOn(): Hook? {
-//        var callCount = 0
-//        var memoryAccessCount = 0
+    fun reset() = top.reset()
 
-        val profiler = hook { step, core ->
-//            val insn = core.cpu.insn
-//            if (insn.isCall)
-//                callCount += 1
-//
-//            if (insn.any { it is Memory || it is Displacement })
-//                memoryAccessCount += 1
-
-            return@hook true
-        }
-
-        return profiler
-    }
-
-    fun profileOff(hook: Hook?) {
-        if (hook != null)
-            unhook(hook)
-    }
-
-    fun reset() = topModule!!.reset()
-
-    fun run(predicate: (step: Long, core: AGenericCore) -> Boolean): Long {
+    fun run(predicate: (step: ULong, core: AGenericCore) -> Boolean): ULong {
         val hook = hook(predicate)
         if (hook != null) {
             debugger.cont()
             unhook(hook)
             return hook.steps
         } else {
-            var steps: Long = 0
+            var steps: ULong = 0u
             log.finest { "Component tracer or/and debugger not presented running using while-loop..." }
             while (predicate(steps, top.core)) {
                 if (!top.core.step().resume)
                     break
-                steps += 1
+                steps += 1u
             }
             return steps
         }
@@ -328,112 +303,81 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
         println(core.stringify())
     }
 
+    private val sdf = SimpleDateFormat("yyyyMMddHHmmss")
+
     private fun makeSnapshotAutoname(): String {
-        val date = SimpleDateFormat("yyyyMMddHHmmss").format(Date())
+        val date = sdf.format(Date())
         val pc = core.cpu.pc.hex
-
-        return "snapshot_$date@$pc.zip"
+        return "snapshot_$date@$pc.$snapshotFileExtension"
     }
 
-    // Specially for Jep (Java Embedded Python) - overloaded method with no arguments
-    fun save(): Boolean = save(null)
-
-    fun save(snapshotPath: String?, comment: String? = null): Boolean {
-        if (!isTopModulePresented) {
-            log.warning { "No target specified. Current targetCommand will not be executed" }
-            return false
-        }
-
-        val wasRunning = isRunning
-
-        if (serializer == null)
-            serializer = Serializer(top, false)
-
-        if (wasRunning) {
-            log.config { "Target running, waiting while target stopped..." }
-            halt()
-        }
-
-        log.config { "Making emulator snapshot, please wait..." }
-
-        val name = snapshotPath ?: makeSnapshotAutoname()
-        val path = (snapshotsDir / name).addExtension(".zip")
-
-        if (serializer!!.serialize(path, comment, core.pc))
-            log.config { "Out file is $path" }
-
-        if (wasRunning) {
-            log.config { "Continue target execution..." }
-            start()
-        }
-
-        return true
+    private fun getLastSnapshot(): File {
+        val file = snapshotsDir.listdir { it.extension == snapshotFileExtension }.maxByOrNull { it.lastModified() }
+        return requireNotNull(file) { "No snapshot file found in '$snapshotsDir'" }
     }
 
-    // Load snapshot from last loaded file
-    fun restore(): Boolean = load(null)
+    private fun getFullSnapshotPath(path: String) = (snapshotsDir / path).addExtension(".zip").toFile()
 
-    fun load(): Boolean {
-        val filename = snapshotsDir.listdir { it.startsWith("snapshot") }.maxOrNull()
-        if (filename == null) {
-            log.severe { "No snapshot file found in '$snapshotsDir'" }
-            return false
-        }
-        return load(filename.path)
+    private fun checkNotRunning(action: String) {
+        if (isTopModulePresented) require(!isRunning) { "Target should be stopped for $action" }
     }
 
-    fun load(snapshot: ByteArray): Boolean {
-        serializer = Serializer(topModule!!, false).deserialize(snapshot)
-        return true
-    }
+    private fun checkTopPresented() = require(isTopModulePresented) { "No target top module presented in Kopycat" }
 
-    fun load(snapshotPath: String?): Boolean {
-        if (!isTopModulePresented) {
-            log.warning { "No target specified. Current targetCommand will not be executed" }
-            return false
-        }
-
-        val wasRunning = isRunning
+    fun save(path: String? = null, comment: String? = null): String {
+        checkTopPresented()
+        checkNotRunning("save")
 
         if (serializer == null)
             serializer = Serializer(top, false)
 
         val serializer = serializer!!
 
-        if (wasRunning) {
-            log.config { "Target running, waiting while target stopped..." }
-            halt()
-        }
+        val name = path ?: makeSnapshotAutoname()
+        val file = getFullSnapshotPath(name)
 
-        if (snapshotPath == null) {
-            log.config { "Target restoration started, please wait..." }
-            serializer.restore()
-        } else {
-            val path = snapshotsDir / snapshotPath
-            log.config { "Target deserialization from '$path', please wait..." }
-            serializer.deserialize(path)
-        }
+        if (file.parentFile.mkdirs())
+            log.info { "Creating directory ${file.parent}" }
 
-        log.config { "Target has been restored to deserialization state" }
-        if (wasRunning) start()
+        serializer.serialize(file, comment)
 
-        return true
+        return name
     }
 
-    @Deprecated("Method returns incorrect information about state and will be removed in 0.3.40")
-    fun state() = when {
-        !isGdbServerPresented && !isTopModulePresented -> STATE.DISABLED
-        isGdbServerPresented && isTopModulePresented -> if (gdb.clientProcessing) STATE.WORKING else STATE.AWAIT
-        else -> STATE.MALFORMED
+    fun restore() {
+        checkTopPresented()
+        checkNotRunning("restore")
+        val serializer = requireNotNull(serializer) { "Can't restore without Serializer being initialized already" }
+        serializer.restore()
     }
 
-    fun close() {
+    fun load(snapshot: ByteArray) {
+        val file = snapshot.toTemporaryFile("snapshot_", sdf.format(Date()))
+        serializer = Serializer(top, false).deserialize(file)
+    }
+
+    fun load(path: String? = null) {
+        checkTopPresented()
+        checkNotRunning("load")
+
+        serializer ifNotNull {
+            // if path is null restore target or load from specified snapshot path
+            if (path != null) deserialize(getFullSnapshotPath(path)) else restore()
+        } otherwise {
+            // If serializer was null we definitely can't restore target
+            serializer = Serializer(top, false).apply {
+                val file = if (path != null) getFullSnapshotPath(path) else getLastSnapshot()
+                deserialize(file)
+            }
+        }
+    }
+
+    override fun close() {
         gdbServer?.close()
         gdbServer = null
         topModule?.terminate()
         topModule = null
         serializer = null
-        System.gc()
         log.fine { "Target for line interface was closed!" }
     }
 
@@ -476,7 +420,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @return true - если к GDB-серверу подключен клиент
      * {RU}
      */
-    val gdbClientProcessing get(): Boolean = gdbServer?.clientProcessing ?: false
+    val gdbClientProcessing get(): Boolean = gdbServer?.hasClient ?: false
 
     // required setter/getter due to debugger may not be initialized
     override var isRunning
@@ -487,24 +431,28 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
 
     override fun step() = debugger.step()
     override fun cont() = throw UnsupportedOperationException(
-            "cont() routine is synchronous! To run emulation in async use start(). " +
-                    "If you really want to run synchronous use debugger interface: kc.debugger.cont()")
+        "cont() routine is synchronous! To run emulation in async use start(). " +
+                "If you really want to run synchronous use debugger interface: kc.debugger.cont()"
+    )
+
     override fun halt() = debugger.halt()
 
-    override fun bptSet(bpType: GDB_BPT, address: Long, comment: String?) = debugger.bptSet(bpType, address)
-    override fun bptClr(address: Long) = debugger.bptClr(address)
+    override fun bptSet(bpType: BreakpointType, address: ULong, comment: String?) = debugger.bptSet(bpType, address)
+    override fun bptClr(address: ULong) = debugger.bptClr(address)
 
-    override fun dbgLoad(address: Long, size: Int) = debugger.dbgLoad(address, size)
-    override fun dbgStore(address: Long, data: ByteArray) = debugger.dbgStore(address, data)
+    override fun dbgLoad(address: ULong, size: Int) = debugger.dbgLoad(address, size)
+    override fun dbgStore(address: ULong, data: ByteArray) = debugger.dbgStore(address, data)
 
     override fun ident() = "kopycat"
 
     override fun registers() = debugger.registers()
+    override fun sizes() = debugger.sizes()
+    override fun regSize(index: Int) = debugger.regSize(index)
 
     override fun exception() = core.exception()
 
-    override fun regRead(index: Int): Long = core.reg(index)
-    override fun regWrite(index: Int, value: Long): Unit = core.reg(index, value)
+    override fun regRead(index: Int): ULong = core.reg(index)
+    override fun regWrite(index: Int, value: ULong): Unit = core.reg(index, value)
 
     /**
      * {RU}
@@ -544,9 +492,9 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @return true - если точка останова была установлена
      * {RU}
      */
-    fun bptSet(address: Long, access: String): Boolean {
+    fun bptSet(address: ULong, access: String): Boolean {
         var code = 0
-        val tmp = access.toLowerCase()
+        val tmp = access.lowercase()
         if ('r' in tmp) code = code or 0b001
         if ('w' in tmp) code = code or 0b010
         if ('x' in tmp) code = code or 0b100
@@ -563,17 +511,14 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @return true - если точка останова была установлена
      * {RU}
      */
-    fun bptSet(address: Long, access: Int): Boolean {
-        var type: GDB_BPT? = null
+    fun bptSet(address: ULong, access: Int): Boolean {
+        var type: BreakpointType? = null
         if (access[0] == 1)
-            type = GDB_BPT.READ
+            type = READ
         if (access[1] == 1)
-            type = if (type == GDB_BPT.READ) GDB_BPT.ACCESS else GDB_BPT.WRITE
+            type = if (type == READ) HARDWARE else WRITE
         if (access[2] == 1) {
-            require(type == GDB_BPT.READ || type == GDB_BPT.WRITE || type == GDB_BPT.ACCESS) {
-                "Can't set breakpoint at address ${address.hex8} -> access should be [r|w] or [x]"
-            }
-            type = GDB_BPT.READ
+            type = SOFTWARE
         }
 
         requireNotNull(type) { "Can't set breakpoint at address ${address.hex8} -> access should contain chars [rwx]" }
@@ -592,7 +537,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @return массив загруженных байт
      * {RU}
      */
-    fun memLoad(address: Long, size: Int, ss: Int): ByteArray = core.load(address, size, ss)
+    fun memLoad(address: ULong, size: Int, ss: Int): ByteArray = core.load(address, size, ss)
 
     /**
      * {RU}
@@ -603,7 +548,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @param ss дополнительная часть адреса (segment selector)
      * {RU}
      */
-    fun memStore(address: Long, data: ByteArray, ss: Int) = core.store(address, data, ss)
+    fun memStore(address: ULong, data: ByteArray, ss: Int) = core.store(address, data, ss)
 
     /**
      * {RU}
@@ -618,7 +563,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @return прочитанные данные
      * {RU}
      */
-    fun memRead(address: Long, size: Int, ss: Int = 0) = core.read(address, ss, size)
+    fun memRead(address: ULong, size: Int, ss: Int = 0) = core.read(address, ss, size)
 
     /**
      * {RU}
@@ -632,7 +577,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @param ss дополнительная часть адреса (segment selector)
      * {RU}
      */
-    fun memWrite(address: Long, size: Int, value: Long, ss: Int = 0) = core.write(address, ss, size, value)
+    fun memWrite(address: ULong, size: Int, value: ULong, ss: Int = 0) = core.write(address, ss, size, value)
 
     /**
      * {RU}
@@ -643,7 +588,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @return прочитанное значение регистра
      * {RU}
      */
-    fun regRead(name: String): Long = TODO("Not implemented yet")
+    fun regRead(name: String): ULong = TODO("Not implemented yet")
 
     /**
      * {RU}
@@ -653,7 +598,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @param value значение регистра для записи
      * {RU}
      */
-    fun regWrite(name: String, value: Long): Unit = TODO("Not implemented yet")
+    fun regWrite(name: String, value: ULong): Unit = TODO("Not implemented yet")
 
     /**
      * {RU}
@@ -662,7 +607,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @return прочитанное значение регистра 'pc'
      * {RU}
      */
-    fun pcRead(): Long = core.pc
+    fun pcRead(): ULong = core.pc
 
     /**
      * {RU}
@@ -671,7 +616,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * @param value значение регистра 'pc' для записи
      * {RU}
      */
-    fun pcWrite(value: Long) {
+    fun pcWrite(value: ULong) {
         core.pc = value
     }
 
@@ -681,7 +626,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * и типом доступа [access].
      * {RU}
      */
-    fun throwException(name: String, where: Long, vAddr: Long, access: String) {
+    fun throwException(name: String, where: ULong, vAddr: ULong, access: String) {
         val LorS = AccessAction.valueOf(access)
         val exception = core.cop.createException(name, where, vAddr, LorS)
         core.cpu.exception = exception
@@ -725,16 +670,16 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
     /**
      * {RU}Время прошедшее в микросекундах от начала выполнения программы{RU}
      */
-    fun timestamp(): Long = core.clock.time()
+    fun timestamp(): ULong = core.clock.time()
 
     /**
      * {RU}Общее количество выполненных инструкций от старта эмулятора{RU}
      */
-    fun ticks(): Long = core.clock.totalTicks
+    fun ticks(): ULong = core.clock.totalTicks
 
-    fun translate(ea: Long, ss: Int, size: Int, LorS: AccessAction) = core.mmu!!.translate(ea, ss, size, LorS)
+    fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction) = core.mmu!!.translate(ea, ss, size, LorS)
 
-    fun translate(ea: Long, ss: Int, size: Int, LorS: String): Long {
+    fun translate(ea: ULong, ss: Int, size: Int, LorS: String): ULong {
         val action = first<AccessAction> { it.name == LorS }
         return translate(ea, ss, size, action)
     }
@@ -765,7 +710,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * {RU}
      */
     @Suppress("UNCHECKED_CAST")
-    fun <T : Module> find(name: String): T? = topModule!!.findComponentByInstanceName<Module>(name) as T?
+    fun <T : Module> find(name: String): T? = top.findComponentByInstanceName<Module>(name) as T?
 
     /**
      * {RU}
@@ -776,65 +721,10 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?): IInteractive, I
      * {RU}
      */
     @Suppress("UNCHECKED_CAST")
-    fun <T : Module> first(name: String): T = topModule!!.firstComponentByInstanceName<Module>(name) as T
+    fun <T : Module> first(name: String): T = top.firstComponentByInstanceName<Module>(name) as T
 
     /**
      * {RU}Получить коллекцию всех модулей, которые в настоящий момент используются в эмуляторе{RU}
      */
-    fun modules(): MutableCollection<Module> = topModule!!.getComponentsByClass<Module>().also { it.add(topModule!!) }
-
-    override fun describe(): String = "Kopycat utils for emulator"
-
-    override fun command(): String = "Kopycat"
-
-    override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
-            super.configure(parent, useParent)?.apply {
-                subparser("save").apply {
-                    variable<String>("path", help = "Path to snapshot file to save it")
-                }
-                subparser("load").apply {
-                    variable<String>("path", help = "Path to snapshot file from where to load snapshot")
-                }
-                subparser("step")
-                subparser("reset")
-                subparser("restore")
-                topModule?.configure(parent, true)
-            }
-
-    override fun process(context: IInteractive.Context): Boolean {
-        if (super.process(context))
-            return true
-        val moduleName = context.command()
-        if (moduleName != command())
-            return false
-        context.pop()
-        return when (context.command()) {
-            "load" -> {
-                val path = context.getString("path")
-                load(path)
-            }
-            "save" -> {
-                val path = context.getString("path")
-                save(path)
-            }
-            "step" -> {
-                val debugger: AGenericDebugger? = topModule?.debugger
-                if (debugger != null) {
-                    debugger.step()
-                } else {
-                    context.result = "Debugger is not initialized. No action will follow"
-                    false
-                }
-            }
-            "reset" -> {
-                reset()
-                true
-            }
-            "restore" -> {
-                serializer!!.restore()
-                true
-            }
-            else -> false
-        }
-    }
+    fun modules(): MutableCollection<Module> = top.getComponentsByClass()
 }

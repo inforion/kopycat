@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.system
 
+import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
@@ -35,24 +38,21 @@ class CpuId(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         AX86Instruction(core, Type.VOID, opcode, prefs) {
     override val mnem = "cpuid"
 
-    override fun execute() {
-        // TODO: Implement configuration of AX86 device and CPUID
-        val case = core.cpu.regs.eax
-        when (case) {
-            0L -> {
-                core.cpu.regs.eax = 0x1
-                core.cpu.regs.ebx = 0x756e6547
-                core.cpu.regs.edx = 0x49656e69
-                core.cpu.regs.ecx = 0x6c65746e
-            }
-            1L -> {
-                log.severe { "CPUID instruction not implemented -> execution may be wrong!" }
-                core.cpu.regs.eax = 0x0  // Original OEM processor
-                core.cpu.regs.ebx = 0x0
-                core.cpu.regs.ecx = 0x0
-                core.cpu.regs.edx = 0x4F4 // For amd elan 520
-            }
-            else -> throw GeneralException("Incorrect argument in CpuId insn")
+    override fun execute() = with (core.cpu.regs) {
+        val index = eax.value.uint
+        log.warning { "Reading CPUID index = 0x${index.hex8}" }
+        if (index == 0x69696969u) {
+            eax.value = 0x8000_000Du
+            ebx.value = 0x8000_000Du
+            ecx.value = 0x8000_000Du
+            edx.value = 0x8000_000Du
+        } else {
+            // see Table 3-8. Information Returned by CPUID Instruction of Vol2-abcd (page 293)
+            val cpuid = core.config.cpuid(index, ecx.value.uint) ?: throw GeneralException("CPUID index = ${index.hex8} not configured")
+            eax.value = cpuid.eax.ulong_z
+            ebx.value = cpuid.ebx.ulong_z
+            ecx.value = cpuid.ecx.ulong_z
+            edx.value = cpuid.edx.ulong_z
         }
     }
 }

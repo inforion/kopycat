@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,17 +25,19 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long_z
+import ru.inforion.lab403.common.extensions.ulong_z
 import java.nio.ByteBuffer
 
 
 
 
 class ImageBaseRelocation(input: ByteBuffer) {
-    val virtualAddress = input.int.asULong
-    val sizeOfBlock = input.int.asULong
+    val virtualAddress = input.int.ulong_z
+    val sizeOfBlock = input.int.long_z
 
-    val entriesCount = if (sizeOfBlock > 0) (sizeOfBlock - 8)/2 else 0
+    val entriesCount = if (sizeOfBlock > 0) (sizeOfBlock - 8) / 2 else 0
 
-    val block = Array(entriesCount.toInt()) { ImageRelocation(input) }
+    val block = Array(entriesCount.int) { ImageRelocation(input) }
 }

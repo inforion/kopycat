@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,53 +25,112 @@
  */
 package ru.inforion.lab403.kopycat.modules
 
-// Most usable bus width (until ULong and UInt not used can only be 63 bit long)
-const val PIN = 1L
-const val BUS01 = 1L shl 1
-const val BUS02 = 1L shl 2
-const val BUS03 = 1L shl 3
-const val BUS04 = 1L shl 4
-const val BUS05 = 1L shl 5
-const val BUS06 = 1L shl 6
-const val BUS07 = 1L shl 7
-const val BUS08 = 1L shl 8
-const val BUS09 = 1L shl 9
-const val BUS10 = 1L shl 10
-const val BUS12 = 1L shl 12
-const val BUS15 = 1L shl 15
-const val BUS16 = 1L shl 16
-const val BUS18 = 1L shl 18
-const val BUS20 = 1L shl 20
-const val BUS24 = 1L shl 24
-const val BUS28 = 1L shl 28
-const val BUS30 = 1L shl 30
-const val BUS32 = 1L shl 32
-const val BUS42 = 1L shl 42
-const val BUS44 = 1L shl 44
-const val BUS48 = 1L shl 48
-const val BUS52 = 1L shl 52
-const val BUS56 = 1L shl 56
-const val BUS60 = 1L shl 60
+// Most usable bus width
+const val PIN = 1uL
 
-const val NAND_STATUS = 0L
-const val NAND_IO = 1L
-const val NAND_CMD = 2L
-const val NAND_ADDRESS = 3L
-const val NAND_BUS_SIZE = 4L
+const val BUS00 = 0x0000_0000_0000_0001uL
+const val BUS01 = 0x0000_0000_0000_0002uL
+const val BUS02 = 0x0000_0000_0000_0004uL
+const val BUS03 = 0x0000_0000_0000_0008uL
 
-const val SD_DATA = 0L
-const val SD_ARGUMENT = 1L
-const val SD_COMMAND = 2L
-const val SD_STATUS = 3L
-const val SD_CONTROL = 4L
-const val SD_RESPONSE = 5L
-const val SD_BUS_SIZE = 6L
+const val BUS04 = 0x0000_0000_0000_0010uL
+const val BUS05 = 0x0000_0000_0000_0020uL
+const val BUS06 = 0x0000_0000_0000_0040uL
+const val BUS07 = 0x0000_0000_0000_0080uL
+
+const val BUS08 = 0x0000_0000_0000_0100uL
+const val BUS09 = 0x0000_0000_0000_0200uL
+const val BUS10 = 0x0000_0000_0000_0400uL
+const val BUS11 = 0x0000_0000_0000_0800uL
+
+const val BUS12 = 0x0000_0000_0000_1000uL
+const val BUS13 = 0x0000_0000_0000_2000uL
+const val BUS14 = 0x0000_0000_0000_4000uL
+const val BUS15 = 0x0000_0000_0000_8000uL
+
+const val BUS16 = 0x0000_0000_0001_0000uL
+const val BUS17 = 0x0000_0000_0002_0000uL
+const val BUS18 = 0x0000_0000_0004_0000uL
+const val BUS19 = 0x0000_0000_0008_0000uL
+
+const val BUS20 = 0x0000_0000_0010_0000uL
+const val BUS21 = 0x0000_0000_0020_0000uL
+const val BUS22 = 0x0000_0000_0040_0000uL
+const val BUS23 = 0x0000_0000_0080_0000uL
+
+const val BUS24 = 0x0000_0000_0100_0000uL
+const val BUS25 = 0x0000_0000_0200_0000uL
+const val BUS26 = 0x0000_0000_0400_0000uL
+const val BUS27 = 0x0000_0000_0800_0000uL
+
+const val BUS28 = 0x0000_0000_1000_0000uL
+const val BUS29 = 0x0000_0000_2000_0000uL
+const val BUS30 = 0x0000_0000_4000_0000uL
+const val BUS31 = 0x0000_0000_8000_0000uL
+
+const val BUS32 = 0x0000_0001_0000_0000uL
+const val BUS33 = 0x0000_0002_0000_0000uL
+const val BUS34 = 0x0000_0004_0000_0000uL
+const val BUS35 = 0x0000_0008_0000_0000uL
+
+const val BUS36 = 0x0000_0010_0000_0000uL
+const val BUS37 = 0x0000_0020_0000_0000uL
+const val BUS38 = 0x0000_0040_0000_0000uL
+const val BUS39 = 0x0000_0080_0000_0000uL
+
+const val BUS40 = 0x0000_0100_0000_0000uL
+const val BUS41 = 0x0000_0200_0000_0000uL
+const val BUS42 = 0x0000_0400_0000_0000uL
+const val BUS43 = 0x0000_0800_0000_0000uL
+
+const val BUS44 = 0x0000_1000_0000_0000uL
+const val BUS45 = 0x0000_2000_0000_0000uL
+const val BUS46 = 0x0000_4000_0000_0000uL
+const val BUS47 = 0x0000_8000_0000_0000uL
+
+const val BUS48 = 0x0001_0000_0000_0000uL
+const val BUS49 = 0x0002_0000_0000_0000uL
+const val BUS50 = 0x0004_0000_0000_0000uL
+const val BUS51 = 0x0008_0000_0000_0000uL
+
+const val BUS52 = 0x0010_0000_0000_0000uL
+const val BUS53 = 0x0020_0000_0000_0000uL
+const val BUS54 = 0x0040_0000_0000_0000uL
+const val BUS55 = 0x0080_0000_0000_0000uL
+
+const val BUS56 = 0x0100_0000_0000_0000uL
+const val BUS57 = 0x0200_0000_0000_0000uL
+const val BUS58 = 0x0400_0000_0000_0000uL
+const val BUS59 = 0x0800_0000_0000_0000uL
+
+const val BUS60 = 0x1000_0000_0000_0000uL
+const val BUS61 = 0x2000_0000_0000_0000uL
+const val BUS62 = 0x4000_0000_0000_0000uL
+const val BUS63 = 0x8000_0000_0000_0000uL
+const val BUS64 = 0xFFFF_FFFF_FFFF_FFFFuL // Now we can't define full 64-bit bus, so the last address is unavailable (also in IDA)
+
+const val NAND_STATUS = 0uL
+const val NAND_IO = 1uL
+const val NAND_CMD = 2uL
+const val NAND_ADDRESS = 3uL
+const val NAND_BUS_SIZE = 4uL
+
+const val SD_DATA = 0uL
+const val SD_ARGUMENT = 1uL
+const val SD_COMMAND = 2uL
+const val SD_STATUS = 3uL
+const val SD_CONTROL = 4uL
+const val SD_RESPONSE = 5uL
+const val SD_BUS_SIZE = 6uL
 
 const val SPI_BUS_SIZE = 4L
 
-const val PCI_REQUEST_SPACE_SIZE = 0xFFFF_FFFF
+const val PCI_ECAM_BUS_SIZE = 0x1000_0000
+const val PCI_ECAM_DEVICE_SIZE = 4096uL
 
-const val PCI_NOTHING_CONNECTED = 0xFFFF_FFFF
+const val PCI_REQUEST_SPACE_SIZE = 0xFFFF_FFFFuL
+
+const val PCI_NOTHING_CONNECTED = 0xFFFF_FFFFuL
 
 const val PCI_BDF_ENA_BIT = 31
 val PCI_BDF_BUS_RANGE = 23..16
@@ -79,15 +138,9 @@ val PCI_BDF_DEVICE_RANGE = 15..11
 val PCI_BDF_FUNC_RANGE = 10..8
 val PCI_BDF_REG_RANGE = 7..0
 
-const val PCI_CSR0 = 0
-const val PCI_CSR1 = 1
-const val PCI_CSR2 = 2
-const val PCI_CSR3 = 3
-const val PCI_CSR4 = 4
-const val PCI_CSR5 = 5
-const val PCI_CSR6 = 6
-const val PCI_CONF = 7
-const val PCI_SPACES_COUNT = 8
+const val PCI_MEM_AREA = 0
+const val PCI_IO_AREA = 1
+const val PCI_UNDEF_AREA = -1
 
 const val PCI_INTERRUPTS_COUNT = 4
 
@@ -104,12 +157,12 @@ const val ATA_BUS_SIZE = BUS60
 /**
  * {RU}Адрес регистра ведущей шины UART/TERMINAL для чтения/записи данных для взаимодействия по шине UART{RU}
  */
-const val UART_MASTER_BUS_DATA = 0L
+const val UART_MASTER_BUS_DATA = 0uL
 
 /**
  * {RU}Адрес регистра ведущей шины UART/TERMINAL для чтения/записи параметров для взаимодействия по шине UART{RU}
  */
-const val UART_MASTER_BUS_PARAM = 1L
+const val UART_MASTER_BUS_PARAM = 1uL
 
 /**
  * {RU}Количество адресов ведущей шины UART/TERMINAL для взаимодействия по шине UART{RU}
@@ -169,7 +222,7 @@ const val UART_SLAVE_BUS_SIZE = 1
 /**
  * {RU}Адрес на ведомой шине UART/TERMINAL для сигнализации о том, что в терминали присутсвуют новые данные{RU}
  */
-const val UART_SLAVE_BUS_REQUEST = 0L
+const val UART_SLAVE_BUS_REQUEST = 0uL
 
 /**
  * {RU}

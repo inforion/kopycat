@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,17 +28,18 @@ package ru.inforion.lab403.kopycat.cores.base.abstracts
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
+import ru.inforion.lab403.kopycat.cores.base.abstracts.utils.BitOf
+import ru.inforion.lab403.kopycat.cores.base.abstracts.utils.FieldOf
+import ru.inforion.lab403.kopycat.cores.base.abstracts.utils.TrackableBitOf
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegisterNG
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import ru.inforion.lab403.kopycat.interfaces.IResettable
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
-import java.io.Serializable
-import kotlin.reflect.KProperty
 
 
 abstract class ARegistersBankNG<T: AGenericCore>(
@@ -55,7 +56,7 @@ abstract class ARegistersBankNG<T: AGenericCore>(
     val msb = bits - 1
     val lsb = 0
 
-    protected val mask = bitMask(msb..lsb)
+    protected val mask = ubitMask64(msb..lsb)
 
     private val registers = Array<Register?>(count) { null }
 
@@ -65,34 +66,40 @@ abstract class ARegistersBankNG<T: AGenericCore>(
 
     fun read(index: Int) = this[index].value
 
-    fun write(index: Int, value: Long) {
+    fun write(index: Int, value: ULong) {
         this[index].value = value
     }
 
-    open inner class Register(val name: String, val id: Int, var default: Long = 0) : ISerializable, IResettable {
+    open inner class Register(
+        val name: String,
+        val id: Int,
+        var default: ULong = 0u,
+        val dtype: Datatype = Datatype.DWORD,
+        val extra: Int = 0
+    ) : ISerializable, IResettable {
         protected val bank = this@ARegistersBankNG
 
         /**
          * {EN} Actual data of register {EN}
          */
-        private var data: Long = 0
+        private var data: ULong = 0u
 
         /**
          * {EN}
-         * Defines register behaviour and should be override only in case when register may have
-         *   several different values depend on state of processor or coprocessor or other hardware states
+         * Defines register behaviour and should be overridden only in case when register may have
+         *   several values depend on state of processor or coprocessor or other hardware states
          *
-         * WARNING: DO NOT use bit access like [bitOf] or [fieldOf] when override this field! It leads to recursion!
+         * WARNING: DO NOT use a bit-access like [bitOf] or [fieldOf] when override this field! It leads to recursion!
          *   Use [data] for this purpose.
          *
          * NOTE: If you override this field you should also override:
          *  - serialize()/deserialize()
          *  - reset()
          *
-         * Otherwise result may be unexpected (see ARMv6M GPRBank.SP).
+         * Otherwise, result may be unexpected (see ARMv6M GPRBank.SP).
          * {EN}
          */
-        open var value: Long
+        open var value: ULong
             get() = data and mask
             set(value) = run { data = value and mask }
 
@@ -116,35 +123,21 @@ abstract class ARegistersBankNG<T: AGenericCore>(
             data = loadValue(snapshot, "data")
         }
 
-        inner class bitOf constructor(val bit: Int): Serializable {
-            operator fun getValue(reg: Register, property: KProperty<*>) = value[bit].toBool()
-            operator fun setValue(reg: Register, property: KProperty<*>, newValue: Boolean) {
-                value = value.insert(newValue.toInt(), bit)
-            }
+        fun bitOf(bit: Int, track: T? = null) = when (track) {
+            null -> BitOf(this, bit)
+            else -> TrackableBitOf(this, bit, track)
         }
 
-        inner class fieldOf constructor(vararg list: Pair<IntRange, IntRange>): Serializable {
-            constructor(bits: IntRange) : this(bits to bits.first - bits.last..0)
+        fun fieldOf(vararg list: Pair<IntRange, IntRange>) = FieldOf(this, *list)
 
-            private val list = list.map { (src, dst) -> src.toSerializable() to dst.toSerializable() }
-
-            operator fun getValue(thisRef: Register, property: KProperty<*>): Long = list.fold(0) { acc, (src, dst) ->
-                acc.insert(value[src.first..src.last], dst.first..dst.last)
-            }
-
-            operator fun setValue(thisRef: Register, property: KProperty<*>, newValue: Long) {
-                value = list.fold(value) { acc, (src, dst) ->
-                    acc.insert(newValue[dst.first..dst.last], src.first..src.last)
-                }
-            }
-        }
+        fun fieldOf(bits: IntRange) = FieldOf(this, bits to bits.first - bits.last..0)
 
         override fun toString() = "$name[$id]"
 
-        fun toOperand() = object : ARegisterNG<T>(this@Register, Access.ANY) {
+        fun toOperand() = object : ARegisterNG<T>(this@Register, Access.ANY, dtype) {
             override fun toString() = name
             override fun value(core: T) = value
-            override fun value(core: T, data: Long) = run { value = data }
+            override fun value(core: T, data: ULong) = run { value = data }
         }
 
         val next get() = bank[id + 1] // TODO("Filter not null")
@@ -224,7 +217,7 @@ abstract class ARegistersBankNG<T: AGenericCore>(
             // 5   12    19    26
             // 6   13    20    27
             if (idx < count) {
-                if (row != 0 && col == 0) appendln()
+                if (row != 0 && col == 0) appendLine()
 
                 val reg = registers[idx]
 

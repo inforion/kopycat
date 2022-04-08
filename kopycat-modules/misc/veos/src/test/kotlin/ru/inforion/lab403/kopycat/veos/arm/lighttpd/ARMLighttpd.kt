@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,9 +44,9 @@ internal class ARMLighttpd {
     companion object {
         val log = logger()
 
-        const val maxStepsCount = 6000000
-        const val pollAddress = 0x00014F3CL
-        const val failAddress = 0x00042668L
+        const val maxStepsCount = 6000000u
+        const val pollAddress: ULong = 0x00014F3Cu
+        const val failAddress: ULong = 0x00042668u
         const val httpOk = "HTTP/1.0 200 OK\r\n"
     }
 
@@ -62,7 +62,7 @@ internal class ARMLighttpd {
                 executable,
                 "-D -f /etc/lighttpd/lightttpd.default.conf"
         )
-        val kopycat = Kopycat(null).also { it.open(top, false, null) }
+        val kopycat = Kopycat(null).also { it.open(top, null, false) }
         top.veos.conf.dynamicPortMapping = true
 
         var socket: Socket? = null
@@ -96,7 +96,7 @@ internal class ARMLighttpd {
         )
         top.veos.conf.dynamicPortMapping = true
 
-        val kopycat = Kopycat(null).also { it.open(top, false, null) }
+        val kopycat = Kopycat(null).also { it.open(top, null, false) }
 
         var socket: Socket? = null
         val data = "GET / HTTP/1.0\r\n\r\n".toByteArray(ISO_8859_1)

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,5 +36,5 @@ class Sldb(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
     override val mnem = "sld.b"
 
     // Format IV - reg, disp
-    override fun execute() = op1.value(core, op2.usext(core))
+    override fun execute() = op1.value(core, op2.value(core))
 }

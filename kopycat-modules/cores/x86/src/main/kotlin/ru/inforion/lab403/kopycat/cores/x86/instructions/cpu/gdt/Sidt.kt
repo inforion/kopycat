@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,7 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class Sidt(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>):
@@ -39,7 +40,7 @@ class Sidt(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<
     override val mnem = "sidt"
 
     override fun execute() {
-        var data = 0L
+        var data = 0uL
         if (prefs.is16BitOperandMode) {
             data = data.insert(core.cop.idtr.limit, 15..0)
             data = data.insert(core.cop.idtr.base, 39..16)

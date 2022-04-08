@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -83,8 +83,8 @@ class SignalAPI constructor(os: VEOS<*>) : API(os) {
 //        log.severe { "High probability of fail: sigset_t offsets" }
         log.severe { "[0x${ra.hex8}] sigaction(signum=${signum} act=$act oldact=$oldact) - not implemented" }
         if (oldact.isNotNull) {
-            oldact.handler = 0L
-            oldact.mask = 0L
+            oldact.handler = 0uL
+            oldact.mask = 0uL
         }
         return 0
     }

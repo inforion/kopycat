@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,10 +37,10 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
 abstract class ADecoder<out T: AARMInstruction>(val core: AARMCore): ITableEntry {
-    abstract fun decode(data: Long): T
+    abstract fun decode(data: ULong): T
 
-    protected fun list(rbits: Long): ARMRegisterList {
-        val regs = (0..15).filter { rbits[it] == 1L }.map { core.cpu.regs[it].toOperand() }
+    protected fun list(rbits: ULong): ARMRegisterList {
+        val regs = (0..15).filter { rbits[it] == 1uL }.map { core.cpu.regs[it].toOperand() }
         return ARMRegisterList(regs)
     }
 
@@ -48,28 +48,28 @@ abstract class ADecoder<out T: AARMInstruction>(val core: AARMCore): ITableEntry
 
     protected fun gpr(id: Int) = core.cpu.regs[id].toOperand()
 
-    protected fun imm(data: Long, signed: Boolean) = ARMImmediate(data, signed, DWORD, WRONGI)
+    protected fun imm(data: ULong, signed: Boolean) = ARMImmediate(data, signed, DWORD, WRONGI)
 
-    protected fun shiftImm(opcode: Long): ARMImmediateShift {
-        val rm = gpr(opcode[3..0].asInt)
+    protected fun shiftImm(opcode: ULong): ARMImmediateShift {
+        val rm = gpr(opcode[3..0].int)
         val imm = imm(opcode[11..7], false)
-        val type = first<ShiftType> { it.id == opcode[6..5] }
+        val type = first<ShiftType> { it.id.ulong == opcode[6..5] }
         return ARMImmediateShift(rm, imm, type)
     }
 
-    protected fun shiftReg(opcode: Long): ARMRegisterShift {
-        val rs = gpr(opcode[11..8].asInt)
-        val rm = gpr(opcode[3..0].asInt)
-        val type = first<ShiftType> { it.id == opcode[6..5] }
+    protected fun shiftReg(opcode: ULong): ARMRegisterShift {
+        val rs = gpr(opcode[11..8].int)
+        val rm = gpr(opcode[3..0].int)
+        val type = first<ShiftType> { it.id.ulong == opcode[6..5] }
         return ARMRegisterShift(rs, rm, type)
     }
 
-    protected fun carry(opcode: Long): ARMImmediateCarry {
+    protected fun carry(opcode: ULong): ARMImmediateCarry {
         val imm8 = opcode[7..0]
-        val rimm = opcode[11..8].asInt
+        val rimm = opcode[11..8].int
         val shifter = imm8 rotr32 (2 * rimm)
         return ARMImmediateCarry(rimm, shifter)
     }
 
-    protected fun cond(opcode: Long) = find<Condition> { it.opcode == opcode[31..28].asInt } ?: Condition.AL
+    protected fun cond(opcode: ULong) = find { it.opcode == opcode[31..28].int } ?: Condition.AL
 }

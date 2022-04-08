@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,7 +30,7 @@ import ru.inforion.lab403.common.extensions.hex8
 
 abstract class HardwareException(
         val excCode: Enum<*>,
-        val where: Long,
+        val where: ULong,
         message: String? = null
 ) : GeneralException(message) {
     override fun toString(): String = "$prefix[${where.hex8}]: $excCode"

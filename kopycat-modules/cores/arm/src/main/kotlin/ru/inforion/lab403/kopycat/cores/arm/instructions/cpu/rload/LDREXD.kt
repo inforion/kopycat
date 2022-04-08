@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,11 +31,12 @@ import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 // See A8.8.77
 class LDREXD(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val rn: ARMRegister,
             val rt: ARMRegister,
@@ -47,12 +48,12 @@ class LDREXD(cpu: AARMCore,
     override fun execute() {
         val address = rn.value(core)
         // LDREXD requires doubleword-aligned address
-        if (address[2..0] == 0b000L) throw ARMHardwareException.AligmentFault // TODO: Not implemented - AlignmentFault(address, FALSE)
+        if (address[2..0] == 0b000uL) throw ARMHardwareException.AligmentFault // TODO: Not implemented - AlignmentFault(address, FALSE)
         // TODO: Single core - no need
         //SetExclusiveMonitors(address,8);
         // See the description of Single-copy atomicity for details of whether
         // the two loads are 64-bit single-copy atomic.
         rt.value(core, core.inl(address))
-        rt2.value(core, core.inl(address + 4))
+        rt2.value(core, core.inl(address + 4u))
     }
 }

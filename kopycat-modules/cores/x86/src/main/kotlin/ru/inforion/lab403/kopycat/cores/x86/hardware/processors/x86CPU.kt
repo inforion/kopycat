@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,75 +25,270 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.hardware.processors
 
-import net.sourceforge.argparse4j.inf.ArgumentParser
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.toLong
-import ru.inforion.lab403.common.extensions.variable
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.x86.IA32_SMBASE
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.*
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.x86SystemDecoder
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.control.Nop
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.eip
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
-import ru.inforion.lab403.kopycat.interfaces.IInteractive
+import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
+import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruction, x86GPR>(x86, name) {
+class x86CPU(val x86: x86Core, name: String, busSize: ULong = BUS32):
+    ACPU<x86CPU, x86Core, AX86Instruction, x86GPR>(x86, name, busSize), IAutoSerializable {
 
-    enum class Mode { R16, R32 }
+    companion object {
+        const val LME = 8 // Long Mode Enable
 
-    var defaultSize = false
-    // Operand and Address size mode! Not real or protected!
-    // Real or protected mode defined by cregs.vpe
-    val mode: Mode get() = if (cregs.vpe && defaultSize) Mode.R32 else Mode.R16
-
-    override fun serialize(ctxt: GenericSerializer) = mapOf(
-            "regs" to regs.serialize(ctxt),
-            "sregs" to sregs.serialize(ctxt),
-            "flags" to flags.serialize(ctxt),
-            "dregs" to dregs.serialize(ctxt),
-            "cregs" to cregs.serialize(ctxt),
-            "pc" to pc.hex8)
-
-    @Suppress("UNCHECKED_CAST")
-    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        super.deserialize(ctxt, snapshot)
-        regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
-        sregs.deserialize(ctxt, snapshot["sregs"] as Map<String, String>)
-        flags.deserialize(ctxt, snapshot["flags"] as Map<String, String>)
-        dregs.deserialize(ctxt, snapshot["dregs"] as Map<String, String>)
-        cregs.deserialize(ctxt, snapshot["cregs"] as Map<String, String>)
+        const val SMM_ENTRY_OFFSET = 0x8000uL
     }
 
-    override fun reg(index: Int): Long = regs[index].value(x86)
-    override fun reg(index: Int, value: Long) = regs[index].value(x86, value)
+    enum class Mode { R16, R32, R64 }
+
+    // Cached CS.D value
+    var csd = false
+    // Cached CS.L value
+    var csl = false
+
+    // Operand and Address size mode! Not real or protected!
+    // Real or protected mode defined by cregs.vpe
+    val mode: Mode get() = when {
+        csl && cregs.cr4.pae && x86.config.efer[LME].truth && cregs.cr0.pg -> Mode.R64
+        csd && cregs.cr0.pe -> Mode.R32
+        else -> Mode.R16
+    }
+
+    override fun reg(index: Int): ULong = regs[index].value
+    override fun reg(index: Int, value: ULong) = run { regs[index].value = value }
     override fun count() = regs.count()
-    override fun flags() = flags.eflags
+    override fun flags() = flags.eflags.value
 
     /**
      * Stub for debugging purpose of x86CPU core
      * Read - returns physical CPU.PC address
      * Write - setup only offset of virtual address within cs segment
      */
-    override var pc: Long
-//        get() = x86.mmu.translate(eip.value(x86), cs.reg, 1, AccessAction.LOAD)
-        get() = eip.value(x86)
-        set(value) {
-            eip.value(x86, value)
-//            log.warning { "Setting up x86CPU.PC changing only offset within CS segment -> %04X:%08X = %08X"
-//                    .format(cs.value(dev), eip.value(dev), pc) }
+    override var pc: ULong
+        get() = regs.rip.value
+        set(value) = run { regs.rip.value = value }
+
+    val regs = GPRBank()
+    val flags = FLBank(x86) // TODO: split to flags and eflags
+    val sregs = SSRBank(x86)
+    val dregs = DBGBank()
+    val cregs = CTRLBank(x86)
+
+    private fun saveStateBeforeSmm64(smBase: ULong) = with (x86) {
+        // Table 34-3. SMRAM State Save Map for Intel 64 Architecture
+
+        fun save(offset: ULong, size: Int, value: ULong) =
+            write(smBase + offset + SMM_ENTRY_OFFSET, UNDEF, size, value)
+
+        save(0x7FF8u, 8, cpu.cregs.cr0.value)
+        save(0x7FF0u, 8, cpu.cregs.cr3.value)
+
+        save(0x7FE8u, 8, cpu.flags.eflags.value)  // rflags
+
+        save(0x7FE0u, 8, x86.config.efer)
+
+        save(0x7FD8u, 8, cpu.regs.rip.value)
+
+        save(0x7FD0u, 8, cpu.dregs.dr6.value)
+        save(0x7FC8u, 8, cpu.dregs.dr7.value)
+
+        save(0x7FC4u, 4, x86.cop.tssr)  // TR_SEL
+        save(0x7FC0u, 4, x86.mmu.ldtr)  // LDTR_SEL
+
+        save(0x7FBCu, 4, cpu.sregs.gs.value)
+        save(0x7FB8u, 4, cpu.sregs.fs.value)
+        save(0x7FB4u, 4, cpu.sregs.ds.value)
+        save(0x7FB0u, 4, cpu.sregs.ss.value)
+        save(0x7FACu, 4, cpu.sregs.cs.value)
+        save(0x7FA8u, 4, cpu.sregs.es.value)
+
+        save(0x7FA4u, 4, 0x0u)  // IO_MISC
+        save(0x7F9Cu, 8, 0x0u)  // IO_MEM_ADDR
+
+        save(0x7F94u, 8, cpu.regs.rdi.value)
+        save(0x7F8Cu, 8, cpu.regs.rsi.value)
+        save(0x7F84u, 8, cpu.regs.rbp.value)
+        save(0x7F7Cu, 8, cpu.regs.rsp.value)
+        save(0x7F74u, 8, cpu.regs.rbx.value)
+        save(0x7F6Cu, 8, cpu.regs.rdx.value)
+        save(0x7F64u, 8, cpu.regs.rcx.value)
+        save(0x7F5Cu, 8, cpu.regs.rax.value)
+        save(0x7F54u, 8, cpu.regs.r8.value)
+        save(0x7F4Cu, 8, cpu.regs.r9.value)
+        save(0x7F44u, 8, cpu.regs.r10.value)
+        save(0x7F3Cu, 8, cpu.regs.r11.value)
+        save(0x7F34u, 8, cpu.regs.r12.value)
+        save(0x7F2Cu, 8, cpu.regs.r13.value)
+        save(0x7F24u, 8, cpu.regs.r14.value)
+        save(0x7F1Cu, 8, cpu.regs.r15.value)
+
+        // 7F1BH-7F04H Reserved
+                
+        save(0x7F02u, 2, 0x0u) // Auto HALT Restart Field (Word)
+        save(0x7F00u, 2, 0x0u) // I/O Instruction Restart Field (Word)
+        // SMM Revision Identifier Field (Doubleword)
+        //  I/O instruction restart = 0
+        //  SMRAM base address relocation is supported  = 1
+        save(0x7EFCu, 4, 0x2_0001u)
+
+        save(0x7EF8u, 4, smBase) //  SMBASE Field (Doubleword)
+
+        save(0x7EE0u, 4, 0x0u) // Setting of “enable EPT” VM-execution control
+        save(0x7ED8u, 4, 0x0u) // Value of EPTP VM-execution control field
+        save(0x7E9Cu, 4, 0x0u)  //  LDT Base (lower 32 bits)
+        save(0x7E94u, 4, x86.cop.idtr.base[31..0])
+        save(0x7E8Cu, 4, x86.mmu.gdtr.base[31..0])
+        save(0x7E40u, 4, cpu.cregs.cr3.value)
+        save(0x7DE8u, 4, 0x0u)  // IO_RIP
+        save(0x7DD8u, 4, x86.cop.idtr.base[63..32])
+        save(0x7DD4u, 4, 0x0u)  //  LDT Base (Upper 32 bits)
+        save(0x7DD0u, 4, x86.mmu.gdtr.base[63..32])
+    }
+
+    private fun loadStateAfterSmm64(smBase: ULong) = with (x86) {
+        fun load(offset: ULong, size: Int) =
+            read(smBase + offset + SMM_ENTRY_OFFSET, UNDEF, size)
+
+        cpu.cregs.cr0.value = load(0x7FF8u, 8)
+        cpu.cregs.cr3.value = load(0x7FF0u, 8)
+
+        cpu.flags.eflags.value = load(0x7FE8u, 8)  // rflags
+
+        x86.config.efer = load(0x7FE0u, 8)
+
+        cpu.regs.rip.value = load(0x7FD8u, 8)
+
+        cpu.dregs.dr6.value = load(0x7FD0u, 8)
+        cpu.dregs.dr7.value = load(0x7FC8u, 8)
+
+        x86.cop.tssr = load(0x7FC4u, 4)  // TR_SEL
+        x86.mmu.ldtr = load(0x7FC0u, 4)  // LDTR_SEL
+
+//        load(0x7FA4u, 4)  // IO_MISC
+//        load(0x7F9Cu, 8)  // IO_MEM_ADDR
+
+        cpu.regs.rdi.value = load(0x7F94u, 8)
+        cpu.regs.rsi.value = load(0x7F8Cu, 8)
+        cpu.regs.rbp.value = load(0x7F84u, 8)
+        cpu.regs.rsp.value = load(0x7F7Cu, 8)
+        cpu.regs.rbx.value = load(0x7F74u, 8)
+        cpu.regs.rdx.value = load(0x7F6Cu, 8)
+        cpu.regs.rcx.value = load(0x7F64u, 8)
+        cpu.regs.rax.value = load(0x7F5Cu, 8)
+        cpu.regs.r8.value = load(0x7F54u, 8)
+        cpu.regs.r9.value = load(0x7F4Cu, 8)
+        cpu.regs.r10.value = load(0x7F44u, 8)
+        cpu.regs.r11.value = load(0x7F3Cu, 8)
+        cpu.regs.r12.value = load(0x7F34u, 8)
+        cpu.regs.r13.value = load(0x7F2Cu, 8)
+        cpu.regs.r14.value = load(0x7F24u, 8)
+        cpu.regs.r15.value = load(0x7F1Cu, 8)
+
+        // 7F1BH-7F04H Reserved
+
+//        load(0x7F02u, 2) // Auto HALT Restart Field (Word)
+//        load(0x7F00u, 2) // I/O Instruction Restart Field (Word)
+
+        // SMM Revision Identifier Field (Doubleword)
+        //  I/O instruction restart = 0
+        //  SMRAM base address relocation is supported  = 1
+
+        val newSmBase = load(0x7EF8u, 4) //  SMBASE Field (Doubleword)
+        config.wrmsr(IA32_SMBASE, newSmBase)
+
+//        load(0x7EE0u, 4) // Setting of “enable EPT” VM-execution control
+//        load(0x7ED8u, 4) // Value of EPTP VM-execution control field
+//        load(0x7E9Cu, 4)  //  LDT Base (lower 32 bits)
+
+        val idtrBaseLo = load(0x7E94u, 4)
+        val idtrBaseHi = load(0x7DD8u, 4)
+
+        val gdtrBaseLo = load(0x7E8Cu, 4)
+        val gdtrBaseHi = load(0x7DD0u, 4)
+
+        mmu.gdtr.base = gdtrBaseLo.insert(gdtrBaseHi, 63..32)
+        cop.idtr.base = idtrBaseLo.insert(idtrBaseHi, 63..32)
+
+        cpu.cregs.cr3.value = load(0x7E40u, 4)
+
+        cpu.sregs.gs.value = load(0x7FBCu, 4)
+        cpu.sregs.fs.value = load(0x7FB8u, 4)
+        cpu.sregs.ds.value = load(0x7FB4u, 4)
+        cpu.sregs.ss.value = load(0x7FB0u, 4)
+        cpu.sregs.cs.value = load(0x7FACu, 4)
+        cpu.sregs.es.value = load(0x7FA8u, 4)
+
+        mmu.invalidateGdtCache()
+        mmu.invalidateProtectedMode()
+        mmu.invalidatePagingCache()
+
+//        load(0x7DE8u, 4, 0x0u)  // IO_RIP
+//        load(0x7DD4u, 4, 0x0u)  //  LDT Base (Upper 32 bits)
+    }
+
+    private fun saveStateBeforeSmm32(smBase: ULong): Unit = throw NotImplementedError()
+
+    private fun loadStateAfterSmm32(smBase: ULong): Unit = throw NotImplementedError()
+
+    fun enterSmmMode(value: ULong) {
+        val smBase = x86.config.rdmsrOrThrow(IA32_SMBASE)
+
+        log.severe { "Enter SMM value=0x${value.hex} base=0x${smBase.hex} cs=0x${sregs.cs.value.hex} ip=0x${regs.rip.value.hex}" }
+
+        when {
+            csl && !csd -> saveStateBeforeSmm64(smBase)
+            !csl && csd -> saveStateBeforeSmm32(smBase)
+            else -> error("SMM can't be entered from mode where csd=$csd csl=$csl")
         }
 
-    val regs = GPRBank(x86)
-    val flags = FLBank(x86)
-    val sregs = SSBank(x86)
-    val dregs = DBGBank(x86)
-    val cregs = CTRLBank(x86)
+        // 34.5.1 Initial SMM Execution Environment
+        csd = false
+        csl = false
+
+        cregs.cr0.pe = false
+        cregs.cr0.em = false
+        cregs.cr0.ts = false
+        cregs.cr0.pg = false
+
+        cregs.cr4.value = 0u
+
+        dregs.dr6.value = 0xDEADBEEFu  // undefined
+        dregs.dr7.value = 0x400u
+
+        flags.eflags.value = 0x2u
+
+        regs.rip.value = SMM_ENTRY_OFFSET
+        sregs.cs.value = smBase ushr 4
+
+        sregs.ds.value = 0x0u
+        sregs.es.value = 0x0u
+        sregs.fs.value = 0x0u
+        sregs.gs.value = 0x0u
+        sregs.ss.value = 0x0u
+
+//        debugger.isRunning = false
+    }
+
+    fun leaveSmmMode() {
+        val oldSmBase = x86.config.rdmsrOrThrow(IA32_SMBASE)
+
+        val newSmBase = x86.read(oldSmBase + 0x7EF8u + SMM_ENTRY_OFFSET, UNDEF, 4)
+        log.severe { "Leave SMM base=0x${newSmBase.hex} cs=0x${sregs.cs.value.hex} ip=0x${regs.rip.value.hex}" }
+
+        loadStateAfterSmm64(oldSmBase)
+    }
+
+    internal fun invalidateDecoderCache() = decoder.invalidateCacheIfRequired()
 
     private val decoder = x86SystemDecoder(x86, this)
 
@@ -107,49 +302,28 @@ class x86CPU(val x86: x86Core, name: String): ACPU<x86CPU, x86Core, AX86Instruct
     }
 
     override fun decode() {
-        insn = decoder.decode(regs.eip)
-//        log.info { "cs=${sregs.cs.hex4} eip=${regs.eip.hex8} $insn" }
+        insn = decoder.decode(regs.rip.value)
+//        log.info { "cs=${sregs.cs.value.hex} eip=${regs.eip.value.hex} $insn" }
     }
 
     override fun execute(): Int {
-        regs.eip += insn.size
+        regs.rip.value += insn.size.uint
         insn.execute()
         return 1  // TODO: get from insn.execute()
     }
 
     override fun stringify() = buildString {
-        val where = x86.mmu.translate(eip.value(x86), cs.reg, 1, AccessAction.LOAD)
+        val where = x86.mmu.translate(regs.rip.value, sregs.cs.id, 1, AccessAction.LOAD)
         appendLine("x86 CPU: PC = 0x${where.hex8}")
         appendLine(regs.stringify())
         append(sregs.stringify())
     }
 
-    override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
-            super.configure(parent, useParent)?.apply {
-                variable<String>("cs", help = "Code segment")
-                variable<String>("eip", help = "Code offset")
-            }
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+        return super<IAutoSerializable>.serialize(ctxt)
+    }
 
-    override fun process(context: IInteractive.Context): Boolean {
-        if (super.process(context))
-            return true
-
-        val cs = context.getString("cs").toLong(16)
-        val eip = context.getString("eip").toLong(16)
-
-        context.result = when {
-            cs % 8 == 0L ->    // if cs in GDT
-                "cs = %04X. eip = %08X".format(cs, eip)
-            cs % 4 == 0L ->    // if cs in LDT
-                "cs = %04X. It is LDT selector. Check, that LDTR is coincident. IP will be modified".format(cs)
-            else -> {          // it is not LDT or GDT
-                "Error! cs = %04X. It is not GDT or LDT selector. Command will be ignored".format(cs)
-            }
-        }
-
-        sregs.cs = cs
-        regs.eip = eip
-
-        return true
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        super<IAutoSerializable>.deserialize(ctxt, snapshot)
     }
 }

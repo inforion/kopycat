@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asULong
-import ru.inforion.lab403.common.extensions.getInt
-import ru.inforion.lab403.common.extensions.putInt
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessType
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
@@ -79,14 +76,14 @@ import java.nio.ByteOrder.LITTLE_ENDIAN
  */
 class CachedMemoryStream(
         private val reader: MasterPort,
-        where: Long,
+        where: ULong,
         val ss: Int,
         val type: AccessType,
         private val cacheSize: Int = 16): IMemoryStream {
 
     companion object {
         const val PAGE_SIZE = 4096
-        const val PAGE_OFFSET_MASK: Long = 0xFFF
+        const val PAGE_OFFSET_MASK: ULong = 0xFFFuL
         const val LOAD_CHUNK_SIZE = 8  // may not be bigger 8
     }
 
@@ -94,12 +91,12 @@ class CachedMemoryStream(
     private var readBytes = 0  // read from stream bytes
     private var loadedBytes = 0  // loaded to stream bytes
 
-    override var position get() = readBytes.asULong; set(value) { readBytes = value.asInt }
+    override var position get() = readBytes.ulong_z; set(value) { readBytes = value.int }
 
-    override var mark: Long = where
+    override var mark: ULong = where
     override var last: Int = 0
 
-    private fun workingCacheEA(): Long = mark + loadedBytes
+    private fun workingCacheEA(): ULong = mark + loadedBytes.uint
 
     private fun fetchCache(size: Int) {
         val ea = workingCacheEA()
@@ -107,12 +104,12 @@ class CachedMemoryStream(
         writeCache(d, size)
     }
 
-    private fun writeCache(value: Long, size: Int) {
-        cache.putInt(loadedBytes, value, size, LITTLE_ENDIAN)
+    private fun writeCache(value: ULong, size: Int) {
+        cache.putInt(loadedBytes, value.long, size, LITTLE_ENDIAN)
         loadedBytes += size
     }
 
-    private fun peekCache(size: Int) = cache.getInt(readBytes, size, LITTLE_ENDIAN)
+    private fun peekCache(size: Int) = cache.getInt(readBytes, size, LITTLE_ENDIAN).ulong
 
     /**
      * {RU}
@@ -131,7 +128,7 @@ class CachedMemoryStream(
      * @throws GeneralException
      * {EN}
      */
-    private fun readCache(size: Int): Long {
+    private fun readCache(size: Int): ULong {
         val data = peekCache(size)
         readBytes += size
         return data
@@ -150,7 +147,7 @@ class CachedMemoryStream(
      * @param where address in bus to reset stream
      * {EN}
      */
-    fun reset(where: Long) {
+    fun reset(where: ULong) {
         readBytes = 0
         loadedBytes = 0
         mark = where
@@ -163,9 +160,9 @@ class CachedMemoryStream(
      * {RU}Загрузка блока данных в кэш{RU}
      */
     private fun load() {
-        val ea = mark + loadedBytes
+        val ea = mark + loadedBytes.uint
 
-        val pageOffset = (ea and PAGE_OFFSET_MASK).asInt
+        val pageOffset = (ea and PAGE_OFFSET_MASK).int
         val left = PAGE_SIZE - pageOffset
 
         if (left >= LOAD_CHUNK_SIZE) {
@@ -193,12 +190,12 @@ class CachedMemoryStream(
      * @throws IndexOutOfBoundsException
      * {EN}
      */
-    override fun read(datatype: Datatype): Long {
+    override fun read(datatype: Datatype): ULong {
         if (readBytes + datatype.bytes < cacheSize) {
             if (readBytes + datatype.bytes >= loadedBytes)
                 load()
             val result = readCache(datatype.bytes)
-            last = result.toInt()
+            last = result.int
             return result
         }
         throw IndexOutOfBoundsException("Cache size is $cacheSize. Attempt to read byte at ${readBytes + datatype.bytes}")
@@ -217,7 +214,7 @@ class CachedMemoryStream(
      * @throws GeneralException
      * {EN}
      */
-    override fun write(datatype: Datatype, data: Long) = throw GeneralException("You can't write in CachedMemoryStream!")
+    override fun write(datatype: Datatype, data: ULong) = throw GeneralException("You can't write in CachedMemoryStream!")
 
     /**
      * {RU}
@@ -245,7 +242,7 @@ class CachedMemoryStream(
         readBytes = 0
     }
 
-    override val offset get() = (readBytes - mark).asInt
+    override val offset get() = (readBytes.ulong_z - mark).int
 
     override val data: ByteArray get() = cache.copyOfRange(0, readBytes)
 }

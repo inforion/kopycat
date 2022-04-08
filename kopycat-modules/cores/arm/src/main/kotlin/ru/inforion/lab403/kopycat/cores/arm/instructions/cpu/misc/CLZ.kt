@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.misc
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
@@ -34,9 +35,8 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class CLZ(cpu: AARMCore,
-          opcode: Long,
+          opcode: ULong,
           cond: Condition,
           val rd: ARMRegister,
           val rm: ARMRegister):
@@ -45,18 +45,18 @@ class CLZ(cpu: AARMCore,
 
     val result = ARMVariable(Datatype.WORD)
     override fun execute() {
-        var tmp = 32L
-        if (rm.value(core) == 0L) {
-            rd.value(core, 32L)
+        var tmp = 32
+        if (rm.value(core) == 0uL) {
+            rd.value(core, 32uL)
         }
         else {
             for (k in 31 downTo 0) {
-                if (rm.value(core)[k] == 1L) {
-                    tmp = 31L - k
+                if (rm.value(core)[k] == 1uL) {
+                    tmp = 31 - k
                     break
                 }
             }
-            rd.value(core, tmp)
+            rd.value(core, tmp.ulong_z)
         }
     }
 }

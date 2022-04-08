@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,15 +26,15 @@
 package ru.inforion.lab403.kopycat.auxiliary
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.common.logging.logger
 import java.io.DataInputStream
 import java.util.*
-import java.util.logging.Level
 
 
 class IntelHexTranslator(val data: String, val offset: Int = 0x0) {
     companion object {
-        @Transient private val log = logger(Level.CONFIG)
+        @Transient private val log = logger(CONFIG)
     }
 
     enum class RECORD_TYPE(val id: Int) {
@@ -65,7 +65,7 @@ class IntelHexTranslator(val data: String, val offset: Int = 0x0) {
                 val stream = DataInputStream(raw.inputStream())
                 val size = stream.readUnsignedByte()
                 val address = stream.readUnsignedShort()
-                val id = stream.readByte().toUInt()
+                val id = stream.readByte().int_z
                 val type = find<RECORD_TYPE> { it.id == id }!!
                 val data = ByteArray(size)
                 stream.read(data)
@@ -73,8 +73,8 @@ class IntelHexTranslator(val data: String, val offset: Int = 0x0) {
                 if (verifyChecksum) {
                     var caclCksum = 0
                     repeat(raw.size - 1) { caclCksum -= raw[it] }
-                    if (caclCksum.toByte() != checksum.toByte())
-                        throw ParsingException("Checksum incorrect for $info (${caclCksum.toByte()} != ${checksum.toByte()})")
+                    if (caclCksum.byte != checksum.byte)
+                        throw ParsingException("Checksum incorrect for $info (${caclCksum.byte} != ${checksum.byte})")
                 }
                 return Record(size, address, type, data, checksum)
             }
@@ -99,12 +99,12 @@ class IntelHexTranslator(val data: String, val offset: Int = 0x0) {
             when (it.type) {
                 RECORD_TYPE.DAT -> {
                     val pAddr = it.address + addressOffset
-                    val record = Record(it.size, pAddr.toInt(), RECORD_TYPE.DAT, it.data, -1)
+                    val record = Record(it.size, pAddr.int, RECORD_TYPE.DAT, it.data, -1)
                     normalized.add(record)
                 }
                 RECORD_TYPE.ELA -> {
                     val dis = DataInputStream(it.data.inputStream())
-                    addressOffset = dis.readUnsignedShort().toULong() shl 16
+                    addressOffset = dis.readUnsignedShort().long_z shl 16
                 }
                 RECORD_TYPE.EOF -> return@forEach
                 else -> log.warning { "Can't interpret record $it" }

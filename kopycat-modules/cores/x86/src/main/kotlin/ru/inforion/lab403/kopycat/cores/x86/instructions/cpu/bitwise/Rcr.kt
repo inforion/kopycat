@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor
@@ -44,16 +43,16 @@ class Rcr(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
 
     override fun execute() {
         // http://stackoverflow.com/questions/10395071/what-is-the-difference-between-rcr-and-ror
-        val maskCf = if(core.cpu.flags.cf) 1L.shl(op1.dtyp.bits) else 0L
+        val maskCf = if(core.cpu.flags.cf) 1uL.shl(op1.dtyp.bits) else 0uL
         val a1 = op1.value(core) or maskCf
-        val a2 = (op2.value(core) % op1.dtyp.bits).toInt()
+        val a2 = (op2.value(core) % op1.dtyp.bits.uint).int
         val lowPart = a1[a2 - 1..0]
         val msb = op1.dtyp.bits + 1
         val lsb = msb - a2
         val res = a1.ushr(a2).insert(lowPart, msb..lsb)
-        val result = Variable<x86Core>(0, op1.dtyp)
+        val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
-        FlagProcessor.processRotateFlag(core, result, op2, false, a1[a2 - 1] == 1L)
+        FlagProcessor.processRotateFlag(core, result, op2, false, a1[a2 - 1] == 1uL)
         op1.value(core, res)
     }
 }

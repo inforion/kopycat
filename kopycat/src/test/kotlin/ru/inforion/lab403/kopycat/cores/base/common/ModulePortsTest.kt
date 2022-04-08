@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,8 @@ package ru.inforion.lab403.kopycat.cores.base.common
 
 import org.junit.Assert
 import org.junit.Test
-import ru.inforion.lab403.common.extensions.asLong
+import ru.inforion.lab403.common.extensions.long_s
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS.R_W
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
@@ -36,6 +37,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.modules.cores.device.TestCore
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
+import ru.inforion.lab403.kopycat.interfaces.*
 
 class ModulePortsTest: Module(null, "Ports module test") {
     class AnotherClass: Module(null, "Another module test") {
@@ -55,13 +57,13 @@ class ModulePortsTest: Module(null, "Ports module test") {
         val master32 = Master("master 32", BUS32)
         val master16 = Master("master 16", BUS16)
         val translator16 = Translator("translator 16", master16, BUS16,
-                AddressTranslator(this@ModulePortsTest, "AT16", 16, 16))
+                AddressTranslator(this@ModulePortsTest, "AT16", 16u, 16u))
         val translator32 = Translator("translator 32", master32, BUS32,
-                AddressTranslator(this@ModulePortsTest, "AT32", 32, 32))
+                AddressTranslator(this@ModulePortsTest, "AT32", 32u, 32u))
 
         fun test1() { Slave("ports", BUS32) }
         fun test2() { Slave("buses", BUS32) }
-        fun test3() { Slave("slave", 0) }
+        fun test3() { Slave("slave", 0u) }
         fun test4() { Slave("slave", BUS32); Slave("slave", BUS32) }
     }
 
@@ -78,7 +80,7 @@ class ModulePortsTest: Module(null, "Ports module test") {
             val master16 = Master("master 16", BUS16)
             val proxy16 = Proxy("proxy 16", BUS16)
             val translator16 = Translator("translator 16", master16, BUS16,
-                    AddressTranslator(this@InnerPorts, "AT16", 16, 16))
+                    AddressTranslator(this@InnerPorts, "AT16", 16u, 16u))
         }
         override val ports = Ports()
     }
@@ -105,12 +107,12 @@ class ModulePortsTest: Module(null, "Ports module test") {
     @Test(expected = ConnectionError::class) fun slaveTest5() { ports.slave32.connect(buses.innerBus32) }
     @Test(expected = ConnectionError::class) fun slaveTest6() { ports.slave32.connect(anotherModule.buses.outerBus16) }
     @Test fun slaveTest7() {
-        ports.slave16.add(Memory(ports.slave16, 0xFA, 0x100, "a", R_W))
-        assert(2, ports.slave16.areas.size.asLong)
+        ports.slave16.add(Memory(ports.slave16, 0xFAu, 0x100u, "a", R_W))
+        assert(2, ports.slave16.areas.size.long_s)
     }
     @Test fun slaveTest8() {
-        ports.slave16.add(Register(ports.slave16, 0xFAFA, DWORD, "a"))
-        assert(2, ports.slave16.registers.size.asLong)
+        ports.slave16.add(Register(ports.slave16, 0xFAFAu, DWORD, "a"))
+        assert(2, ports.slave16.registers.size.long_s)
     }
 
     @Test(expected = ConnectionError::class) fun proxyTest1() { ports.proxy32.connect(anotherModule.buses.outerBus16) }
@@ -125,29 +127,29 @@ class ModulePortsTest: Module(null, "Ports module test") {
 
     @Test(expected = ConnectionError::class) fun transTest1() {
         anotherModule.buses.connect(ports.master16, ports.slave16)
-        Memory(ports.slave16, 0xFA, 0x100, "a", R_W)
-        ports.translator16.find(ports.master16, 0xFA, 0, 4, LOAD, 0)
+        Memory(ports.slave16, 0xFAu, 0x100u, "a", R_W)
+        ports.translator16.find(ports.master16, 0xFAu, 0, 4, LOAD, 0u)
     }
     @Test fun transTest2() {
         buses.connect(innerPorts.ports.master16, innerPorts.ports.slave16)
-        Memory(innerPorts.ports.slave16, 0xFA, 0x100, "a", R_W)
+        Memory(innerPorts.ports.slave16, 0xFAu, 0x100u, "a", R_W)
         initializeAndResetAsTopInstance()
         assert(true,
-                innerPorts.ports.translator16.find(innerPorts.ports.master16, 0xFA, 0, 4, LOAD, 0) != null)
+                innerPorts.ports.translator16.find(innerPorts.ports.master16, 0xFAu, 0, 4, LOAD, 0u) != null)
 
     }
 
     @Test fun masterTest1() {
         buses.connect(innerPorts.ports.master16, innerPorts.ports.slave16)
-        val mem = Memory(innerPorts.ports.slave16, 0xFA, 0x100, "a", R_W)
+        val mem = Memory(innerPorts.ports.slave16, 0xFAu, 0x100u, "a", R_W)
         initializeAndResetAsTopInstance()
-        mem.write(DWORD, 0xFA, 0xFFFF)
-        val a = innerPorts.ports.master16.access(0xFA)
+        mem.write(DWORD, 0xFAu, 0xFFFFu)
+        val a = innerPorts.ports.master16.access(0xFAu)
         assert(true, a)
     }
 
-    @Test(expected = IllegalAccessError::class) fun masterTest2(){ ports.master16.beforeRead(ports.master16, 0xFFFF) }
-    @Test(expected = IllegalAccessError::class) fun masterTest3(){ ports.master16.beforeWrite(ports.master16, 0xFFFF, 0) }
-    @Test(expected = MemoryAccessError::class ) fun masterTest4(){ ports.master16.read(0xFFFF, 0 , 4) }
-    @Test(expected = MemoryAccessError::class ) fun masterTest5(){ ports.master16.write(0xFFFF, 0 , 4, 0xFFFF) }
+    @Test(expected = IllegalAccessError::class) fun masterTest2(){ ports.master16.beforeRead(ports.master16, 0xFFFFu) }
+    @Test(expected = IllegalAccessError::class) fun masterTest3(){ ports.master16.beforeWrite(ports.master16, 0xFFFFu, 0u) }
+    @Test(expected = MemoryAccessError::class ) fun masterTest4(){ ports.master16.read(0xFFFFu, 0 , 4) }
+    @Test(expected = MemoryAccessError::class ) fun masterTest5(){ ports.master16.write(0xFFFFu, 0 , 4, 0xFFFFu) }
 }

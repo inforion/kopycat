@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.kernel
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotFoundError
@@ -37,7 +37,7 @@ class IdAllocator(val begin: Int = 0, val end: Long = 0x1_0000_0000): IAutoSeria
 
     fun allocate(): Int {
         for (i in 1 until end) {
-            val newId = ((lastId + i) % end).asInt
+            val newId = ((lastId + i) % end).int
             if (newId !in allocated) {
                 allocated.add(newId)
                 lastId = newId

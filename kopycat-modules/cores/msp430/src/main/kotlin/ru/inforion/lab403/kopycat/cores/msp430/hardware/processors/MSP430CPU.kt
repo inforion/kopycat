@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.msp430.hardware.processors
 
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
 import ru.inforion.lab403.kopycat.cores.msp430.enums.MSP430GPR
@@ -41,12 +42,12 @@ import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 class MSP430CPU(val msp430: MSP430Core, name: String):
         ACPU<MSP430CPU, MSP430Core, AMSP430Instruction, MSP430GPR>(msp430, name, BUS16) {
 
-    override fun reg(index: Int): Long = regs[index].value(msp430)
-    override fun reg(index: Int, value: Long) = regs[index].value(msp430, value)
+    override fun reg(index: Int): ULong = regs[index].value(msp430)
+    override fun reg(index: Int, value: ULong) = regs[index].value(msp430, value)
     override fun count() = regs.count()
     override fun flags() = flags.value
 
-    override var pc : Long
+    override var pc : ULong
         get() = regs.r0ProgramCounter
         set(value) { regs.r0ProgramCounter = value }
 
@@ -59,7 +60,7 @@ class MSP430CPU(val msp430: MSP430Core, name: String):
         super.reset()
         decoder.reset()
         regs.reset()
-        regs.r0ProgramCounter = core.fetch(0xFFFE, 0, 2)
+        regs.r0ProgramCounter = core.fetch(0xFFFEu, 0, 2)
     }
 
     override fun decode() {
@@ -67,19 +68,17 @@ class MSP430CPU(val msp430: MSP430Core, name: String):
     }
 
     override fun execute(): Int {
-        regs.r0ProgramCounter += insn.size
+        regs.r0ProgramCounter += insn.size.uint
         insn.execute()
 //        println("${pc.hex8}   [${data.hex16}]   ${insn.size}   $insn")
         return 1  // TODO: get from insn.execute()
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return mapOf(
-                "regs" to regs.serialize(ctxt),
-                "flags" to flags.serialize(ctxt),
-                "pc" to pc.hex8
-        )
-    }
+    override fun serialize(ctxt: GenericSerializer) = mapOf(
+            "regs" to regs.serialize(ctxt),
+            "flags" to flags.serialize(ctxt),
+            "pc" to pc.hex8
+    )
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -87,5 +86,4 @@ class MSP430CPU(val msp430: MSP430Core, name: String):
         regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
         flags.deserialize(ctxt, snapshot["flags"] as Map<String, String>)
     }
-
 }

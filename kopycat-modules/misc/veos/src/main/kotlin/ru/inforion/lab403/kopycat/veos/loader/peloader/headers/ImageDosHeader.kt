@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,31 +25,31 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.common.extensions.asUInt
+import ru.inforion.lab403.common.extensions.int_z
 import java.nio.ByteBuffer
 
 
 class ImageDosHeader(input: ByteBuffer) {
 
-    val magic = input.short.asUInt                /* 00: MZ Header signature */
-    val cblp = input.short.asUInt                 /* 02: Bytes on last page of file */
-    val cp = input.short.asUInt                   /* 04: Pages in file */
-    val crlc = input.short.asUInt                 /* 06: Relocations */
-    val cparhdr = input.short.asUInt              /* 08: Size of header in paragraphs */
-    val minalloc = input.short.asUInt             /* 0a: Minimum extra paragraphs needed */
-    val maxalloc = input.short.asUInt             /* 0c: Maximum extra paragraphs needed */
-    val ss = input.short.asUInt                   /* 0e: Initial (relative) SS value */
-    val sp = input.short.asUInt                   /* 10: Initial SP value */
-    val csum = input.short.asUInt                 /* 12: Checksum */
-    val ip = input.short.asUInt                   /* 14: Initial IP value */
-    val cs = input.short.asUInt                   /* 16: Initial (relative) CS value */
-    val lfarlc = input.short.asUInt               /* 18: File address of relocation table */
-    val ovno = input.short.asUInt                 /* 1a: Overlay number */
-    val res = Array(4) { input.short.asUInt }     /* 1c: Reserved words */
-    val oemid = input.short.asUInt                /* 24: OEM identifier (for e_oeminfo) */
-    val oeminfo = input.short.asUInt              /* 26: OEM information; e_oemid specific */
-    val res2 = Array(10) { input.short.asUInt }   /* 28: Reserved words */
-    val lfanew = input.short.asUInt               /* 3c: Offset to extended header */
+    val magic = input.short.int_z                /* 00: MZ Header signature */
+    val cblp = input.short.int_z                 /* 02: Bytes on last page of file */
+    val cp = input.short.int_z                   /* 04: Pages in file */
+    val crlc = input.short.int_z                 /* 06: Relocations */
+    val cparhdr = input.short.int_z              /* 08: Size of header in paragraphs */
+    val minalloc = input.short.int_z             /* 0a: Minimum extra paragraphs needed */
+    val maxalloc = input.short.int_z             /* 0c: Maximum extra paragraphs needed */
+    val ss = input.short.int_z                   /* 0e: Initial (relative) SS value */
+    val sp = input.short.int_z                   /* 10: Initial SP value */
+    val csum = input.short.int_z                 /* 12: Checksum */
+    val ip = input.short.int_z                   /* 14: Initial IP value */
+    val cs = input.short.int_z                   /* 16: Initial (relative) CS value */
+    val lfarlc = input.short.int_z               /* 18: File address of relocation table */
+    val ovno = input.short.int_z                 /* 1a: Overlay number */
+    val res = Array(4) { input.short.int_z }     /* 1c: Reserved words */
+    val oemid = input.short.int_z                /* 24: OEM identifier (for e_oeminfo) */
+    val oeminfo = input.short.int_z              /* 26: OEM information; e_oemid specific */
+    val res2 = Array(10) { input.short.int_z }   /* 28: Reserved words */
+    val lfanew = input.short.int_z               /* 3c: Offset to extended header */
 
     init {
         require(magic == 0x5A4D) { "MZ signature check failed" }

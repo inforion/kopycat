@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,14 +25,15 @@
  */
 package ru.inforion.lab403.elfloader
 
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import org.junit.Assert.assertArrayEquals
+import org.junit.Test
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.extensions.unhexlify
 import ru.inforion.lab403.common.logging.ALL
 import ru.inforion.lab403.elfloader.tables.ElfHashTable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.test.assertEquals
 
 internal class ElfHashTableTest {
     companion object {
@@ -52,7 +53,8 @@ internal class ElfHashTableTest {
     val hashTable_empty = ElfHashTable(data_empty, 0)
 
 
-    @Test fun testNBucket() {
+    @Test
+    fun testNBucket() {
         assertEquals(0x11, hashTable_kill_arm.nbucket)
     }
 
@@ -90,6 +92,4 @@ internal class ElfHashTableTest {
     @Test fun testHashFunc_empty() {
         assertEquals(0, hashTable_empty.elfHash(""))
     }
-
-
 }

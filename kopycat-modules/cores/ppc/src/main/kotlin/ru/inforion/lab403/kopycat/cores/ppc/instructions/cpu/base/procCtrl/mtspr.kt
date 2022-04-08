@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,9 @@ class mtspr(core: PPCCore, val field: Int, vararg operands: AOperand<PPCCore>):
         when (reg.moveTo) {
             SPR.Access.no -> throw GeneralException("Move to special register isn't defined for register \"${reg.name}\" (${reg.id})")
             SPR.Access.hypv -> TODO("Isn't implemented")
-            SPR.Access.yes -> {}
+            SPR.Access.yes -> {
+
+            }
         }
 
         if (reg.isPriveleged && core.cpu.msrBits.PR)

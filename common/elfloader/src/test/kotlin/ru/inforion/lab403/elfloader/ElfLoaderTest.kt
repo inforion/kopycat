@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,12 @@
  */
 package ru.inforion.lab403.elfloader
 
-import org.junit.jupiter.api.Assertions.*
-import org.junit.jupiter.api.Test
+import org.junit.Assert.assertArrayEquals
+import org.junit.Test
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.extensions.unhexlify
 import java.nio.ByteBuffer
+import kotlin.test.assertEquals
 
 internal class ElfLoaderTest {
     companion object {
@@ -37,17 +38,12 @@ internal class ElfLoaderTest {
     }
 
     private val data = "7F454C460101010000000000000000000200080001000000700E4000340000005833000007100010340020000000280000001500"
-    private val dataBytes: ByteBuffer
-    private val elfLoader: ElfLoader
-
-    init {
-        dataBytes = ByteBuffer.wrap(data.unhexlify())      // raw bytes, BigEndian order
-        elfLoader = ElfLoader(dataBytes)
-    }
-
+    private val dataBytes = ByteBuffer.wrap(data.unhexlify())
+    private val elfLoader = ElfLoader(dataBytes)
+    
     @Test
     fun testEntryPoint() {
-        assertEquals(0x00400E70, elfLoader.entryPoint)
+        assertEquals(0x00400E70u, elfLoader.entryPoint)
     }
 
     @Test

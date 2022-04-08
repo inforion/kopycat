@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,15 +35,14 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
 
 
-
 // See B9.3.2
 class CPS(val cpu: AARMCore,
-          opcode: Long,
+          opcode: ULong,
           cond: Condition,
           val enable: Boolean,
           val disable: Boolean,
           val changemode: Boolean,
-          val mode: Long,
+          val mode: ULong,
           val affectA: Boolean,
           val affectI: Boolean,
           val affectF: Boolean):

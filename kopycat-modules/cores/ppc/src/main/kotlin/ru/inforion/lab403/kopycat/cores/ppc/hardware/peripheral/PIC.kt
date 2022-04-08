@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
         override val vector: Int = irq
 
-        val address: Long = PPCRegister_Embedded.OEAext.IVPR.value(core as PPCCore)[31..16] or when (irq) {
+        val address = PPCRegister_Embedded.OEAext.IVPR.value(core as PPCCore)[31..16] or when (irq) {
 
             eIrq.CriticalInput.irq -> PPCRegister_e500v2.OEAext.IVOR0           // Ignored: no information
             eIrq.MachineCheck.irq -> PPCRegister_e500v2.OEAext.IVOR1            // Ignored: no need
@@ -80,7 +80,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
             //eIrq.ProcessorDoorbell.irq -> PPCRegister_e500v2.OEAext.IVOR36
             //eIrq.ProcessorCritDoorbell.irq -> PPCRegister_e500v2.OEAext.IVOR37
             else -> throw GeneralException("Wrong interrupt irq $irq")
-        }.value(core as PPCCore) and 0xFFFF_FFF0 // Clear lower 4 bit
+        }.value(core as PPCCore) and 0xFFFF_FFF0u // Clear lower 4 bit
 
         override val priority: Int
             get() = when(irq) {

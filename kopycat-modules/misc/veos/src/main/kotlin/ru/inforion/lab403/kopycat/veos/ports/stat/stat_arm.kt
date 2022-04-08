@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,16 +28,16 @@ package ru.inforion.lab403.kopycat.veos.ports.stat
 import ru.inforion.lab403.kopycat.veos.api.pointers.StructPointer
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
-class stat_arm(sys: System, address: Long) : StructPointer(sys, address) {
+class stat_arm(sys: System, address: ULong) : StructPointer(sys, address) {
     companion object {
         const val sizeOf = 0x60
 
-        fun nullPtr(sys: System) = stat_arm(sys, 0)
+        fun nullPtr(sys: System) = stat_arm(sys, 0u)
 
         fun allocate(sys: System) = stat_arm(sys, sys.allocateClean(sizeOf))
     }
 
-    var st_dev by longlong(0x0)
+    var st_dev by ulonglong(0x0)
     var st_ino by int(0xC)
     var st_mode by int(0x10)
     var st_nlink by int(0x14)
@@ -45,7 +45,7 @@ class stat_arm(sys: System, address: Long) : StructPointer(sys, address) {
     var st_uid by int(0x18)
     var st_gid by int(0x1C)
 
-    var st_rdev by longlong(0x20)
+    var st_rdev by ulonglong(0x20)
 
     var st_size by int(0x30)
 

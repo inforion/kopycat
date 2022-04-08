@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -34,18 +35,18 @@ import java.util.logging.Level
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class FLASH(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.WARNING)
+        @Transient val log = logger(WARNING)
     }
 
-    private enum class RegisterType(val offset: Long) {
-        FLASH_ACR       (0x00),
-        FLASH_KEYR      (0x04),
-        FLASH_OPTKEYR   (0x08),
-        FLASH_SR        (0x0C),
-        FLASH_CR        (0x10),
-        FLASH_AR        (0x14),
-        FLASH_OBR       (0x1C),
-        FLASH_WRPR      (0x20)
+    private enum class RegisterType(val offset: ULong) {
+        FLASH_ACR       (0x00u),
+        FLASH_KEYR      (0x04u),
+        FLASH_OPTKEYR   (0x08u),
+        FLASH_SR        (0x0Cu),
+        FLASH_CR        (0x10u),
+        FLASH_AR        (0x14u),
+        FLASH_OBR       (0x1Cu),
+        FLASH_WRPR      (0x20u)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -56,7 +57,7 @@ class FLASH(parent: Module, name: String) : Module(parent, name) {
 
     private open inner class RegisterBase(
             register: RegisterType,
-            default: Long = 0x0000_0000,
+            default: ULong = 0x0000_0000u,
             writable: Boolean = true,
             readable: Boolean = true,
             level: Level = Level.FINE

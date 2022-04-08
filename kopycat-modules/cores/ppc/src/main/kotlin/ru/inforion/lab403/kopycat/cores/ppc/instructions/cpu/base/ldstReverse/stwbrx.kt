@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,7 @@ import ru.inforion.lab403.kopycat.cores.ppc.enums.eUISA
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 //Store word byte-reverse indexed
@@ -42,10 +43,7 @@ class stwbrx(core: PPCCore, val fieldA: Int, val fieldB: Int, val fieldC: Int, v
     val rb = PPCRegister.gpr(fieldC)
 
     override fun execute() {
-        val b = if ((ra as PPCRegister).reg == eUISA.GPR0.id)
-            0L
-        else
-            ra.value(core)
+        val b = if ((ra as PPCRegister).reg == eUISA.GPR0.id) 0uL else ra.value(core)
         val ea = b + rb.value(core)
         core.outl(ea, rs.value(core).swap32()) //*Sigh* Oh, i hope you mask values by dtype...
     }

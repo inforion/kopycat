@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,11 @@
  */
 package ru.inforion.lab403.kopycat
 
+import ru.inforion.lab403.kopycat.library.types.Resource
+import java.io.File
+import kotlin.reflect.full.starProjectedType
+import kotlin.time.Duration
+
 /**
  * {EN}Settings for build configuration of Kopycat core{EN}
  */
@@ -40,7 +45,7 @@ object settings {
      * NOTE: Only make sense when [hasConstraints] is true
      * {EN}
      */
-    const val maxPossibleRamSize = 0x1000_0000
+    const val maxPossibleRamSize = 0x1000_0000uL
 
     /**
      * {EN}
@@ -101,7 +106,35 @@ object settings {
     /**
      * {EN}Available types in json for variables, parameters and arguments{EN}
      */
-    val availableTypes = listOf("String", "char", "int", "long", "float", "double", "boolean", "File", "Resource")
+    val availableTypes = listOf(
+        String::class,
+        Char::class,
+
+        Byte::class,
+        Short::class,
+        Int::class,
+        Long::class,
+
+        UByte::class,
+        UShort::class,
+        UInt::class,
+        ULong::class,
+
+        Boolean::class,
+
+        Float::class,
+        Double::class,
+
+        Array::class,
+        IntArray::class,
+        LongArray::class,
+
+        File::class,
+        Resource::class,
+
+        ByteArray::class
+    ).map { it.starProjectedType }
+
 
     /**
      * {EN}Path relative to working directory of emulator with modules{EN}
@@ -121,4 +154,24 @@ object settings {
      * {EN}Use or not directed [ByteBuffer] for emulator memory object{EN}
      */
     const val directedMemory = false
+
+    /**
+     * {EN}File extension for snapshots{EN}
+     */
+    const val snapshotFileExtension = "zip"
+
+    /**
+     * {EN}Capacity of program counter trace for [CoreInfo]{EN}
+     */
+    const val traceItemsCapacity = 128
+
+    /**
+     * {EN}Track or not access to bifOf method{EN}
+     */
+    const val trackBitAccess = true
+
+    /**
+     * {EN}Threshold to print Emulation running for string for debugger{EN}
+     */
+    val printEmulatorRateThreshold = Duration.milliseconds(500)
 }

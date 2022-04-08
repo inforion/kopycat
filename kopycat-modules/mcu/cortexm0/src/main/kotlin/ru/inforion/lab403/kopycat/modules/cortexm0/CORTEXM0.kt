@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,6 +32,8 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.modules.cores.ARMv6MCore
 import ru.inforion.lab403.kopycat.modules.memory.RAM
+import ru.inforion.lab403.kopycat.interfaces.*
+
 
 class CORTEXM0(parent: Module, name: String) : Module(parent, name) {
 
@@ -55,8 +57,8 @@ class CORTEXM0(parent: Module, name: String) : Module(parent, name) {
 
     override fun reset() {
         super.reset()
-        val sp = core.inl(0x0000_0000)
-        val pc = core.inl(0x0000_0004)
+        val sp = core.inl(0x0000_0000u)
+        val pc = core.inl(0x0000_0004u)
         log.info { "Setup CORTEX-M0 core PC=0x${pc.hex8} MSP=0x${sp.hex8}" }
         arm.cpu.BXWritePC(pc, false)
         arm.cpu.regs.sp.value = sp
@@ -66,14 +68,14 @@ class CORTEXM0(parent: Module, name: String) : Module(parent, name) {
         ports.mem.connect(buses.mem)
 
         arm.ports.mem.connect(buses.mem)
-        nvic.ports.mem.connect(buses.mem, 0xE000_E100)
-        stk.ports.mem.connect(buses.mem, 0xE000_E010)
-        scb.ports.mem.connect(buses.mem, 0xE000_ED00)
+        nvic.ports.mem.connect(buses.mem, 0xE000_E100u)
+        stk.ports.mem.connect(buses.mem, 0xE000_E010u)
+        scb.ports.mem.connect(buses.mem, 0xE000_ED00u)
 
         buses.connect(nvic.ports.irq, ports.irq)
 
         nvic.ports.exc.connect(buses.exc)
-        scb.ports.irq.connect(buses.exc,  0)
-        stk.ports.irq.connect(buses.exc, 15)
+        scb.ports.irq.connect(buses.exc,  0u)
+        stk.ports.irq.connect(buses.exc, 15u)
     }
 }

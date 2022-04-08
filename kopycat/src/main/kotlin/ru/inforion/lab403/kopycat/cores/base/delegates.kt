@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,31 +25,28 @@
  */
 package ru.inforion.lab403.kopycat.cores.base
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asULong
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.interfaces.IValuable
 import java.io.Serializable
 import kotlin.reflect.KProperty
 
 
 class bit<in T: IValuable>(val index: Int, val initial: Int = 0): Serializable {
-    operator fun getValue(thisRef: T, property: KProperty<*>): Int = thisRef.data[index].asInt
+    operator fun getValue(thisRef: T, property: KProperty<*>): Int = thisRef.data[index].int
     operator fun setValue(thisRef: T, property: KProperty<*>, value: Int) {
-        thisRef.data = thisRef.data.insert(value, index)
+        thisRef.data = thisRef.data.insert(value.ulong_z, index)
     }
 }
 
 class BitsArray(val item: IValuable, vararg val indexes: Int): Serializable {
     operator fun get(index: Int): Int {
         val bitno = indexes[index]
-        return item.data[bitno].asInt
+        return item.data[bitno].int
     }
 
     operator fun set(index: Int, value: Int) {
         val bitno = indexes[index]
-        item.data = item.data.insert(value, bitno)
+        item.data = item.data.insert(value.ulong_z, bitno)
     }
 }
 
@@ -61,12 +58,12 @@ typealias rbit<T> = bit<T>
 typealias wbit<T> = bit<T>
 typealias rwbit<T> = bit<T>
 
-class field<in T: IValuable>(range: IntRange, val initial: Int = 0): Serializable {
+class field<in T: IValuable>(range: IntRange, val initial: ULong = 0u): Serializable {
     val first = range.first
     val last = range.last
-    operator fun getValue(thisRef: T, property: KProperty<*>): Int = thisRef.data[first..last].asInt
-    operator fun setValue(thisRef: T, property: KProperty<*>, value: Int) {
-        thisRef.data = thisRef.data.insert(value.asULong, first..last)
+    operator fun getValue(thisRef: T, property: KProperty<*>): ULong = thisRef.data[first..last]
+    operator fun setValue(thisRef: T, property: KProperty<*>, value: ULong) {
+        thisRef.data = thisRef.data.insert(value, first..last)
     }
 }
 

@@ -7,8 +7,9 @@ group 'ru.inforion.lab403.kopycat'
 version '0.1'
 
 dependencies {
-    implementation files("libs/unicorn.jar")
-    implementation group: 'com.google.guava', name: 'guava', version: '29.0-jre'
+    testImplementation files("libs/unicorn.jar")
+    testImplementation group: 'com.github.inforion.common', name: 'concurrent', version: kotlin_extensions_version
+    testImplementation group: 'com.github.inforion.common', name: 'utils', version: kotlin_extensions_version
 }
 
 buildKopycatModule {

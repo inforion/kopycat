@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -48,12 +49,12 @@ class BOOT(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mmcr = Slave("mmcr", BUS12)
+        val mmcr = Slave("mmcr", BUS12.ulong)
     }
 
     override val ports = Ports()
 
-    inner class ROM_CTRL_REG(address: Long, name: String) :
+    inner class ROM_CTRL_REG(address: ULong, name: String) :
             ByteAccessRegister(ports.mmcr, address, DWORD, name) {
         var DGP by bit(12)
         var WIDTH by field(11..10)
@@ -64,7 +65,7 @@ class BOOT(parent: Module, name: String) : Module(parent, name) {
         override fun stringify() = "${super.stringify()} [DGP=$DGP WIDTH=$WIDTH MODE=$MODE SUB_DLY=$SUB_DLY FIRST_DLY=$FIRST_DLY]"
     }
 
-    val BOOTCSCTL = ROM_CTRL_REG(0x50, "BOOTCSCTL")
-    val ROMCS1CTL = ROM_CTRL_REG(0x54, "ROMCS1CTL")
-    val ROMCS2CTL = ROM_CTRL_REG(0x58, "ROMCS2CTL")
+    val BOOTCSCTL = ROM_CTRL_REG(0x50u, "BOOTCSCTL")
+    val ROMCS1CTL = ROM_CTRL_REG(0x54u, "ROMCS1CTL")
+    val ROMCS2CTL = ROM_CTRL_REG(0x58u, "ROMCS2CTL")
 }

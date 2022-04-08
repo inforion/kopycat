@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,15 +26,14 @@
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
 import java.io.Serializable
 import java.util.*
-import java.util.logging.Level
 import kotlin.reflect.KProperty
 
 /**
@@ -53,19 +52,19 @@ import kotlin.reflect.KProperty
  * {RU}
  */
 @Suppress("NOTHING_TO_INLINE")
+@Deprecated("This is old register system and should be replaced with ARegisterBankNG")
 abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
         protected val core: T,
         private val defs: Array<E>,
         bits: Int
-) : ICoreUnit, Iterable<Long> {
+) : ICoreUnit, Iterable<ULong> {
     companion object {
-        @Transient val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
     }
 
     @PublishedApi
     internal val regs = Array<ARegister<T>?>(defs.size) { null }
 
-    @Deprecated("Will be removed 0.3.40")
     inline operator fun get(index: Int): ARegister<T> = regs[index]!!
 
     /**
@@ -77,7 +76,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      */
     protected inner class valueOf<R: ARegister<T>>(val register: R): Serializable {
         operator fun getValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>) = register.value(core)
-        operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: Long) = register.value(core, value)
+        operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: ULong) = register.value(core, value)
 
         init {
             this@ARegistersBank.regs[register.reg] = register
@@ -94,7 +93,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      */
     protected inner class bitOf<R: ARegister<T>>(val register: R, val bit: Int): Serializable {
         operator fun getValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>) = register.bit(core, bit) == 1
-        operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: Boolean) = register.bit(core, bit, value.asInt)
+        operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: Boolean) = register.bit(core, bit, value.int)
     }
 
     /**
@@ -107,7 +106,10 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * @constructor создает последовательность бит регистра сложной конфигурации
      * {RU}
      */
-    protected inner class fieldOf<R: ARegister<T>>(val register: R, vararg rp: Pair<IntRange, IntRange>): Serializable {
+    protected inner class fieldOf<R: ARegister<T>>(
+        val register: R,
+        vararg val list: Pair<IntRange, IntRange>
+    ): Serializable {
         /**
          * {RU}
          * @property register регистр, с которым производится взаимодействие
@@ -116,16 +118,16 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
          * {RU}
          */
         constructor(register: R, msb: Int, lsb: Int): this(register, msb..lsb to msb-lsb..0)
-        val list = rp.map { (src, dst) -> src.toSerializable() to dst.toSerializable() }
 
-        operator fun getValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>): Long {
-            var answer = 0L
+        operator fun getValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>): ULong {
+            var answer = 0uL
             list.forEach { (src, dst) ->
                 answer = answer.insert(register.bits(core, src.first..src.last), dst.first..dst.last)
             }
             return answer
         }
-        operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: Long) {
+        operator fun setValue(thisRef: ARegistersBank<T, E>, property: KProperty<*>, value: ULong) {
+            value[3..11]
             list.forEach { (src, dst) -> register.bits(core, src.first..src.last, value[dst.first..dst.last]) }
         }
     }
@@ -133,8 +135,8 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
     val total = defs.size
     val msb = bits - 1
     val lsb = 0
-    private val mask = bitMask(msb..lsb)
-    protected val data = LongArray(total)
+    private val mask = ubitMask64(msb..lsb)
+    protected val data = ULongArray(total)
 
     /**
      * {RU}
@@ -151,7 +153,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * WARNING: Should be used only (!) in debugger
      * {EN}
      */
-    fun readIntern(index: Int): Long = data[index]
+    fun readIntern(index: Int): ULong = data[index]
 
     /**
      * {RU}
@@ -168,7 +170,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * WARNING: Should be used only (!) in debugger
      * {EN}
      */
-    fun readIntern(index: Int, bits: IntRange): Long = data[index][bits]
+    fun readIntern(index: Int, bits: IntRange): ULong = data[index][bits]
 
     /**
      * {RU}
@@ -185,7 +187,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * WARNING: Should be used only (!) in debugger
      * {EN}
      */
-    fun writeIntern(index: Int, value: Long) {
+    fun writeIntern(index: Int, value: ULong) {
         data[index] = value and mask
     }
 
@@ -204,7 +206,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * WARNING: Should be used only (!) in debugger
      * {EN}
      */
-    fun writeIntern(index: Int, value: Long, bits: IntRange) {
+    fun writeIntern(index: Int, value: ULong, bits: IntRange) {
         data[index] = data[index].insert(value, bits) and mask
     }
 
@@ -215,10 +217,10 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      * @return значение следующего регистра из массива регистров
      * {RU}
      */
-    override operator fun iterator(): Iterator<Long> = object : Iterator<Long> {
+    override operator fun iterator(): Iterator<ULong> = object : Iterator<ULong> {
         private var pos = 0
 
-        override fun next(): Long {
+        override fun next(): ULong {
             if (!hasNext()) {
                 throw NoSuchElementException()
             }
@@ -235,7 +237,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
      */
     override fun reset() {
         super.reset()
-        data.fill(0)
+        data.fill(0u)
     }
 
     /**
@@ -278,7 +280,7 @@ abstract class ARegistersBank<T: AGenericCore, E: Enum<E>>(
             val value = snapshot[def.name]
             if (value != null) {
                 log.finest { "Loading register ${def.name}[${def.ordinal}] value = $value" }
-                data[def.ordinal] = (value as String).hexAsULong
+                data[def.ordinal] = (value as String).ulongByHex
             } else log.warning { "Register ${def.name}[${def.ordinal}] value not found! " +
                     "Possible your've made snapshot at earlie version -> results may be incorrect!" }
         }

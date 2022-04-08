@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,14 +25,18 @@
  */
 package ru.inforion.lab403.kopycat
 
+import ru.inforion.lab403.common.argparse.parseArguments
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.jline.jline
+import ru.inforion.lab403.common.jline.waitUntilReturn
+import ru.inforion.lab403.common.javalin.JavalinServer
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.extensions.argparse.parseArguments
 import ru.inforion.lab403.common.logging.FINEST
-import ru.inforion.lab403.common.logging.Levels
-import ru.inforion.lab403.common.logging.logger.Logger
+import ru.inforion.lab403.common.logging.logStackTrace
+import ru.inforion.lab403.common.logging.loggerConfigure
+import ru.inforion.lab403.common.optional.opt
+import ru.inforion.lab403.common.wsrpc.WebSocketRpcServer
 import ru.inforion.lab403.kopycat.consoles.AConsole
-import ru.inforion.lab403.kopycat.consoles.Argparse
 import ru.inforion.lab403.kopycat.consoles.Kotlin
 import ru.inforion.lab403.kopycat.consoles.Python
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -41,6 +45,7 @@ import ru.inforion.lab403.kopycat.interactive.REPL
 import ru.inforion.lab403.kopycat.interactive.protocols.ConsoleRestProtocol
 import ru.inforion.lab403.kopycat.interactive.protocols.KopycatRestProtocol
 import ru.inforion.lab403.kopycat.interactive.protocols.RegistryRestProtocol
+import ru.inforion.lab403.kopycat.interactive.wsrpc.KopycatEndpoint
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
 import kotlin.system.exitProcess
 
@@ -61,7 +66,7 @@ object KopycatStarter {
         return if (optional != null) "$default,$optional" else default
     }
 
-    private fun console(kopycat: Kopycat, opts: Options): AConsole = if (opts.kts) {
+    private fun console(kopycat: Kopycat, opts: Options): AConsole? = if (opts.kts) {
         Kotlin(kopycat)
                 .takeIf { it.initialized() }
                 .sure { "-kts option specified but Kotlin console can't be initialized!" }
@@ -70,13 +75,11 @@ object KopycatStarter {
 
         Python(kopycat, opts.python).takeIf { it.initialized() }
                 ?: Kotlin(kopycat).takeIf { it.initialized() }
-                ?: Argparse(kopycat)
     }
 
     @JvmStatic
     fun main(args: Array<String>) {
-        val version = System.getProperty("java.version")
-        log.info { "Build version: ${buildInformationString()} [JRE v$version]" }
+        log.info { "Build version: ${buildInformationString()} [JRE v$javaVersion]" }
 
         val opts = args.parseArguments<Options>()
 
@@ -85,6 +88,8 @@ object KopycatStarter {
         val fullRegistriesPaths = getRegistryPath(opts.registriesPaths)
 
         val registry = ModuleLibraryRegistry.create(fullRegistriesPaths, opts.userModulesPath)
+
+        log.info { "registry='${registry.regCfgLine}' libraries='${registry.libCfgLine}'" }
 
         val kopycat = Kopycat(registry).also { it.setSnapshotsDirectory(opts.snapshotsDir) }
 
@@ -98,20 +103,16 @@ object KopycatStarter {
             exitProcess(0)
         }
 
-        val gdb = opts.gdbPort?.let {
-            GDBServer(it, true, opts.gdbBinaryProto).also { gdb ->
-                log.info { "$gdb was created" }
-            }
-        }
+        val gdb = opts.gdbPort ifItNotNull { port -> GDBServer(port, opts.gdbPacketSize, opts.gdbBinaryProto) }
 
         val name = opts.name
         val library = opts.library
 
         if (name != null && library != null) {
             kopycat.runCatching {
-                open(name, library, opts.snapshot, opts.parameters, false, gdb)
+                open(name, library, opts.snapshot, opts.parameters, gdb, opts.traceable)
             }.onFailure {
-                it.printStackTrace()
+                it.logStackTrace(log)
                 if (opts.standalone)
                     exitProcess(-1)
             }
@@ -133,18 +134,28 @@ object KopycatStarter {
             kopycat.start { exitProcess(0) } // TODO: get from guest
         }
 
-        val console = console(kopycat, opts)
-        log.info { "${console.name} console enabled" }
-
-        opts.restPort?.let {
+        opts.restPort ifItNotNull { port ->
             val modules = mutableListOf<Module>()
-            JavalinServer(it,
+            JavalinServer(port,
                     KopycatRestProtocol(kopycat, modules),
-                    RegistryRestProtocol(kopycat.registry, modules),
-                    ConsoleRestProtocol(console))
+                    RegistryRestProtocol(kopycat.registry, modules))
         }
 
-        REPL(console)
+        opts.rpcAddress ifItNotNull {
+            val address = it.toInetSocketAddress()
+            WebSocketRpcServer(address.hostName, address.port).apply {
+                register(KopycatEndpoint(kopycat))
+                start()
+            }
+        }
+
+        console(kopycat, opts) ifNotNull {
+            log.info { "${this.name} console enabled" }
+            REPL(this)
+        } otherwise {
+            log.warning { "No valid console have been detected" }
+            jline().waitUntilReturn()
+        }
     }
 }
 

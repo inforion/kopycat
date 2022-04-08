@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
-import ru.inforion.lab403.common.extensions.bitMask
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.mask
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -48,19 +47,20 @@ class Sar(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
 
     override fun execute() {
         val a1 = op1.value(core)
-        val a2 = (op2.value(core) mask 5).toInt()
+        val bits = if (core.is64bit) 6 else 5
+        val a2 = (op2.value(core) mask bits).int
         var res = a1 ushr a2
         val lsb = op1.dtyp.bits - a2
         val msb = op1.dtyp.bits - 1
-        var cfFlag = a1[a2 - 1] == 1L
-        if (a1[op1.dtyp.bits - 1] == 1L)
+        var cfFlag = a1[a2 - 1] == 1uL
+        if (a1[op1.dtyp.bits - 1] == 1uL)
             if(a2 > op1.dtyp.bits) {
-                res = bitMask(op1.dtyp.bits)
+                res = bitMask64(op1.dtyp.bits).ulong
                 cfFlag = true
             }
             else
-                res = res or bitMask(msb..lsb)
-        val result = Variable<x86Core>(0, op1.dtyp)
+                res = res or bitMask64(msb..lsb).ulong
+        val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
         FlagProcessor.processShiftFlag(core, result, op1, op2, true, true, cfFlag)
         op1.value(core, result)

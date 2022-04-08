@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,9 +35,8 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class SMLALxy(cpu: AARMCore,
-              opcode: Long,
+              opcode: ULong,
               cond: Condition,
               val rdHi: ARMRegister,
               val rdLo: ARMRegister,
@@ -53,7 +52,7 @@ class SMLALxy(cpu: AARMCore,
         val operand1 = if(nHigh) rn.value(core)[31..16] else rn.value(core)[15..0]
         val operand2 = if(mHigh) rm.value(core)[31..16] else rm.value(core)[15..0]
 
-        result.value(core, SInt(rdHi.ssext(core).shl(32) + rdLo.value(core), 64))
+        result.value(core, SInt(rdHi.value(core).shl(32) or rdLo.value(core), 64)) // TODO: Concat operator?
         result.value(core, SInt(operand1, 16) * SInt(operand2, 16) + result.value(core))
         rdHi.value(core, result.value(core)[63..32])
         rdLo.value(core, result.value(core)[31..0])

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.ports.sysdep
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.veos.kernel.System
 import ru.inforion.lab403.kopycat.veos.ports.signal.sigaction
 import ru.inforion.lab403.kopycat.veos.ports.stat.stat64_mips
@@ -45,24 +45,24 @@ object MIPS : ASystemDep(
         O_LARGEFILE = 0x2000,
         SIGSET_NWORDS = 128 / (8 * 4)
 ) {
-    override fun toSigaction(sys: System, address: Long) = sigaction(sys, address,
+    override fun toSigaction(sys: System, address: ULong) = sigaction(sys, address,
             handlerOffset = 4,
             flagsOffset = 0,
             restorerOffset = 24,
             maskOffset = 8
     )
 
-    override fun toStat(sys: System, address: Long, stat: stat) {
+    override fun toStat(sys: System, address: ULong, stat: stat) {
         TODO("Not yet implemented")
     }
 
-    override fun toStat64(sys: System, address: Long, stat: stat) = with(stat64_mips(sys, address)) {
+    override fun toStat64(sys: System, address: ULong, stat: stat) = with(stat64_mips(sys, address)) {
         st_dev = stat.st_dev
         st_ino = stat.st_ino
-        st_mode = stat.st_mode.asInt
+        st_mode = stat.st_mode.int
         st_nlink = stat.st_nlink
-        st_uid = stat.st_uid.asInt
-        st_gid = stat.st_gid.asInt
+        st_uid = stat.st_uid.int
+        st_gid = stat.st_gid.int
         st_rdev = stat.st_rdev
         st_size = stat.st_size
         st_blksize = stat.st_blksize

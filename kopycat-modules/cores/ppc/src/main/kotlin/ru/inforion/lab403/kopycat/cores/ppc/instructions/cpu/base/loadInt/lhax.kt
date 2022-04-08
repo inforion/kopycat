@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.loadInt
 
-import ru.inforion.lab403.common.extensions.usext
+import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eUISA
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 //Load halfword algebraic indexed
@@ -43,12 +44,9 @@ class lhax(core: PPCCore, val fieldA: Int, val fieldB: Int, val fieldC: Int, val
     val rb = PPCRegister.gpr(fieldC)
 
     override fun execute() {
-        val b = if ((ra as PPCRegister).reg == eUISA.GPR0.id)
-            0L
-        else
-            ra.value(core)
+        val b = if ((ra as PPCRegister).reg == eUISA.GPR0.id) 0uL else ra.value(core)
         val ea = b + rb.value(core)
-        val mem = core.inw(ea).usext(15)
+        val mem = core.inw(ea).signextRenameMeAfter(15)
         rt.value(core, mem)
     }
 }

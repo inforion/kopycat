@@ -31,7 +31,7 @@
       "plugin": "STM32F042",
       "library": "mcu",
       "params": {
-        "firmware:File": "params.fw"
+        "firmware:file": "params.fw"
       }
     },
     {

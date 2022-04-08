@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.logicInt
 
-import ru.inforion.lab403.common.extensions.usext
+import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.ppc.flags.FlagProcessor
+import ru.inforion.lab403.kopycat.cores.ppc.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCVariable
@@ -46,7 +47,7 @@ class extsbx(core: PPCCore, val fieldA: Int, val fieldB: Int, val fieldC: Int, v
     val result = PPCVariable(Datatype.DWORD)
 
     override fun execute() {
-        result.value(core, rs.value(core).usext(7))
+        result.value(core, rs.value(core).signextRenameMeAfter(7))
 
         ra.value(core, result)
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,9 +23,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("unused", "unused")
+
 package ru.inforion.lab403.kopycat.modules.common
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -38,12 +41,11 @@ import ru.inforion.lab403.kopycat.modules.PIN
 import java.io.File
 import java.io.InputStream
 import java.nio.ByteOrder.BIG_ENDIAN
-import java.util.logging.Level
 
 
 class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.FINE)
+        @Transient val log = logger(FINE)
     }
 
     constructor(parent: Module, name: String, resource: Resource) :
@@ -74,7 +76,7 @@ class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(
     }
 
     private val dtyp: Datatype = WORD
-    private val eraseValue: Long = 0xFFFF
+    private val eraseValue: ULong = 0xFFFFu
     private val sizeInWords = 64
     private val memory = ByteArray(dtyp.bytes * sizeInWords).apply { stream?.read(this) }
     private val order = BIG_ENDIAN
@@ -93,7 +95,7 @@ class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(
 
     // Outer module should create registers where it want to work properly
     // NOTE: If there are more than one register on of it type then it should be STATELESS!
-    val EEPROM_CONTROL_REG = object : Register(ports.spi, 0, DWORD, "EEPROM_CONTROL_REG") {
+    val EEPROM_CONTROL_REG = object : Register(ports.spi, 0u, DWORD, "EEPROM_CONTROL_REG") {
         // by datasheet indexes start from 16 but register has offset in 2 bytes (lower 16 bits are reserved)
         var EEDO by bit(3)
         val EEDI by bit(2)
@@ -103,7 +105,7 @@ class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(
         fun negEdge(prev: Int, current: Int): Boolean = prev == 1 && current == 0
         fun posEdge(prev: Int, current: Int): Boolean = prev == 0 && current == 1
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             val eecs = EECS
             val eesk = EESK
 
@@ -129,8 +131,8 @@ class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(
 
         private fun onChipDisable() = when (cmd) {
             CMD.READ -> Unit
-            CMD.WRITE -> memory.putInt(eaddr * dtyp.bytes, dataReg.asULong, dtyp.bytes, order)
-            CMD.ERASE -> memory.putInt(eaddr * dtyp.bytes, eraseValue, dtyp.bytes, order)
+            CMD.WRITE -> memory.putUInt(eaddr * dtyp.bytes, dataReg.ulong_z, dtyp.bytes, order)
+            CMD.ERASE -> memory.putUInt(eaddr * dtyp.bytes, eraseValue, dtyp.bytes, order)
             else -> throw IllegalStateException("Unsupported command: $cmd")
         }
 
@@ -144,12 +146,12 @@ class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(
             }
             cmd = find<CMD> { it.OPCODE == opcode } ?: // onChipEnable()
                     throw IllegalStateException("Unknown opcode latched for $name: $opcode")
-            log.fine { "$name command = $cmd[$opcode] address = $address / ${address * dtyp.bytes} start = $start" }
+            log.fine { "$name command = $cmd[$opcode] address = $address / ${address * dtyp.bytes.uint} start = $start" }
             if (cmd == CMD.READ) {
-                dataReg = memory.getInt(eaddr * dtyp.bytes, dtyp.bytes, order).asInt
+                dataReg = memory.getUInt(eaddr * dtyp.bytes, dtyp.bytes, order).int
                 log.fine { "$name data loaded from memory in dataReg = ${dataReg.hex8}" }
                 // Setup proper order for data output to software
-                dataReg = dataReg.bitReverse() ushr 16
+                dataReg = dataReg.bitrev32() ushr 16
                 EEDO = 0
             }
         }

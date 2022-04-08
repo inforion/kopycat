@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,14 +38,14 @@ class Pusha(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "pusha"
 
     override fun execute() {
-        val eax = x86Register.gpr(prefs.opsize, x86GPR.EAX).value(core)
-        val ecx = x86Register.gpr(prefs.opsize, x86GPR.ECX).value(core)
-        val edx = x86Register.gpr(prefs.opsize, x86GPR.EDX).value(core)
-        val ebx = x86Register.gpr(prefs.opsize, x86GPR.EBX).value(core)
-        val esp = x86Register.gpr(prefs.opsize, x86GPR.ESP).value(core)
-        val ebp = x86Register.gpr(prefs.opsize, x86GPR.EBP).value(core)
-        val esi = x86Register.gpr(prefs.opsize, x86GPR.ESI).value(core)
-        val edi = x86Register.gpr(prefs.opsize, x86GPR.EDI).value(core)
+        val eax = core.cpu.regs.gpr(x86GPR.RAX, prefs.opsize).value
+        val ecx = core.cpu.regs.gpr(x86GPR.RCX, prefs.opsize).value
+        val edx = core.cpu.regs.gpr(x86GPR.RDX, prefs.opsize).value
+        val ebx = core.cpu.regs.gpr(x86GPR.RBX, prefs.opsize).value
+        val esp = core.cpu.regs.gpr(x86GPR.RSP, prefs.opsize).value
+        val ebp = core.cpu.regs.gpr(x86GPR.RBP, prefs.opsize).value
+        val esi = core.cpu.regs.gpr(x86GPR.RSI, prefs.opsize).value
+        val edi = core.cpu.regs.gpr(x86GPR.RDI, prefs.opsize).value
         x86utils.push(core, eax, prefs.opsize, prefs)
         x86utils.push(core, ecx, prefs.opsize, prefs)
         x86utils.push(core, edx, prefs.opsize, prefs)

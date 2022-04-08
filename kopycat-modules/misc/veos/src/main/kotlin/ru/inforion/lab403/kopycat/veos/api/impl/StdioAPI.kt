@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,13 +26,14 @@
 package ru.inforion.lab403.kopycat.veos.api.impl
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINEST
 import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.*
 import ru.inforion.lab403.kopycat.veos.api.annotations.APIFunc
-import ru.inforion.lab403.kopycat.veos.api.datatypes.Sizet
+import ru.inforion.lab403.kopycat.veos.api.datatypes.LongLong
 import ru.inforion.lab403.kopycat.veos.api.datatypes.VaArgs
 import ru.inforion.lab403.kopycat.veos.api.datatypes.VaList
 import ru.inforion.lab403.kopycat.veos.api.datatypes.size_t
@@ -152,7 +153,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
         ret<FILE> { APIResult.Value(it.address) }
     }
 
-    override fun init(argc: Long, argv: Long, envp: Long) {
+    override fun init(argc: ULong, argv: ULong, envp: ULong) {
         stdin.allocated.value = FILE.new(sys, FileSystem.STDIN_INDEX).address
         stdout.allocated.value = FILE.new(sys, FileSystem.STDOUT_INDEX).address
         stderr.allocated.value = FILE.new(sys, FileSystem.STDERR_INDEX).address
@@ -162,20 +163,20 @@ class StdioAPI(os: VEOS<*>) : API(os) {
         errno.allocated.value = error?.toStdCErrno(ra)?.id ?: PosixError.ESUCCESS.id
     }
 
-    fun vsprintf_internal(fmt: String?, args: Iterator<Long>): String {
+    fun vsprintf_internal(fmt: String?, args: Iterator<ULong>): String {
         if (fmt == null) throw InvalidArgument()
         val buffer = CharArray(10000) // TODO: get rid of
         val count = vsprintfMain(os, buffer.charArrayPointer, fmt, args)
         return buffer.slice(0 until count).joinToString("")
     }
 
-    fun vsscanf_internal(buf: ICharArrayConstPointer, fmt: String?, args: Iterator<Long>): Int {
+    fun vsscanf_internal(buf: ICharArrayConstPointer, fmt: String?, args: Iterator<ULong>): Int {
         if (fmt == null) throw InvalidArgument()
         return vsscanfMain(os, buf, fmt, args)
     }
 
-    fun checkNotOverflow(value: UInt) = check(value <= Int.MAX_VALUE.uint) { "Unsupported overflow" }
-    fun checkNotOverflow(value: Long) = check( value in Int.MIN_VALUE..Int.MAX_VALUE) { "Unsupported overflow" }
+    fun checkNotOverflow(value: UInt) = check(value <= INT_MAX.uint) { "Unsupported overflow" }
+    fun checkNotOverflow(value: ULong) = check( value in INT_MIN.uint..INT_MAX.uint) { "Unsupported overflow" }
 
 
     // TODO: move to Errno
@@ -201,7 +202,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun remove(path: CharPointer): Int {
         val file = File(sys.filesystem.absolutePath(path.string))
         val result = file.exists() && file.delete() // REVIEW: security exception
-        return (!result).toInt()
+        return (!result).int
     }
 
     // REVIEW: fill all errno
@@ -213,7 +214,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
         val oldFile = File(sys.filesystem.absolutePath(oldname.string))
         val newFile = File(sys.filesystem.absolutePath(newname.string))
         val result = oldFile.renameTo(newFile)
-        return (!result).toInt()
+        return (!result).int
     }
 
     // REVIEW: fill all errno
@@ -409,8 +410,8 @@ class StdioAPI(os: VEOS<*>) : API(os) {
 
             val string = vsprintf_internal(format.string, vaList) // InvalidArgument -> EINVAL
 
-            if (bufSize > 0U) // if 0, just return length
-                buffer.string = string.substring(0 until minOf(bufSize.toInt() - 1, string.length))
+            if (bufSize.int > 0) // if 0, just return length
+                buffer.string = string.substring(0 until minOf(bufSize.int - 1, string.length))
 
             string.length
         }
@@ -421,7 +422,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     // http://www.cplusplus.com/reference/cstdio/vsprintf/
     @APIFunc
     fun vsprintf(buffer: CharPointer, format: CharPointer, vaList: VaList)
-            = vsnprintf(buffer, Int.MAX_VALUE.uint, format, vaList)
+            = vsnprintf(buffer, INT_MAX.uint, format, vaList)
 
     // Errno codes: EINVAL, ...
     // REVIEW: check, which errno use
@@ -460,12 +461,12 @@ class StdioAPI(os: VEOS<*>) : API(os) {
             }
 
             success {
-                it.asULong
+                it.ulong_z
             }
 
             failure {
                 setErrno(it)
-                EOF.asULong
+                EOF.ulong_z
             }
         }
     }
@@ -477,7 +478,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     @APIFunc
     fun fgets(str: CharPointer, num: Int, stream: FILE) /* deferred CharPointer */ {
         if (num <= 0) {
-            sys.abi.setReturnValue(0)
+            sys.abi.setReturnValue(0u)
             return
         }
 
@@ -496,9 +497,9 @@ class StdioAPI(os: VEOS<*>) : API(os) {
                     if (data == EOF)
                         break
 
-                    result.add(data.asByte)
+                    result.add(data.byte)
 
-                    if (data == '\n'.asUInt)
+                    if (data == '\n'.int_z8)
                         break
 
                     i++
@@ -515,7 +516,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
 
             failure {
                 setErrno(it)
-                0L
+                0uL
             }
         }
     }
@@ -526,9 +527,9 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     @APIFunc
     fun fputc(ch: Int, stream: FILE) = nothrow(EOF) {
         segfault(stream) { "stream is null" }
-        log.finest { "[0x${ra.hex8}] fputc(ch=${ch.asChar} fd=${stream.fd})" }
+        log.finest { "[0x${ra.hex8}] fputc(ch=${ch.char} fd=${stream.fd})" }
         stream.write(ch)
-        ch.asByte.asUInt
+        ch.byte.int_z
     }
 
     // REVIEW: fill all errno
@@ -592,7 +593,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstdio/fread/
     @APIFunc
-    fun fread(buffer: BytePointer, size: Sizet, count: Sizet, stream: FILE) /*: SizeT */ {
+    fun fread(buffer: BytePointer, size: size_t, count: size_t, stream: FILE) /*: size_t */ {
         segfault(buffer) { "buffer is null" }
         segfault(stream) { "stream is null" }
 
@@ -600,16 +601,18 @@ class StdioAPI(os: VEOS<*>) : API(os) {
 
         os.block<ByteArray> {
             execute {
-                stream.read((size * count).toInt()) // IONotFoundError -> EBADF
+                val total = size * count
+                stream.read(total.int) // IONotFoundError -> EBADF
             }
 
             success {
                 buffer.store(it)
-                (Sizet(it.size.asLong.ulong) / size).toLong()  // TODO: add asLong ext-property to KE
+                val total = size_t(it.size.ulong_z) / size
+                total.ulong
             }
 
             failure {
-                setErrno(it); 0
+                setErrno(it); 0u
             }
         }
     }
@@ -619,10 +622,11 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     // REVIEW: not tested
     // http://www.cplusplus.com/reference/cstdio/fwrite/
     @APIFunc
-    fun fwrite(buffer: BytePointer, size: Sizet, count: Sizet, stream: FILE) = nothrow(Sizet(0UL)) {
+    fun fwrite(buffer: BytePointer, size: size_t, count: size_t, stream: FILE) = nothrow(size_t(0UL)) {
         segfault(buffer) { "buffer is null" }
         segfault(stream) { "stream is null" }
-        stream.write(buffer.load((size * count).toInt()))
+        val total = size * count
+        stream.write(buffer.load(total.int))
         count
     }
 
@@ -635,7 +639,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun fgetpos(stream: FILE, pos: IntPointer) = nothrow(-1) {
         segfault(stream) { "stream is null" }
         log.fine { "[0x${ra.hex8}] ftell(fd=${stream.fd})" }
-        pos.set(stream.tell().asInt)
+        pos.set(stream.tell().int)
         0
     }
 
@@ -647,7 +651,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun fseek(stream: FILE, offset: Int, whence: Int) = nothrow(-1) {
         segfault(stream) { "stream is null" }
         log.fine { "[0x${ra.hex8}] fseek(fd=${stream.fd} offset=0x${offset.hex8} whence=0x${whence.hex8})" }
-        stream.seek(offset.asULong, whence)
+        stream.seek(offset.ulong_z, whence)
         0
     }
 
@@ -656,10 +660,10 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     // REVIEW: not tested
     // REVIEW: offset is off64_t
     @APIFunc
-    fun fseeko64(stream: FILE, offset: Long, whence: Int) = nothrow(-1) {
-        segfault(stream) { "stream is null" }
-        log.fine { "[0x${ra.hex8}] fseeko64(fd=${stream.fd} offset=0x${offset.hex8} whence=0x${whence.hex8})" }
-        stream.seek(offset, whence)
+    fun fseeko64(stream: FILE, offset: LongLong, whence: Int) = nothrow(-1) {
+        segfault(stream) { "stream is null" } // ${offset.hex8}
+        log.fine { "[0x${ra.hex8}] fseeko64(fd=${stream.fd} offset=0x whence=0x${whence.hex8})" }
+        stream.seek(offset.ulong, whence)
         0
     }
 
@@ -670,7 +674,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun fsetpos(stream: FILE, pos: IntPointer) = nothrow(-1) {
         segfault(stream) { "stream is null" }
         log.fine { "[0x${ra.hex8}] ftell(fd=${stream.fd})" }
-        stream.seek(pos.get.asULong, FileSystem.Seek.Begin.id)
+        stream.seek(pos.get.ulong_z, FileSystem.Seek.Begin.id)
         0
     }
 
@@ -682,17 +686,17 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun ftell(stream: FILE) = nothrow(-1) {
         segfault(stream) { "stream is null" }
         log.fine { "[0x${ra.hex8}] ftell(fd=${stream.fd})" }
-        stream.tell().asInt
+        stream.tell().int
     }
 
     // REVIEW: check, which errno use
     // REVIEW: not tested
     // REVIEW: return type is off64_t
     @APIFunc
-    fun ftello64(stream: FILE): Long {
+    fun ftello64(stream: FILE): LongLong {
         segfault(stream) { "stream is null" }
         log.fine { "[0x${ra.hex8}] ftello64(fd=${stream.fd})" }
-        return stream.tell()
+        return LongLong(stream.tell())
     }
 
     // REVIEW: check, which errno use
@@ -702,7 +706,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun rewind(stream: FILE) {
         segfault(stream) { "stream is null" }
         log.fine { "[0x${ra.hex8}] rewind(fd=${stream.fd})" }
-        nothrow(0) { stream.seek(0, FileSystem.Seek.Begin.id) }
+        nothrow(0) { stream.seek(0u, FileSystem.Seek.Begin.id) }
     }
 
     // --- Error-handling ---
@@ -725,7 +729,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun feof(stream: FILE): Int {
         segfault(stream) { "stream is null" }
         log.fine { "feof(fd=${stream.fd})" }
-        return stream.isEOF.asInt
+        return stream.isEOF.int
     }
 
     // REVIEW: check, which errno use
@@ -735,7 +739,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun ferror(stream: FILE): Int {
         segfault(stream) { "stream is null" }
         log.fine { "ferror(fd=${stream.fd})" }
-        return stream.isError.asInt
+        return stream.isError.int
     }
 
     // REVIEW: not tested
@@ -745,7 +749,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
         log.fine { "perror(str=${str.nullableString})" }
 
         val message = if (str.isNotNull) "${str.string}: " else ""
-        val errString = errlistEnternal[errno.value.asInt] ?: "Unknown error ${errno.value}"
+        val errString = errlistEnternal[errno.value.int] ?: "Unknown error ${errno.value}"
         stderrFile.write("$message$errString")
     }
 
@@ -777,7 +781,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     }
 
     @APIFunc
-    fun fwrite_unlocked(buffer: BytePointer, size: Sizet, count: Sizet, stream: FILE) = fwrite(buffer, size, count, stream)
+    fun fwrite_unlocked(buffer: BytePointer, size: size_t, count: size_t, stream: FILE) = fwrite(buffer, size, count, stream)
 
     @APIFunc
     fun fputs_unlocked(str: CharPointer, stream: FILE) = fputs(str, stream)
@@ -794,7 +798,7 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     fun __snprintf_chk(buffer: CharPointer, maxlen: size_t, flags: Int, strlen: size_t, format: CharPointer, vaArgs: VaArgs): Int {
         log.fine { "[0x${ra.hex8}] __snprintf_chk(buffer=0x$buffer maxlen=$maxlen flags=$flags strlen=$strlen format=0x$format)" }
         segfault(maxlen > strlen) { "__snprintf_chk where maxlen > strlen" }
-        return snprintf(buffer, maxlen.toUInt(), format, vaArgs)
+        return snprintf(buffer, maxlen.uint, format, vaArgs)
     }
 
     @APIFunc

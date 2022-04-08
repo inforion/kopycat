@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.interfaces
 
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.gdbstub.GDB_BPT
+import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
 
 
+@Suppress("INAPPLICABLE_JVM_NAME")
 interface IDebugger {
     var isRunning: Boolean
 
@@ -53,7 +55,8 @@ interface IDebugger {
      * @return массив загруженных байт
      * {RU}
      */
-    fun dbgLoad(address: Long, size: Int): ByteArray
+    @JvmName("dbgLoad")
+    fun dbgLoad(address: ULong, size: Int): ByteArray
 
     /**
      * {RU}
@@ -64,7 +67,8 @@ interface IDebugger {
      * @param data массив байт для сохранения
      * {RU}
      */
-    fun dbgStore(address: Long, data: ByteArray)
+    @JvmName("dbgStore")
+    fun dbgStore(address: ULong, data: ByteArray)
 
     /**
      * {RU}
@@ -77,7 +81,8 @@ interface IDebugger {
      * @return true - если точка останова была установлена
      * {RU}
      */
-    fun bptSet(bpType: GDB_BPT, address: Long, comment: String? = null): Boolean
+    @JvmName("bptSet")
+    fun bptSet(bpType: BreakpointType, address: ULong, comment: String? = null): Boolean
 
     /**
      * {RU}
@@ -88,7 +93,8 @@ interface IDebugger {
      * @return true - если точка останова была снята
      * {RU}
      */
-    fun bptClr(address: Long): Boolean
+    @JvmName("bptClr")
+    fun bptClr(address: ULong): Boolean
 
     /**
      * {RU}
@@ -112,9 +118,16 @@ interface IDebugger {
     fun ident(): String
 
     /**
-     * {RU}Метод возращает список значений всех регистров (в формате IDA Pro){RU}
+     * {RU}
+     * Имя target.xml в ресурсах, если доступно. Данный файл определяет описание регистров.
+     * {RU}
      */
-    fun registers(): List<Long>
+    fun target(): String = throw NotImplementedError("target.xml name not available for this debugger")
+
+    /**
+     * {RU}Метод возвращает список значений всех регистров (в формате IDA Pro){RU}
+     */
+    fun registers(): List<ULong>
 
     /**
      * {RU}
@@ -125,7 +138,8 @@ interface IDebugger {
      * @return прочитанное значение регистра
      * {RU}
      */
-    fun regRead(index: Int): Long
+    @JvmName("regRead")
+    fun regRead(index: Int): ULong
 
     /**
      * {RU}
@@ -135,7 +149,8 @@ interface IDebugger {
      * @param value значение регистра для записи
      * {RU}
      */
-    fun regWrite(index: Int, value: Long)
+    @JvmName("regWrite")
+    fun regWrite(index: Int, value: ULong)
 
     /**
      * {RU}
@@ -144,5 +159,9 @@ interface IDebugger {
      * {RU}
      */
     fun halt()
+
+    fun regSize(index: Int): Datatype
+
+    fun sizes(): List<Datatype>
 }
 

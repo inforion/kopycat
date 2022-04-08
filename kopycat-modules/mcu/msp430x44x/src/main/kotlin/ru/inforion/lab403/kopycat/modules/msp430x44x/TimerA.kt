@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.modules.msp430x44x
 
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.truth
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -61,17 +63,17 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
         override fun trigger() {
             super.trigger()
             //val mode =
-            when (TACTL.MCx) {
+            when (TACTL.MCx.int) {
                 0b01 -> {
                     if (TAR.data >= TACCR0.data) {
-                        TAR.data = 0
+                        TAR.data = 0u
                         //TODO: Multiple TACCTLx
                         TACTL.TAIFG = 1
-                        TAIV.data = 0xA0
+                        TAIV.data = 0xA0u
                         if (TACTL.TAIE == 1)
                             ports.irq_reg.request(0)
                     } else {
-                        TAR.data += direction
+                        TAR.data += direction.uint
                         if ((TAR.data == TACCR0.data) and (TACCTL0.CCIE == 1))
                             ports.irq_taccr0.request(0)
                     }
@@ -84,7 +86,7 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
     private val timer = Timer()
 
     //Timer_A control register
-    private var TACTL = object : Register(ports.mem, 0x160, WORD, "TACTL") {
+    private var TACTL = object : Register(ports.mem, 0x160u, WORD, "TACTL") {
         var TAIFG by bit(0)       //Timer_A interrupt flag
         var TAIE by bit(1)       //Timer_A interrupt enable
         var TACLR by bit(2)       //Timer_A clear
@@ -94,7 +96,7 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
 
         override fun stringify(): String = "${super.stringify()} [TAIFG=$TAIFG TAIE=$TAIE TACLR=$TACLR MCx=$MCx IDx=$IDx TASSELx=$TASSELx]"
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
             log.warning { stringify() }
@@ -104,18 +106,18 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
                 ports.irq_reg.request(0)
 
             //Timer_A interrupt enable
-            ports.irq_reg.enabled(0, TAIE.toBool())
+            ports.irq_reg.enabled(0, TAIE.truth)
 
             //Timer_A clear
             if (TACLR == 1) {
-                TAR.data = 0
-                IDx = 0
+                TAR.data = 0u
+                IDx = 0u
                 timer.direction = 1
                 TACLR = 0
             }
 
             //Input divider
-            val divider = when (IDx) {
+            val divider = when (IDx.int) {
                 0b00 -> 1L
                 0b01 -> 2L
                 0b10 -> 4L
@@ -124,7 +126,7 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
             }
 
             //Timer_A clock source select
-            val freq = when (TASSELx) {
+            val freq = when (TASSELx.int) {
                 0b00 -> 1
                 0b01 -> core.frequency / 32768
                 else -> TODO("Not implemented in TimerA.kt")
@@ -132,7 +134,7 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
 
 
             //Mode control
-            when (MCx) {
+            when (MCx.int) {
                 0b00 -> { /*TODO: stop clock*/
                 }
                 0b01 -> {
@@ -147,10 +149,10 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
     }
 
     //Timer_A counter
-    private var TAR = Register(ports.mem, 0x170, WORD, "TAR")
+    private var TAR = Register(ports.mem, 0x170u, WORD, "TAR")
 
     //Timer_A capture/compare control 0
-    private var TACCTL0 = object : Register(ports.mem, 0x162, WORD, "TACCTL0") {
+    private var TACCTL0 = object : Register(ports.mem, 0x162u, WORD, "TACCTL0") {
         var CCIFG by bit(0)           //Capture/compare interrupt flag
         var COV by bit(1)           //Capture overflow
         var OUT by bit(2)           //Output
@@ -166,7 +168,7 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
 
         override fun stringify(): String = "${super.stringify()} [CCIFG=$CCIFG COV=$COV OUT=$OUT CCI=$CCI CCIE=$CCIE OUTMODx=$OUTMODx CAP=$CAP SCCI=$SCCI SCS=$SCS CCIS=$CCIS CMx=$CMx]"
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
             //Capture/compare interrupt flag
@@ -188,10 +190,10 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
                 throw Exception("CCI isn't implemented in TimerA.kt")
 
             //Capture/compare interrupt enable
-            ports.irq_taccr0.enabled(0, CCIE.toBool())
+            ports.irq_taccr0.enabled(0, CCIE.truth)
 
             //Output mode
-            when (OUTMODx) {
+            when (OUTMODx.int) {
                 0b000 -> {/*TODO: There is nothing to do yet. Keep it simple, stupid*/
                 }
                 0b001 -> throw Exception("OUTMODx mode 0b001 isn't implemented in TimerA.kt")
@@ -219,7 +221,7 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
                 throw Exception("SCS isn't implemented in TimerA.kt")
 
             //Capture/compare input select
-            when (CCIS) {
+            when (CCIS.int) {
                 0b00 -> {/*TODO: There is nothing to do yet. Keep it simple, stupid*/
                 }
                 0b01 -> throw Exception("CCIS mode 0b01 isn't implemented in TimerA.kt")
@@ -228,7 +230,7 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
             }
 
             //Capture mode
-            when (CMx) {
+            when (CMx.int) {
                 0b00 -> {/*TODO: There is nothing to do yet. Keep it simple, stupid*/
                 }
                 0b01 -> throw Exception("CMx mode 0b01 isn't implemented in TimerA.kt")
@@ -239,11 +241,11 @@ class TimerA(parent: Module, name: String) : Module(parent, name) {
     }
 
     //Timer_A capture/compare 0
-    private var TACCR0 = Register(ports.mem, 0x172, WORD, "TACCR0")
+    private var TACCR0 = Register(ports.mem, 0x172u, WORD, "TACCR0")
     //Timer_A interrupt vector
-    private var TAIV = object : Register(ports.mem, 0x12E, WORD, "TAIV") {
+    private var TAIV = object : Register(ports.mem, 0x12Eu, WORD, "TAIV") {
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             when {
                 TACTL.TAIFG == 1 -> TACTL.TAIFG = 0

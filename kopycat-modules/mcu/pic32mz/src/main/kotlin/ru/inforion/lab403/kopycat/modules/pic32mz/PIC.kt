@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.pic32mz
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.convertBooleanArrayToNumber
-import ru.inforion.lab403.common.extensions.convertNumberToBooleanArray
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
@@ -64,25 +62,25 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
     inner class Interrupt(irq: Int, postfix: String) : AInterrupt(irq, postfix) {
         override val cop get() = core.cop
 
-        var subPriority: Int by Delegates.observable(0) { _, old, new ->
+        var subPriority: ULong by Delegates.observable(0u) { _, old, new ->
             if (old != new) {
                 log.config { "$name subPriority changed $old -> $new" }
             }
         }
-        var mainPriority: Int by Delegates.observable(0) { _, old, new ->
+        var mainPriority: ULong by Delegates.observable(0u) { _, old, new ->
             if (old != new) {
                 log.config { "$name mainPriority changed $old -> $new" }
             }
         }
 
         override var vector: Int = 0
-        override val priority: Int get() = (mainPriority shl 2) or subPriority
-        override val cause: Int get() = mainPriority
+        override val priority: Int get() = ((mainPriority shl 2) or subPriority).int
+        override val cause: Int get() = mainPriority.int
 
         override fun onInterrupt() {
             // pending = false  // TODO: Seems something wrong but software in FreeRTOS won't clear it by itself
-            INTSTAT.SIRQ = vector
-            INTSTAT.SRIPL = cause
+            INTSTAT.SIRQ = vector.ulong_z
+            INTSTAT.SRIPL = cause.ulong_z
         }
 
         override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
@@ -94,7 +92,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
         }
     }
 
-    private val INTCON = object : ComplexRegister(ports.mem,0xBF81_0000, name = "INTCON") {
+    private val INTCON = object : ComplexRegister(ports.mem,0xBF81_0000u, name = "INTCON") {
         var NMIKEY by field(7..0)
         var MVEC by bit(12)
         var TPC by field(10..8)
@@ -104,13 +102,13 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
         var INT1EP by bit(1)
         var INT0EP by bit(0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             log.config { "INTCON[NMIKEY=$NMIKEY MVEC=$MVEC TPC=$TPC INT4EP=$INT4EP INT3EP=$INT3EP INT2EP=$INT2EP INT1EP=$INT1EP INT0EP=$INT0EP]" }
         }
     }
 
-    private val PRISS = object : ComplexRegister(ports.mem,0xBF81_0010, name = "PRISS") {
+    private val PRISS = object : ComplexRegister(ports.mem,0xBF81_0010u, name = "PRISS") {
         var PRI7SS by field(31..28)
         var PRI6SS by field(27..24)
         var PRI5SS by field(23..20)
@@ -120,41 +118,39 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
         var PRI1SS by field(7..4)
         var SS0 by bit(0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             log.config { "PRISS[PRI7SS=$PRI7SS PRI6SS=$PRI6SS PRI5SS=$PRI5SS PRI4SS=$PRI4SS PRI3SS=$PRI3SS PRI2SS=$PRI2SS PRI1SS=$PRI1SS SS0=$SS0]" }
         }
     }
 
-    private val INTSTAT = object : ComplexRegister(ports.mem,0x0020, name = "INTSTAT") {
+    private val INTSTAT = object : ComplexRegister(ports.mem,0x0020u, name = "INTSTAT") {
         var SRIPL by field(10..8)
         var SIRQ by field(7..0)
 //        var VEC by field(5..0)
     }
 
-    private val IPTMR = ComplexRegister(ports.mem,0x0030, name = "IPTMR")
+    private val IPTMR = ComplexRegister(ports.mem,0x0030u, name = "IPTMR")
 
-    private inner class IFSx(val ord: Int) : ComplexRegister(ports.mem,0x0040L + 0x10 * ord, name = "IFS$ord") {
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            return convertBooleanArrayToNumber { interrupts[ord * 32 + it].pending }
-        }
+    private inner class IFSx(val ord: Int) : ComplexRegister(ports.mem,0x0040uL + 0x10 * ord, name = "IFS$ord") {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong =
+            convertBooleanArrayToNumber { interrupts[ord * 32 + it].pending }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             convertNumberToBooleanArray(value) { k, v -> interrupts[ord * 32 + k].pending = v }
         }
     }
 
-    private inner class IECx(val ord: Int) : ComplexRegister(ports.mem,0x00C0L + 0x10 * ord, name = "IEC$ord") {
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            return convertBooleanArrayToNumber { interrupts[ord * 32 + it].enabled }
-        }
+    private inner class IECx(val ord: Int) : ComplexRegister(ports.mem,0x00C0uL + 0x10 * ord, name = "IEC$ord") {
+        override fun read(ea: ULong, ss: Int, size: Int) =
+            convertBooleanArrayToNumber { interrupts[ord * 32 + it].enabled }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             convertNumberToBooleanArray(value) { k, v -> interrupts[ord * 32 + k].enabled = v }
         }
     }
 
-    private inner class IPCx(val ord: Int) : ComplexRegister(ports.mem,0x0140L + 0x10 * ord, name = "IPC$ord") {
+    private inner class IPCx(val ord: Int) : ComplexRegister(ports.mem,0x0140uL + 0x10 * ord, name = "IPC$ord") {
         var IS0 by field(1..0)
         var IP0 by field(4..2)
 
@@ -167,7 +163,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
         var IS3 by field(25..24)
         var IP3 by field(28..26)
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             IS0 = interrupts[ord * 4 + 0].subPriority
             IP0 = interrupts[ord * 4 + 0].mainPriority
 
@@ -182,33 +178,33 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
             return super.read(ea, ss, size)
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
-            interrupts[ord * 4 + 0].subPriority = IS0.asInt
-            interrupts[ord * 4 + 0].mainPriority = IP0.asInt
+            interrupts[ord * 4 + 0].subPriority = IS0
+            interrupts[ord * 4 + 0].mainPriority = IP0
 
-            interrupts[ord * 4 + 1].subPriority = IS1.asInt
-            interrupts[ord * 4 + 1].mainPriority = IP1.asInt
+            interrupts[ord * 4 + 1].subPriority = IS1
+            interrupts[ord * 4 + 1].mainPriority = IP1
 
-            interrupts[ord * 4 + 2].subPriority = IS2.asInt
-            interrupts[ord * 4 + 2].mainPriority = IP2.asInt
+            interrupts[ord * 4 + 2].subPriority = IS2
+            interrupts[ord * 4 + 2].mainPriority = IP2
 
-            interrupts[ord * 4 + 3].subPriority = IS3.asInt
-            interrupts[ord * 4 + 3].mainPriority = IP3.asInt
+            interrupts[ord * 4 + 3].subPriority = IS3
+            interrupts[ord * 4 + 3].mainPriority = IP3
         }
     }
 
-    private inner class OFF(val irq: Int) : ByteAccessRegister(ports.mem,0x0540L + 4 * irq, WORD, "OFF$irq") {
+    private inner class OFF(val irq: Int) : ByteAccessRegister(ports.mem,0x0540uL + 4 * irq, WORD, "OFF$irq") {
         var OFF by field(17..1)
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            OFF = interrupts[irq].vector ushr 1
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            OFF = interrupts[irq].vector.ulong_z ushr 1
             return super.read(ea, ss, size)
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            interrupts[irq].vector = OFF.asInt shl 1
+            interrupts[irq].vector = OFF.int shl 1
         }
     }
 
@@ -230,6 +226,4 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
             Interrupt(32, "_TIMER_7_VECTOR"),
             Interrupt(36, "_TIMER_8_VECTOR"),
             Interrupt(40, "_TIMER_9_VECTOR"))
-
-    override fun command(): String = "ic"
 }

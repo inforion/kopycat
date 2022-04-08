@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader
 
-import ru.inforion.lab403.common.extensions.asLong
-import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.opt
 import ru.inforion.lab403.elfloader.ElfAccess
 import ru.inforion.lab403.elfloader.ElfLoader
 import ru.inforion.lab403.elfloader.ElfSymbol
@@ -44,6 +45,7 @@ import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.kernel.Symbol
 import java.io.File
@@ -66,9 +68,9 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
     override fun loadArguments(args: Array<String>) {
         check(os.currentProcess.contextInitialized) { "Context wasn't initialized" }
 
-        val argc = args.size.asLong
+        val argc = args.size.ulong_z
         val envs = os.sys.allocateEnvironmentArray()
-        val _args = (args.asList()).map { os.sys.allocateAsciiString(it) } + 0L
+        val _args = (args.asList()).map { os.sys.allocateAsciiString(it) } + 0uL
 
         val envi = _args.size
 
@@ -89,17 +91,17 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
         else -> ACCESS.E_E
     }
 
-    class ElfData(
+    class ElfData constructor(
             val memoryName: String,
             val name: String,
-            val baseAddress: Long,
+            val baseAddress: ULong,
             val symbols: List<Symbol>,
             val dynamicSymbols: List<Symbol>,
             val undefinedSymbols: List<Symbol>?,
-            val dynamicSegment: HashMap<Int, Long>?,
+            val dynamicSegment: Map<Int, ULong>?,
             val jumpSlots: List<Symbol>,
             val globDat: List<Symbol>,
-            val got: Long?
+            val got: Optional<ULong>
     ) : IAutoSerializable, IConstructorSerializable
 
     private val elfData = mutableMapOf<String, ElfData>()
@@ -108,13 +110,13 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
 
     override fun moduleAddress(module: String) = elfData[module]!!.baseAddress
 
-    override fun moduleName(address: Long) = elfData.values.first { it.baseAddress == address }.name
+    override fun moduleName(address: ULong) = elfData.values.first { it.baseAddress == address }.name
 
     private fun linkReferences() = elfData.values.forEach { elf ->
         if (os.currentMemory.name != elf.memoryName)
             return@forEach
 
-        if (elf.got != null) {
+        if (elf.got.isPresent) {
 
 //                // TODO: NOW NOT WORKS!!!!
 //                val resolverName = "__resolve_undefined_reference__" // TODO: use internal handler
@@ -131,10 +133,10 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
                 val gotsym = elf.dynamicSegment!![MipsDynamicSectionTag.DT_MIPS_GOTSYM.id]!!
                 val local_gotno = elf.dynamicSegment[MipsDynamicSectionTag.DT_MIPS_LOCAL_GOTNO.id]!!
 
-                elf.undefinedSymbols!!.filter { it.ind >= gotsym }.forEach {
+                elf.undefinedSymbols!!.filter { it.ind.ulong_z >= gotsym }.forEach {
                     val symName = elf.dynamicSymbols[it.ind].name
-                    val new_addr = os.sys.addressOfSymbol(symName)!!
-                    val got_addr = elf.got + (local_gotno + it.ind - gotsym) * Datatype.DWORD.bytes
+                    val new_addr = os.sys.addressOfSymbol(symName).get
+                    val got_addr = elf.got.get + (local_gotno + it.ind - gotsym) * Datatype.DWORD.bytes
                     os.abi.writeInt(got_addr, new_addr)
                 }
             }
@@ -142,17 +144,17 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
 
         elf.jumpSlots.forEach {
             val symName = elf.dynamicSymbols[it.ind].name
-            val new_addr = os.sys.addressOfSymbol(symName)!!
+            val new_addr = os.sys.addressOfSymbol(symName).get
             os.abi.writeInt(it.address, new_addr)
         }
         elf.globDat.forEach {
             val symName = elf.dynamicSymbols[it.ind].name
-            val new_addr = os.sys.addressOfSymbol(symName)!!
+            val new_addr = os.sys.addressOfSymbol(symName).get
             os.abi.writeInt(it.address, new_addr)
         }
     }
 
-    fun ElfSymbol.toSymbol(base: Long = 0): Symbol {
+    fun ElfSymbol.toSymbol(base: ULong = 0uL): Symbol {
         val entity = when (infoType and 0xf) {
             ElfSymbolTableType.STT_FUNC.id -> Symbol.Entity.Function
             else -> Symbol.Entity.Other
@@ -161,7 +163,7 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
     }
 
     // TODO: refactor this
-    fun referencesProcessing(elfName: String, elf: ElfLoader, base: Long = 0) {
+    fun referencesProcessing(elfName: String, elf: ElfLoader, base: ULong = 0uL) {
         val regions = elf.relocatedRegions
         val symbols = elf.symbols
         val dynamicSymbols = elf.dynamicSymbols
@@ -190,29 +192,29 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
 
         val jumpSlots = elf.jumpSlots.map { Symbol("", it.vaddr + base, it.sym) } // TODO: Relocation class?
         val globDat = elf.globalData.map { Symbol("", it.vaddr + base, it.sym) } // TODO: Relocation class?
+        val undSyms = elf.undefinedSymbols?.map { it.toSymbol(base) }
         val dynSeg = elf.dynamicSegment
-        val undSyms= elf.undefinedSymbols?.map { it.toSymbol(base) }
-        var got = dynSeg[ElfDynamicSectionTag.DT_PLTGOT.id] /*symbols?.find { it.name == "_GLOBAL_OFFSET_TABLE_" }?.value*/
-        if (got != null && base != 0L) {
+        var got = dynSeg?.get(ElfDynamicSectionTag.DT_PLTGOT.id) /*symbols?.find { it.name == "_GLOBAL_OFFSET_TABLE_" }?.value*/
+
+        if (dynSeg != null && got != null && base != 0uL) {
             got += base
 
             if (os.abi.core is MipsCore) {
 
                 val gotsym = dynSeg[MipsDynamicSectionTag.DT_MIPS_GOTSYM.id]!!
-                val local_gotno =dynSeg[MipsDynamicSectionTag.DT_MIPS_LOCAL_GOTNO.id]!!
+                val local_gotno = dynSeg[MipsDynamicSectionTag.DT_MIPS_LOCAL_GOTNO.id]!!
 
                 val lastSym = mapDynamicSymbols.last().ind
                 val lastGotInd = local_gotno + lastSym - gotsym
 
 //                val maxGotSym = undSyms!!.filter { it.ind >= gotsym }.maxOf { it.ind }
 
-                for (i in 0..lastGotInd) {
+                for (i in 0uL..lastGotInd) {
                     val got_addr = got + i * Datatype.DWORD.bytes
                     val data = os.abi.readInt(got_addr)
                     os.abi.writeInt(got_addr, data + base)
                 }
-            }
-            else if (os.abi.core !is AARMCore && base != 0L)
+            } else if (os.abi.core !is AARMCore && base != 0uL)
                 TODO("CHECK THIS **** OUT")
 
         }
@@ -231,12 +233,15 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
                     os.abi.writeInt(it.vaddr + base, mapDynamicSymbols[it.sym].address)
                 }
             }
+            is PPCCore -> {
+                require (elf.staticRelocations.isEmpty()) { "Not implemented" }
+            }
             else -> TODO("CHECK THIS **** OUT")
         }
 
         val memoryName = os.currentMemory.name
-        val elfBase = if (base == 0L) regions.first().vaddr else base // TODO: not fully correct...
-        elfData[elfName] = ElfData(memoryName, elfName, elfBase, mapSymbols, mapDynamicSymbols, undSyms, dynSeg, jumpSlots, globDat, got)
+        val elfBase = if (base == 0uL) regions.first().vaddr else base // TODO: not fully correct...
+        elfData[elfName] = ElfData(memoryName, elfName, elfBase, mapSymbols, mapDynamicSymbols, undSyms, dynSeg, jumpSlots, globDat, got.opt)
 
         linkReferences()
     }
@@ -255,7 +260,7 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
                 os.currentMemory.allocate(it.name, it.vaddr, it.size, it.access.asAccess, it.data)
             }
 
-            0L
+            0uL
         }
 
         os.currentProcess.initProcess(elf.entryPoint + base)
@@ -263,7 +268,7 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
         referencesProcessing(executableName, elf, base)
     }
 
-    fun loadLibrary(elf: ElfLoader, libName: String): Long {
+    fun loadLibrary(elf: ElfLoader, libName: String): ULong {
         val regions = elf.relocatedRegions
         val size = regions.maxByOrNull { it.vaddr }!!.end
 

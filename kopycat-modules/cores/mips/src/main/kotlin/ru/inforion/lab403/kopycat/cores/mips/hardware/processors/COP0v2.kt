@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
     override fun reset() {
         super.reset()
-        regs.EBase.value = 0x8000_0000
+        regs.EBase.value = 0x8000_0000u
     }
 
     override fun processInterrupts() {
@@ -59,7 +59,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                 // TODO: IE set always true for backward MIPS compat. but reconsideration required
                 val interrupt = pending(true)
                 if (interrupt != null) {
-                    val RIPL = interrupt.cause.asULong
+                    val RIPL = interrupt.cause.ulong_z
                     if (RIPL > IPL) {
                         regs.Cause.IP7_2 = RIPL
                         interrupt.onInterrupt()
@@ -86,14 +86,14 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
 
                 if (interrupt != null) {
                     // Merge external interrupt with pending internal software interrupt (or required, see EMUKOT-106)
-                    regs.Cause.IP7_0 = interrupt.cause.asULong
+                    regs.Cause.IP7_0 = interrupt.cause.ulong_z
                     interrupt.onInterrupt()
                 }
 
                 // Interrupt taken only if these condition are true
                 // see vol.3 MIPS32 (Rev. 0.95) Architecture (5.1)
                 // log.config { "IP = %08X IM = %08X IRQ = %08X".format(ip, im, ip and im) }
-                if (regs.Cause.IP7_0 and regs.Status.IM7_0 != 0L) {
+                if (regs.Cause.IP7_0 and regs.Status.IM7_0 != 0uL) {
                     // Software and hardware interrupts both exceptions,
                     // see vol.3 MIPS32 (Rev. 0.95) Architecture (5.2.23)
                     throw MipsHardwareException.INT(core.pc, interrupt)
@@ -110,7 +110,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
         // Vol. III: MIPS32® Privileged Resource Architecture
         // Rev. 6.02, Page 87
         val vectorOffset: Int
-        val vectorBase: Long
+        val vectorBase: ULong
 
         val StatusBEV = regs.Status.BEV
         val StatusEXL = regs.Status.EXL
@@ -120,7 +120,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
             vectorOffset = 0x180
         } else {
             if (core.cpu.branchCntrl.isDelaySlot) {
-                regs.EPC.value = core.cpu.pc - 4
+                regs.EPC.value = core.cpu.pc - 4u
                 regs.Cause.BD = true
             } else {
                 regs.EPC.value = core.cpu.pc
@@ -142,7 +142,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                 regs.EntryHi.VPN2 = exception.vpn2
                 regs.Context.BadVPN2 = exception.vpn2
 //                log.warning { "[${core.cpu.pc.hex8}] ${exception.excCode} -> BadVAddr = ${exception.vAddr.hex8}" }
-                if (exception.vAddr == 0L) {
+                if (exception.vAddr == 0uL) {
                     log.severe { "Null-pointer exception occurred... halting CPU core!" }
                     core.debugger.isRunning = false
                 }
@@ -159,7 +159,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                     // 0x04 0x080 128
                     // 0x08 0x100 256
                     // 0x10 0x200 512
-                    val IntCtlVS = regs.IntCtl.VS.asInt
+                    val IntCtlVS = regs.IntCtl.VS.int
                     val Config3VEIC = regs.Config3.VEIC
 
                     if (StatusBEV || IntCtlVS == 0) {
@@ -168,7 +168,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                         if (Config3VEIC) {
                             // 6.1.1.3 External Interrupt Controller Mode
                             // For VEIC = 1 IP field is RIPL (Requested interrupt level)
-                            val CauseRIPL = regs.Cause.IP7_2.asInt
+                            val CauseRIPL = regs.Cause.IP7_2.int
 
                             VecNum = when {
                                 core.EIC_option1 -> CauseRIPL
@@ -183,7 +183,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                         }
 
                         vectorOffset = if (Config3VEIC && core.EIC_option3) {
-                            exception.interrupt!!.vector.asInt // EIC_VectorOffset_Signal
+                            exception.interrupt!!.vector // EIC_VectorOffset_Signal
                         } else {
                             0x200 + VecNum * (IntCtlVS shl 5)
                         }
@@ -197,7 +197,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
 
             /* Update the shadow set information for an implementation of */
             /* Release 2 of the architecture */
-            if (core.ArchitectureRevision >= 2 && SRSCtlHSS > 0 && !StatusBEV) {
+            if (core.ArchitectureRevision >= 2 && SRSCtlHSS > 0u && !StatusBEV) {
                 regs.SRSCtl.PSS = SRSCtlCSS
                 regs.SRSCtl.CSS = NewShadowSet
             }
@@ -213,13 +213,12 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
         regs.Status.EXL = true
 
         /* Calculate the vector base address */
-        if (StatusBEV) {
-            vectorBase = 0xBFC0_0200
-        } else {
-            if (core.ArchitectureRevision >= 2)
-                vectorBase = regs.EBase.value bzero 12..0
-            else
-                vectorBase = 0x8000_0000
+        vectorBase = when {
+            StatusBEV -> 0xBFC0_0200uL
+            else -> when {
+                core.ArchitectureRevision < 2 -> 0x8000_0000uL
+                else -> regs.EBase.value bzero 12..0
+            }
         }
 
         /* Exception PC is the sum of vectorBase and vectorOffset. Vector */

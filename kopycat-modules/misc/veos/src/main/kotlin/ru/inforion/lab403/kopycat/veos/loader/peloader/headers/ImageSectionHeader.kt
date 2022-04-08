@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader.headers
 
-import ru.inforion.lab403.common.extensions.asUInt
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.int_z
+import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.veos.loader.peloader.string
 import ru.inforion.lab403.kopycat.veos.loader.peloader.structs.PECharacteristic
 import ru.inforion.lab403.kopycat.veos.loader.peloader.structs.PESection
@@ -35,24 +36,24 @@ import java.nio.ByteBuffer
 class ImageSectionHeader(private val input: ByteBuffer) {
     private val position = input.position()
     val name = input.string.also { input.position(position + 8) }
-    val physicalAddress = input.int.asULong
+    val physicalAddress = input.int.ulong_z
     val virtualSize = physicalAddress
-    val virtualAddress = input.int.asULong
-    val sizeOfRawData = input.int.asULong
-    val pointerToRawData = input.int.asULong
-    val pointerToRelocations = input.int.asULong
-    val pointerToLinenumbers = input.int.asULong
-    val numberOfRelocations = input.short.asUInt
-    val numberOfLinenumbers = input.short.asUInt
-    val characteristics = PECharacteristic(input.int.asULong)
+    val virtualAddress = input.int.ulong_z
+    val sizeOfRawData = input.int.ulong_z
+    val pointerToRawData = input.int.ulong_z
+    val pointerToRelocations = input.int.ulong_z
+    val pointerToLinenumbers = input.int.ulong_z
+    val numberOfRelocations = input.short.int_z
+    val numberOfLinenumbers = input.short.int_z
+    val characteristics = PECharacteristic(input.int.ulong_z)
 
-    fun containsRva(rva: Long) = (rva >= virtualAddress) && (rva < virtualAddress + sizeOfRawData)
-    fun rva2foa(rva: Long) = pointerToRawData + (rva - virtualAddress)
+    fun containsRva(rva: ULong) = (rva >= virtualAddress) && (rva < virtualAddress + sizeOfRawData)
+    fun rva2foa(rva: ULong) = pointerToRawData + (rva - virtualAddress)
 
-    fun toPESection(base: Long) = PESection(input, this, base)
+    fun toPESection(base: ULong) = PESection(input, this, base)
 
     init {
-        require(pointerToRelocations == 0L) { "Not implemented" }
+        require(pointerToRelocations == 0uL) { "Not implemented" }
         require(numberOfRelocations == 0) { "Not implemented" }
     }
 }

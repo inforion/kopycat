@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class ext(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         rt: MipsRegister,
         rs: MipsRegister,
         pos: MipsImmediate,
@@ -48,7 +48,7 @@ class ext(
     override val mnem = "ext"
 
     override fun execute() {
-        vrs = if (lsb + msb <= 31) vrt[(lsb + msb)..lsb] else 0
+        vrs = if (lsb + msb <= 31) vrt[(lsb + msb)..lsb] else 0u
     }
 
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,6 +23,8 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("PropertyName", "unused")
+
 package ru.inforion.lab403.kopycat.veos.api.impl
 
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
@@ -38,36 +40,36 @@ import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 class CXXAPI(os: VEOS<*>) : API(os) {
     val __cxa_guard_acquire = object : APIFunction("__cxa_guard_acquire") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             // Returns 1 if the caller needs to run the initializer and then either
             // call __cxa_guard_release() or __cxa_guard_abort().  If zero is returned,
             // then the initializer has already been run.
             val p_guard_object = argv[0]
             var guard_value = os.abi.readInt(p_guard_object)
-            return if (guard_value != 1L) {
-                guard_value = 1L
+            return if (guard_value != 1uL) {
+                guard_value = 1uL
                 os.abi.writeInt(p_guard_object, guard_value)
                 retval(guard_value)
-            } else retval(0)
+            } else retval(0u)
         }
     }
 
     val __cxa_guard_release = object : APIFunction("__cxa_guard_release") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             // Sets the first byte of the guard_object to a non-zero value.
             // Releases any locks acquired by __cxa_guard_acquire().
             val p_guard_object = argv[0]
-            os.abi.writeChar(p_guard_object, 0)
+            os.abi.writeChar(p_guard_object, 0u)
             return void()
         }
     }
 
     val __cxa_atexit = object : APIFunction("__cxa_guard_release") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.severe { "__cxa_atexit(...) not implemented" }
-            return retval(0)
+            return retval(0uL)
         }
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,17 +28,17 @@ package ru.inforion.lab403.kopycat.veos.ports.dirent
 import ru.inforion.lab403.kopycat.veos.api.pointers.StructPointer
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
-class dirent64(sys: System, address: Long) : StructPointer(sys, address) {
+class dirent64(sys: System, address: ULong) : StructPointer(sys, address) {
     companion object {
         const val sizeOf = 275
 
-        fun nullPtr(sys: System) = dirent64(sys, 0)
+        fun nullPtr(sys: System) = dirent64(sys, 0u)
 
         fun allocate(sys: System) = dirent64(sys, sys.allocateClean(sizeOf))
     }
 
-    var d_ino by longlong(0)
-    var d_off by longlong(8)
+    var d_ino by ulonglong(0)
+    var d_off by ulonglong(8)
     var d_reclen by short(16)
     var d_type by byte(18)
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.Bus
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
@@ -63,10 +64,10 @@ open class HardwareRegister(parent: Module, name: String) : Module(parent, name)
 
     final override val ports = Ports()
 
-    protected val reg = object : Register(ports.io, 0, DWORD, "REG") {
-        override fun read(ea: Long, ss: Int, size: Int): Long = this@HardwareRegister.read(ea, size)
+    protected val reg = object : Register(ports.io, 0u, DWORD, "REG") {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong = this@HardwareRegister.read(ea, size)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             this@HardwareRegister.write(ea, size, value)
         }
@@ -87,7 +88,7 @@ open class HardwareRegister(parent: Module, name: String) : Module(parent, name)
      * @param offset Bus offset
      * {EN}
      */
-    fun connect(bus: Bus, offset: Long) = ports.io.connect(bus, offset)
+    fun connect(bus: Bus, offset: ULong) = ports.io.connect(bus, offset)
 
     /**
      * {RU}
@@ -108,7 +109,7 @@ open class HardwareRegister(parent: Module, name: String) : Module(parent, name)
      * @return Data
      * {EN}
      */
-    open fun read(ea: Long, size: Int): Long = reg.data
+    open fun read(ea: ULong, size: Int): ULong = reg.data
 
     /**
      * {RU}
@@ -127,7 +128,7 @@ open class HardwareRegister(parent: Module, name: String) : Module(parent, name)
      * @param value Value to write
      * {EN}
      */
-    open fun write(ea: Long, size: Int, value: Long) = Unit
+    open fun write(ea: ULong, size: Int, value: ULong) = Unit
 
     /**
      * {RU}

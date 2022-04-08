@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,57 +25,70 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
+import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.APhrase
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.ebp
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.esp
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.bp
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.sp
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ds
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ss
+import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
+class x86Phrase private constructor(
+    dtyp: Datatype,
+    val atyp: Datatype,
+    base: x86Register,
+    index: x86Register,
+    override val ssr: x86Register,
+    displ: Immediate<x86Core> = zero,
+    val scale: Int = 1,
+    access: Access = Access.ANY
+) : APhrase<x86Core>(dtyp, base, index, displ, access) {
 
-class x86Phrase(
+    constructor(
         dtyp: Datatype,
         base: x86Register,
         index: x86Register,
+        prefixes: Prefixes,
         displ: Immediate<x86Core> = zero,
-        val scale: Int = 1,
-        ssr: x86Register = ds,
-        access: AOperand.Access = AOperand.Access.ANY) :
-        APhrase<x86Core>(dtyp, base, index, displ, access) {
+        scale: Int = 1
+    ) : this(dtyp, prefixes.addrsize, base, index, prefixes.ssr(base), displ, scale)
 
-    override val ssr: x86Register = if (base != bp && base != ebp && base != sp && base != esp) ssr else ss
+    private fun calculateAddress(core: x86Core): ULong =
+        base.value(core) + scale.uint * index.value(core) + displ.usext(core)
 
     // index may be just 1, 2, 4 and 8 so we can place a cap on signext of index
-    override fun effectiveAddress(core: x86Core): Long = base.value(core) + scale * index.value(core) + displ.ssext(core)
+    override fun effectiveAddress(core: x86Core): ULong = calculateAddress(core) like atyp
 
-    override fun value(core: x86Core): Long = core.read(dtyp, effectiveAddress(core), ssr.reg)
-    override fun value(core: x86Core, data: Long): Unit = core.write(dtyp, effectiveAddress(core), data, ssr.reg)
+    override fun value(core: x86Core): ULong = core.read(dtyp, effectiveAddress(core), ssr.reg)
+    override fun value(core: x86Core, data: ULong): Unit = core.write(dtyp, effectiveAddress(core), data, ssr.reg)
 
-    override fun toString(): String {
-        val ss = StringBuilder()
-        ss.append(dtyp.name.toLowerCase())
+    override fun toString() = buildString {
+        // should be removed when all registers will be NG
+        val base = base as x86Register
+        val index = index as x86Register
+
+        append(dtyp.name.lowercase())
+
         if (ssr.reg != SSR.DS.id)
-            ss.append("$ssr:")
-        ss.append("[")
-        if (base.reg != x86GPR.NONE.id)
-            ss.append("$base")
-        if (index.reg != x86GPR.NONE.id) {
-            ss.append("+")
+            append(" $ssr:")
+        append("[")
+
+        if (base.isNotNone)
+            append("$base")
+        if (index.isNotNone) {
+            if (base.isNotNone)
+                append("+")
             if (scale != 1)
-                ss.append("$scale*")
-            ss.append("$index")
+                append("$scale*")
+            append("$index")
         }
-        if (displ.value != 0L)
-            ss.append("$displ")
-        ss.append("]")
-        return ss.toString()
+        if (displ.value != 0uL) {
+            append("+$displ")
+        }
+        append("]")
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.modules.cores.device.hardware
 
 import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.hexAsULong
+import ru.inforion.lab403.common.extensions.plus
+import ru.inforion.lab403.common.extensions.ulongByHex
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
@@ -37,16 +38,17 @@ import ru.inforion.lab403.kopycat.modules.cores.device.instructions.*
 import ru.inforion.lab403.kopycat.modules.cores.device.operands.TestInstruction
 import ru.inforion.lab403.kopycat.modules.cores.device.registers.TestGPR
 import ru.inforion.lab403.kopycat.modules.cores.device.registers.TestGPRBankNG
+import ru.inforion.lab403.kopycat.interfaces.*
 
 class TestCPU(val testCore: TestCore, name: String): ACPU<TestCPU, TestCore, TestInstruction, TestGPR>(testCore, name) {
-    override fun reg(index: Int): Long = regs[index].value
-    override fun reg(index: Int, value: Long) {
+    override fun reg(index: Int): ULong = regs[index].value
+    override fun reg(index: Int, value: ULong) {
         regs[index].value = value
     }
     override fun count() = regs.count()
     override fun stringify(): String = "test cpu"
 
-    override var pc: Long
+    override var pc: ULong
         get() = regs.pc.value
         set(value) { regs.pc.value = value }
 
@@ -89,7 +91,7 @@ class TestCPU(val testCore: TestCore, name: String): ACPU<TestCPU, TestCore, Tes
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
-        pc = (snapshot["pc"] as String).hexAsULong
+        pc = (snapshot["pc"] as String).ulongByHex
         regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
     }
 }

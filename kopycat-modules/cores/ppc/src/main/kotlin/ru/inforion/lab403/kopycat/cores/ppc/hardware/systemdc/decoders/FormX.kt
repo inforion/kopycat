@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.decoders
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
@@ -40,20 +41,20 @@ class FormX(core: PPCCore,
     //Общее у них то, что все аргументы выравнены одинакого и имеют схему [OPCD|OP0|OP1|OP2|EXTOPCD|FLAG].
     //Например, первое же поле из битов с 25 по 21 может быть как регистром общего назначения, так регистром
     //вещественных чисел, так и делиться на еще меньшие подгруппы и подполя. Таким образом было ршено, что декод
-    //здесь производится только для разделения базовых групп полей как аргументов типа Long.
+    //здесь производится только для разделения базовых групп полей как аргументов типа ULong.
     //Преобразования к конкретным типам операндов берет на себя инструкция.
-    override fun decode(s: Long): APPCInstruction {
+    override fun decode(s: ULong): APPCInstruction {
 
         //Bits 25..21 (6..10 in PPC notation)
-        val fieldA = s[25..21].toInt()
+        val fieldA = s[25..21].int
 
         //Bits 20..16 (11..15 in PPC notation)
-        val fieldB = s[20..16].toInt()
+        val fieldB = s[20..16].int
 
         //Bits 15..11 (16..20 in PPC notation)
-        val fieldC = s[15..11].toInt()
+        val fieldC = s[15..11].int
 
-        val flag = s[0].toBool()
+        val flag = s[0].truth
         return construct(core,
                 fieldA,
                 fieldB,

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.modules.memory
 
-import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.common.extensions.gzipInputStreamIfPossible
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -80,7 +81,7 @@ abstract class AMemory(
         it.second to result
     }
 
-    private val memory = Memory(ports.mem, 0, size.asULong - 1, "${prefix}_MEMORY", access)
+    private val memory = Memory(ports.mem, 0u, size.ulong_z - 1u, "${prefix}_MEMORY", access)
 
     var endian: ByteOrder
         get() = memory.endian
@@ -90,14 +91,10 @@ abstract class AMemory(
 
     override fun reset() {
         super.reset()
-        records.forEach { (offset, data) -> store(offset.asULong, data) }
+        records.forEach { (offset, data) -> store(offset.ulong_z, data) }
     }
 
-    override fun read(ea: Long, ss: Int, size: Int): Long = memory.read(ea, ss, size)
-    override fun write(ea: Long, ss: Int, size: Int, value: Long): Unit = memory.write(ea, ss, size, value)
-    override fun fetch(ea: Long, ss: Int, size: Int): Long = memory.fetch(ea, ss, size)
-
-    override fun restore(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        memory.restore(ctxt, snapshot)
-    }
+    override fun read(ea: ULong, ss: Int, size: Int): ULong = memory.read(ea, ss, size)
+    override fun write(ea: ULong, ss: Int, size: Int, value: ULong): Unit = memory.write(ea, ss, size, value)
+    override fun fetch(ea: ULong, ss: Int, size: Int): ULong = memory.fetch(ea, ss, size)
 }

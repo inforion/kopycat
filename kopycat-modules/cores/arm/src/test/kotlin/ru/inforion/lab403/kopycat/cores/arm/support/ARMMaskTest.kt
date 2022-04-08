@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
 
 
 class ARMMaskTest {
-    private fun assert(raw: String, offset: Int, value: Long, expected: Boolean) {
+    private fun assert(raw: String, offset: Int, value: ULong, expected: Boolean) {
         val mask = Mask.create(raw, offset)
         val str = "$raw, $offset - ${value.toString(2)}"
         val res = mask.suit(value)
@@ -48,7 +48,7 @@ class ARMMaskTest {
         val m2 = Mask.create("10000", 20)
         val m3 = Mask.create("-", 4)
         val mres = m1 + m2 + m3
-        val isSuit = mres.suit(0xE3017050)
+        val isSuit = mres.suit(0xE3017050u)
         Assert.assertEquals(true, isSuit)
     }
 
@@ -57,7 +57,7 @@ class ARMMaskTest {
         val m2 = Mask.create("not 10xx0", 20)
         val m3 = Mask.create("-", 4)
         val mres = m1 + m2 + m3
-        val isSuit = mres.suit(0xE3017050)
+        val isSuit = mres.suit(0xE3017050u)
         Assert.assertEquals(false, isSuit)
     }
 
@@ -78,84 +78,84 @@ class ARMMaskTest {
     @Test fun testPositiveXBeginTrue(){
         val raw = "0xx0"
         val offset = 0
-        val value = 0b110L
+        val value = 0b110uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testPositiveXBeginFalse(){
         val raw = "0xxx"
         val offset = 0
-        val value = 0b1110L
+        val value = 0b1110uL
         assert(raw, offset, value, false)
     }
 
     @Test fun testPositiveBeginTrue(){
         val raw = "0000000001100"
         val offset = 0
-        val value = 0b1100L
+        val value = 0b1100uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testPositiveBeginFalse(){
         val raw = "1000000000000001100"
         val offset = 0
-        val value = 0b1100L
+        val value = 0b1100uL
         assert(raw, offset, value, false)
     }
 
     @Test fun testPositiveXMiddleFalse() {
         val raw = "0xx0"
         val offset = 5
-        val value = 0b101011001L
+        val value = 0b101011001uL
         assert(raw, offset, value, false)
     }
 
     @Test fun testPositiveMiddleTrue() {
         val raw = "1011001"
         val offset = 3
-        val value = 0b1011001001L
+        val value = 0b1011001001uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testPositiveXAllMiddleTrue() {
         val raw = "xxxxxx"
         val offset = 20
-        val value = 0b11111111111111111111111111L
+        val value = 0b11111111111111111111111111uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testPositiveXAllBeginTrue() {
         val raw = "xxxxxx"
         val offset = 0
-        val value = 0b0L
+        val value = 0b0uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testPositiveXEndTrue() {
         val raw = "1110xxx0xx1x1x100xx00x0x1x0x1x0x"
         val offset = 0
-        val value = 0b11100010101010100010000111001100
+        val value = 0b11100010101010100010000111001100uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testNegativeXBeginTrue1(){
         val raw = "not 0xx0"
         val offset = 0
-        val value = 0b1L
+        val value = 0b1uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testNegativeXBeginTrue2() {
         val raw = "not 0xx0"
         val offset = 0
-        val value = 0b1011L
+        val value = 0b1011uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testNegativeXMiddleTrue() {
         val raw = "not 0xx0"
         val offset = 3
-        val value = 0b1111011L
+        val value = 0b1111011uL
         assert(raw, offset, value, true)
     }
 
@@ -163,35 +163,35 @@ class ARMMaskTest {
     fun testNegativeXAllMiddleFalse() {
         val raw = "not xxxxxx"
         val offset = 19
-        val value = 0b01010111L
+        val value = 0b01010111uL
         assert(raw, offset, value, false)
     }
 
     @Test fun testNegativeXEndTrue() {
         val raw = "not 1110xxx0xx1x1x100xx00x0x1x0x1x0x"
         val offset = 0
-        val value = 0b100010101010100010000111001100L
+        val value = 0b100010101010100010000111001100uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testCombXBeginTrue1() {
         val raw = "10xx0 not x0xx"
         val offset = 0
-        val value = 0b10110L
+        val value = 0b10110uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testCombXBeginTrue2() {
         val raw = "10xx0 not x0xx"
         val offset = 0
-        val value = 0b10100L
+        val value = 0b10100uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testCombXBeginFalse() {
         val raw = "10xx0 not x0xx"
         val offset = 0
-        val value = 0b100L
+        val value = 0b100uL
         assert(raw, offset, value, false)
     }
 
@@ -199,35 +199,35 @@ class ARMMaskTest {
     fun testCombXAllMiddleFalse() {
         val raw = "xxxx not xxxx"
         val offset = 5
-        val value = 0b10100L
+        val value = 0b10100uL
         assert(raw, offset, value, false)
     }
 
     @Test fun testCombXMiddleTrue() {
         val raw = "1x0xx0 not x100x0"
         val offset = 5
-        val value = 0b11010000000L
+        val value = 0b11010000000uL
         assert(raw, offset, value, true)
     }
 
     @Test fun testCombXMiddleFalse() {
         val raw = "1x0xx0 not x100x0"
         val offset = 5
-        val value = 0b11000000000L
+        val value = 0b11000000000uL
         assert(raw, offset, value, false)
     }
 
     @Test fun testCombXEndFalse() {
         val raw = "1x0xx0 not x100x0"
         val offset = 25
-        val value = 0b1100000000000000000000000000000L
+        val value = 0b1100000000000000000000000000000uL
         assert(raw, offset, value, false)
     }
 
     @Test fun testCombXEndTrue() {
         val raw = "1x0xx0 not x100x0"
         val offset = 25
-        val value = 0b11000000000000000000000000000000L
+        val value = 0b11000000000000000000000000000000uL
         assert(raw, offset, value, true)
     }
 
@@ -256,7 +256,7 @@ class ARMMaskTest {
         )
 
         val message = try {
-            table.lookup(0xE51F_1000, 0x0000_0000L)
+            table.lookup(0xE51F_1000u, 0x0000_0000uL)
         } catch (exc: DecoderException) {
             exc.message
         }

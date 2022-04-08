@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,11 @@
 
 package ru.inforion.lab403.kopycat.veos.api.datatypes
 
+import ru.inforion.lab403.common.extensions.*
 
-inline class LongLong(val data: Long) : Comparable<LongLong>  {
+
+@JvmInline
+value class LongLong constructor(val data: ULong) : Comparable<LongLong>  {
 
 
     companion object {
@@ -58,28 +61,28 @@ inline class LongLong(val data: Long) : Comparable<LongLong>  {
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: Byte): Int = toLong().compareTo(other.toLong())
+    inline operator fun compareTo(other: Byte): Int = long.compareTo(other.long_z)
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: Short): Int = toLong().compareTo(other)
+    inline operator fun compareTo(other: Short): Int = long.compareTo(other)
 
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: Int): Int = toLong().compareTo(other)
+    inline operator fun compareTo(other: Int): Int = long.compareTo(other)
     
     /**
      * Compares this value with the specified value for order.
      * Returns zero if this value is equal to the specified other value, a negative number if it's less than other,
      * or a positive number if it's greater than other.
      */
-    inline operator fun compareTo(other: Long): Int = toLong().compareTo(other)
+    inline operator fun compareTo(other: Long): Int = long.compareTo(other)
     
     /**
      * Compares this value with the specified value for order.
@@ -87,62 +90,62 @@ inline class LongLong(val data: Long) : Comparable<LongLong>  {
      * or a positive number if it's greater than other.
      */
     @Suppress("OVERRIDE_BY_INLINE")
-    override inline operator fun compareTo(other: LongLong): Int = toLong().compareTo(other.toLong())
+    override inline operator fun compareTo(other: LongLong): Int = long.compareTo(other.long)
 
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Byte): LongLong = LongLong(toLong().plus(other))
+    inline operator fun plus(other: Byte): LongLong = LongLong(ulong.plus(other))
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Short): LongLong = LongLong(toLong().plus(other))
+    inline operator fun plus(other: Short): LongLong = LongLong(ulong.plus(other))
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Int): LongLong = LongLong(toLong().plus(other))
+    inline operator fun plus(other: Int): LongLong = LongLong(ulong.plus(other))
     /** Adds the other value to this value. */
-    inline operator fun plus(other: Long): LongLong = LongLong(toLong().plus(other))
+    inline operator fun plus(other: Long): LongLong = LongLong(ulong.plus(other))
     /** Adds the other value to this value. */
-    inline operator fun plus(other: LongLong): LongLong = LongLong(toLong().plus(other.toLong()))
+    inline operator fun plus(other: LongLong): LongLong = LongLong(ulong.plus(other.ulong))
 
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Byte): LongLong = LongLong(toLong().minus(other))
+    inline operator fun minus(other: Byte): LongLong = LongLong(ulong.minus(other))
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Short): LongLong = LongLong(toLong().minus(other))
+    inline operator fun minus(other: Short): LongLong = LongLong(ulong.minus(other))
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Int): LongLong = LongLong(toLong().minus(other))
+    inline operator fun minus(other: Int): LongLong = LongLong(ulong.minus(other))
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: Long): LongLong = LongLong(toLong().minus(other))
+    inline operator fun minus(other: Long): LongLong = LongLong(ulong.minus(other))
     /** Subtracts the other value from this value. */
-    inline operator fun minus(other: LongLong): LongLong = LongLong(toLong().minus(other.toLong()))
+    inline operator fun minus(other: LongLong): LongLong = LongLong(ulong.minus(other.ulong))
 
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Byte): LongLong = LongLong(toLong().times(other))
+    inline operator fun times(other: Byte): LongLong = LongLong(ulong.times(other))
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Short): LongLong = LongLong(toLong().times(other))
+    inline operator fun times(other: Short): LongLong = LongLong(ulong.times(other))
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Int): LongLong = LongLong(toLong().times(other))
+    inline operator fun times(other: Int): LongLong = LongLong(ulong.times(other))
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: Long): LongLong = LongLong(toLong().times(other))
+    inline operator fun times(other: Long): LongLong = LongLong(ulong.times(other))
     /** Multiplies this value by the other value. */
-    inline operator fun times(other: LongLong): LongLong = LongLong(toLong().times(other.toLong()))
+    inline operator fun times(other: LongLong): LongLong = LongLong(ulong.times(other.ulong))
 
     /** Divides this value by the other value. */
-    inline operator fun div(other: Byte): LongLong = LongLong(toLong().div(other))
+    inline operator fun div(other: Byte): LongLong = LongLong(ulong.div(other))
     /** Divides this value by the other value. */
-    inline operator fun div(other: Short): LongLong = LongLong(toLong().div(other))
+    inline operator fun div(other: Short): LongLong = LongLong(ulong.div(other))
     /** Divides this value by the other value. */
-    inline operator fun div(other: Int): LongLong = LongLong(toLong().div(other))
+    inline operator fun div(other: Int): LongLong = LongLong(ulong.div(other))
     /** Divides this value by the other value. */
-    inline operator fun div(other: Long): LongLong = LongLong(toLong().div(other))
+    inline operator fun div(other: Long): LongLong = LongLong(ulong.div(other))
     /** Divides this value by the other value. */
-    inline operator fun div(other: LongLong): LongLong = LongLong(toLong().div(other.toLong()))
+    inline operator fun div(other: LongLong): LongLong = LongLong(ulong.div(other.ulong))
 
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Byte): LongLong = LongLong(toLong().rem(other))
+    inline operator fun rem(other: Byte): LongLong = LongLong(ulong.rem(other))
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Short): LongLong = LongLong(toLong().rem(other))
+    inline operator fun rem(other: Short): LongLong = LongLong(ulong.rem(other))
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Int): LongLong = LongLong(toLong().rem(other))
+    inline operator fun rem(other: Int): LongLong = LongLong(ulong.rem(other))
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: Long): LongLong = LongLong(toLong().rem(other))
+    inline operator fun rem(other: Long): LongLong = LongLong(ulong.rem(other))
     /** Calculates the remainder of dividing this value by the other value. */
-    inline operator fun rem(other: LongLong): LongLong = LongLong(toLong().rem(other.toLong()))
+    inline operator fun rem(other: LongLong): LongLong = LongLong(ulong.rem(other.ulong))
 
     /** Increments this value. */
     inline operator fun inc(): LongLong = LongLong(data.inc())
@@ -150,7 +153,7 @@ inline class LongLong(val data: Long) : Comparable<LongLong>  {
     inline operator fun dec(): LongLong = LongLong(data.dec())
 
     /** Creates a range from this value to the specified [other] value. */
-    inline operator fun rangeTo(other: LongLong): LongRange = LongRange(toLong(), other.toLong())
+    inline operator fun rangeTo(other: LongLong): ULongRange = ULongRange(ulong, other.ulong)
 
     /** Performs a bitwise AND operation between the two values. */
     inline infix fun and(other: LongLong): LongLong = LongLong(data and other.data)
@@ -169,7 +172,7 @@ inline class LongLong(val data: Long) : Comparable<LongLong>  {
      *
      * The resulting `Byte` value is represented by the least significant 8 bits of this `LongLong` value.
      */
-    inline fun toByte(): Byte = data.toByte()
+    inline val byte: Byte get() = data.byte
     /**
      * Converts this [LongLong] value to [Int].
      *
@@ -178,7 +181,7 @@ inline class LongLong(val data: Long) : Comparable<LongLong>  {
      * The least significant 16 bits of the resulting `Int` value are the same as the bits of this `LongLong` value,
      * whereas the most significant 16 bits are filled with zeros.
      */
-    inline fun toInt(): Int = data.toInt()
+    inline val int: Int get() = data.int
     /**
      * Converts this [LongLong] value to [Long].
      *
@@ -187,22 +190,31 @@ inline class LongLong(val data: Long) : Comparable<LongLong>  {
      * The least significant 16 bits of the resulting `Long` value are the same as the bits of this `LongLong` value,
      * whereas the most significant 48 bits are filled with zeros.
      */
-    inline fun toLong(): Long = data
+    inline val long: Long get() = data.long
+    /**
+     * Converts this [LongLong] value to [ULong].
+     *
+     * The resulting `Long` value represents the same numerical value as this `LongLong`.
+     *
+     * The least significant 16 bits of the resulting `Long` value are the same as the bits of this `LongLong` value,
+     * whereas the most significant 48 bits are filled with zeros.
+     */
+    inline val ulong: ULong get() = data
 
     /**
      * Converts this [LongLong] value to [Float].
      *
      * The resulting `Float` value represents the same numerical value as this `LongLong`.
      */
-    inline fun toFloat(): Float = data.toFloat()
+    inline val float: Float get() = data.float
     /**
      * Converts this [LongLong] value to [Double].
      *
      * The resulting `Double` value represents the same numerical value as this `LongLong`.
      */
-    inline fun toDouble(): Double = data.toDouble()
+    inline val double: Double get() = data.double
     /** Returns this value. */
-    inline fun toLongLong(): LongLong = this
+    inline val longlong: LongLong get() = this
 
     override fun toString(): String = data.toString()
 }

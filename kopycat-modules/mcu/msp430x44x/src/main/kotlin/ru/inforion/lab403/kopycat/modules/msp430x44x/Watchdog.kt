@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,5 +40,5 @@ class Watchdog(parent: Module, name: String) : Module(parent, name) {
 
     override val ports = Ports()
 
-    val WDG = Register(ports.mem, 0x120, WORD, "WDG")
+    val WDG = Register(ports.mem, 0x120u, WORD, "WDG")
 }

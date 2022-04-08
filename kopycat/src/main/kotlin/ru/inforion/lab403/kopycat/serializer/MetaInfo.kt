@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,4 +37,4 @@ import org.joda.time.DateTime
  * @property timestamp date and time of taking snapshot
  * {EN}
  */
-data class MetaInfo constructor(val entry: Long, val comment: String?, val timestamp: DateTime = DateTime.now())
+data class MetaInfo(val entry: ULong, val comment: String?, val timestamp: DateTime = DateTime.now())

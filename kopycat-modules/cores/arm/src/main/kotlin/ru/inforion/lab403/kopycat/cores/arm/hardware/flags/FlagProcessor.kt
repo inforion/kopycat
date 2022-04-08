@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.flags
 
-import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.arm.SInt
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
@@ -35,11 +35,11 @@ import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 @Suppress("NOTHING_TO_INLINE")
 object FlagProcessor {
-    inline fun processArithmFlag(core: AARMCore, result: Long, carry: Int, overflow: Int) {
-        core.cpu.flags.n = result[31] == 1L
-        core.cpu.flags.z = result == 0L
-        core.cpu.flags.c = carry == 1
-        core.cpu.flags.v = overflow == 1
+    inline fun processArithmFlag(core: AARMCore, result: ULong, carry: Int, overflow: Int) {
+        core.cpu.flags.n = result[31].truth
+        core.cpu.flags.z = result.untruth
+        core.cpu.flags.c = carry.truth
+        core.cpu.flags.v = overflow.truth
     }
 
     inline fun processLogicFlag(core: AARMCore, result: Variable<AARMCore>, shifterCarryOut: Boolean) {
@@ -53,15 +53,17 @@ object FlagProcessor {
         core.cpu.flags.z = result.isZero(core)
     }
 
-    inline fun processHMulFlag(core: AARMCore, result: Long) {
+    inline fun processHMulFlag(core: AARMCore, result: ULong) {
         core.cpu.status.q = result != SInt(result[31..0], 32)
     }
 
-    inline fun processHMulRegFlag(core: AARMCore, result: Long, rd: ARMRegister) {
-        core.cpu.status.q = result.shr(16) != rd.ssext(core)
+    inline fun processHMulRegFlag(core: AARMCore, result: ULong, rd: ARMRegister) {
+        if (result ushr 16 != SInt(rd.value(core), 32))
+            core.cpu.status.q = true
     }
 
     inline fun processSatFlag(core: AARMCore) {
         core.cpu.status.q = true
     }
 }
+

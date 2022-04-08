@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.cores.msp430.instructions.cpu.common
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.msp430.instructions.AMSP430Instruction
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 
@@ -37,7 +38,7 @@ class Push(core: MSP430Core, size: Int, vararg operands: AOperand<MSP430Core>):
     override val mnem = "push"
 
     override fun execute() {
-        val stack = core.cpu.regs.r1StackPointer - 2
+        val stack = core.cpu.regs.r1StackPointer - 2u
         core.cpu.regs.r1StackPointer = stack
         core.write(op1.dtyp, stack, op1.value(core))
     }

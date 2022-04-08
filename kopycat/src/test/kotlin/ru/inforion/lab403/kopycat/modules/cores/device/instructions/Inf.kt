@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores.device.instructions
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.modules.cores.device.TestCore
 import ru.inforion.lab403.kopycat.modules.cores.device.operands.TestInstruction
 
@@ -36,6 +37,6 @@ class Inf(core: TestCore): TestInstruction(core){
     override val mnem = "inf"
 
     override fun execute() = with(core.cpu){
-        regs.pc.value -= size
+        regs.pc.value -= size.uint
     }
 }

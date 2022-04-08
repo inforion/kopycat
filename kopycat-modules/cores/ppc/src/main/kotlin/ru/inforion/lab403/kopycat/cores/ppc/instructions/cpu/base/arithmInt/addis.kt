@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,14 +36,14 @@ import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 
 //Add immediate shifted
-class addis(core: PPCCore, val condRegField: Long, val length: Boolean, val data: Long, vararg operands: AOperand<PPCCore>):
+class addis(core: PPCCore, val condRegField: ULong, val length: Boolean, val data: ULong, vararg operands: AOperand<PPCCore>):
         APPCInstruction(core, Type.VOID, *operands) {
     override val mnem = "addis"
 
     override fun toString(): String = "$mnem $op1, ${if ((op2 as PPCRegister).reg == eUISA.GPR0.id) "0" else "$op2"}, ${data.hex4}(=${(data shl 16).hex8})"
 
     override fun execute() {
-        val extImm = (data shl 16)//.ssext(31) - no need because of 32 bit system
+        val extImm = (data shl 16) // - no need signext because of 32 bit system
         if ((op2 as PPCRegister).reg == eUISA.GPR0.id)
             op1.value(core, extImm)
         else

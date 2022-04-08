@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.loader.peloader
 
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.veos.loader.peloader.headers.*
 import java.nio.ByteBuffer
 
@@ -40,7 +41,7 @@ class PEFile(private val input: ByteBuffer) {
 
     val baseRelocations: Array<ImageBaseRelocation>
 
-    fun rva2foa(rva: Long) = sectionHeaders.first { it.containsRva(rva) }.rva2foa(rva)
+    fun rva2foa(rva: ULong) = sectionHeaders.first { it.containsRva(rva) }.rva2foa(rva)
 
     init {
         input.position(imageDosHeader.lfanew)
@@ -51,19 +52,19 @@ class PEFile(private val input: ByteBuffer) {
             ImageSectionHeader(input)
         }
 
-        require(imageNTHeader.optionalHeader.import.virtualAddress != 0L) { "Imports may be missing" }
-        input.position(rva2foa(imageNTHeader.optionalHeader.import.virtualAddress).toInt())
+        require(imageNTHeader.optionalHeader.import.virtualAddress != 0uL) { "Imports may be missing" }
+        input.position(rva2foa(imageNTHeader.optionalHeader.import.virtualAddress).int)
         val importDescriptorList = mutableListOf<ImageImportDescriptor>()
         while (true) {
             val descriptor = ImageImportDescriptor(this, input)
-            if (descriptor.originalFirstThunk == 0L)
+            if (descriptor.originalFirstThunk == 0uL)
                 break
             importDescriptorList.add(descriptor)
         }
         importDescriptors = importDescriptorList.toTypedArray()
 
-        require(imageNTHeader.optionalHeader.baseReloc.virtualAddress != 0L) { "Relocs may be missing" }
-        input.position(rva2foa(imageNTHeader.optionalHeader.baseReloc.virtualAddress).toInt())
+        require(imageNTHeader.optionalHeader.baseReloc.virtualAddress != 0uL) { "Relocs may be missing" }
+        input.position(rva2foa(imageNTHeader.optionalHeader.baseReloc.virtualAddress).int)
         val baseRelocationsList = mutableListOf<ImageBaseRelocation>()
         while (true) {
             val relocation = ImageBaseRelocation(input)

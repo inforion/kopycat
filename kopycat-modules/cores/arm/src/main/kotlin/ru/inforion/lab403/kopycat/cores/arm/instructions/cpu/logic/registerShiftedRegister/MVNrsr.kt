@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.logic.registerShiftedRegister
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.Shift_C
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -38,9 +38,8 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class MVNrsr(cpu: AARMCore,
-             opcode: Long,
+             opcode: ULong,
              cond: Condition,
              val setFlags: Boolean,
              val rd: ARMRegister,
@@ -55,8 +54,8 @@ class MVNrsr(cpu: AARMCore,
     private var result = ARMVariable(Datatype.DWORD)
 
     override fun execute() {
-        val shiftN = rs.value(core)[7..0].asInt
-        val (shifted, carry) = Shift_C(rm.value(core), rm.dtyp.bits, shiftT, shiftN, core.cpu.flags.c.asInt)
+        val shiftN = rs.value(core)[7..0].int
+        val (shifted, carry) = Shift_C(rm.value(core), rm.dtyp.bits, shiftT, shiftN, core.cpu.flags.c.int)
         result.value(core, shifted.inv())
         rd.value(core, result)
         if (setFlags)

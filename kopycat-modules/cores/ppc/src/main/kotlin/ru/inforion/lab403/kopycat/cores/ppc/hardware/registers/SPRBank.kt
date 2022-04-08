@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,10 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.registers
 
-import ru.inforion.lab403.common.extensions.bitMask
-import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.common.extensions.hexAsULong
-import ru.inforion.lab403.common.extensions.sure
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
@@ -43,43 +40,24 @@ class SPRBank(val core: PPCCore, vararg systems: eSystem) : ICoreUnit/*, Iterabl
 
     val msb = 31
     val lsb = 0
-    private val mask = bitMask(msb..lsb)
-    private val data = mutableMapOf<Int, Long>()
+    private val mask = ubitMask64(msb..lsb)
+    private val data = mutableMapOf<Int, ULong>()
     private val names = mutableMapOf<String, Int>()
 
     init {
         for (s in systems) {
-            data.putAll(s.sprs.map { it.id to 0L })
+            data.putAll(s.sprs.map { it.id to 0uL })
             names.putAll(s.sprs.map { it.name to it.id })
         }
     }
 
-    fun readIntern(index: Int): Long = data[index].sure { "Unknown SPR: $index" }
+    fun readIntern(index: Int) = data[index].sure { "Unknown SPR: $index" }
 
-    fun writeIntern(index: Int, value: Long) {
+    fun writeIntern(index: Int, value: ULong) {
         if (index !in data)
             throw GeneralException("Unknown SPR: $index")
         data[index] = value and mask
     }
-
-
-
-
-    //override operator fun iterator() = data.iterator()
-    /*object : Iterator<Long> {
-        private var pos = 0
-
-        override fun next(): Long {
-            if (!hasNext()) {
-                throw NoSuchElementException()
-            }
-            return data[pos++]
-        }
-
-        override fun hasNext(): Boolean {
-            return pos < data.size
-        }
-    }*/
 
     /**
      * {RU}
@@ -89,9 +67,8 @@ class SPRBank(val core: PPCCore, vararg systems: eSystem) : ICoreUnit/*, Iterabl
      * @return отображение сохраняемых свойств объекта
      * {RU}
      */
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return names.map { it.key to data[it.value]!!.hex }.toMap()
-    }
+    override fun serialize(ctxt: GenericSerializer) =
+        names.map { it.key to data[it.value]!!.hex }.toMap()
 
     /**
      * {RU}
@@ -106,7 +83,7 @@ class SPRBank(val core: PPCCore, vararg systems: eSystem) : ICoreUnit/*, Iterabl
             val value = snapshot[it.key]
             if (value != null) {
                 ARegistersBank.log.finest { "Loading register ${it.key}[${it.value}] value = $value" }
-                data[it.value] = (value as String).hexAsULong
+                data[it.value] = (value as String).ulongByHex
             } else ARegistersBank.log.warning { "Register ${it.key}[${it.value}] value not found! " +
                     "Possible your've made snapshot at version 1.1.4 or earlie... -> results may be incorrect!" }
         }

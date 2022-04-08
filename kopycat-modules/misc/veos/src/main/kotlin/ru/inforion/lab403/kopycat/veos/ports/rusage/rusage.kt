@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -29,7 +29,7 @@ import ru.inforion.lab403.kopycat.veos.api.pointers.IntPointer
 import ru.inforion.lab403.kopycat.veos.kernel.System
 
 // TODO: Make from StructPointer
-class rusage(sys: System, address: Long) : IntPointer(sys, address) {
+class rusage(sys: System, address: ULong) : IntPointer(sys, address) {
     companion object {
 //        fun sizeOf(sys: System) = sys.sizeOf.word * 2
 //        fun allocate(sys: System) = FILE(sys, sys.allocateClean(sizeOf(sys)))

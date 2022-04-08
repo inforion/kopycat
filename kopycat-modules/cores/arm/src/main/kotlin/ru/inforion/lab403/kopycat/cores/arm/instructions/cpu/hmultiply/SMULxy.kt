@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -33,9 +33,8 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class SMULxy(cpu: AARMCore,
-             opcode: Long,
+             opcode: ULong,
              cond: Condition,
              val rd: ARMRegister,
              val ra: ARMRegister,
@@ -47,8 +46,8 @@ class SMULxy(cpu: AARMCore,
     override val mnem = "SMUL${if(mHigh) "T" else "B"}${if(mHigh) "T" else "B"}"
 
     override fun execute() {
-        val operand1 = if(nHigh) rn.ssext(core)[31..16] else rn.ssext(core)[15..0]
-        val operand2 = if(mHigh) rm.ssext(core)[31..16] else rm.ssext(core)[15..0]
+        val operand1 = if(nHigh) rn.value(core)[31..16] else rn.value(core)[15..0]
+        val operand2 = if(mHigh) rm.value(core)[31..16] else rm.value(core)[15..0]
         val result = SInt(operand1, 16) * SInt(operand2, 16)
         rd.value(core, result[31..0])
     }

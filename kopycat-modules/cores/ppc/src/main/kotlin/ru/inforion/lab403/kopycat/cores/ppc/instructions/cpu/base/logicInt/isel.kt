@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -42,11 +42,8 @@ class isel(core: PPCCore, val fieldA: Int, val fieldB: Int, val fieldC: Int, val
 
 
     override fun execute() {
-        val a = if (fieldB == 0) 0L else ra.value(core)
-        val value = if (core.cpu.crBits.bit(fieldD))
-            a
-        else
-            rb.value(core)
+        val a = if (fieldB == 0) 0uL else ra.value(core)
+        val value = if (core.cpu.crBits.bit(fieldD)) a else rb.value(core)
         rt.value(core, value)
     }
 }

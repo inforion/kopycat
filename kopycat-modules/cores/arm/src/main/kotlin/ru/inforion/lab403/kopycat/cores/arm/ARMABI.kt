@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm
 
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.plus
+import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ABIBase
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
@@ -55,6 +58,14 @@ class ARMABI(core: AARMCore, bigEndian: Boolean): ABI<AARMCore>(core, 32, bigEnd
     override val sp get() = core.cpu.regs.sp.toOperand()
     override val ra get() = core.cpu.regs.lr.toOperand()
     override val rv get() = core.cpu.regs.r0.toOperand()
+    // return value for long (64 bit) types (High DWORD)
+    val rvl get() = core.cpu.regs.r1.toOperand()
+
+    override fun setReturnValue(value: ULong, type: Datatype, instance: ABIBase) {
+        instance.writeRegister(rv.reg, value like type)
+        if (type.bits == 64)
+            instance.writeRegister(rvl.reg, (value ushr 32) like Datatype.DWORD)
+    }
 
     // 0 - int
     // 2,3 - long
@@ -67,7 +78,7 @@ class ARMABI(core: AARMCore, bigEndian: Boolean): ABI<AARMCore>(core, 32, bigEnd
     // 3 -(+1)> 4 -(/2)> 2 -(*2)> 4 [stack]
     fun alignedLongIndex(index: Int) = (((index + 1) / 2) * 2)
 
-    override fun getArg(index: Int, type: Datatype, alignment: Int, instance: ABIBase): Long {
+    override fun getArg(index: Int, type: Datatype, alignment: UInt, instance: ABIBase): ULong {
         val realIndex = index + argOffset
         val alignedIndex = if (type.bits > bits) alignedLongIndex(realIndex) else realIndex
         return if (alignedIndex < regArguments.size) {
@@ -83,11 +94,11 @@ class ARMABI(core: AARMCore, bigEndian: Boolean): ABI<AARMCore>(core, 32, bigEnd
                 instance.readRegister(regArguments[alignedIndex]) like type
             }
         } else {
-            instance.readStack(stackArgsOffset + (realIndex - regArguments.size) * alignment, type)
+            instance.readStack(stackArgsOffset + (realIndex - regArguments.size) * alignment.int, type)
         }
     }
 
-    override fun getArgs(args: Iterable<Datatype>, instance: ABIBase): Array<Long> {
+    override fun getArgs(args: Iterable<Datatype>, instance: ABIBase): Array<ULong> {
         argOffset = 0
         return super.getArgs(args, instance)
     }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -41,7 +41,7 @@ class TestTopDevice(parent: Module, name: String): Module(parent, name) {
     private val sram = RAM(this, "sram", 0x100)
     init {
         device.ports.mem.connect(buses.mem)
-        rom.ports.mem.connect(buses.mem, 0x0800_0000)
-        sram.ports.mem.connect(buses.mem, 0x2000_0000)
+        rom.ports.mem.connect(buses.mem, 0x0800_0000u)
+        sram.ports.mem.connect(buses.mem, 0x2000_0000u)
     }
 }

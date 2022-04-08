@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -49,7 +49,7 @@ class Divhu(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
     // Format XI - reg1, reg2, reg3
     override fun execute() {
         val a1 = op1.value(core)
-        if (a1 == 0L) throw v850ESHardwareException.DivisionByZero
+        if (a1 == 0uL) throw v850ESHardwareException.DivisionByZero
         result.value(core, op2.zext(core) / a1)
         val res2 = op2.zext(core) % a1
         FlagProcessor.processDivFlag(core, result, op1, op2)

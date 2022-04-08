@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -62,15 +62,15 @@ class MipsCore constructor(
         frequency: Long,
         ipc: Double,
         val multiplier: Long,
-        val PRId: Long,
+        val PRId: ULong,
         val PABITS: Int,
         val ArchitectureRevision: Int = 1,
         val countOfShadowGPR: Int = 0,
-        val Config0Preset: Long = 0,
-        val Config1Preset: Long = 0,
-        val Config2Preset: Long = 0,
-        val Config3Preset: Long = 0,
-        val IntCtlPreset: Long = 0,
+        val Config0Preset: ULong = 0u,
+        val Config1Preset: ULong = 0u,
+        val Config2Preset: ULong = 0u,
+        val Config3Preset: ULong = 0u,
+        val IntCtlPreset: ULong = 0u,
         val countRateFactor: Int = 2,
         val syncSupported: Boolean = false,
         val countCompareSupported: Boolean = false,
@@ -84,11 +84,11 @@ class MipsCore constructor(
     /**
      * {EN}For simplifying instantiating from json{EN}
      */
-    constructor(parent: Module, name: String, frequency: Long, ipc: Double, PRId: Long, PABITS: Int) :
+    constructor(parent: Module, name: String, frequency: Long, ipc: Double, PRId: ULong, PABITS: Int) :
             this(parent, name, frequency, ipc, 1, PRId, PABITS)
 
     private val VASIZE = BUS32  // always 32 bit
-    private val PASIZE = 1L shl PABITS
+    private val PASIZE = 1uL shl PABITS
 
     override val cpu = MipsCPU(this, "cpu")
 

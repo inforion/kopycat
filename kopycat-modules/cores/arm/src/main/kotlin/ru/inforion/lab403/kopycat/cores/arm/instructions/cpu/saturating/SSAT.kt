@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.saturating
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asLong
-import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.arm.SInt
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.Shift
@@ -40,22 +38,21 @@ import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class SSAT(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            val rd: ARMRegister,
            private val shiftT: SRType,
-           private val shiftN: Long,
+           private val shiftN: ULong,
            private val saturateTo: Immediate<AARMCore>,
            val rn: ARMRegister):
         AARMInstruction(cpu, Type.VOID, cond, opcode, rd, saturateTo, rn) {
     override val mnem = "SSAT$mcnd"
 
     override fun execute() {
-        val operand = Shift(rn.value(core), 32, shiftT, shiftN.asInt, core.cpu.flags.c.asInt)
-        val (result, sat) = SignedSatQ(SInt(operand, 32).asInt, saturateTo.value.asInt)
-        rd.value(core, signext(result.asLong, saturateTo.value.asInt).asLong)
+        val operand = Shift(rn.value(core), 32, shiftT, shiftN.int, core.cpu.flags.c.int)
+        val (result, sat) = SignedSatQ(SInt(operand, 32).int, saturateTo.value.int)
+        rd.value(core, result.ulong_z.signextRenameMeAfter(saturateTo.value.int - 1))
         if(sat) FlagProcessor.processSatFlag(core)
     }
 }

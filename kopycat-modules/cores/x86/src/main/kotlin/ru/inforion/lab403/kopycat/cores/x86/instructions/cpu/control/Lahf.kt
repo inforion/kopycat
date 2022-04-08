@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,13 +34,13 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 class Lahf(core: x86Core, opcode: ByteArray, prefs: Prefixes): AX86Instruction(core, Type.VOID, opcode, prefs) {
     override val mnem = "lahf"
     override fun execute() {
-        val flags = core.cpu.flags
-        val value = (if(flags.sf) 1L.shl(7) else 0) or
-                    (if(flags.zf) 1L.shl(6) else 0) or
-                    (if(flags.af) 1L.shl(4) else 0) or
-                    (if(flags.pf) 1L.shl(2) else 0) or
-                    (if(flags.cf) 1L.shl(0) else 0) or
-                    0b00000010
-        core.cpu.regs.ah = value
+        val flags = core.cpu.flags.eflags
+        val value = (if(flags.sf) 1uL.shl(7) else 0u) or
+                    (if(flags.zf) 1uL.shl(6) else 0u) or
+                    (if(flags.af) 1uL.shl(4) else 0u) or
+                    (if(flags.pf) 1uL.shl(2) else 0u) or
+                    (if(flags.cf) 1uL.shl(0) else 0u) or
+                    0b00000010u
+        core.cpu.regs.ah.value = value
     }
 }

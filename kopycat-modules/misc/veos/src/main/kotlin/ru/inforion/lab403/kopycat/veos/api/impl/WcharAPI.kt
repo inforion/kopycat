@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.impl
 
+import ru.inforion.lab403.common.extensions.char
 import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.toInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.veos.VEOS
@@ -59,7 +60,7 @@ class WcharAPI(os: VEOS<*>) : API(os) {
     @APIFunc
     fun iswprint(wc: Int): Int {
         log.fine { "[0x${ra.hex8}] iswprint(wc=$wc) in ${os.currentProcess}" }
-        return (!wc.toChar().isISOControl()).toInt()
+        return (!wc.char.isISOControl()).int
     }
 
     @APIFunc

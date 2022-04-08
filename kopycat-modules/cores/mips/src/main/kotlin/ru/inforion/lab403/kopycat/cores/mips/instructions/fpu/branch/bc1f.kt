@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,7 +35,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * BC1F cc, offset
  */
 class bc1f(core: MipsCore,
-           data: Long,
+           data: ULong,
            imm: MipsImmediate,
            off: MipsNear) : CcOffsetInsn(core, data, Type.VOID, imm, off) {
 

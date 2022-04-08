@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.support
 
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.decoders.APPCDecoder
@@ -34,8 +35,8 @@ import ru.inforion.lab403.kopycat.interfaces.ITableEntry
 class InstructionTable(
         private val rows: Int,
         private val cols: Int,
-        private val getRow: (Long) -> Long,
-        private val getCol: (Long) -> Long,
+        private val getRow: (ULong) -> ULong,
+        private val getCol: (ULong) -> ULong,
         vararg entries: ITableEntry?) : ATable() {
 
     private val table = entries.toMutableList()
@@ -68,9 +69,9 @@ class InstructionTable(
         return table[index(row, col)]
     }
 
-    override fun lookup(data: Long, where: Long): APPCDecoder {
-        val row = getRow(data).toInt()
-        val col = getCol(data).toInt()
+    override fun lookup(data: ULong, where: ULong): APPCDecoder {
+        val row = getRow(data).int
+        val col = getCol(data).int
         val entry = this[row, col]
         return when (entry) {
             is ATable -> entry.lookup(data, where)

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,21 +25,23 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.sysLink
 
+import ru.inforion.lab403.kopycat.cores.ppc.exceptions.PPCExceptionHolder_e500v2
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 
 
-class sc(core: PPCCore, val lev: Long):
+class sc(core: PPCCore, val lev: ULong):
         APPCInstruction(core, Type.CALL) {
     override val mnem = "sc"
 
     override fun execute() {
-        core.cpu.oeaRegs.SRR0 = core.cpu.regs.PC + 4
-        core.cpu.oeaRegs.SRR1 = core.cpu.oeaRegs.MSR and 0x87C0FFFF //1-3, 10-15 bits are zero
+//        core.cpu.oeaRegs.SRR0 = core.cpu.regs.PC + 4
+//        core.cpu.oeaRegs.SRR1 = core.cpu.oeaRegs.MSR and 0x87C0FFFF //1-3, 10-15 bits are zero
+        throw PPCExceptionHolder_e500v2.SystemCallInterrupt(core.cpu.regs.PC)
 
-        TODO("Throw sc exception")
-        TODO("Alter MSR")
-        TODO("PC.offset = 0xC00")
+//        TODO("Throw sc exception")
+//        TODO("Alter MSR")
+//        TODO("PC.offset = 0xC00")
     }
 }

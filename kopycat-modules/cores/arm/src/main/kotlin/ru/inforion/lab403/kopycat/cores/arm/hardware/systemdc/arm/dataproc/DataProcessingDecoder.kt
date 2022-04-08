@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.dataproc
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.find
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -40,7 +41,7 @@ class DataProcessingDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 flags: Boolean,
                 rd: ARMRegister,
@@ -48,12 +49,12 @@ class DataProcessingDecoder(
                 so: AARMShift) -> AARMInstruction,
         private val shifter: (
                 cpu: AARMCore,
-                data: Long) -> AARMShift) : ADecoder<AARMInstruction>(cpu) {
-    override fun decode(data: Long): AARMInstruction {
-        val cond = find<Condition> { it.opcode == data[31..28].asInt }?: Condition.AL
-        val rn = gpr(data[19..16].asInt)
-        val rd = gpr(data[15..12].asInt)
-        val sBit = data[20] == 1L
+                data: ULong) -> AARMShift) : ADecoder<AARMInstruction>(cpu) {
+    override fun decode(data: ULong): AARMInstruction {
+        val cond = find { it.opcode == data[31..28].int } ?: Condition.AL
+        val rn = gpr(data[19..16].int)
+        val rd = gpr(data[15..12].int)
+        val sBit = data[20] == 1uL
         return constructor(core, data, cond, sBit, rd, rn, shifter(core, data))
     }
 }

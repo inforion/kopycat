@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,27 +32,22 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.string.Cmps
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.edi
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.esi
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.di
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.si
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.es
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
 class CmpsDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
         val opcode = s.last
-        val src = if (prefs.is16BitAddressMode) si else esi
-        val dst = if (prefs.is16BitAddressMode) di else edi
+        val src = xsi(prefs.addrsize)
+        val dst = xdi(prefs.addrsize)
 
         val ops = when (opcode) {
             0xA6 -> arrayOf(
-                    x86Displacement(Datatype.BYTE, dst, ssr = es),
-                    x86Displacement(Datatype.BYTE, src, ssr = prefs.ssr))
+                    x86Displacement(Datatype.BYTE, dst, es),
+                    x86Displacement(Datatype.BYTE, src, prefs))
             0xA7 -> arrayOf(
-                    x86Displacement(prefs.opsize, dst, ssr = es),
-                    x86Displacement(prefs.opsize, src, ssr = prefs.ssr))
+                    x86Displacement(prefs.opsize, dst, es),
+                    x86Displacement(prefs.opsize, src, prefs))
             else -> throw GeneralException("Incorrect opcode in decoder")
         }
         return Cmps(core, s.data, prefs, *ops)

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import gnu.trove.map.hash.THashMap
-import net.sourceforge.argparse4j.inf.ArgumentParser
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
-import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
-import java.util.logging.Level.INFO
 
 
 /**
@@ -72,17 +69,6 @@ open class Component(
         @Transient val log = logger(INFO)
     }
 
-    /**
-     * {EN}Name of command for interactive emulator console.{EN}
-     *
-     * {RU}
-     * Имя команды для текущего класса в интерактивной консоли эмулятора.
-     * Для использования команд в консоли эмулятора.
-     * @return строковое имя команды
-     * {RU}
-     **/
-    override fun command(): String = name
-
     override fun toString(): String = fullname()
 
     /**
@@ -106,7 +92,7 @@ open class Component(
      *
      * {EN}Child components (components included in current component){EN}
      */
-    protected val components = THashMap<String, Component>()
+    protected val components = ArrayList<Component>()
 
     /**
      * {RU}Имя текущего объекта{RU}
@@ -452,7 +438,7 @@ open class Component(
      * @return component
      * {EN}
      */
-    final override fun iterator(): Iterator<Component> = components.values.iterator()
+    final override fun iterator(): Iterator<Component> = components.iterator()
 
     /**
      * {RU}
@@ -471,7 +457,8 @@ open class Component(
      * @return component
      * {EN}
      */
-    operator fun get(name: String): Component? = components[name]
+    @Deprecated("Method is quite slow so consider to refactor your code")
+    operator fun get(name: String): Component? = components.find { it.name == name }
 
     /**
      * {EN}Get component nesting level{EN}
@@ -505,11 +492,10 @@ open class Component(
      * {EN}
      */
     fun add(component: Component) {
-        if (component.name in components.keys)
-            throw IllegalArgumentException("Components has identical name: ${component.name}")
+        require(get(component.name) == null) { "Components has identical name: ${component.name}" }
         component.root = root
         component.parent = this
-        components[component.name] = component
+        components.add(component)
     }
 
     /**
@@ -565,7 +551,7 @@ open class Component(
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> = storeValues(
             "name" to name,
             "plugin" to plugin,
-            "components" to components.map{ it.key to it.value.serialize(ctxt) }.toMap() )
+            "components" to associate { it.name to it.serialize(ctxt) })
 
     /**
      * {RU}
@@ -595,60 +581,14 @@ open class Component(
 
         val snapshotComponents: Map<String, Any> = loadValue(snapshot, "components")
         snapshotComponents.forEach { (cName, cData) ->
-            components[cName]?.deserialize(ctxt, cData as Map<String, Any>)
+            val component = get(cName)
+            if (component != null) {
+                component.deserialize(ctxt, cData as Map<String, Any>)
+            } else if (!ctxt.suppressWarnings) {
+                log.warning { "Component with name $cName not found in components, results may unexpected" }
+            }
         }
     }
-
-    /**
-     * {RU}
-     * Обработка аргументов командной строки.
-     * Для использования команд в консоли эмулятора.
-     *
-     * @param context Контекст интерактивной консоли
-     *
-     * @return Результат обработки команд (true/false)
-     * {RU}
-     *
-     * {EN}
-     * Processing command line arguments.
-     *
-     * @param context context of interactive command line interface
-     *
-     * @return result of processing
-     * {EN}
-     */
-    override fun process(context: IInteractive.Context): Boolean {
-        if (super.process(context))
-            return true
-        if (context.isNotEmpty())
-            return find { it.command() == context.command() }?.process(context) == true
-        return false
-    }
-
-    /**
-     * {RU}
-     * Настройка парсера аргументов командной строки.
-     * Для использования команд в консоли эмулятора.
-     *
-     * @param parent родительский парсер, к которому будут добавлены новые аргументы
-     * @param useParent необходимость использования родительского парсера
-     *
-     * @return парсер аргументов
-     * {RU}
-     *
-     * {EN}
-     * Configuring parser for command line arguments. It is used to customize commands for this component/
-     *
-     * @param parent parent parser to which new commands will be added
-     * @param useParent use parend parser
-     *
-     * @return argument parser
-     * {EN}
-     **/
-    override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
-            super.configure(parent, useParent).apply {
-                this@Component.forEach { it.configure(this) }
-            }
 
     init {
         @Suppress("LeakingThis")

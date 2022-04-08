@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.stack
 
+import ru.inforion.lab403.common.extensions.truth
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
+import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.ebp
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.esp
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.bp
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRW.sp
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -42,17 +41,18 @@ class Enter(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: 
     override val mnem = "enter"
 
     override fun execute() {
-        val size = op1.value(core)
-        val nestingLevel = op2.value(core) % 32
-        val regEbp = if (prefs.is16BitAddressMode) bp else ebp
-        val regEsp = if (prefs.is16BitAddressMode) sp else esp
+        val allocSize = op1.value(core)
+        val nestingLevel = op2.value(core) % 32u
 
-        x86utils.push(core, core.cpu.regs.ebp, prefs.opsize, prefs)
-        val frameTemp = regEsp.value(core)
-        if(nestingLevel != 0L)
-            TODO()
+        val regXbp = core.cpu.regs.gpr(x86GPR.RBP, prefs.addrsize)
+        val regXsp = core.cpu.regs.gpr(x86GPR.RSP, prefs.addrsize)
 
-        regEbp.value(core, frameTemp)
-        regEsp.value(core, frameTemp - size)
+        x86utils.push(core, regXbp.value, prefs.opsize, prefs)
+        val frameTemp = regXsp.value
+        if (nestingLevel != 0uL)
+            TODO("Not implemented, see INSTRUCTION SET REFERENCE (vol 2)")
+
+        regXbp.value = frameTemp
+        regXsp.value = frameTemp - allocSize
     }
 }

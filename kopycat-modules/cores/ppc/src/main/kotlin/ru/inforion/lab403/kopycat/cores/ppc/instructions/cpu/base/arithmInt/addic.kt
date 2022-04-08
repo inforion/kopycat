@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,24 +25,25 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.arithmInt
 
+import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.ppc.flags.FlagProcessor
+import ru.inforion.lab403.kopycat.cores.ppc.hardware.flags.FlagProcessor
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
-import ru.inforion.lab403.kopycat.cores.ppc.instructions.usext
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCVariable
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 
 //Add immediate carrying
-class addic(core: PPCCore, val condRegField: Long, val length: Boolean, val data: Long, vararg operands: AOperand<PPCCore>):
+class addic(core: PPCCore, val condRegField: ULong, val length: Boolean, val data: ULong, vararg operands: AOperand<PPCCore>):
         APPCInstruction(core, Type.VOID, *operands) {
     override val mnem = "addic"
 
     private val result = PPCVariable(Datatype.DWORD)
 
     override fun execute() {
-        val extImm = data.usext(15) // Carry fix
+        val extImm = data.signextRenameMeAfter(15) // Carry fix
         val rA = op2.value(core)
         result.value(core, rA + extImm)
 

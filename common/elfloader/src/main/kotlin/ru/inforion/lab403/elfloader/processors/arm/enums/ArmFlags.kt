@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,12 +25,10 @@
  */
 package ru.inforion.lab403.elfloader.processors.arm.enums
 
-
- 
-enum class ArmFlags(val id: Int) {
-    EF_ARM_ABIMASK(0xFF000000.toInt()),        //ABI version
-    EF_ARM_BE8(0x00800000),                 //BE-8 code for armv6
-    EF_ARM_GCCMASK(0x00400FFF),             //Legacy code of GCC
-    EF_ARM_ABI_FLOAT_HARD(0x00000400),      //Hard float
-    EF_ARM_ABI_FLOAT_SOFT(0x00000200);      //Soft float, emulation
+enum class ArmFlags(val id: UInt) {
+    EF_ARM_ABIMASK(0xFF000000u),        //ABI version
+    EF_ARM_BE8(0x00800000u),                 //BE-8 code for armv6
+    EF_ARM_GCCMASK(0x00400FFFu),             //Legacy code of GCC
+    EF_ARM_ABI_FLOAT_HARD(0x00000400u),      //Hard float
+    EF_ARM_ABI_FLOAT_SOFT(0x00000200u);      //Soft float, emulation
 }

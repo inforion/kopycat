@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -44,7 +44,7 @@ class ComponentTracer<R: AGenericCore> constructor(parent: Module, name: String)
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) = Unit
 
     // Get the minimal status when executing, see TRACER_STATUS_STOP and other status
-    override fun preExecute(core: R): Long = tracers.minOf { it.preExecute(core) }
+    override fun preExecute(core: R): ULong = tracers.minOf { it.preExecute(core) }
     override fun postExecute(core: R, status: Status) = tracers.minOf { it.postExecute(core, status) }
     override fun onStart(core: R) = tracers.forEach { it.onStart(core) }
     override fun onStop() = tracers.forEach { it.onStop() }

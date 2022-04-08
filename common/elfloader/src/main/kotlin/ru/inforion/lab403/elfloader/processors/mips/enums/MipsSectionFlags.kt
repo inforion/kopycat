@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,13 +25,14 @@
  */
 package ru.inforion.lab403.elfloader.processors.mips.enums
 
-enum class MipsSectionFlags(val id: Int) {
-    SHF_MIPS_GPREL      (0x10000000),          // This section must be in the global data area.
-    SHF_MIPS_MERGE      (0x20000000),          // This section should be merged.
-    SHF_MIPS_ADDR       (0x40000000),          // This section contains address data of size implied by section element size.
-    SHF_MIPS_NOSTRIP    (0x08000000),          // This section may not be stripped.
-    SHF_MIPS_LOCAL      (0x04000000),          // This section is local to threads.
-    SHF_MIPS_NAMES      (0x02000000),          // Linker should generate implicit weak names for this section.
-    SHF_MIPS_NODUPES    (0x01000000),          // Section contais text/data which may be replicated in other sections.  Linker should retain only one copy.
-    SHF_MIPS_STRING     (0x80000000.toInt());     // This section contains string data.
+
+enum class MipsSectionFlags(val id: UInt) {
+    SHF_MIPS_GPREL      (0x10000000u),          // This section must be in the global data area.
+    SHF_MIPS_MERGE      (0x20000000u),          // This section should be merged.
+    SHF_MIPS_ADDR       (0x40000000u),          // This section contains address data of size implied by section element size.
+    SHF_MIPS_NOSTRIP    (0x08000000u),          // This section may not be stripped.
+    SHF_MIPS_LOCAL      (0x04000000u),          // This section is local to threads.
+    SHF_MIPS_NAMES      (0x02000000u),          // Linker should generate implicit weak names for this section.
+    SHF_MIPS_NODUPES    (0x01000000u),          // Section contais text/data which may be replicated in other sections.  Linker should retain only one copy.
+    SHF_MIPS_STRING     (0x80000000u);     // This section contains string data.
 }

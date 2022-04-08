@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb32
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.arm.ThumbExpandImm_C
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
@@ -41,7 +39,7 @@ class Thumb32DataProcessingImmCarryDecoder(
         cpu: AARMCore,
         val constructor: (
                 cpu: AARMCore,
-                opcode: Long,
+                opcode: ULong,
                 cond: Condition,
                 setFlags: Boolean,
                 rd: ARMRegister,
@@ -51,22 +49,22 @@ class Thumb32DataProcessingImmCarryDecoder(
         ) -> AARMInstruction
 ) : ADecoder<AARMInstruction>(cpu) {
 
-    override fun decode(data: Long): AARMInstruction {
+    override fun decode(data: ULong): AARMInstruction {
         val cond = cond(data)
 
         val i = data[26]
-        val setFlags = data[20].toBool()
-        val rn = gpr(data[19..16].asInt)
+        val setFlags = data[20].truth
+        val rn = gpr(data[19..16].int)
         val imm3 = data[14..12]
-        val rd = gpr(data[11..8].asInt)
+        val rd = gpr(data[11..8].int)
         val imm8 = data[7..0]
 
 //        if (rd.reg in 15..13) throw ARMHardwareException.Unpredictable
         if ((rd.desc.id == 15 && !setFlags) || rd.desc.id == 13 || rn.desc.id in 15..13) throw Unpredictable
 
-        val (imm32val, carry) = ThumbExpandImm_C((i shl 11) + (imm3 shl 8) + imm8, core.cpu.flags.c.asInt)
+        val (imm32val, carry) = ThumbExpandImm_C((i shl 11) + (imm3 shl 8) + imm8, core.cpu.flags.c.int)
         val imm32 = Immediate<AARMCore>(imm32val)
 
-        return constructor(core, data, cond, setFlags, rd, rn, imm32, carry.toBool())
+        return constructor(core, data, cond, setFlags, rd, rn, imm32, carry.truth)
     }
 }

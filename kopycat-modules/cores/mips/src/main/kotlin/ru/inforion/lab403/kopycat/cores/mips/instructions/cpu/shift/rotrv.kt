@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtRsInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -37,7 +38,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * To execute a logical right-rotate of a word by a variable id of bits
  */
 class rotrv(core: MipsCore,
-            data: Long,
+            data: ULong,
             rd: MipsRegister,
             rt: MipsRegister,
             rs: MipsRegister) : RdRtRsInsn(core, data, Type.VOID, rd, rt, rs) {
@@ -45,7 +46,7 @@ class rotrv(core: MipsCore,
     override val mnem = "rotrv"
 
     override fun execute() {
-        val s = vrs[4..0].toInt()
-        vrd = vrt[s - 1..0].shl(32 - s) or vrt[31..s]
+        val s = vrs[4..0].int
+        vrd = vrt[s - 1..0] shl 32 - s or vrt[31..s]
     }
 }

@@ -9,3 +9,7 @@ version '0.1'
 buildKopycatModule {
     library = "cores"
 }
+
+dependencies {
+    implementation group: 'com.github.inforion.common', name: 'utils', version: kotlin_extensions_version
+}

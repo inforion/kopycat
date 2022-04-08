@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,65 +23,64 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("MemberVisibilityCanBePrivate")
+
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
-import net.sourceforge.argparse4j.inf.ArgumentParser
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
-import ru.inforion.lab403.kopycat.interfaces.IInteractive
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
-import java.util.*
 
 /**
  *
  * Stub for MIPS address translation
  */
-class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int = 32) :
+class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int = 32) :
         AddressTranslator(parent, name, widthOut = widthOut) {
 
     class TLBEntry(
             val index: Int,
-            val pageMask: Long,
-            val entryHi: Long,
-            val entryLo0: Long,
-            val entryLo1: Long) : ICoreUnit {
+            val pageMask: UInt,
+            val entryHi: UInt,
+            val entryLo0: UInt,
+            val entryLo1: UInt
+    ) : ICoreUnit {
+
         override val name: String = "TLBEntry"
 
-        constructor() : this(0, 0, 0, 0, 0)
+        constructor() : this(0, 0u, 0u, 0u, 0u)
 
-        val Mask: Int = pageMask[31..13].toInt()
-        val VPN2: Int = entryHi[31..13].toInt()
-        val G: Int = entryLo0[0].toInt() and entryLo1[0].toInt()
-        val ASID: Int = entryHi[7..0].toInt()
+        val Mask = pageMask[31..13]
+        val VPN2 = entryHi[31..13]
+        val G = entryLo0[0] and entryLo1[0]
+        val ASID = entryHi[7..0]
 
-        val PFN0: Int = entryLo0[29..6].toInt()
-        val C0: Int = entryLo0[5..3].toInt()
-        val D0: Int = entryLo0[2].toInt()
-        val V0: Int = entryLo0[1].toInt()
+        val PFN0 = entryLo0[29..6]
+        val C0 = entryLo0[5..3]
+        val D0 = entryLo0[2]
+        val V0 = entryLo0[1]
 
-        val PFN1: Int = entryLo1[29..6].toInt()
-        val C1: Int = entryLo1[5..3].toInt()
-        val D1: Int = entryLo1[2].toInt()
-        val V1: Int = entryLo1[1].toInt()
+        val PFN1 = entryLo1[29..6]
+        val C1 = entryLo1[5..3]
+        val D1 = entryLo1[2]
+        val V1 = entryLo1[1]
 
-        override fun toString(): String {
-            return "%s(%04X Lo0=%08X Lo1=%08X Hi=%08X PM=%08X Mask=%08X VPN2=%08X PFN0=%08X PFN1=%08X)"
+        override fun toString() =
+            "%s(%04X Lo0=%08X Lo1=%08X Hi=%08X PM=%08X Mask=%08X VPN2=%08X PFN0=%08X PFN1=%08X)"
                     .format(name, index, entryLo0, entryLo1, entryHi, pageMask, Mask, VPN2, PFN0, PFN1)
-        }
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return mapOf(
-                    "index" to index.toString(),
-                    "pageMask" to pageMask.hex8,
-                    "entryHi" to entryHi.hex8,
-                    "entryLo0" to entryLo0.hex8,
-                    "entryLo1" to entryLo1.hex8)
-        }
+        override fun serialize(ctxt: GenericSerializer) = mapOf(
+                "index" to index.toString(),
+                "pageMask" to pageMask.hex8,
+                "entryHi" to entryHi.hex8,
+                "entryLo0" to entryLo0.hex8,
+                "entryLo1" to entryLo1.hex8)
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {}
 
@@ -97,32 +96,51 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
             val G_RANGE = 0
 
             @Suppress("UNUSED_PARAMETER")
-            fun createFromSnapshot(ctxt: GenericSerializer, snapshot: Map<String, String>): TLBEntry {
-                return TLBEntry(
-                        (snapshot["index"] as String).toInt(),
-                        (snapshot["pageMask"] as String).hexAsULong,
-                        (snapshot["entryHi"] as String).hexAsULong,
-                        (snapshot["entryLo0"] as String).hexAsULong,
-                        (snapshot["entryLo1"] as String).hexAsULong)
-            }
+            fun createFromSnapshot(ctxt: GenericSerializer, snapshot: Map<String, String>) = TLBEntry(
+                    (snapshot["index"] as String).intByDec,
+                    (snapshot["pageMask"] as String).uintByHex,
+                    (snapshot["entryHi"] as String).uintByHex,
+                    (snapshot["entryLo0"] as String).uintByHex,
+                    (snapshot["entryLo1"] as String).uintByHex)
 
-            fun createTlbEntry(entryId: Int, vAddress: Long, pAddress: Long, size: Long): TLBEntry {
-                if (vAddress != pAddress || vAddress % 0x1000_0000L != 0L || size % 0x1000_0000L != 0L)
-                    throw NotImplementedError("Not transparent and small addresses not implemented")
-                val index = vAddress / 0x1000_0000L
-                val pageMask = insert(0xFFFFL, MASK_RANGE)
-                val entryHi = insert(0x10000L * index, VPN2_RANGE)
-                        .insert(0, ASID_RANGE)
-                val entryLo0 = insert((index * 2) shl 16, PFN_RANGE)
-                        .insert(1, C_RANGE)
-                        .insert(1, D_RANGE)
-                        .insert(1, V_RANGE)
-                        .insert(1, G_RANGE)
-                val entryLo1 = insert((index * 2 + 1) shl 16, PFN_RANGE)
-                        .insert(1, C_RANGE)
-                        .insert(1, D_RANGE)
-                        .insert(1, V_RANGE)
-                        .insert(1, G_RANGE)
+            fun createTlbEntry(entryId: Int, vAddress: ULong, pAddress: ULong, size: Int, pabits: Int): TLBEntry {
+                val (mask, evenOddBit) = when (size) {
+                    0x0000_1000 -> 0b0000000000000000u to 12
+                    0x0000_4000 -> 0b0000000000000011u to 14
+                    0x0001_0000 -> 0b0000000000001111u to 16
+                    0x0004_0000 -> 0b0000000000111111u to 18
+                    0x0010_0000 -> 0b0000000011111111u to 20
+                    0x0040_0000 -> 0b0000001111111111u to 22
+                    0x0100_0000 -> 0b0000111111111111u to 24
+                    0x0400_0000 -> 0b0011111111111111u to 26
+                    0x1000_0000 -> 0b1111111111111111u to 28
+                    else -> throw GeneralException("Unsupported page size")
+                }
+
+                val page = pAddress.uint ushr evenOddBit
+
+                val msb = pabits - 1 - 12
+                val lsb = evenOddBit - 12
+                require(page[(msb - lsb)..0] == page) { "Can't encode value" }
+                val pfn0 = page shl lsb
+                val pfn1 = (page + 1u) shl lsb
+
+                val pageMask = insert(mask, MASK_RANGE)
+
+                val entryHi = insert(vAddress[31..13].uint and inv(mask), VPN2_RANGE)
+                        .insert(0u, ASID_RANGE)
+
+                val entryLo0 = insert(pfn0, PFN_RANGE)
+                        .insert(1u, C_RANGE)
+                        .insert(1u, D_RANGE)
+                        .insert(1u, V_RANGE)
+                        .insert(1u, G_RANGE)
+
+                val entryLo1 = insert(pfn1, PFN_RANGE)
+                        .insert(1u, C_RANGE)
+                        .insert(1u, D_RANGE)
+                        .insert(1u, V_RANGE)
+                        .insert(1u, G_RANGE)
                 return TLBEntry(entryId, pageMask, entryHi, entryLo0, entryLo1)
             }
         }
@@ -136,58 +154,58 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
 
     fun getFreeTlbIndex(): Int {
         if (currentTlbIndex == tlbEntries) {
-            currentTlbIndex = mips.cop.regs.Wired.value.asInt
+            currentTlbIndex = mips.cop.regs.Wired.value.int
         }
         return currentTlbIndex++
     }
 
-    fun writeTlbEntry(index: Int, pageMask: Long, entryHi: Long, entryLo0: Long, entryLo1: Long): TLBEntry {
+    fun writeTlbEntry(index: Int, pageMask: UInt, entryHi: UInt, entryLo0: UInt, entryLo1: UInt): TLBEntry {
         val entry = TLBEntry(index, pageMask, entryHi, entryLo0, entryLo1)
         TLB[index] = entry
         return entry
     }
 
-    fun writeTlbEntry(index: Int, vAddress: Long, pAddress: Long, size: Long): TLBEntry {
-        val entry = TLBEntry.createTlbEntry(index, vAddress, pAddress, size)
+    fun writeTlbEntry(index: Int, vAddress: ULong, pAddress: ULong, size: Int): TLBEntry {
+        val entry = TLBEntry.createTlbEntry(index, vAddress, pAddress, size, mips.PABITS)
         TLB[index] = entry
         return entry
     }
 
     fun readTlbEntry(index: Int): TLBEntry = TLB[index]
 
-    override fun translate(ea: Long, ss: Int, size: Int,  LorS: AccessAction): Long {
-        if (ea in 0x8000_0000..0x9FFF_FFFF || ea in 0xA000_0000..0xBFFF_FFFF)
-            return ea and 0x1FFF_FFFF
+    override fun translate(ea: ULong, ss: Int, size: Int,  LorS: AccessAction): ULong {
+        if (ea in 0x8000_0000u..0x9FFF_FFFFu || ea in 0xA000_0000u..0xBFFF_FFFFu)
+            return ea and 0x1FFF_FFFFu
 
-        var pAddr = 0L
+        var pAddr = 0u
         var found = false
-        val pfn: Int
-        val v: Int
-        val d: Int
+        val pfn: UInt
+        val v: UInt
+        val d: UInt
 
-        val entryHiASID = mips.cop.regs.EntryHi.value[7..0].toInt()
+        val entryHiASID = mips.cop.regs.EntryHi.value[7..0].uint
 
-        for (i in 0 until TLB.size) {
-            val invMask = TLB[i].Mask.inv()
+        for (i in TLB.indices) {
+            val invMask = inv(TLB[i].Mask)
             val vpn = TLB[i].VPN2 and invMask
-            val eaPage = ea[31..13].toInt() and invMask
-            val isGlobal = TLB[i].G == 1
+            val eaPage = ea[31..13].uint and invMask
+            val isGlobal = TLB[i].G == 1u
             val isIdEquals = TLB[i].ASID == entryHiASID
             if ((vpn == eaPage) && (isGlobal || isIdEquals)) {
 
                 val evenOddBit = when (TLB[i].Mask) {
-                    0b0000000000000000 -> 12
-                    0b0000000000000011 -> 14
-                    0b0000000000001111 -> 16
-                    0b0000000000111111 -> 18
-                    0b0000000011111111 -> 20
-                    0b0000001111111111 -> 22
-                    0b0000111111111111 -> 24
-                    0b0011111111111111 -> 26
-                    0b1111111111111111 -> 28
-                    else -> -1
+                    0b0000000000000000u -> 12
+                    0b0000000000000011u -> 14
+                    0b0000000000001111u -> 16
+                    0b0000000000111111u -> 18
+                    0b0000000011111111u -> 20
+                    0b0000001111111111u -> 22
+                    0b0000111111111111u -> 24
+                    0b0011111111111111u -> 26
+                    0b1111111111111111u -> 28
+                    else -> error("Wrong TLB[$i] mask=${TLB[i].Mask}")
                 }
-                if (ea[evenOddBit] == 0L) {
+                if (ea[evenOddBit] == 0uL) {
                     pfn = TLB[i].PFN0
                     v = TLB[i].V0
                     d = TLB[i].D0
@@ -196,9 +214,9 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
                     v = TLB[i].V1
                     d = TLB[i].D1
                 }
-                if (v == 0)
+                if (v == 0u)
                     throw MipsHardwareException.TLBInvalid(LorS, core.pc, ea)
-                if (d == 0 && LorS == AccessAction.STORE)
+                if (d == 0u && LorS == AccessAction.STORE)
                     throw MipsHardwareException.TLBModified(core.pc, ea)
 
 //                if (found) {
@@ -207,8 +225,8 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
 
                 val msb = mips.PABITS - 1 - 12
                 val lsb = evenOddBit - 12
-                val page = pfn[msb..lsb].asULong
-                val offset = ea[evenOddBit - 1..0]
+                val page = pfn[msb..lsb]
+                val offset = ea[evenOddBit - 1..0].uint
 
                 pAddr = (page shl evenOddBit) or offset
                 found = true
@@ -219,7 +237,7 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
         if (!found)
             throw MipsHardwareException.TLBMiss(LorS, core.pc, ea)
 
-        return pAddr
+        return pAddr.ulong_z
     }
 
     fun invalidateCache() {
@@ -239,63 +257,5 @@ class MipsMMU(parent: Module, name: String, widthOut: Long, val tlbEntries: Int 
         (snapshot["TLB"] as ArrayList<Map<String, String>>).forEachIndexed { i, map ->
             TLB[i] = TLBEntry.createFromSnapshot(ctxt, map)
         }
-    }
-
-    override fun command(): String = "mmu"
-
-    override fun configure(parent: ArgumentParser?, useParent: Boolean): ArgumentParser? =
-            super.configure(parent, useParent)?.apply {
-                subparser("clear_mmu").apply { }
-                subparser("add_memory_translator", help = "Translate memory").apply {
-                    variable<String>("-v", "--startVaddress", required = true, help = "Segment start address")
-                    variable<String>("-p", "--startPaddress", required = true, help = "Segment end address")
-                    variable<String>("-s", "--size", required = true, help = "Segment end address")
-                }
-            }
-
-    override fun process(context: IInteractive.Context): Boolean {
-        if (super.process(context))
-            return true
-
-        when (context.command()) {
-            "clear_mmu" -> {
-                TLB.indices.forEach { index -> TLB[index] = TLBEntry() }
-                invalidateCache()
-                context.result = "MMU cleared"
-                context.pop()
-                return true
-            }
-            "add_memory_translator" -> {
-                val startVaddressString: String = context["startVaddress"]
-                val startPaddressString: String = context["startPaddress"]
-                val sizeString: String = context["size"]
-                val startVaddress = startVaddressString.toULong(16)
-                val startPaddress = startPaddressString.toULong(16)
-                val size = sizeString.toULong(16)
-                if (startVaddress % 0x1000_0000L != 0L || size % 0x1000_0000L != 0L) {
-                    context.result = "Address and size must be multiple 0x1000_0000"
-                    context.pop()
-                    return true
-                }
-                if (startVaddress != startPaddress) {
-                    context.result = "Start physical must be equal virtual address"
-                    context.pop()
-                    return true
-                }
-                invalidateCache()
-                val startIndex = (startVaddress / 0x1000_0000).toInt()
-                val endIndex = ((startVaddress + size) / 0x1000_0000).toInt()
-                (startIndex until endIndex).forEach { index ->
-                    val entry = TLBEntry.createTlbEntry(index, index * 0x1000_0000L, index * 0x1000_0000L, 0x1000_0000L)
-                    TLB[index] = entry
-                }
-                context.result = "Created memory translator " +
-                        "${startVaddress.hex8} -> ${startPaddress.hex8} (size: ${size.hex8})"
-                context.pop()
-                return true
-            }
-        }
-
-        return false
     }
 }

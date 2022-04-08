@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -46,9 +46,9 @@ class ErrnoAPI(os: VEOS<*>) : API(os) {
     // http://refspecs.linux-foundation.org/LSB_4.1.0/LSB-Core-generic/LSB-Core-generic/baselib---errno-location.html
     val __errno_location = object : APIFunction("__errno_location") {
         override val args = emptyArray<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.finest { "[0x${ra.hex8}] get_errno_ptr()" }
-            val p_errno = errno.allocated.address!!
+            val p_errno = errno.allocated.address.get
             return retval(p_errno)
         }
     }

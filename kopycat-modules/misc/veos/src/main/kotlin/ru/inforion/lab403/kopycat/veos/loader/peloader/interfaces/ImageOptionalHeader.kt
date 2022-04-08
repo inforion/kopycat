@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -31,33 +31,33 @@ interface ImageOptionalHeader {
     val magic: Int
     val majorLinkerVersion: Short
     val minorLinkerVersion: Short
-    val sizeOfCode: Long
-    val sizeOfInitializedData: Long
-    val sizeOfUninitializedData: Long
-    val addressOfEntryPoint: Long
-    val baseOfCode: Long
-    val baseOfData: Long // 32 only
-    val imageBase: Long // ULONGLONG
-    val sectionAlignment: Long
-    val fileAlignment: Long
+    val sizeOfCode: ULong
+    val sizeOfInitializedData: ULong
+    val sizeOfUninitializedData: ULong
+    val addressOfEntryPoint: ULong
+    val baseOfCode: ULong
+    val baseOfData: ULong // 32 only
+    val imageBase: ULong // ULONGLONG
+    val sectionAlignment: ULong
+    val fileAlignment: ULong
     val majorOperatingSystemVersion: Int
     val minorOperatingSystemVersion: Int
     val majorImageVersion: Int
     val minorImageVersion: Int
     val majorSubsystemVersion: Int
     val minorSubsystemVersion: Int
-    val win32VersionValue: Long
-    val sizeOfImage: Long
-    val sizeOfHeaders: Long
-    val checkSum: Long
+    val win32VersionValue: ULong
+    val sizeOfImage: ULong
+    val sizeOfHeaders: ULong
+    val checkSum: ULong
     val subsystem: Int
     val dllCharacteristics: Int
-    val SizeOfStackReserve: Long // ULONGLONG
-    val SizeOfStackCommit: Long // ULONGLONG
-    val SizeOfHeapReserve: Long // ULONGLONG
-    val SizeOfHeapCommit: Long // ULONGLONG
-    val LoaderFlags: Long
-    val NumberOfRvaAndSizes: Long
+    val SizeOfStackReserve: ULong // ULONGLONG
+    val SizeOfStackCommit: ULong // ULONGLONG
+    val SizeOfHeapReserve: ULong // ULONGLONG
+    val SizeOfHeapCommit: ULong // ULONGLONG
+    val LoaderFlags: ULong
+    val NumberOfRvaAndSizes: ULong
     val DataDirectory: Array<ImageDataDirectory>
 
     val export get()        = DataDirectory[0]

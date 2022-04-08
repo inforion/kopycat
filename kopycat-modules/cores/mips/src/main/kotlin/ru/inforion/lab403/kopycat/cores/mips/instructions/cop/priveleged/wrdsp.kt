@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
-import ru.inforion.lab403.common.extensions.WRONGL
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.VOID
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -36,7 +35,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * RDDSP rd - for DSP extension
  */
 class wrdsp(core: MipsCore,
-            data: Long = WRONGL,
+            data: ULong,
             rd: MipsRegister
 ) : RdInsn(core, data, VOID, rd) {
 

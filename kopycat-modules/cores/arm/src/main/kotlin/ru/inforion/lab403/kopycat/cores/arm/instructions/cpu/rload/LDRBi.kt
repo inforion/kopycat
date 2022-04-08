@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
@@ -32,11 +33,11 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class LDRBi(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val index: Boolean,
             val add: Boolean,
@@ -52,7 +53,7 @@ class LDRBi(cpu: AARMCore,
     override val mnem = "LDRB$mcnd"
 
     override fun execute() {
-        val offsetAddress = rn.value(core) + if (add) imm.zext else -imm.zext
+        val offsetAddress = rn.value(core) + if (add) imm.value else -imm.value
         val address = if (index) offsetAddress else rn.value(core)
         rt.value(core, core.inb(address like Datatype.DWORD))
         if (wback) rn.value(core, offsetAddress)

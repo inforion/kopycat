@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -48,7 +48,7 @@ class Add(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
     // Format I - reg1, reg2
     // Format II - imm, reg2
     override fun execute() {
-        val a1 = op1.usext(core)
+        val a1 = op1.value(core)
         val a2 = op2.zext(core)
         result.value(core, a1 + a2)
         FlagProcessor.processArithmFlag(core, result, op1, op2, false)

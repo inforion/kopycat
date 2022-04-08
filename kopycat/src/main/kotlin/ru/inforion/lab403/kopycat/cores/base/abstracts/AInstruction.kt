@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,98 +23,104 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("unused")
+
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
-import ru.inforion.lab403.common.extensions.WRONGL
+import ru.inforion.lab403.common.extensions.unaryMinus
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
-import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.*
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.interfaces.ITableEntry
-import java.util.*
-import java.util.logging.Level
 
 /**
  * {RU}
  * Абстрактный класс инструкции процессора
  *
- *
- * @param T шаблон класса ядра
- * @property core ядро, в котором используется инструкция
- * @property type тип инструкции
+ * @param core ядро, в котором используется инструкция
+ * @param type тип инструкции
  * @param operands массив операндов (произвольное количество)
- * @property mnem мнемоника инструкции
- * @property size размер инструкции в байтах
- * @property isJump флаг "инструкция перехода"
- * @property isBranch флаг "инструкция ветвления"
- * @property isIndirectJump флаг "инструкция косвенного перехода"
- * @property isCall флаг "инструкция вызова"
- * @property isCondCall флаг "инструкция условного вызова"
- * @property isIndirectCall флаг "инструкция косвенного вызова"
- * @property isCond флаг "условная инструкция"
- * @property isIndirect флаг "косвенная инструкция"
- * @property isIRet флаг "инструкция выхода из прерывания"
- * @property isRet флаг "инструкция возврата"
- * @property operands массив операндов
- * @property opcount количество операндов
- * @property ea адрес инструкции
- * @property op1 первый операнд инструкции
- * @property op2 второй операнд инструкции
- * @property op3 третий операнд инструкции
- * @property op4 четвертый инструкции
- * @property op5 пятый операнд инструкции
- * @property op6 шестой операнд инструкции
  * {RU}
  */
-abstract class AInstruction<T: AGenericCore>(
-        val core: T,
-        val type: Type,
-        vararg operands: AOperand<T>
+@Suppress("INAPPLICABLE_JVM_NAME")
+abstract class AInstruction<T : AGenericCore>(
+    val core: T,
+    val type: Type,
+    @PublishedApi internal vararg val operands: AOperand<T>
 ) : Iterable<AOperand<T>>, ITableEntry {
 
+    companion object {
+        @Transient
+        val log = logger(FINER)
+    }
+
     /**
-     * {RU}
-     * Класс-перечисление, описывающий *тип инструкции*
-     *
-     * @property flags флаги, характеризующие инструкцию
-     * @property VOID void-инструкция
-     * @property VIRTUAL виртуальная инструкция
-     * @property COND условная инструкция
-     * @property INDIRECT  ?
-     * @property CALL инструкция вызова подпрограммы
-     * @property COND_CALL условная инструкция вызова подпрограммы
-     * @property IND_CALL ? инструкция вызова подпрограммы ?
-     * @property JUMP инструкция безусловного перехода
-     * @property COND_JUMP инструкция условного перехода
-     * @property IND_JUMP инструкция перехода
-     * @property IRET инструкция возврата из прерывания
-     * @property RET инструкция возврата
-     * {RU}
+     * {EN}Possible operands type{EN}
      */
     enum class Type(val flags: Int) {
+        /**
+         * {EN}No specific use-case of instruction or none-instruction at all{EN}
+         */
         VOID(0x0000),
+
+        /**
+         * {EN}Virtual instruction{EN}
+         */
         VIRTUAL(0x0001),
+
+        /**
+         * {EN}Conditional jump instruction{EN}
+         */
         COND(0x0010),
+
+        /**
+         * {EN}Indirect jump instruction{EN}
+         */
         INDIRECT(0x0020),
+
+        /**
+         * {EN}Call instruction{EN}
+         */
         CALL(0x0100),
+
+        /**
+         * {EN}Conditional call instruction{EN}
+         */
         COND_CALL(0x0110),
+
+        /**
+         * {EN}Indirect call instruction{EN}
+         */
         IND_CALL(0x0120),
+
+        /**
+         * {EN}Unconditional jump instruction{EN}
+         */
         JUMP(0x1000),
+
+        /**
+         * {EN}Conditional jump instruction{EN}
+         */
         COND_JUMP(0x1010),
+
+        /**
+         * {EN}Indirect jump instruction{EN}
+         */
         IND_JUMP(0x1020),
+
+        /**
+         * {EN}Interrupt return instruction{EN}
+         */
         IRET(0x10000),
+
+        /**
+         * {EN}Function return instruction{EN}
+         */
         RET(0x20000);  // if applicable
-    }
 
-    /**
-     * {RU}Объект-логгер{RU}
-     */
-    companion object {
-        @Transient val log = logger(Level.FINER)
+        fun check(flags: Int) = (flags and this.flags) == this.flags
     }
-
-    // Mandatory implementation part
 
     abstract val mnem: String
 
@@ -123,36 +129,22 @@ abstract class AInstruction<T: AGenericCore>(
      */
     abstract fun execute()
 
-    // Optional implementation part
-
-    // open val size = 4
     abstract val size: Int
 
-    val isJump = (type.flags and Type.JUMP.flags) != 0
-    val isBranch = (type.flags and Type.COND_JUMP.flags) == Type.COND_JUMP.flags
-    val isIndirectJump = (type.flags and Type.IND_JUMP.flags) == Type.IND_JUMP.flags
-    val isCall = (type.flags and Type.CALL.flags) != 0
-    val isCondCall = (type.flags and Type.COND_CALL.flags) == Type.COND_CALL.flags
-    val isIndirectCall = (type.flags and Type.IND_CALL.flags) == Type.IND_CALL.flags
-    val isCond = (type.flags and Type.COND.flags) != 0
-    val isIndirect = (type.flags and Type.INDIRECT.flags) != 0
-    val isIRet = (type.flags and Type.IRET.flags) != 0
-    open val isRet = (type.flags and Type.RET.flags) != 0
-
-    protected val operands = operands.copyOf()
     val opcount = operands.size
 
-    var ea = WRONGL
+    @get:JvmName("getEa")
+    var ea = -1uL
 
-    val op1: AOperand<T> get() = operands[0]
-    val op2: AOperand<T> get() = operands[1]
-    val op3: AOperand<T> get() = operands[2]
-    val op4: AOperand<T> get() = operands[3]
-    val op5: AOperand<T> get() = operands[4]
-    val op6: AOperand<T> get() = operands[5]
+    inline val op1 get() = operands[0]
+    inline val op2 get() = operands[1]
+    inline val op3 get() = operands[2]
+    inline val op4 get() = operands[3]
+    inline val op5 get() = operands[4]
+    inline val op6 get() = operands[5]
 
     init {
-        this.operands.forEachIndexed { k, op -> op.num = k }
+        operands.forEachIndexed { k, op -> op.num = k }
     }
 
     /**
@@ -162,7 +154,7 @@ abstract class AInstruction<T: AGenericCore>(
      * @return true/false
      * {RU}
      */
-    open fun isDelaySlot(): Boolean = false
+    open fun isDelaySlot() = false
 
     /**
      * {RU}
@@ -171,7 +163,7 @@ abstract class AInstruction<T: AGenericCore>(
      * @return true/false
      * {RU}
      */
-    open fun hasDelaySlot(type: Type, stop: Boolean): Boolean = false
+    open fun hasDelaySlot(type: Type, stop: Boolean) = false
 
     // Iterable interface implementation
 
@@ -181,13 +173,10 @@ abstract class AInstruction<T: AGenericCore>(
      *
      * @param index индекс операнда
      * @return операнд
-     * @throws IndexOutOfBoundsException
      * {RU}
      */
     operator fun get(index: Int): AOperand<T> {
-        if (index >= opcount) {
-            throw IndexOutOfBoundsException()
-        }
+        if (index >= opcount) throw IndexOutOfBoundsException()
         return operands[index]
     }
 
@@ -198,20 +187,7 @@ abstract class AInstruction<T: AGenericCore>(
      * @return следующий операнд из массива операндов
      * {RU}
      */
-    override operator fun iterator(): Iterator<AOperand<T>> = object : Iterator<AOperand<T>> {
-        private var pos = 0
-
-        override fun next(): AOperand<T> {
-            if (!hasNext()) {
-                throw NoSuchElementException()
-            }
-            return operands[pos++]
-        }
-
-        override fun hasNext(): Boolean {
-            return pos < opcount
-        }
-    }
+    final override operator fun iterator() = operands.iterator()
 
     /**
      * {RU}Строковое представление объекта{RU}

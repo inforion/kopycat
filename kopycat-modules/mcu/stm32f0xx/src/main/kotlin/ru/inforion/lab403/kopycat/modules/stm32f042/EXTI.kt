@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
+import ru.inforion.lab403.common.logging.ALL
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -34,15 +35,15 @@ import java.util.logging.Level
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class EXTI(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        @Transient private val log = logger(Level.ALL)
+        @Transient private val log = logger(ALL)
 
-        private enum class RegisterType(val offset: Long) {
-            EXTI_IMR    (0x00),
-            EXTI_EMR    (0x04),
-            EXTI_RTSR   (0x08),
-            EXTI_FTSR   (0x0C),
-            EXTI_SWIER  (0x10),
-            EXTI_PR     (0x14)
+        private enum class RegisterType(val offset: ULong) {
+            EXTI_IMR    (0x00u),
+            EXTI_EMR    (0x04u),
+            EXTI_RTSR   (0x08u),
+            EXTI_FTSR   (0x0Cu),
+            EXTI_SWIER  (0x10u),
+            EXTI_PR     (0x14u)
         }
     }
 
@@ -54,7 +55,7 @@ class EXTI(parent: Module, name: String) : Module(parent, name) {
 
     private open inner class RegisterBase(
             register: RegisterType,
-            default: Long = 0x0000_0000,
+            default: ULong = 0x0000_0000u,
             writable: Boolean = true,
             readable: Boolean = true,
             level: Level = Level.FINE
@@ -63,7 +64,7 @@ class EXTI(parent: Module, name: String) : Module(parent, name) {
     init {
         RegisterType.values().forEach {
             if (it == RegisterType.EXTI_IMR)
-                RegisterBase(it, default = 0x7FF4_0000)
+                RegisterBase(it, default = 0x7FF4_0000u)
             else
                 RegisterBase(it)
         }

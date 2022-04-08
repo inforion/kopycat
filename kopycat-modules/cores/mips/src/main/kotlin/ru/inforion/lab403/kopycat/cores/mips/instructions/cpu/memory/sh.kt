@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -38,18 +38,14 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * SH rt, offset(base)
  */
 class sh(core: MipsCore,
-         data: Long,
+         data: ULong,
          rt: MipsRegister,
          off: MipsDisplacement) : RtOffsetInsn(core, data, Type.VOID, rt, off) {
 
-//    override val store = true
-//    override val dtyp = WORD
-//    override val core = ProcType.CentralProc
-//    override val construct = ::sh
     override val mnem = "sh"
 
     override fun execute() {
-        if (address[0] != 0L)
+        if (address[0] != 0uL)
             throw MemoryAccessError(core.pc, address, STORE, "ADES")
         memword = vrt[15..0]
     }

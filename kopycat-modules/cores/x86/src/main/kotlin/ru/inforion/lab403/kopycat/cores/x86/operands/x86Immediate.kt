@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-fun x86Immediate(dtyp: Datatype, value: Long) = Immediate<x86Core>(value, false, dtyp, WRONGI)
-val zero = x86Immediate(Datatype.DWORD, 0)
-val one = x86Immediate(Datatype.DWORD, 1)
+fun x86Immediate(dtyp: Datatype, value: ULong) = Immediate<x86Core>(value, false, dtyp, WRONGI)
+val zero = x86Immediate(Datatype.DWORD, 0u)
+val one = x86Immediate(Datatype.DWORD, 1u)

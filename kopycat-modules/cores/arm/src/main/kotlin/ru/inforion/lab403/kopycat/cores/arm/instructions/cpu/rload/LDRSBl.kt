@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
-import ru.inforion.lab403.common.extensions.asLong
 import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
+import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.Align
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -35,9 +36,11 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+import ru.inforion.lab403.kopycat.interfaces.*
+
 
 class LDRSBl(cpu: AARMCore,
-             opcode: Long,
+             opcode: ULong,
              cond: Condition,
              val add: Boolean,
              val rt: ARMRegister,
@@ -48,6 +51,6 @@ class LDRSBl(cpu: AARMCore,
     override fun execute() {
         val base = Align(core.cpu.pc, 4)
         val address = base + if (add) imm32.value else -imm32.value
-        rt.value(core, signext(core.inb(address like Datatype.DWORD), 8).asLong)
+        rt.value(core, core.inb(address like Datatype.DWORD).signextRenameMeAfter(7))
     }
 }

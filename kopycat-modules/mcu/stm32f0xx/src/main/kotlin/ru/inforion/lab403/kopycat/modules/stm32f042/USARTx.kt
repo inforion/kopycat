@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -28,6 +28,7 @@
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.bit
@@ -40,7 +41,6 @@ import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level
-import java.util.logging.Level.*
 
 /**
  * {RU}
@@ -54,21 +54,21 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
 
     companion object {
         @Transient val log = logger(INFO)
-        const val CORE_FREQ = 8_000_000
+        const val CORE_FREQ = 8_000_000uL
     }
 
-    enum class RegisterType(val offset: Long) {
-        USART_CR1   (0x00),
-        USART_CR2   (0x04),
-        USART_CR3   (0x08),
-        USART_BRR   (0x0C),
-        USART_GTPR  (0x10),
-        USART_RTOR  (0x14),
-        USART_RQR   (0x18),
-        USART_ISR   (0x1C),
-        USART_ICR   (0x20),
-        USART_RDR   (0x24),
-        USART_TDR   (0x28)
+    enum class RegisterType(val offset: ULong) {
+        USART_CR1   (0x00u),
+        USART_CR2   (0x04u),
+        USART_CR3   (0x08u),
+        USART_BRR   (0x0Cu),
+        USART_GTPR  (0x10u),
+        USART_RTOR  (0x14u),
+        USART_RQR   (0x18u),
+        USART_ISR   (0x1Cu),
+        USART_ICR   (0x20u),
+        USART_RDR   (0x24u),
+        USART_TDR   (0x28u)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -112,15 +112,15 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
 
     private open inner class RegisterBase(
             register: RegisterType,
-            default: Long = 0x0000_0000,
+            default: ULong = 0x0000_0000u,
             writable: Boolean = true,
             readable: Boolean = true,
-            level: Level = FINE
+            level: Level = Level.FINE
     ) : Register(ports.mem, register.offset, DWORD, "USART${index}_${register.name}", default, writable, readable, level)
 
     private fun readParam(index: Int) = ports.usart_m.read(UART_MASTER_BUS_PARAM, index, 1)
-    private fun writeData(value: Int) = ports.usart_m.write(UART_MASTER_BUS_DATA, 0, 1, value.asULong)
-    private fun readData() = ports.usart_m.read(UART_MASTER_BUS_DATA, 0, 1).asInt
+    private fun writeData(value: ULong) = ports.usart_m.write(UART_MASTER_BUS_DATA, 0, 1, value)
+    private fun readData() = ports.usart_m.read(UART_MASTER_BUS_DATA, 0, 1)
 
     private fun dmaRequestReceived() = ports.drq_rx.request(0)
     private fun dmaRequestTransmitted() = ports.drq_tx.request(0)
@@ -131,7 +131,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
     private var transmitEnabled = false
     private var receiveEnabled = false
 
-    private var baudRate = 0
+    private var baudRate = 0uL
 
     val TERMINAL_REQUEST_REG = object : Register(
             ports.usart_s,
@@ -139,9 +139,9 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
             DWORD,
             "TERMINAL_REQUEST_REG",
             readable = false,
-            level = SEVERE) {
+            level = Level.SEVERE) {
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (ss) {
                 UART_SLAVE_DATA_RECEIVED -> {
                     USART_ISR.RXNE = 1
@@ -176,11 +176,11 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
         var RE by bit(2)
         var UE by bit(0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
             if (!usartEnabled && UE == 1) {
-                usartEnabled = readParam(UART_MASTER_ENABLE).toBool()
+                usartEnabled = readParam(UART_MASTER_ENABLE).truth
 
                 if (!usartEnabled) {
                     transmitEnabled = false
@@ -190,7 +190,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
                 }
 
                 if (TE == 1) {
-                    transmitEnabled = readParam(UART_MASTER_TX_ENABLE).toBool()
+                    transmitEnabled = readParam(UART_MASTER_TX_ENABLE).truth
                     if (transmitEnabled) {
                         USART_ISR.TEACK = 1
                     } else {
@@ -199,7 +199,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
                 }
 
                 if (RE == 1) {
-                    receiveEnabled = readParam(UART_MASTER_RX_ENABLE).toBool()
+                    receiveEnabled = readParam(UART_MASTER_RX_ENABLE).truth
                     if (receiveEnabled) {
                         USART_ISR.REACK = 1
                     } else {
@@ -207,7 +207,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
                     }
                 }
 
-                log.info { "USART$index enabled TE=${transmitEnabled.toInt()} RE=${receiveEnabled.toInt()} baud=$baudRate" }
+                log.info { "USART$index enabled TE=${transmitEnabled.int} RE=${receiveEnabled.int} baud=$baudRate" }
             } else if (usartEnabled && UE == 0) {
                 usartEnabled = false
                 USART_ISR.TEACK = 0
@@ -247,7 +247,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
         var IREN by bit(1)
         var EIE by bit(0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             val prevDMAR = DMAR
             val prevDMAT = DMAT
 
@@ -264,9 +264,9 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
     private val USART_BRR   = object : RegisterBase(RegisterType.USART_BRR) {
         var BRR by field(15..0)
 
-        fun calcBaudRate(clock: Int, div: Int): Int = clock / div + 1
+        fun calcBaudRate(clock: ULong, div: ULong) = clock / div + 1u
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
             if (USART_CR1.UE != 0) {
@@ -286,7 +286,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
     private val USART_GTPR  = object : RegisterBase(RegisterType.USART_GTPR) {}
     private val USART_RTOR  = object : RegisterBase(RegisterType.USART_RTOR) {}
     private val USART_RQR   = object : RegisterBase(RegisterType.USART_RQR) {}
-    private val USART_ISR   = object : RegisterBase(RegisterType.USART_ISR, 0x0200_00C0, writable = false) {
+    private val USART_ISR   = object : RegisterBase(RegisterType.USART_ISR, 0x0200_00C0u, writable = false) {
         var REACK by bit(22)
         var TEACK by bit(21)
         var TXE by bit(7)
@@ -297,7 +297,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
     private val USART_RDR   = object : RegisterBase(RegisterType.USART_RDR, writable = false) {
         var RDR by field(7..0)
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
             USART_ISR.RXNE = 0
             RDR = readData()
             return super.read(ea, ss, size)
@@ -306,7 +306,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
     private val USART_TDR   = object : RegisterBase(RegisterType.USART_TDR) {
         var TDR by field(7..0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             USART_ISR.TC = 0
             USART_ISR.TXE = 0

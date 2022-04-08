@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
@@ -45,8 +46,8 @@ class FucomDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         return when (opcode) {
             0xDA -> Fucom(core, s.data, prefs, 2, op0, x86FprRegister(1))
             0xDD -> {
-                val popCount = if (currByte[3] == 1L) 1 else 0
-                val regIndex = currByte[2..0].toInt()
+                val popCount = if (currByte[3] == 1uL) 1 else 0
+                val regIndex = currByte[2..0].int
                 when(regIndex){
                     0 -> throw GeneralException("Incorrect opcode in decoder")
                     else -> Fucom(core, s.data, prefs, popCount, op0, x86FprRegister(regIndex))

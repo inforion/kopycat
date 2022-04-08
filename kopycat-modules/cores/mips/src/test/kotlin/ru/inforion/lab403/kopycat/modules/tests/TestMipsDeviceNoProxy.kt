@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.tests
 
-import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.common.extensions.asULong
-import ru.inforion.lab403.common.extensions.shl
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.library.types.Resource
@@ -36,6 +34,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.modules.cores.MipsDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.modules.memory.ROM
+import ru.inforion.lab403.kopycat.interfaces.*
 
 class TestMipsDeviceNoProxy(parent: Module?, name: String, val fwMode: Int, fakePrimitivesCount: Int): Module(parent, name) {
     /*
@@ -83,25 +82,25 @@ class TestMipsDeviceNoProxy(parent: Module?, name: String, val fwMode: Int, fake
 
     override val buses = Buses()
 
-    val mips = MipsCore(this, "mips", 100.MHz, 1.0,9, 0x55ABCC01L, 30)
+    val mips = MipsCore(this, "mips", 100.MHz, 1.0,9, 0x55ABCC01uL, 30)
     val dbg = MipsDebugger(this, "debugger")
     val flash = Flash(this, "flash")
 
     val rom = ROM(this, "ROM_CHIP", 0x0005_0000, Resource("binaries/mips.bin"))
     val ram = RAM(this, "RAM_CHIP", 0x0800_0000)
 
-    private fun value(index: Int): Long {
-        val v = index.toByte()
+    private fun value(index: Int): ULong {
+        val v = index.ulong_z
         return (v shl 24) or (v shl 16) or (v shl 8) or (v shl 0)
     }
 
-    val fakeAreas = Array(fakePrimitivesCount) { FakeArea(this, "fa$it", 0x1000, value(it)) }
+    val fakeAreas = Array(fakePrimitivesCount) { FakeArea(this, "fa$it", 0x1000u, value(it)) }
 
     val fakeRegs = Array(fakePrimitivesCount) { FakeRegister(this, "fr$it", value(it)) }
 
     override fun reset() {
         super.reset()
-        rom.outb(0x308, fwMode.asULong)
+        rom.outb(0x308u, fwMode.ulong_z)
     }
 
     init {
@@ -109,11 +108,11 @@ class TestMipsDeviceNoProxy(parent: Module?, name: String, val fwMode: Int, fake
         dbg.ports.breakpoint.connect(mips.buses.virtual)
         dbg.ports.reader.connect(mips.buses.virtual)
 
-        flash.ports.mem.connect(buses.mem, 0x1800_0000)
-        rom.ports.mem.connect(buses.mem, 0x0000_0000)
-        ram.ports.mem.connect(buses.mem, 0x1000_0000)
+        flash.ports.mem.connect(buses.mem, 0x1800_0000u)
+        rom.ports.mem.connect(buses.mem, 0x0000_0000u)
+        ram.ports.mem.connect(buses.mem, 0x1000_0000u)
 
-        fakeAreas.forEachIndexed { index, area -> area.ports.mem.connect(buses.mem, 0x1800_1000 + index * 0x1000L)}
-        fakeRegs.forEachIndexed { index, reg -> reg.ports.mem.connect(buses.mem, 0x1801_1000 + index * 0x1000L)}
+        fakeAreas.forEachIndexed { index, area -> area.ports.mem.connect(buses.mem, 0x1800_1000uL + index * 0x1000) }
+        fakeRegs.forEachIndexed { index, reg -> reg.ports.mem.connect(buses.mem, 0x1801_1000uL + index * 0x1000) }
     }
 }

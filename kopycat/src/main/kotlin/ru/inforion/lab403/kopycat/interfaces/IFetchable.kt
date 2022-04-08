@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,7 +27,32 @@ package ru.inforion.lab403.kopycat.interfaces
 
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 
+@Suppress("INAPPLICABLE_JVM_NAME")
 interface IFetchable {
-    fun beforeFetch(from: MasterPort, ea: Long): Boolean = true
-    fun fetch(ea: Long, ss: Int, size: Int): Long
+    /**
+     * {RU}
+     * Метод вызываются перед доступом к шине/порту на чтение для выполнения инструкции.
+     * В начале вызывается метод [beforeFetch], после этого [fetch].
+     * Если устройство в настоящее время недоступно, то метод может вернуть false
+     *
+     * @param from порт от которого пришел запрос на чтение
+     * @param ea адрес по которому будет происходит чтение
+     * {RU}
+     */
+    @JvmName("beforeFetch")
+    fun beforeFetch(from: MasterPort, ea: ULong): Boolean = true
+
+    /**
+     * {RU}
+     * Метод описывает поведение при чтении данных размером [size] для выполнения инструкции
+     *
+     * @param ea адрес с которого происходит чтение
+     * @param ss дополнительная часть адреса (может быть использована как segment selector)
+     * @param size количество байт, которое необходимо считать (должно быть меньше 16)
+     *
+     * @return считанные байты в endian-формате устройства, которое реализует чтение
+     * {RU}
+     */
+    @JvmName("fetch")
+    fun fetch(ea: ULong, ss: Int, size: Int): ULong
 }

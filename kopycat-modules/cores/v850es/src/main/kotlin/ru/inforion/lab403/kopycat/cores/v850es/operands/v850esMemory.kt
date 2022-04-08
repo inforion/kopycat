@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,4 +32,4 @@ import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Access.ANY
 import ru.inforion.lab403.kopycat.cores.base.operands.Memory
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 
-fun v850esMemory(dtyp: Datatype, addr: Long, access: Access = ANY) = Memory<v850ESCore>(dtyp, DWORD, addr, access)
+fun v850esMemory(dtyp: Datatype, addr: ULong, access: Access = ANY) = Memory<v850ESCore>(dtyp, DWORD, addr, access)

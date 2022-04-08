@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,11 +27,15 @@ package ru.inforion.lab403.kopycat.cores.ppc.exceptions
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.insert
-import ru.inforion.lab403.common.extensions.toLong
+import ru.inforion.lab403.common.extensions.truth
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eIrq
+import ru.inforion.lab403.kopycat.cores.ppc.enums.eMSR
+import ru.inforion.lab403.kopycat.cores.ppc.enums.eTSR
 import ru.inforion.lab403.kopycat.cores.ppc.enums.systems.e500v2.eESR
 import ru.inforion.lab403.kopycat.cores.ppc.enums.systems.embedded.mmufsl.*
+import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_Embedded
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_EmbeddedMMUFSL
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_e500v2
@@ -40,59 +44,116 @@ import ru.inforion.lab403.kopycat.modules.cores.PPCCore
 
 object PPCExceptionHolder_e500v2 : IPPCExceptionHolder {
 
-    fun buildESR(write: Boolean): Long {
-        val esrST = 0L.insert(write.toLong(), eESR.ST.bit)
+    fun buildESR(write: Boolean): ULong {
+        val esrST = insert(write.ulong, eESR.ST.bit)
         val esrDLK = esrST // We haven't dcbtls, dcbtstls and dcblc
         val esrBO = esrDLK // Can't get byte ordering exception
         return esrBO
     }
 
-
-    // Data storage interrupt
-    class AccessDataException(where: Long, val write: Boolean) : PPCHardwareException(eIrq.DataStorage, where, "Data access Denied ") {
+    abstract class ATLBException(irq: eIrq, where: ULong, what: String) : PPCHardwareException(irq, where, what) {
 
         override fun interrupt(core: PPCCore) {
-            super.interrupt(core) // SRR0, SRR1, MSR
+            super.interrupt(core) // SRR0, pc
+
+            val msr = PPCRegister.OEA.MSR.value(core)
+            PPCRegister.OEA.SRR1.value(core, msr)
+            PPCRegister.OEA.MSR.value(core, 0uL)
+            core.cpu.msrBits.CE = msr[eMSR.CE.bit].truth
+            core.cpu.msrBits.ME = msr[eMSR.ME.bit].truth
+            core.cpu.msrBits.DE = msr[eMSR.DE.bit].truth
+        }
+    }
+
+    // Exception with SRR1 predefined behaviour
+    abstract class ASRR01Exception(irq: eIrq, where: ULong, what: String) : PPCHardwareException(irq, where, what) {
+
+        override fun interrupt(core: PPCCore) {
+            super.interrupt(core) // SRR0, pc
+
+
+            val msr = PPCRegister.OEA.MSR.value(core)
+            PPCRegister.OEA.SRR1.value(core, msr and 0x87C0FFFFu)  // 33:36 Set to 0.
+                                                                        // 42:47 Set to 0.
+        }
+    }
+
+
+    // Data storage interrupt
+    class AccessDataException(where: ULong, val write: Boolean) : ASRR01Exception(eIrq.DataStorage, where, "Data access Denied ") {
+
+        override fun interrupt(core: PPCCore) {
+            super.interrupt(core) // SRR0, SRR1, pc
+            TODO("Please, implement my interrupt actions by PowerISA V2.05")
             PPCRegister_e500v2.OEAext.ESR.value(core, buildESR(write))
         }
     }
 
     // Instruction storage interrupt
-    class AccessInstructionException(where: Long) : PPCHardwareException(eIrq.DataStorage, where, "Instruction access Denied ") {
+    class AccessInstructionException(where: ULong) : ASRR01Exception(eIrq.DataStorage, where, "Instruction access Denied ") {
         override fun interrupt(core: PPCCore) {
-            super.interrupt(core) // SRR0, SRR1, MSR
+            super.interrupt(core) // SRR0, SRR1, pc
+            TODO("Please, implement my interrupt actions by PowerISA V2.05")
             PPCRegister_e500v2.OEAext.ESR.value(core, buildESR(false)) // TODO: separate if BO will be implemented
         }
     }
 
-    open class TLBException(where: Long,
+    // Decrementer Interrupt
+    class DecrementerInterrupt(where: ULong) : ASRR01Exception(eIrq.Decrementer, where, "Decrementer Interrupt") {
+
+        override fun interrupt(core: PPCCore) {
+            super.interrupt(core) // SRR0, SRR1, pc
+
+            val msr = PPCRegister.OEA.MSR.value(core)
+            PPCRegister.OEA.MSR.value(core, 0uL)
+            core.cpu.msrBits.ME = msr[eMSR.ME.bit].truth // TODO: HV
+
+            val tsr = core.cpu.sprRegs.readIntern(PPCRegister_Embedded.OEAext.TSR.reg).insert(1, eTSR.DIS.bit)
+            core.cpu.sprRegs.writeIntern(PPCRegister_Embedded.OEAext.TSR.reg, tsr) // TODO: Register access
+        }
+    }
+
+    // System Call Interrupt
+    class SystemCallInterrupt(where: ULong) : ASRR01Exception(eIrq.SystemCall, where, "System Call Interrupt") {
+
+        override fun interrupt(core: PPCCore) {
+            super.interrupt(core) // SRR0, SRR1, MSR
+
+            val msr = PPCRegister.OEA.MSR.value(core)
+            PPCRegister.OEA.MSR.value(core, 0uL)
+            core.cpu.msrBits.ME = msr[eMSR.ME.bit].truth // TODO: HV
+        }
+    }
+
+
+    open class TLBException(where: ULong,
                        val write: Boolean,
-                       val ea: Long,
-                       val AS: Long,
+                       val ea: ULong,
+                       val AS: ULong,
                        val inst: Boolean
-    ): PPCHardwareException(
+    ): ATLBException(
             if (inst) eIrq.InstTLBError else eIrq.DataTLBError,
             where,
             "TLB ${if (inst) "instruction" else "data"} error"
     ) {
-        fun buildMAS0(core: PPCCore): Long {
+        fun buildMAS0(core: PPCCore): ULong {
             val mas4 = PPCRegister_EmbeddedMMUFSL.OEAext.MAS4.value(core)
 
-            val masTLBSEL = 0L.insert(mas4[eMAS4.TLBSELD], eMAS0.TLBSEL)
+            val masTLBSEL = insert(mas4[eMAS4.TLBSELD], eMAS0.TLBSEL)
             val masESEL = masTLBSEL // Unknown hardware hint
             val masNV = masESEL // Unknown hardware hint
             return masNV
         }
 
-        fun buildMAS1(core: PPCCore): Long {
+        fun buildMAS1(core: PPCCore): ULong {
             val mas4 = PPCRegister_EmbeddedMMUFSL.OEAext.MAS4.value(core)
 
-            val masV_IPROT = 0x80000000 // V = 1, IPROT=0
+            val masV_IPROT = 0x80000000uL // V = 1, IPROT=0
 
             val pid = when (mas4[eMAS4.TIDSELD]) {
-                0L -> PPCRegister_Embedded.OEAext.PID0
-                1L -> PPCRegister_EmbeddedMMUFSL.OEAext.PID1
-                2L -> PPCRegister_EmbeddedMMUFSL.OEAext.PID2
+                0uL -> PPCRegister_Embedded.OEAext.PID0
+                1uL -> PPCRegister_EmbeddedMMUFSL.OEAext.PID1
+                2uL -> PPCRegister_EmbeddedMMUFSL.OEAext.PID2
                 else -> throw GeneralException("Wrong TIDSELD value: ${mas4[eMAS4.TIDSELD]}")
             }.value(core)
 
@@ -102,7 +163,7 @@ object PPCExceptionHolder_e500v2 : IPPCExceptionHolder {
             return masTSIZE
         }
 
-        fun buildMAS2(core: PPCCore): Long {
+        fun buildMAS2(core: PPCCore): ULong {
             val mas4 = PPCRegister_EmbeddedMMUFSL.OEAext.MAS4.value(core)
 
             val masEPN = ea[31..12]
@@ -116,27 +177,28 @@ object PPCExceptionHolder_e500v2 : IPPCExceptionHolder {
             return masE
         }
 
-        fun buildMAS6(core: PPCCore): Long {
-            val masSPID0 = 0L.insert(PPCRegister_Embedded.OEAext.PID0.value(core)[7..0], eMAS6.SPID0)
+        fun buildMAS6(core: PPCCore): ULong {
+            val masSPID0 = insert(PPCRegister_Embedded.OEAext.PID0.value(core)[7..0], eMAS6.SPID0)
             val masSAS = masSPID0.insert(AS, eMAS6.SAS.bit)
             return masSAS
         }
 
         override fun interrupt(core: PPCCore) {
             super.interrupt(core) // SRR0, SRR1, MSR
+
             if (!inst)
                 PPCRegister_e500v2.OEAext.ESR.value(core, buildESR(write))
             PPCRegister_EmbeddedMMUFSL.OEAext.MAS0.value(core, buildMAS0(core))
             PPCRegister_EmbeddedMMUFSL.OEAext.MAS1.value(core, buildMAS1(core))
             PPCRegister_EmbeddedMMUFSL.OEAext.MAS2.value(core, buildMAS2(core))
-            PPCRegister_EmbeddedMMUFSL.OEAext.MAS3.value(core, 0L)
+            PPCRegister_EmbeddedMMUFSL.OEAext.MAS3.value(core, 0uL)
             PPCRegister_EmbeddedMMUFSL.OEAext.MAS6.value(core, buildMAS6(core))
         }
 
     }
 
     // Data TLB error interrupt
-    class TLBDataException(where: Long, write: Boolean, ea: Long, AS: Long): TLBException(where, write, ea, AS, false) {
+    class TLBDataException(where: ULong, write: Boolean, ea: ULong, AS: ULong): TLBException(where, write, ea, AS, false) {
 
         override fun interrupt(core: PPCCore) {
             super.interrupt(core) // SRR0, SRR1, MSR + all TLB assist
@@ -145,7 +207,7 @@ object PPCExceptionHolder_e500v2 : IPPCExceptionHolder {
     }
 
     // Instruction TLB error interrupt
-    class TLBInstructionException(where: Long, ea: Long, AS: Long): TLBException(where, false, ea, AS, true) {
+    class TLBInstructionException(where: ULong, ea: ULong, AS: ULong): TLBException(where, false, ea, AS, true) {
 
         override fun interrupt(core: PPCCore) {
             super.interrupt(core) // SRR0, SRR1, MSR + all TLB assist
@@ -153,8 +215,14 @@ object PPCExceptionHolder_e500v2 : IPPCExceptionHolder {
         }
     }
 
-    override fun accessDataException(where: Long, write: Boolean) = AccessDataException(where, write)
-    override fun accessInstructionException(where: Long) = AccessInstructionException(where)
-    override fun tlbDataException(where: Long, write: Boolean, ea: Long, AS: Long) = TLBDataException(where, write, ea, AS)
-    override fun tlbInstructionException(where: Long, ea: Long, AS: Long) = TLBInstructionException(where, ea, AS)
+
+
+
+    override fun accessDataException(where: ULong, write: Boolean) = AccessDataException(where, write)
+    override fun accessInstructionException(where: ULong) = AccessInstructionException(where)
+    override fun tlbDataException(where: ULong, write: Boolean, ea: ULong, AS: ULong) = TLBDataException(where, write, ea, AS)
+    override fun tlbInstructionException(where: ULong, ea: ULong, AS: ULong) = TLBInstructionException(where, ea, AS)
+    override fun systemCallException(where: ULong): PPCHardwareException {
+        TODO("Not yet implemented")
+    }
 }

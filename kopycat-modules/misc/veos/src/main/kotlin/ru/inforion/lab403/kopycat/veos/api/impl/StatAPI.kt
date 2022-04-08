@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,8 +27,9 @@
 
 package ru.inforion.lab403.kopycat.veos.api.impl
 
-import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
@@ -105,15 +106,15 @@ class StatAPI constructor(os: VEOS<*>) : API(os) {
         }
 
         return stat(
-                st_mode = mode or attrs.permissions().bits.asULong,
-                st_size = attrs.size(),
+                st_mode = mode or attrs.permissions().bits.ulong_z,
+                st_size = attrs.size().ulong,
                 // FIXME: idk where to get from java blksize and count currently let it be zero
 //                st_blocks = 512,
 //                st_blksize = 512,
-                st_nlink = nlink.asULong,
-                st_atime = attrs.lastAccessTime().to(TimeUnit.SECONDS),
-                st_mtime = attrs.lastModifiedTime().to(TimeUnit.SECONDS),
-                st_ctime = attrs.creationTime().to(TimeUnit.SECONDS)
+                st_nlink = nlink.ulong_z,
+                st_atime = attrs.lastAccessTime().to(TimeUnit.SECONDS).ulong,
+                st_mtime = attrs.lastModifiedTime().to(TimeUnit.SECONDS).ulong,
+                st_ctime = attrs.creationTime().to(TimeUnit.SECONDS).ulong
         )
     }
 
@@ -128,15 +129,15 @@ class StatAPI constructor(os: VEOS<*>) : API(os) {
             val attrs = file.attributes()
 
             stat(
-                    st_mode = mode or attrs.permissions().bits.asULong,
-                    st_size = attrs.size(),
+                    st_mode = mode or attrs.permissions().bits.ulong_z,
+                    st_size = attrs.size().ulong,
                     // FIXME: idk where to get from java blksize and count currently let it be zero
 //                    st_blocks = 512,
 //                    st_blksize = 512,
-                    st_nlink = nlink.asULong,
-                    st_atime = attrs.lastAccessTime().to(TimeUnit.SECONDS),
-                    st_mtime = attrs.lastModifiedTime().to(TimeUnit.SECONDS),
-                    st_ctime = attrs.creationTime().to(TimeUnit.SECONDS)
+                    st_nlink = nlink.ulong_z,
+                    st_atime = attrs.lastAccessTime().to(TimeUnit.SECONDS).ulong,
+                    st_mtime = attrs.lastModifiedTime().to(TimeUnit.SECONDS).ulong,
+                    st_ctime = attrs.creationTime().to(TimeUnit.SECONDS).ulong
             )
         }
 

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.examples
 
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.extensions.unhexlify
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
@@ -89,6 +89,6 @@ class stm32f042_example(
 
         stm32f042.ports.gpioa_out.connect(buses.gpioa_leds)
 
-        leds.forEachIndexed { offset, led -> led.ports.pin.connect(buses.gpioa_leds, offset.asULong) }
+        leds.forEachIndexed { offset, led -> led.ports.pin.connect(buses.gpioa_leds, offset.ulong_z) }
     }
 }

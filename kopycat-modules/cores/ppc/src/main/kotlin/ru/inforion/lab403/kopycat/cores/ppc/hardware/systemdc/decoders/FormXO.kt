@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.decoders
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
@@ -38,12 +39,12 @@ class FormXO(core: PPCCore,
               val construct:  (PPCCore, Boolean, Boolean, Array<AOperand<PPCCore>>) -> APPCInstruction
 ) : APPCDecoder(core) {
 
-    override fun decode(s: Long): APPCInstruction {
-        val rT = PPCRegister.gpr(s[25..21].toInt())
-        val rA = PPCRegister.gpr(s[20..16].toInt())
-        val rB = PPCRegister.gpr(s[15..11].toInt())
-        val overflow = s[21].toBool()
-        val record = s[0].toBool()
+    override fun decode(s: ULong): APPCInstruction {
+        val rT = PPCRegister.gpr(s[25..21].int)
+        val rA = PPCRegister.gpr(s[20..16].int)
+        val rB = PPCRegister.gpr(s[15..11].int)
+        val overflow = s[21].truth
+        val record = s[0].truth
 
         return construct(core,
                 overflow,

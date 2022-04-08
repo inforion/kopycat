@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.modules.tests
 
-import ru.inforion.lab403.common.extensions.toULong
+import ru.inforion.lab403.common.extensions.byte
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
@@ -38,25 +40,22 @@ class Flash constructor(parent: Module, name: String): Module(parent, name) {
     override val ports = Ports()
 
     private val flashSize = 0x00200000
-    private val dataBuffer = ByteArray(flashSize) { (it and 0xFF).toByte() }
+    private val dataBuffer = ByteArray(flashSize) { (it and 0xFF).byte }
 
     private var ptr = -1
 
-    val REG_SET_FLASH_PTR = object : Register(ports.mem, 0x00, BYTE, "REG_SET_FLASH_PTR") {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) { ptr = value.toInt() }
-        override fun read(ea: Long, ss: Int, size: Int) = ptr.toULong()
+    val REG_SET_FLASH_PTR = object : Register(ports.mem, 0x00u, BYTE, "REG_SET_FLASH_PTR") {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) { ptr = value.int }
+        override fun read(ea: ULong, ss: Int, size: Int) = ptr.ulong_z
     }
 
-    val REG_READ_BYTE = object : Register(ports.mem, 0x04, BYTE, "REG_READ_BYTE", writable = false) {
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            val byte = dataBuffer[ptr++]
-            return byte.toULong()
-        }
+    val REG_READ_BYTE = object : Register(ports.mem, 0x04u, BYTE, "REG_READ_BYTE", writable = false) {
+        override fun read(ea: ULong, ss: Int, size: Int) = dataBuffer[ptr++].ulong_z
     }
 
-    val REG_WRITE_BYTE = object : Register(ports.mem, 0x08, BYTE, "REG_WRITE_BYTE", readable = false) {
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            dataBuffer[ptr++] = (value and 0xFF).toByte()
+    val REG_WRITE_BYTE = object : Register(ports.mem, 0x08u, BYTE, "REG_WRITE_BYTE", readable = false) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            dataBuffer[ptr++] = (value and 0xFFu).byte
         }
     }
 }

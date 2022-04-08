@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
+import ru.inforion.lab403.common.extensions.double
 import ru.inforion.lab403.common.extensions.ieee754
+import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
@@ -39,7 +42,7 @@ class Fild(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operand: AO
     override val mnem = "fild"
 
     override fun execute() {
-        val value = op2.value(core).toDouble().ieee754()
+        val value = op2.value(core).double.ieee754AsUnsigned()
         (op1 as x86FprRegister).push(core, value)
     }
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.CTRLR.cr0
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.GPRDW.esp
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.eflags
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -44,27 +41,39 @@ class Ret(core: x86Core, operand: AOperand<x86Core>, opcode: ByteArray, prefs: P
 
     override fun execute() {
         if (!isFar) {
-            val tmp = x86utils.pop(core, prefs.opsize, prefs, offset = op1.ssext(core))
-            val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
-            ip.value(core, tmp)
+            val tmp = x86utils.pop(core, prefs.opsize, prefs, offset = op1.usext(core))
+            val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+            ip.value = tmp
         } else {
-            val pe = cr0.pe(core)
-            val vm = eflags.vm(core)
+            val pe = core.cpu.cregs.cr0.pe
+            val vm = core.cpu.flags.vm
 
             //real-address or virtual-8086 mode
             if (!pe || (pe && vm)) {
-                TODO()
+                val tmpip = x86utils.pop(core, prefs.opsize, prefs)
+                val tmpcs = x86utils.pop(core, prefs.opsize, prefs) and 0xFFFFuL
+
+                val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+
+                core.cpu.sregs.cs.value = tmpcs
+
+                when (prefs.opsize) {
+                    DWORD -> ip.value = tmpip
+                    WORD -> ip.value = tmpip and 0xFFFFuL
+                    else -> error("Wrong operand size for real-address or virtual-8086 mode")
+                }
             }
 
             if (pe && !vm) {
                 // point shifted after CS is take from stack: DO NOT USE offset here!
                 val tmpip = x86utils.pop(core, prefs.opsize, prefs)
-                val tmpcs = x86utils.pop(core,  prefs.opsize, prefs) and 0xFFFFL
+                val tmpcs = x86utils.pop(core, prefs.opsize, prefs) and 0xFFFFuL
                 // stack shift by immediate value
-                esp.plus(core, op1.ssext(core))
-                val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
-                ip.value(core, tmpip)
-                cs.value(core, tmpcs)
+                val sp = core.cpu.regs.gpr(x86GPR.RSP, prefs.opsize)
+                sp.value += op1.usext(core)
+                val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+                ip.value = tmpip
+                core.cpu.sregs.cs.value = tmpcs
             }
         }
     }

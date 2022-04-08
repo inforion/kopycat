@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.trap
 
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsRtCodeInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -43,7 +44,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * from memory.
  */
 class tge(core: MipsCore,
-          data: Long,
+          data: ULong,
           rs: MipsRegister,
           rt: MipsRegister,
           code: MipsImmediate) : RsRtCodeInsn(core, data, Type.VOID, rs, rt, code) {
@@ -52,7 +53,7 @@ class tge(core: MipsCore,
 
     override fun execute() {
         // Compare as signed integers
-        if (vrs.toInt() >= vrt.toInt())
+        if (vrs.int >= vrt.int)
             throw MipsHardwareException.TR(core.pc)
     }
 

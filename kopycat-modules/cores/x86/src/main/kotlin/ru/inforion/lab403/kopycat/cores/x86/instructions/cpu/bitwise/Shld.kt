@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
@@ -50,10 +50,10 @@ class Shld(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
         var dst = op1.value(core)
         val src = op2.value(core)
         val operandSize = op1.dtyp.bits
-        val count = op3.value(core).asInt % 32
+        val count = op3.value(core).int % 32
         if (count != 0) {
             if (count < operandSize) {
-                val cf = dst[operandSize - count] == 1L
+                val cf = dst[operandSize - count] == 1uL
 
                 val msb2 = operandSize - 1
                 val lsb2 = operandSize - count

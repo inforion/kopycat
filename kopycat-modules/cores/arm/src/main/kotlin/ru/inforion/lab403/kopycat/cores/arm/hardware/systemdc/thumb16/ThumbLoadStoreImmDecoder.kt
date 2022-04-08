@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb16
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.UN
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
@@ -39,7 +39,7 @@ object ThumbLoadStoreImmDecoder{
     class T1(cpu: AARMCore,
              private val constructor: (
                      cpu: AARMCore,
-                     opcode: Long,
+                     opcode: ULong,
                      cond: Condition,
                      index: Boolean,
                      add: Boolean,
@@ -48,9 +48,9 @@ object ThumbLoadStoreImmDecoder{
                      rt: ARMRegister,
                      imm: Immediate<AARMCore>,
                      size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
-            val rt = gpr(data[2..0].asInt)
-            val rn = gpr(data[5..3].asInt)
+        override fun decode(data: ULong): AARMInstruction {
+            val rt = gpr(data[2..0].int)
+            val rn = gpr(data[5..3].int)
             val imm = imm(data[10..6] shl 2, true)
             return constructor(core, data, UN, true, true, false, rn, rt, imm, 2)
         }
@@ -58,7 +58,7 @@ object ThumbLoadStoreImmDecoder{
     class T2(cpu: AARMCore,
              private val constructor: (
                      cpu: AARMCore,
-                     opcode: Long,
+                     opcode: ULong,
                      cond: Condition,
                      index: Boolean,
                      add: Boolean,
@@ -67,8 +67,8 @@ object ThumbLoadStoreImmDecoder{
                      rt: ARMRegister,
                      imm: Immediate<AARMCore>,
                      size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
-        override fun decode(data: Long): AARMInstruction {
-            val rt = gpr(data[10..8].asInt)
+        override fun decode(data: ULong): AARMInstruction {
+            val rt = gpr(data[10..8].int)
             val rn = gpr(13)
             val imm = imm(data[7..0] shl 2, true)
             return constructor(core, data, UN, true, true, false, rn, rt, imm, 2)

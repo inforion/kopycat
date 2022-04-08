@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,10 +37,10 @@ class Lsl(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
     override val mnem = "lsl"
 
     override fun execute() {
-        val a2 = op2.value(core) and 0xFFFF
+        val a2 = op2.value(core) and 0xFFFFu
         // TODO: Whether we should cache take into account?
         val tempGLDT = core.mmu.readSegmentDescriptor(a2)
-        val tempLimit = if(tempGLDT.g) tempGLDT.limit.shl(12) or 0x0FFFL else tempGLDT.limit
+        val tempLimit = if(tempGLDT.g) tempGLDT.limit.shl(12) or 0x0FFFuL else tempGLDT.limit
         op1.value(core, tempLimit)
     }
 }

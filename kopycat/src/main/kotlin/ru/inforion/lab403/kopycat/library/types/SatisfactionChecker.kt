@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -75,7 +75,7 @@ internal class SatisfactionChecker constructor(val factory: IModuleFactory, val 
         val candidates = superfluousParameters
                 .filter { inputParameter -> inputParameter fits factoryParameter }
                 .also {
-                    // should be filtered out out previous parsing but check it just in case
+                    // should be filtered out previous parsing but check it just in case
                     require(it.size <= 1) { "Duplicate input parameters found with name '${factoryParameter.name}'" }
                 }.onEach { superfluousParameters.remove(it) }
 

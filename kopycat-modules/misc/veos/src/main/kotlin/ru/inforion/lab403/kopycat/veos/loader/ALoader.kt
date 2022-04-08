@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,6 +35,6 @@ abstract class ALoader(val parent: Module): IAutoSerializable {
     abstract fun load(filename: String)
     abstract fun loadLibrary(filename: String)
     abstract fun findSymbol(module: String, symbol: String): Symbol?
-    abstract fun moduleAddress(module: String): Long
-    abstract fun moduleName(address: Long): String
+    abstract fun moduleAddress(module: String): ULong
+    abstract fun moduleName(address: ULong): String
 }

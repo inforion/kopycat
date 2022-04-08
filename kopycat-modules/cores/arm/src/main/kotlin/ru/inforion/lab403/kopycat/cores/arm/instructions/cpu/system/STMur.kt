@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system
 
+import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.enums.ProcessorMode
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
@@ -34,11 +36,12 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegisterList
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 //STM (User registers), see B9.3.17
 class STMur(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val increment: Boolean,
             val wordhigher: Boolean,
@@ -53,11 +56,11 @@ class STMur(cpu: AARMCore,
             core.cpu.CurrentModeIsUserOrSystem() -> throw ARMHardwareException.Unpredictable
             else -> {
                 val length = 4 * registers.count
-                var address = if (increment) rn.value(core) else rn.value(core) - length
+                var address = if (increment) rn.value(core) else rn.value(core) - length.uint
 
-                if (wordhigher) address += 4
+                if (wordhigher) address += 4u
 
-                if (core.cpu.sregs.cpsr.m == ProcessorMode.fiq.id.toLong())
+                if (core.cpu.sregs.cpsr.m == ProcessorMode.fiq.id.ulong_z)
                     TODO("Write user regs from r8 to r12")
 
                 registers.forEachIndexed { _, reg ->
@@ -68,7 +71,7 @@ class STMur(cpu: AARMCore,
                         core.cpu.banking[ProcessorMode.usr.ordinal].read(reg.desc.id)
 
                     core.outl(address like DWORD, value)
-                    address += 4
+                    address += 4u
                 }
 
             }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,26 +36,25 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
  * NOTE: Phrase is specific for x86 but may occurs for other arch.
  * {EN}
  */
-abstract class APhrase<in T: AGenericCore>(
-        dtyp: Datatype,
-        val base: ARegister<T>,
-        val index: ARegister<T>,
-        val displ: Immediate<T>,
-        access: Access,
-        num: Int = WRONGI) :
-        AOperand<T>(AOperand.Type.PHRASE, access, AOperand.Controls.VOID, num, dtyp) {
+abstract class APhrase<in T : AGenericCore>(
+    dtyp: Datatype,
+    val base: ARegister<T>,
+    val index: ARegister<T>,
+    val displ: Immediate<T>,
+    access: Access,
+    num: Int = WRONGI
+) : AOperand<T>(Type.PHRASE, access, Controls.VOID, num, dtyp) {
 
-    override fun equals(other: Any?): Boolean {
-        if (other is APhrase<*>) {
-            return (other.type == AOperand.Type.PHRASE &&
-                    other.dtyp == dtyp &&
-                    other.base == base &&
-                    other.index == index &&
-                    other.specflags == specflags)
-        } else {
-            return false
-        }
-    }
+    override fun bytes(core: T, size: Int): ByteArray = core.load(effectiveAddress(core), size)
+
+    override fun bytes(core: T, data: ByteArray) = core.store(effectiveAddress(core), data)
+
+    override fun equals(other: Any?) = other is APhrase<*> &&
+            other.type == Type.PHRASE &&
+            other.dtyp == dtyp &&
+            other.base == base &&
+            other.index == index &&
+            other.specflags == specflags
 
     override fun hashCode(): Int {
         var result = type.hashCode()

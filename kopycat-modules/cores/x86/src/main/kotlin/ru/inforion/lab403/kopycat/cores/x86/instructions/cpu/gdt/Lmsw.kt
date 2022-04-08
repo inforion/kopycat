@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -40,6 +40,6 @@ class Lmsw(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<
     override fun execute() {
         val cr0 = core.cpu.cregs.cr0
         val value = op1.bits(core, 3..0)
-        core.cpu.cregs.cr0 = cr0.insert(value, 3..0)
+        cr0.value = cr0.value.insert(value, 3..0)
     }
 }

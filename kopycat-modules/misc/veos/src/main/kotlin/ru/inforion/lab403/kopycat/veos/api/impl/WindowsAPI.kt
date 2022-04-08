@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,6 @@ import ru.inforion.lab403.kopycat.veos.api.datatypes.VaList
 import ru.inforion.lab403.kopycat.veos.api.format.charArrayPointer
 import ru.inforion.lab403.kopycat.veos.api.format.vsprintfMain
 import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
-import ru.inforion.lab403.kopycat.veos.api.misc.*
 import ru.inforion.lab403.kopycat.veos.api.pointers.CharPointer
 import ru.inforion.lab403.kopycat.veos.api.pointers.IntPointer
 import ru.inforion.lab403.kopycat.veos.exceptions.InvalidArgument
@@ -60,7 +59,7 @@ class WindowsAPI(os: VEOS<*>) : API(os) {
     val _OptionsStorage = APIVariable.longLong(os, "_OptionsStorage")
 
 
-    fun vsprintf_internal(fmt: String?, args: Iterator<Long>): String {
+    fun vsprintf_internal(fmt: String?, args: Iterator<ULong>): String {
         if (fmt == null) throw InvalidArgument()
         val buffer = CharArray(10000) // TODO: get rid of
         val count = vsprintfMain(os, buffer.charArrayPointer, fmt, args)
@@ -73,7 +72,7 @@ class WindowsAPI(os: VEOS<*>) : API(os) {
         ret<FILE> { APIResult.Value(it.address) }
     }
 
-    override fun init(argc: Long, argv: Long, envp: Long) {
+    override fun init(argc: ULong, argv: ULong, envp: ULong) {
         this.argc.allocated.value = argc
         this.argv.allocated.value = argv
         this.envp.allocated.value = envp
@@ -110,7 +109,7 @@ class WindowsAPI(os: VEOS<*>) : API(os) {
             os.abi.push(ra, pointerType)
         }
 
-        override fun retval(value: Long): APIResult.Value {
+        override fun retval(value: ULong): APIResult.Value {
             retStack()
             return super.retval(value)
         }
@@ -123,53 +122,53 @@ class WindowsAPI(os: VEOS<*>) : API(os) {
 
     val GetSystemTimeAsFileTime = object : __stdcall("GetSystemTimeAsFileTime") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             // TODO: as struct
-            os.abi.writeInt(argv[0], 0)
-            os.abi.writeInt(argv[0] + 4, 0)
+            os.abi.writeInt(argv[0], 0u)
+            os.abi.writeInt(argv[0] + 4u, 0u)
             return void()
         }
     }
 
     val GetCurrentThreadId = object : __stdcall("GetCurrentThreadId") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.warning { "GetCurrentThreadId() is not implemented properly" }
-            return retval(os.currentProcess.id.asULong)
+            return retval(os.currentProcess.id.ulong_z)
         }
     }
 
     val GetCurrentProcessId = object : __stdcall("GetCurrentProcessId") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            return retval(os.currentProcess.id.asULong)
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            return retval(os.currentProcess.id.ulong_z)
         }
     }
 
     val QueryPerformanceCounter = object : __stdcall("QueryPerformanceCounter") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.warning { "QueryPerformanceCounter() is not implemented properly" }
-            os.abi.writeLongLong(argv[0], System.currentTimeMillis())
-            return retval(1L)
+            os.abi.writeLongLong(argv[0], currentTimeMillis.ulong)
+            return retval(1u)
         }
     }
 
     val IsProcessorFeaturePresent = object : __stdcall("IsProcessorFeaturePresent") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val result = when (argv[0].asInt) {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val result = when (argv[0].int) {
                 ProcessorFeature.XMMI64_INSTRUCTIONS_AVAILABLE.value -> false
                 else -> TODO("Not implemented")
             }
 
-            return retval(result.asLong)
+            return retval(result.ulong)
         }
     }
 
     val _initterm_e = object : __cdecl("_initterm_e") {
         override val args = arrayOf(ArgType.Pointer, ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.warning { "_initterm() is not implemented properly" }
             return void()
         }
@@ -179,40 +178,40 @@ class WindowsAPI(os: VEOS<*>) : API(os) {
 
     val __p___argc = object : __cdecl("__p___argc") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            return retval(argc.address!!)
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            return retval(argc.address.get)
         }
     }
 
     val __p___argv = object : __cdecl("__p___argv") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            return retval(this@WindowsAPI.argv.address!!)
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            return retval(this@WindowsAPI.argv.address.get)
         }
     }
     val _get_initial_narrow_environment = object : __cdecl("_get_initial_narrow_environment") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            return retval(envp.address!!)
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            return retval(envp.address.get)
         }
     }
 
     val __acrt_iob_func = object : __cdecl("__acrt_iob_func") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            val result = when (argv[0]) {
-                0L -> stdinFile.address
-                1L -> stdoutFile.address
-                2L -> stderrFile.address
-                else -> 0L
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            val result = when (argv[0].int) {
+                0 -> stdinFile.address
+                1 -> stdoutFile.address
+                2 -> stderrFile.address
+                else -> 0uL
             }
             return retval(result)
         }
     }
     val __local_stdio_printf_options = object : __cdecl("__local_stdio_printf_options") {
         override val args = arrayOf<ArgType>()
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            return retval(_OptionsStorage.allocated.address!!) // Unused
+        override fun exec(name: String, vararg argv: ULong): APIResult {
+            return retval(_OptionsStorage.allocated.address.get) // Unused
         }
     }
 
@@ -235,21 +234,19 @@ class WindowsAPI(os: VEOS<*>) : API(os) {
 
     val GetModuleHandleW = object : __stdcall("GetModuleHandleW") {
         override val args = arrayOf(ArgType.Pointer)
-        override fun exec(name: String, vararg argv: Long): APIResult {
+        override fun exec(name: String, vararg argv: ULong): APIResult {
             log.warning { "GetModuleHandleW() is not implemented properly" }
-            if (argv[0] == 0L)
-                return retval(0)
+            if (argv[0].int == 0)
+                return retval(0u)
 
             val lpModuleName = os.sys.readWideString(argv[0])
-            return retval(0)
+            return retval(0u)
         }
     }
 
     val exit = object : __cdecl("GetModuleHandleW") {
         override val args = arrayOf(ArgType.Int)
-        override fun exec(name: String, vararg argv: Long): APIResult {
-            return terminate(argv[0].asInt)
-        }
+        override fun exec(name: String, vararg argv: ULong) = terminate(argv[0].int)
     }
 
 }

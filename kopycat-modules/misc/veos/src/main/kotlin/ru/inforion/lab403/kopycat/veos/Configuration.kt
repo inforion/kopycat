@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -35,25 +35,25 @@ class Configuration : IAutoSerializable {
     /**
      * Bind will use dynamic ports if this is true
      */
-    var dynamicPortMapping = false
+    var dynamicPortMapping = true
 
     /**
      * Task switch timeout in ticks
      */
-    var processSwitchPeriod: Long = 100
+    var processSwitchPeriod: ULong = 100u
 
     /**
      * Allocated memory heap size (should be configured before [VEOS.load] and [VEOS.startMainTask])
      */
-    var heapSize: Long = 0x1000_0000 // 256 Mib
+    var heapSize: ULong = 0x1000_0000u // 256 Mib
 
     /**
      * Allocated memory stack size (should be configured before [VEOS.load] and [VEOS.startMainTask])
      */
-    var stackSize: Long = 0x20_0000 // 2 Mib (Linux default for x86-32, see NOTES in "man pthread_create")
+    var stackSize: ULong = 0x20_0000u // 2 Mib (Linux default for x86-32, see NOTES in "man pthread_create")
 
-    var systemDataStart: Long = 4L    // Reserve address 0 for nullptr
-    var systemDataEnd: Long = 0x1000L
+    var systemDataStart: ULong = 4u    // Reserve address 0 for nullptr
+    var systemDataEnd: ULong = 0x1000u
 
     var rootDirectory: String = "./"
 
@@ -61,4 +61,6 @@ class Configuration : IAutoSerializable {
     var tempDirectory: String = "/tmp"
 
     var useEntropy: Boolean = false
+
+    var enableTimeScheduler = true
 }

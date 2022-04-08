@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,12 +23,12 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-@file:Suppress("PropertyName", "PrivatePropertyName")
+@file:Suppress("PropertyName", "PrivatePropertyName", "MemberVisibilityCanBePrivate")
 
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.ALL
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.bits
@@ -41,22 +41,23 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.PIN
 import java.io.Serializable
-import java.util.logging.Level.*
+import java.util.logging.Level.SEVERE
+import java.util.logging.Level.WARNING
 
 
 class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, name) {
     companion object {
         @Transient val log = logger(ALL)
 
-        private fun ch2ea(base: Long, ch: Int) = base + 20L * (ch - 1)
+        private fun ch2ea(base: ULong, ch: Int) = base + 20uL * (ch - 1).ulong_z
 
-        const val CHANNEL1 = 0L
-        const val CHANNEL2 = 1L
-        const val CHANNEL3 = 2L
-        const val CHANNEL4 = 3L
-        const val CHANNEL5 = 4L
-        const val CHANNEL6 = 5L
-        const val CHANNEL7 = 6L
+        const val CHANNEL1 = 0uL
+        const val CHANNEL2 = 1uL
+        const val CHANNEL3 = 2uL
+        const val CHANNEL4 = 3uL
+        const val CHANNEL5 = 4uL
+        const val CHANNEL6 = 5uL
+        const val CHANNEL7 = 6uL
     }
 
     inner class Ports : ModulePorts(this) {
@@ -96,7 +97,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
     /**
      * DMA interrupt status register (DMA_ISR and DMA2_ISR)
      */
-    inner class DMA_ISR_REG : Register(ports.mem, 0x00, DWORD, "DMA_ISR", 0x0000_0000, writable = false, level = WARNING) {
+    inner class DMA_ISR_REG : Register(ports.mem, 0x00u, DWORD, "DMA_ISR", 0x0000_0000u, writable = false, level = WARNING) {
         val TEIF by bits(3, 7, 11, 15, 19, 23, 27)
         val HTIF by bits(2, 6, 10, 14, 18, 22, 26)
         val TCIF by bits(1, 5,  9, 13, 17, 21, 25)
@@ -106,13 +107,13 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
     /**
      * DMA interrupt flag clear register (DMA_IFCR and DMA2_IFCR)
      */
-    inner class DMA_IFCR_REG : Register(ports.mem, 0x04, DWORD, "DMA_IFCR", 0x0000_0000, readable = false, level = WARNING) {
+    inner class DMA_IFCR_REG : Register(ports.mem, 0x04u, DWORD, "DMA_IFCR", 0x0000_0000u, readable = false, level = WARNING) {
         val CTEIF by bits(3, 7, 11, 15, 19, 23, 27)
         val CHTIF by bits(2, 6, 10, 14, 18, 22, 26)
         val CTCIF by bits(1, 5,  9, 13, 17, 21, 25)
         val CGIF  by bits(0, 4,  8, 12, 16, 20, 24)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             // clear interrupts flags
             DMA_ISR.write(DMA_ISR.address, ss, size, DMA_ISR.data and value)
         }
@@ -122,7 +123,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
      * DMA channel x configuration register (DMA_CCRx and DMA2_CCRx)
      * (x = 1..7 for DMA and x = 1..5 for DMA2, where x = channel number)
      */
-    inner class DMA_CCRx_REG(ch: Int) : Register(ports.mem, ch2ea(0x08, ch), DWORD, "DMA_CCRx$ch", level = WARNING) {
+    inner class DMA_CCRx_REG(ch: Int) : Register(ports.mem, ch2ea(0x08u, ch), DWORD, "DMA_CCRx$ch", level = WARNING) {
         private val idx = ch - 1
 
         var MEM2MEM by bit(14)
@@ -138,7 +139,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
         var TCIE by bit(1)
         var EN by bit(0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             val prev = EN
             super.write(ea, ss, size, value)
             if (prev == 0 && EN == 1) {
@@ -153,7 +154,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
      * DMA2_CNDTRx) (x = 1..7 for DMA and x = 1..5 for DMA2,
      * where x = channel number)
      */
-    inner class DMA_CNDTRx_REG(ch: Int) : Register(ports.mem, ch2ea(0x0C, ch), DWORD, "DMA_CNDTRx$ch", level = WARNING) {
+    inner class DMA_CNDTRx_REG(ch: Int) : Register(ports.mem, ch2ea(0x0Cu, ch), DWORD, "DMA_CNDTRx$ch", level = WARNING) {
         var NDT by field(15..0)
     }
 
@@ -162,7 +163,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
      * DMA2_CPARx) (x = 1..7 for DMA and x = 1..5 for DMA2,
      * where x = channel number)
      */
-    inner class DMA_CPARx_REG(ch: Int) : Register(ports.mem, ch2ea(0x10, ch), DWORD, "DMA_CPARx$ch", level = WARNING) {
+    inner class DMA_CPARx_REG(ch: Int) : Register(ports.mem, ch2ea(0x10u, ch), DWORD, "DMA_CPARx$ch", level = WARNING) {
         var PA by field(31..0)
     }
 
@@ -171,7 +172,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
      * DMA2_CMARx) (x = 1..7 for DMA and x = 1..5 for DMA2,
      * where x = channel number)
      */
-    inner class DMA_CMARx_REG(ch: Int) : Register(ports.mem, ch2ea(0x14, ch), DWORD, "DMA_CMARx$ch", level = WARNING) {
+    inner class DMA_CMARx_REG(ch: Int) : Register(ports.mem, ch2ea(0x14u, ch), DWORD, "DMA_CMARx$ch", level = WARNING) {
         var MA by field(31..0)
     }
 
@@ -179,14 +180,14 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
      * DMA requests channels handler register
      */
     inner class DMA_CHx_REQ_REG(ch: Int) :
-            Register(ports.drq, ch - 1L, DWORD, "CH${ch}_REQ_REG", readable = false, level = SEVERE) {
+            Register(ports.drq, (ch - 1).ulong_z, DWORD, "CH${ch}_REQ_REG", readable = false, level = SEVERE) {
 
         private val idx = ch - 1
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) = dmaChannels[idx].hardwareRequest()
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = dmaChannels[idx].hardwareRequest()
     }
 
-    class Location(val start: Int, val size: Int, val increment: Int): Serializable {
+    class Location(val start: ULong, val size: Int, val increment: Int): Serializable {
         private fun getSize(code: Int) = when(code) {
             0b00 -> 1
             0b01 -> 2
@@ -194,17 +195,17 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
             else -> throw NotImplementedError("Unknown DMA transfer size: $code")
         }
 
-        private fun align(address: Long, size: Int): Long = (address ushr size) shl size
+        private fun align(address: ULong, size: Int) = (address ushr size) shl size
 
         fun reload() {
-            address = align(start.asULong, size)
+            address = align(start, size)
         }
 
         fun next() {
-            address += itemSize * increment
+            address += (itemSize * increment).uint
         }
 
-        var address = align(start.asULong, size)  // aligned address
+        var address = align(start, size)  // aligned address
             private set
 
         val itemSize = getSize(size)
@@ -232,7 +233,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
         private var nestedRequestCount = 0
 
         // latched start value of NDT
-        private var dmaTransferSize = 0
+        private var dmaTransferSize = 0uL
 
         private lateinit var src: Location
         private lateinit var dst: Location
@@ -243,12 +244,12 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
 
         private var dmaTransferEnabled
             get() = CCRx.EN == 1
-            set(value) { CCRx.EN = value.asInt }
+            set(value) { CCRx.EN = value.int }
 
         // Condition helpers
         private val transferError get() = false
-        private val halfTransferComplete get() = CNDTRx.NDT == dmaTransferSize / 2
-        private val transferComplete get() = CNDTRx.NDT == 0
+        private val halfTransferComplete get() = CNDTRx.NDT == dmaTransferSize / 2u
+        private val transferComplete get() = CNDTRx.NDT.untruth
 
         private val transferJustStarted get() = CNDTRx.NDT == dmaTransferSize
 
@@ -259,20 +260,20 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
 
         // Interrupt flags helpers
         private var transferErrorInterruptFlag
-            get() = DMA_ISR.TEIF[idx] == 1
-            set(value) { DMA_ISR.TEIF[idx] = value.asInt }
+            get() = DMA_ISR.TEIF[idx].truth
+            set(value) { DMA_ISR.TEIF[idx] = value.int }
 
         private var halfTransferInterruptFlag
-            get() = DMA_ISR.HTIF[idx] == 1
-            set(value) { DMA_ISR.HTIF[idx] = value.asInt }
+            get() = DMA_ISR.HTIF[idx].truth
+            set(value) { DMA_ISR.HTIF[idx] = value.int }
 
         private var transferCompleteInterruptFlag
-            get() = DMA_ISR.TCIF[idx] == 1
-            set(value) { DMA_ISR.TCIF[idx] = value.asInt }
+            get() = DMA_ISR.TCIF[idx].truth
+            set(value) { DMA_ISR.TCIF[idx] = value.int }
 
         private var globalInterruptFlag
-            get() = DMA_ISR.GIF[idx] == 1
-            set(value) { DMA_ISR.GIF[idx] = value.asInt }
+            get() = DMA_ISR.GIF[idx].truth
+            set(value) { DMA_ISR.GIF[idx] = value.int }
 
         // Process and set interrupts flags
         private fun processInterruptsFlags() {
@@ -298,7 +299,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
          */
         private fun transfer() {
             // due to possible recursion at port.io.read first decrement NDT
-            CNDTRx.NDT = CNDTRx.NDT - 1
+            CNDTRx.NDT = CNDTRx.NDT - 1u
 
             // make data exchange
             val data = ports.io.read(src.address, 0, src.itemSize)
@@ -365,16 +366,16 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
 
             if (memory2PeripheralDir) {
                 // Copy from memory to periph
-                src = Location(CMARx.MA, CCRx.MSIZE, CCRx.MINC)
-                dst = Location(CPARx.PA, CCRx.PSIZE, CCRx.PINC)
+                src = Location(CMARx.MA, CCRx.MSIZE.int, CCRx.MINC)
+                dst = Location(CPARx.PA, CCRx.PSIZE.int, CCRx.PINC)
 
                 // in this case the most probably scenario that firmware wants to send data
                 // force DMA request
                 firmwareRequest()
             } else {
                 // Copy from periph to memory
-                src = Location(CPARx.PA, CCRx.PSIZE, CCRx.PINC)
-                dst = Location(CMARx.MA, CCRx.MSIZE, CCRx.MINC)
+                src = Location(CPARx.PA, CCRx.PSIZE.int, CCRx.PINC)
+                dst = Location(CMARx.MA, CCRx.MSIZE.int, CCRx.MINC)
 
                 log.finest { "DMAC${idx}: requested = $hardwareRequestPending" }
                 if (hardwareRequestPending) hardwareRequest()
@@ -396,7 +397,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
                 } catch (error: MemoryAccessError) {
                     log.severe { "Can't access to DMA region: $error" }
                     // I think bad fate wait for me
-                    CNDTRx.NDT = CNDTRx.NDT + 1
+                    CNDTRx.NDT = CNDTRx.NDT + 1u
                 }
             }
 
@@ -423,7 +424,7 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
                     log.severe { "Can't access to DMA region: $error" }
                     hardwareRequestPending = false
                     // I think bad fate wait for me
-                    CNDTRx.NDT = CNDTRx.NDT + 1
+                    CNDTRx.NDT = CNDTRx.NDT + 1u
                 } finally {
                     nestedRequestCount--
                 }

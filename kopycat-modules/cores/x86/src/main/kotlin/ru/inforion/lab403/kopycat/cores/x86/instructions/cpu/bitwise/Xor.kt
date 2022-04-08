@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -47,7 +47,7 @@ class Xor(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
         val a1 = op1.value(core)
         val a2 = op2.value(core)
         val res = a1 xor a2
-        val result = Variable<x86Core>(0, op1.dtyp)
+        val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
         FlagProcessor.processAndOrXorTestFlag(core, result)
         op1.value(core, result)

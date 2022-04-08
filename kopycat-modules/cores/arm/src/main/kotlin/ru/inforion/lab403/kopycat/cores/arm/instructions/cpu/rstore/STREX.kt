@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,11 +30,12 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 // See A8.8.212
 class STREX(cpu: AARMCore,
-            opcode: Long,
+            opcode: ULong,
             cond: Condition,
             val rn: ARMRegister,
             val rd: ARMRegister,
@@ -49,9 +50,9 @@ class STREX(cpu: AARMCore,
         // TODO: Single core - no need
         if (/*ExclusiveMonitorsPass(address, 4)*/ true) {
             core.outl(address, rt.value(core))
-            rd.value(core,0L)
+            rd.value(core,0uL)
         }
         else
-            rd.value(core, 1L)
+            rd.value(core, 1uL)
     }
 }

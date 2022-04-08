@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import ru.inforion.lab403.common.extensions.asULong
-import ru.inforion.lab403.common.extensions.hex4
-import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.ProxyPort
 import ru.inforion.lab403.kopycat.cores.base.SlavePort
@@ -58,7 +56,11 @@ import kotlin.collections.set
  * @property module - модуль, которому принадлежит текущий класс с контейнером шин.
  * {RU}
  */
-open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
+open class ModuleBuses(val module: Module) {
+    private val container = Dictionary<String, ModuleBuses.Bus>()
+
+    operator fun get(name: String) = container[name]
+
     /**
      * {RU}
      * Класс, описывающий, с какой стороны порта к нему полключена текущая шина. Могут быть следующие варианты:
@@ -106,7 +108,7 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
      * @return шина, которая была создана при подключении
      * {RU}
      */
-    fun connect(base: APort, port: APort, offset: Long = 0): Bus {
+    fun connect(base: APort, port: APort, offset: ULong = 0u): Bus {
         ConnectionError.on(base === port) { "Connected ports are pointing to the same object!" }
 
         validatePortConnection(base)
@@ -118,14 +120,14 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
             "Connected ports ($base and $port) has different size [${base.size} != ${port.size}]!"
         }
 
-        val hasNameSimple = base.name in this
+        val hasNameSimple = base.name in container
         val name = if (hasNameSimple) "${base.name}<->${port.name}" else base.name
 
         log.fine { "Creating virtual bus to connect port $base and $port" }
 
         val bus = Bus(name, base.size)
 
-        base.connect(bus, 0)
+        base.connect(bus, 0u)
         port.connect(bus, offset)
 
         return bus
@@ -143,7 +145,7 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
      * @return массив шин [Bus], которые были созданы при подключении
      * {RU}
      */
-    fun connect(bases: Array<out APort>, ports: Array<out APort>, offset: Long = 0): Array<Bus> {
+    fun connect(bases: Array<out APort>, ports: Array<out APort>, offset: ULong = 0u): Array<Bus> {
         require(bases.size == ports.size) { "bases.size != ports.size" }
         return bases.indices.map { connect(bases[it], ports[it], offset) }.toTypedArray()
     }
@@ -154,14 +156,14 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
      * для всех шин, которые содержатся в текущем [ModuleBuses]
      * {RU}
      */
-    internal fun resolveSlaves() = values.forEach { it.cache.resolveSlaves() }
-    internal fun resolveProxies() = values.forEach { it.cache.resolveProxies() }
+    internal fun resolveSlaves() = container.values.forEach { it.cache.resolveSlaves() }
+    internal fun resolveProxies() = container.values.forEach { it.cache.resolveProxies() }
 
-    fun logMemoryMap() = values.forEach {
-        val memoryMap = it.cache.getPrintableMemoryMap()
+    fun logMemoryMap() = container.forEach { (name, bus) ->
+        val memoryMap = bus.cache.getPrintableMemoryMap()
 
         if (memoryMap.isNotBlank())
-            log.info { "Memory map for bus $it: $memoryMap" }
+            log.info { "Memory map for bus '$name' -> $bus: $memoryMap" }
     }
 
     /**
@@ -169,7 +171,7 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
      */
     internal data class Connection<T: APort>(
             val port: T,
-            val offset: Long,
+            val offset: ULong,
             val type: ConnectionType
     ): Serializable
 
@@ -184,7 +186,7 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
      * @param size размер адресного пространства каждой шины
      * {RU}
      */
-    fun buses(count: Int, prefix: String, size: Long = BUS32) = Array(count) { Bus("$prefix$it", size) }
+    fun buses(count: Int, prefix: String, size: ULong = BUS32) = Array(count) { Bus("$prefix$it", size) }
 
     class BusDefinitionError(message: String) : Exception(message)
 
@@ -197,8 +199,8 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
      * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
      * {RU}
      */
-    inner class Bus constructor(val name: String, val size: Long = BUS32): Serializable {
-        constructor(name: String, size: Int) : this(name, size.asULong)
+    inner class Bus constructor(val name: String, val size: ULong = BUS32): Serializable {
+        constructor(name: String, size: Int) : this(name, size.ulong_z)
 
         val module = this@ModuleBuses.module
 
@@ -210,7 +212,7 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
         internal val cache = BusCache(this)
 
         override fun toString(): String {
-            val size = if (size < 0xFFFF) size.hex4 else "===="
+            val size = if (size < 0xFFFFu) size.hex4 else "===="
             return "$module:$name[Bx$size]"
         }
 
@@ -240,12 +242,14 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
          * @param type тип подключения - порт может быть подключен либо с внутренней стороны, либо с внешней.
          * {RU}
          */
-        internal fun onPortConnected(port: APort, offset: Long, type: ConnectionType) {
-            log.fine { "${indent()}Connect: %-30s to %-30s at %08X as %6s".format(port, this, offset, type) }
+        internal fun onPortConnected(port: APort, offset: ULong, type: ConnectionType) {
+            log.fine { "${indent()}Connect: %-30s to %-30s at %08X as %6s".format(port, this, offset.long, type) }
 
             when (port) {
                 is ProxyPort -> {
-                    ConnectionError.on(offset != 0L) { "Proxy ports ($port) must be connected without offset (${offset.hex8})!" }
+                    ConnectionError.on(offset != 0uL) {
+                        "Proxy ports ($port) must be connected without offset (${offset.hex8})!"
+                    }
                     proxies.add(Connection(port, offset, type))
                 }
                 is MasterPort -> {
@@ -268,7 +272,7 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
          * @param offset disconnection offset
          * {EN}
          */
-        internal fun onPortDisconnect(port: APort, offset: Long) {
+        internal fun onPortDisconnect(port: APort, offset: ULong) {
             log.fine { "${indent()}Disconnect: %-30s to %-30s at %08X".format(port, this, offset) }
 
             val wasDisconnected = when (port) {
@@ -289,10 +293,10 @@ open class ModuleBuses(val module: Module): HashMap<String, ModuleBuses.Bus>() {
         }
 
         init {
-            errorIf(size <= 0) { "$this -> wrong bus size $size should be > 0" }
+            errorIf(size <= 0u) { "$this -> wrong bus size $size should be > 0" }
             errorIf(name in Module.RESERVED_NAMES) { "$this -> bad bus name '$name'" }
-            errorIf(name in this@ModuleBuses.keys) { "$this -> bus name '$name' is duplicated in module $module" }
-            this@ModuleBuses[name] = this@Bus
+            errorIf(name in container) { "$this -> bus name '$name' is duplicated in module $module" }
+            container[name] = this@Bus
         }
     }
 }

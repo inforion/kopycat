@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,17 +36,17 @@ class VirtARMSerializationTest {
     }
 
     private fun execute() {
-        val exitPoint = 0xAFFCC7C0
+        val exitPoint = 0xAFFCC7C0uL
 
         val kopycat = Kopycat(null).apply {
             val top = VirtARM(null, "top")
             setSnapshotsDirectory("temp")
-            open(top, false, null)
+            open(top, null, false)
         }
 
         kopycat.reset()
 
-        kopycat.save("VirtARMSerializationTest.zip")
+        kopycat.save("VirtARMSerializationTest")
         kopycat.run { _, core -> core.pc != exitPoint }
         assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
 
@@ -55,13 +55,13 @@ class VirtARMSerializationTest {
         kopycat.run { _, core -> core.pc != exitPoint }
         assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
 
-        kopycat.load("VirtARMSerializationTest.zip")
+        kopycat.load("VirtARMSerializationTest")
         kopycat.run { _, core -> core.pc != exitPoint }
         assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
 
-        kopycat.save("VirtARMSerializationTest_TLB.zip")
-        kopycat.load("VirtARMSerializationTest_TLB.zip")
-        kopycat.load("VirtARMSerializationTest.zip")
+        kopycat.save("VirtARMSerializationTest_TLB")
+        kopycat.load("VirtARMSerializationTest_TLB")
+        kopycat.load("VirtARMSerializationTest")
 
         kopycat.run { step, core -> core.pc != exitPoint }
         assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }

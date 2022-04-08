@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
-import ru.inforion.lab403.common.extensions.asULong
 import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -35,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.modules.BUS12
 import ru.inforion.lab403.kopycat.modules.BUS16
-import java.util.logging.Level
 import java.util.logging.Level.FINER
 
 
@@ -45,15 +45,15 @@ class SCP(parent: Module, name: String, RSTLD: Int) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mmcr = Slave("mmcr", BUS12)
-        val io = Slave("io", BUS16)
+        val mmcr = Slave("mmcr", BUS12.ulong)
+        val io = Slave("io", BUS16.ulong)
     }
 
     override val ports = Ports()
 
-    private val SYSINFO = Register(ports.mmcr, 0x0D70, Datatype.WORD, "SYSINFO", RSTLD.asULong, writable = false)
+    private val SYSINFO = Register(ports.mmcr, 0x0D70u, Datatype.WORD, "SYSINFO", RSTLD.ulong_z, writable = false)
 
-    private val RESCFG = object : Register(ports.mmcr, 0x0D72, Datatype.WORD, "RESCFG") {
+    private val RESCFG = object : Register(ports.mmcr, 0x0D72u, Datatype.WORD, "RESCFG") {
         var ICE_ON_RST by bit(3)
         var PRG_RST_ENB by bit(2)
         var GP_RST by bit(1)
@@ -66,7 +66,7 @@ class SCP(parent: Module, name: String, RSTLD: Int) : Module(parent, name) {
                 "ICE_ON_RST=$ICE_ON_RST]"
     }
 
-    private val RESSTA = object : Register(ports.mmcr, 0x0D74, Datatype.WORD, "RESSTA", 1) {
+    private val RESSTA = object : Register(ports.mmcr, 0x0D74u, Datatype.WORD, "RESSTA", 1u) {
         var SCP_RST_DET by bit(6)
         var ICE_HRST_DET by bit(5)
         var ICE_SRST_DET by bit(4)
@@ -85,7 +85,7 @@ class SCP(parent: Module, name: String, RSTLD: Int) : Module(parent, name) {
                 "SCP_RST_DET=$SCP_RST_DET]"
     }
 
-    private val SCPDATA = object : Register(ports.io, 0x0060, BYTE, "SCPDATA") {
+    private val SCPDATA = object : Register(ports.io, 0x0060u, BYTE, "SCPDATA") {
         val SCP_DATA by wfield(7..0)
         val A20G_CTL by wbit(1)
         val CPU_RST by wbit(0)
@@ -95,13 +95,13 @@ class SCP(parent: Module, name: String, RSTLD: Int) : Module(parent, name) {
                 "A20G_CTL=$A20G_CTL " +
                 "CPU_RST=$CPU_RST]"
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             log.warning { "data value=${value.hex} should go into GP port..." }
         }
     }
 
-    private val SYSCTLB = object : Register(ports.io, 0x0061, BYTE, "SYSCTLB") {
+    private val SYSCTLB = object : Register(ports.io, 0x0061u, BYTE, "SYSCTLB") {
         val PERR by rbit(7, initial = 0)
         val IOCHCK by rbit(6, initial = 0)
         val PITOUT2_STA by rbit(5, initial = 1)
@@ -117,12 +117,12 @@ class SCP(parent: Module, name: String, RSTLD: Int) : Module(parent, name) {
                 "PIT_GATE2=$PIT_GATE2"
     }
 
-    private val SCPCMD = object : Register(ports.io, 0x0064, BYTE, "SCPCMD") {
+    private val SCPCMD = object : Register(ports.io, 0x0064u, BYTE, "SCPCMD") {
         val SCP_CMD by wfield(7..0)
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            if (SCP_CMD == 0xFE) {
+            if (SCP_CMD == 0xFEuL) {
                 log.severe { "Device want reboot... something definitely goes wrong!" }
                 if (core.isDebuggerPresent)
                     core.debugger.isRunning = false
@@ -130,14 +130,14 @@ class SCP(parent: Module, name: String, RSTLD: Int) : Module(parent, name) {
         }
     }
 
-    private val SYSCTLA = object : Register(ports.io, 0x0092, BYTE, "SYSCTLA") {
+    private val SYSCTLA = object : Register(ports.io, 0x0092u, BYTE, "SYSCTLA") {
         val Reserved by reserved(7..2)
         val A20G_CTL by rwbit(1)
         val CPU_RST by rwbit(0)
 
         override fun stringify() = "${super.stringify()} [A20G_CTL=$A20G_CTL CPU_RST=$CPU_RST]"
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
             if (CPU_RST == 1) {
                 log.severe { "SYSCTLA reset signal received" }

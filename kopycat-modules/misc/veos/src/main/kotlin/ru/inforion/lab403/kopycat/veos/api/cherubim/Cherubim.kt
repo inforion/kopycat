@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.cherubim
 
-import ru.inforion.lab403.common.extensions.asInt
-import ru.inforion.lab403.common.extensions.asULong
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
 import java.util.concurrent.LinkedBlockingQueue
@@ -34,23 +34,23 @@ import java.util.concurrent.LinkedBlockingQueue
 /**
  * Two threads divides single execution time
  */
-class Cherubim(val os: VEOS<*>, vararg val arguments: Long) {
-    val toInterrupted = LinkedBlockingQueue<Long>()
+class Cherubim(val os: VEOS<*>, vararg val arguments: ULong) {
+    val toInterrupted = LinkedBlockingQueue<ULong>()
     val fromInterrupted = LinkedBlockingQueue<APIResult>()
 
-    fun interrupt(address: Long, vararg args: Long): Long {
+    fun interrupt(address: ULong, vararg args: ULong): ULong {
         os.abi.push(os.abi.programCounterValue)
         os.abi.push(os.abi.returnAddressValue)
         arguments.forEach { os.abi.push(it) }
-        os.abi.push(arguments.size.asULong)
+        os.abi.push(arguments.size.ulong_z)
 
         val stackPointer = os.abi.stackPointerValue
 
         os.abi.setArgs(args.toTypedArray(), true)
 
         val stackDifference = os.abi.stackPointerValue - stackPointer
-        check(stackDifference.asInt % os.sys.sizeOf.int == 0) { "Not word-aligned stack" }
-        val stackArgCount = stackDifference.asInt / os.sys.sizeOf.int
+        check(stackDifference.int % os.sys.sizeOf.int == 0) { "Not word-aligned stack" }
+        val stackArgCount = stackDifference.int / os.sys.sizeOf.int
 
         os.abi.returnAddressValue = os.sys.restoratorAddress[stackArgCount]
 

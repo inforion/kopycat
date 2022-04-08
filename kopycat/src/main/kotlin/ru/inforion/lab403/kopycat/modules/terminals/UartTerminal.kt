@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -23,14 +23,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
+@file:Suppress("unused", "MemberVisibilityCanBePrivate")
+
 package ru.inforion.lab403.kopycat.modules.terminals
 
-import ru.inforion.lab403.common.extensions.asByte
-import ru.inforion.lab403.common.extensions.asULong
-import ru.inforion.lab403.common.extensions.hex2
-import ru.inforion.lab403.common.extensions.toLong
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.iobuffer.BlockingCircularBytesIO
+import ru.inforion.lab403.common.iobuffer.isEmpty
+import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.lazyTransient
+import ru.inforion.lab403.common.utils.lazyTransient
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ATerminal
@@ -43,8 +45,6 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareNotReadyException
 import ru.inforion.lab403.kopycat.modules.*
 import java.io.Serializable
-import java.util.concurrent.LinkedBlockingQueue
-import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 /**
@@ -62,14 +62,17 @@ import kotlin.concurrent.thread
  *  {RU}
  */
 open class UartTerminal(
-        parent: Module,
-        name: String,
-        val receiveBufferSize: Int = 1024,
-        val transmitBufferSize: Int = 1024
+    parent: Module,
+    name: String,
+    val receiveBufferSize: Int = 1024,
+    val transmitBufferSize: Int = 1024
 ) : ATerminal(parent, name) {
 
     companion object {
         @Transient val log = logger()
+
+        const val transmitterTimeout: Long = 10  // ms
+        const val ioRegisterTimeout: Long = 10  // ms
     }
 
     inner class Ports : ModulePorts(this) {
@@ -93,12 +96,12 @@ open class UartTerminal(
     /**
      * {RU}Сообщение мастеру о том, что данные были приняты из оконечного устройства{RU}
      */
-    private fun dataReceivedRequest() = ports.term_m.write(UART_SLAVE_BUS_REQUEST, UART_SLAVE_DATA_RECEIVED, 1, 1)
+    private fun dataReceivedRequest() = ports.term_m.write(UART_SLAVE_BUS_REQUEST, UART_SLAVE_DATA_RECEIVED, 1, 1u)
 
     /**
      * {RU}Сообщение мастеру о том, что данные были пересланы терминалом в оконечное устройство{RU}
      */
-    private fun dataTransmittedRequest() = ports.term_m.write(UART_SLAVE_BUS_REQUEST, UART_SLAVE_DATA_TRANSMITTED, 1, 1)
+    private fun dataTransmittedRequest() = ports.term_m.write(UART_SLAVE_BUS_REQUEST, UART_SLAVE_DATA_TRANSMITTED, 1, 1u)
 
     private class LoggingBuffer(val name: String, val postfix: String): Serializable {
         private var buffer = StringBuffer()
@@ -106,7 +109,7 @@ open class UartTerminal(
         fun message(string: String) = log.info { "UART[$name] $postfix: $string" }
 
         fun add(byte: Byte) {
-            val ch = byte.toChar()
+            val ch = byte.char
             if (ch == '\r' || ch == '\n') {
                 if (buffer.isNotBlank()) {
                     message(buffer.toString())
@@ -124,29 +127,29 @@ open class UartTerminal(
         private val logBufferTx = LoggingBuffer(name, "send")
         private val logBufferRx = LoggingBuffer(name, "recv")
 
-        override fun beforeRead(from: MasterPort, ea: Long) = terminalReceiveEnabled
-        override fun beforeWrite(from: MasterPort, ea: Long, value: Long) = terminalTransmitEnabled
+        override fun beforeRead(from: MasterPort, ea: ULong) = terminalReceiveEnabled
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = terminalTransmitEnabled
 
-        override fun read(ea: Long, ss: Int, size: Int): Long {
-            val byte = rxBuffer.poll(10, TimeUnit.MILLISECONDS)
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            val byte = rxBuffer.poll(1, ioRegisterTimeout).firstOrNull()
                     ?: throw HardwareNotReadyException(core.pc, "UART[$name] reading empty UART -> rxBuffer underflow")
 
-            log.finest { "UART[$name] receive byte ${byte.toChar()}[${byte.hex2}]" }
+            log.finest { "UART[$name] receive byte ${byte.char}[${byte.hex2}]" }
 
             logBufferRx.add(byte)
 
             if (!rxUnderflow)
                 dataReceivedRequest()
 
-            return byte.asULong
+            return byte.ulong_z
         }
 
-        override fun write(ea: Long, ss: Int, size: Int, value: Long) {
-            logBufferTx.add(value.asByte)
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            logBufferTx.add(value.byte)
 
-            log.finest { "UART[$name] transmit bytes ${value.toChar()}[${value.hex2}]" }
+            log.finest { "UART[$name] transmit bytes ${value.char}[${value.hex2}]" }
 
-            if (!txBuffer.offer(value.asByte, 10, TimeUnit.MILLISECONDS))
+            if (txBuffer.offer(byteArrayOf(value.byte), timeout = ioRegisterTimeout) != 1)
                 throw HardwareNotReadyException(core.pc, "UART[$name] writing full UART -> txBuffer overflow")
 
             dataTransmittedRequest()
@@ -160,12 +163,12 @@ open class UartTerminal(
     }
 
     private val REG_UART_PARAM = object : Register(ports.term_s, UART_MASTER_BUS_PARAM, DWORD, "REG_UART_PARAM") {
-        override fun read(ea: Long, ss: Int, size: Int) = when (ss) {
-            UART_MASTER_ENABLE -> uartTerminalEnabled.toLong()
-            UART_MASTER_RX_ENABLE -> terminalReceiveEnabled.toLong()
-            UART_MASTER_TX_ENABLE -> terminalTransmitEnabled.toLong()
-            UART_MASTER_RX_UNDERFLOW -> rxUnderflow.toLong()
-            UART_MASTER_TX_OVERFLOW -> txOverflow.toLong()
+        override fun read(ea: ULong, ss: Int, size: Int) = when (ss) {
+            UART_MASTER_ENABLE -> uartTerminalEnabled.ulong
+            UART_MASTER_RX_ENABLE -> terminalReceiveEnabled.ulong
+            UART_MASTER_TX_ENABLE -> terminalTransmitEnabled.ulong
+            UART_MASTER_RX_UNDERFLOW -> rxUnderflow.ulong
+            UART_MASTER_TX_OVERFLOW -> txOverflow.ulong
             else -> throw GeneralException("Unknown UART[$name] parameter requested: $ss")
         }
     }
@@ -187,27 +190,28 @@ open class UartTerminal(
         uartTerminalEnabled = false
         terminalReceiveEnabled = false
         terminalTransmitEnabled = false
-        log.config { "Waiting for UART $tx thread stop..." }
-        tx.join()
+        // don't wait while thread closed due to high performance degradation
     }
 
-    private fun getBlockingQueue(size: Int) = if (size < 0) LinkedBlockingQueue<Byte>(size) else LinkedBlockingQueue()
-
-    private val rxBuffer = getBlockingQueue(receiveBufferSize)
-    private val txBuffer = getBlockingQueue(transmitBufferSize)
+    private val rxBuffer = BlockingCircularBytesIO(receiveBufferSize)
+    private val txBuffer = BlockingCircularBytesIO(transmitBufferSize)
 
     // thread start in initialize() section, this required to workaround binary serialization issue
     private val tx by lazyTransient {
         log.config { "Create transmitter UART terminal thread: '$this'" }
         thread(start = false, name = "$this") {
             runCatching {
-                while (uartTerminalEnabled and terminalTransmitEnabled) {
-                    val byte = txBuffer.poll(1000, TimeUnit.MILLISECONDS)
-                    if (byte != null) onByteTransmitReady(byte)
+                while (uartTerminalEnabled && terminalTransmitEnabled) {
+                    txBuffer
+                        .poll(1, transmitterTimeout)
+                        .firstOrNull()
+                        .ifItNotNull {
+                            onByteTransmitReady(it)
+                        }
                 }
                 log.finer { "$this finished main loop" }
             }.onFailure {
-                log.severe { it.stackTraceToString() }
+                it.logStackTrace(log)
             }
         }
     }
@@ -219,13 +223,13 @@ open class UartTerminal(
         protected set
 
     /**
-     * {RU}Переменная указывает могут приниматься данные через терминал UART{RU}
+     * {RU}Переменная указывает, что могут приниматься данные через терминал UART{RU}
      */
     var terminalReceiveEnabled = true
         protected set
 
     /**
-     * {RU}Переменная указывает могут передаваться данные через терминал UART{RU}
+     * {RU}Переменная указывает, что могут передаваться данные через терминал UART{RU}
      */
     var terminalTransmitEnabled = true
         protected set
@@ -233,19 +237,19 @@ open class UartTerminal(
     /**
      * {RU}Свойство возвращает false, если в буфере приема есть данные{RU}
      */
-    val rxUnderflow get() = rxBuffer.size == 0
+    val rxUnderflow get() = rxBuffer.readAvailable == 0
 
     /**
      * {RU}Свойство возвращает true, если буфер отправки переполнен{RU}
      */
-    val txOverflow get() = txBuffer.remainingCapacity() == 0
+    val txOverflow get() = txBuffer.writeAvailable == 0
 
     /**
      * {RU}
      * Обработчик, вызываемый когда в буфере передачи данных есть данные,
      * которые должны быть отправлены в оконечное устройство (файл и т.п.)
      *
-     * В данном обработчике должна быть реализована непосредствена отправка данных.
+     * В данном обработчике должна быть реализована непосредственна отправка данных.
      *
      * @param byte байт данных для отправки в оконечное устройство или файл
      * {RU}
@@ -260,9 +264,18 @@ open class UartTerminal(
      * {RU}
      */
     fun write(byte: Byte) {
-        rxBuffer.put(byte)
+        rxBuffer.put(byteArrayOf(byte))
         dataReceivedRequest()
     }
+
+    /**
+     * {RU}
+     * Функция должна быть вызвана, когда был получен байт данных от оконечного устройства
+     *
+     * @param char символ данных полученный от оконечного устройства
+     * {RU}
+     */
+    fun write(char: Char) = write(char.byte)
 
     /**
      * {EN}
@@ -274,7 +287,7 @@ open class UartTerminal(
      * {EN}
      */
     fun write(string: String) {
-        string.forEach { rxBuffer.put(it.asByte) }
+        rxBuffer.put(string.bytes)
         dataReceivedRequest()
     }
 
@@ -288,12 +301,9 @@ open class UartTerminal(
      * {EN}
      */
     fun write(bytes: ByteArray) {
-        bytes.forEach { rxBuffer.put(it) }
+        rxBuffer.put(bytes)
         dataReceivedRequest()
     }
-
-    private fun LinkedBlockingQueue<Byte>.read() = takeWhile { isNotEmpty() }.toByteArray()
-    private fun LinkedBlockingQueue<Byte>.write(bytes: ByteArray) = bytes.forEach { put(it) }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
         require(rxBuffer.isEmpty()) { "Can't serialize UartTerminal if any data not flushed!" }

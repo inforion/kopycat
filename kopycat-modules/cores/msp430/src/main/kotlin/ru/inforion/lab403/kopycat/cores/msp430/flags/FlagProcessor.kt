@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.msp430.flags
 
-import ru.inforion.lab403.common.extensions.toBool
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.msp430.MSP430Operand
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
@@ -43,14 +43,14 @@ object FlagProcessor {
     }
 
     inline fun processLogicalFlag(core: MSP430Core, result : Variable<MSP430Core>) {
-        core.cpu.flags.n = result.msb(core).toBool()
+        core.cpu.flags.n = result.msb(core).truth
         core.cpu.flags.z = result.isZero(core)
         core.cpu.flags.c = result.isNotZero(core)
         core.cpu.flags.v = false
     }
 
     inline fun processXorFlag(core: MSP430Core, result : Variable<MSP430Core>, op1 : MSP430Operand, op2 : MSP430Operand) {
-        core.cpu.flags.n = result.msb(core).toBool()
+        core.cpu.flags.n = result.msb(core).truth
         core.cpu.flags.z = result.isZero(core)
         core.cpu.flags.c = result.isNotZero(core)
         core.cpu.flags.v = op1.isNegative(core) and op2.isNegative(core)
@@ -64,7 +64,7 @@ object FlagProcessor {
     }
 
     inline fun processDaddFlag(core: MSP430Core, result : Variable<MSP430Core>, carry : Boolean) {
-        core.cpu.flags.n = result.msb(core).toBool()
+        core.cpu.flags.n = result.msb(core).truth
         core.cpu.flags.z = result.isZero(core)
         core.cpu.flags.c = carry
     }

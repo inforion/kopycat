@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,11 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.instructions.cpu.base.loadInt
 
-import ru.inforion.lab403.common.extensions.usext
+import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.instructions.APPCInstruction
 import ru.inforion.lab403.kopycat.cores.ppc.operands.PPCRegister
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 
@@ -47,7 +49,7 @@ class lhaux(core: PPCCore, val fieldA: Int, val fieldB: Int, val fieldC: Int, va
             throw GeneralException("Forbidden combination")
 
         val ea = ra.value(core) + rb.value(core)
-        val mem = core.inw(ea).usext(15)
+        val mem = core.inw(ea).signextRenameMeAfter(15)
         rt.value(core, mem)
         ra.value(core, ea)
     }

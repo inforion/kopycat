@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -37,7 +37,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * SWC2 ft, offset(base)
  */
 class swc2(core: MipsCore,
-           data: Long,
+           data: ULong,
            ct: MipsRegister,
            off: MipsDisplacement) : FtOffsetInsn(core, data, Type.VOID, ct, off) {
 

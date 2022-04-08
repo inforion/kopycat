@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,69 +25,173 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.hardware.registers
 
-import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBank
-import ru.inforion.lab403.kopycat.cores.x86.enums.FR
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
+import ru.inforion.lab403.common.extensions.clr
+import ru.inforion.lab403.common.extensions.inv
+import ru.inforion.lab403.common.extensions.ubitMask64
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.base.like
+import ru.inforion.lab403.kopycat.cores.x86.config.Generation
+import ru.inforion.lab403.kopycat.cores.x86.enums.Flags
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
 
-class FLBank(core: x86Core) : ARegistersBank<x86Core, FR>(core, FR.values(), bits = 32) {
-    override val name: String = "Flags Register"
+class FLBank(val core: x86Core) : ARegistersBankNG<x86Core>("Flags Register", 3, 32) {
 
-    var eflags: Long
-        get() = x86Register.eflags.value(core)
-        set(value) = x86Register.eflags.value(core, value)
+    open inner class EFlagsRegister(name: String, id: Int) : Register(name, id) {
 
-    var iopl: Int
-        get() = x86Register.eflags.iopl(core)
-        set(value) = x86Register.eflags.iopl(core, value)
+        var cf by bitOf(0, track = core)
+        var pf by bitOf(2, track = core)
+        var af by bitOf(4, track = core)
+        var zf by bitOf(6, track = core)
+        var sf by bitOf(7, track = core)
+        var tf by bitOf(8)
+        var ifq by bitOf(9)
+        var df by bitOf(10)
+        var of by bitOf(11, track = core)
+        var iopl by fieldOf(13..12)
+        var nt by bitOf(14)
 
-    var ac: Boolean
-        get() = x86Register.eflags.ac(core)
-        set(value) = x86Register.eflags.ac(core, value)
-    var rf: Boolean
-        get() = x86Register.eflags.rf(core)
-        set(value) = x86Register.eflags.rf(core, value)
-    var vm: Boolean
-        get() = x86Register.eflags.vm(core)
-        set(value) = x86Register.eflags.vm(core, value)
-    var vif: Boolean
-        get() = x86Register.eflags.vif(core)
-        set(value) = x86Register.eflags.vif(core, value)
-    var vip: Boolean
-        get() = x86Register.eflags.vip(core)
-        set(value) = x86Register.eflags.vip(core, value)
-    var id: Boolean
-        get() = x86Register.eflags.id(core)
-        set(value) = x86Register.eflags.id(core, value)
+        var rf by bitOf(16)
+        var vm by bitOf(17)
+        var ac by bitOf(18)
+        var vif by bitOf(19)
+        var vip by bitOf(20)
+        var idq by bitOf(21)
+
+        protected fun flagProcess(core: x86Core, data: ULong): ULong {
+            var tmp = data
+//            if (core.generation == Generation.Atom) {
+//                tmp = tmp.clr(Flags.RF.bit)
+//                    .insert(vm, Flags.VM.bit)
+//                    .insert(vip, Flags.VIP.bit)
+//                    .insert(vif, Flags.VIF.bit)
+//            }
+//            else {
+                if (core.generation < Generation.i286)
+                    tmp = tmp clr Flags.IOPLH.bit..Flags.IOPLL.bit
+                if (core.generation < Generation.i386) {
+                    tmp = tmp clr Flags.RF.bit
+                    tmp = tmp clr Flags.VM.bit
+                }
+                if (core.generation < Generation.i486)
+                    tmp = tmp clr Flags.AC.bit
+                if (core.generation < Generation.Pentium) {
+                    //                TODO: Solve this mess flags!
+                    //                tmp = tmp clr VIF.bit
+                    //                tmp = tmp clr VIP.bit
+                    tmp = tmp clr Flags.ID.bit
+                }
+//            }
+            return tmp
+        }
+
+        override var value: ULong
+            get() = flagProcess(core, read(0) like dtype)
+            set(value) { write(0, flagProcess(core, value) like dtype) }
+    }
 
 
-    var cf: Boolean
-        get() = x86Register.eflags.cf(core)
-        set(value) = x86Register.eflags.cf(core, value)
-    var pf: Boolean
-        get() = x86Register.eflags.pf(core)
-        set(value) = x86Register.eflags.pf(core, value)
-    var af: Boolean
-        get() = x86Register.eflags.af(core)
-        set(value) = x86Register.eflags.af(core, value)
-    var zf: Boolean
-        get() = x86Register.eflags.zf(core)
-        set(value) = x86Register.eflags.zf(core, value)
-    var sf: Boolean
-        get() = x86Register.eflags.sf(core)
-        set(value) = x86Register.eflags.sf(core, value)
-    var tf: Boolean
-        get() = x86Register.eflags.tf(core)
-        set(value) = x86Register.eflags.tf(core, value)
-    var ifq: Boolean
-        get() = x86Register.eflags.ifq(core)
-        set(value) = x86Register.eflags.ifq(core, value)
-    var df: Boolean
-        get() = x86Register.eflags.df(core)
-        set(value) = x86Register.eflags.df(core, value)
-    var of: Boolean
-        get() = x86Register.eflags.of(core)
-        set(value) = x86Register.eflags.of(core, value)
+
+    inner class FlagsRegister(name: String, id: Int) : EFlagsRegister(name, id) {
+
+        private val highBits get() = read(0) and inv(ubitMask64(32))
+
+        override var value: ULong
+            get() = flagProcess(core, read(0) like Datatype.WORD)
+            set(value) { write(0, flagProcess(core, highBits or (value like Datatype.WORD)) ) }
+
+    }
+
+//
+//    open inner class XFlagsRegister(name: String, id: Int, dtype: Datatype) : Register(name, id, dtype = dtype) {
+//
+//        private fun flagProcess(core: x86Core, data: ULong): ULong {
+//            var tmp = data
+//            if (core.generation == Generation.Atom) {
+//                tmp = tmp.clr(Flags.RF.bit)
+//                    .insert(vm, Flags.VM.bit)
+//                    .insert(vip, Flags.VIP.bit)
+//                    .insert(vif, Flags.VIF.bit)
+//            }
+//            else {
+//                if (core.generation < Generation.i286)
+//                    tmp = tmp clr Flags.IOPLH.bit..Flags.IOPLL.bit
+//                if (core.generation < Generation.i386) {
+//                    tmp = tmp clr Flags.RF.bit
+//                    tmp = tmp clr Flags.VM.bit
+//                }
+//                if (core.generation < Generation.i486)
+//                    tmp = tmp clr Flags.AC.bit
+//                if (core.generation < Generation.Pentium) {
+//    //                TODO: Solve this mess flags!
+//    //                tmp = tmp clr VIF.bit
+//    //                tmp = tmp clr VIP.bit
+//                    tmp = tmp clr Flags.ID.bit
+//                }
+//            }
+//            return tmp
+//        }
+//
+//        override var value: ULong
+//            get() = flagProcess(core, read(0) like dtype)
+//            set(value) { write(0, flagProcess(core, value) like dtype) }
+//    }
+//
+//    inner class XEFlagsRegister(name: String, id: Int, dtyp: Datatype) : XFlagsRegister(name, id, dtyp) {
+//
+//        var cf by bitOf(0)
+//        var pf by bitOf(2)
+//        var af by bitOf(4)
+//        var zf by bitOf(6)
+//        var sf by bitOf(7)
+//        var tf by bitOf(8)
+//        var ifq by bitOf(9)
+//        var df by bitOf(10)
+//        var of by bitOf(11)
+//        var iopl by fieldOf(13..12)
+//        var nt by bitOf(14)
+//        var rf by bitOf(16)
+//        var vm by bitOf(17)
+//        var ac by bitOf(18)
+//        var vif by bitOf(19)
+//        var vip by bitOf(20)
+//        var idq by bitOf(21)
+//    }
+//
+    private val flagsRegister = Register("flagsRegister", 0)
+
+    val eflags = EFlagsRegister("eflags", 1)//XEFlagsRegister("eflags", 2, Datatype.DWORD)
+    val flags = FlagsRegister("flags", 2) //XFlagsRegister("flags", 1, Datatype.WORD)
+    // 3.4.3.4 RFLAGS Register in 64-Bit Mode
+    // In 64-bit mode, EFLAGS is extended to 64 bits and called RFLAGS. The upper 32 bits of RFLAGS register is
+    // reserved. The lower 32 bits of RFLAGS is the same as EFLAGS.
+    // So use eflags instead
+
+    fun flags(dtype: Datatype) = when(dtype) {
+        Datatype.WORD -> flags
+        Datatype.DWORD, Datatype.QWORD -> eflags
+        else -> throw GeneralException("Unknown datatype: $dtype")
+    }
+
+    var cf      get() = eflags.cf  ; set(value) { eflags.cf   = value }
+    var pf      get() = eflags.pf  ; set(value) { eflags.pf   = value }
+    var af      get() = eflags.af  ; set(value) { eflags.af   = value }
+    var zf      get() = eflags.zf  ; set(value) { eflags.zf   = value }
+    var sf      get() = eflags.sf  ; set(value) { eflags.sf   = value }
+    var tf      get() = eflags.tf  ; set(value) { eflags.tf   = value }
+    var ifq     get() = eflags.ifq ; set(value) { eflags.ifq  = value }
+    var df      get() = eflags.df  ; set(value) { eflags.df   = value }
+    var of      get() = eflags.of  ; set(value) { eflags.of   = value }
+    var iopl    get() = eflags.iopl; set(value) { eflags.iopl = value }
+    var nt      get() = eflags.nt  ; set(value) { eflags.nt   = value }
+    var rf      get() = eflags.rf  ; set(value) { eflags.rf   = value }
+    var vm      get() = eflags.vm  ; set(value) { eflags.vm   = value }
+    var ac      get() = eflags.ac  ; set(value) { eflags.ac   = value }
+    var vif     get() = eflags.vif ; set(value) { eflags.vif  = value }
+    var vip     get() = eflags.vip ; set(value) { eflags.vip  = value }
+    var idq     get() = eflags.idq ; set(value) { eflags.idq  = value }
+
 }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.v850es.instructions.cpu.bitman
 
-import ru.inforion.lab403.common.extensions.asInt
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.toggle
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
@@ -47,7 +47,7 @@ class Not1(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>):
     // Format VIII - disp, bit
     // Format IX - reg1, reg2
     override fun execute() {
-        val bit = op2.bits(core,2..0).asInt
+        val bit = op2.bits(core,2..0).int
         val value = op1.value(core)
         result.value(core, value toggle bit)
         FlagProcessor.processBitManFlag(core, result, op1, op2)

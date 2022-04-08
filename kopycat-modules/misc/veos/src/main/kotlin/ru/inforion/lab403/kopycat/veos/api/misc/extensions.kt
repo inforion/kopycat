@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -34,7 +34,7 @@ import ru.inforion.lab403.kopycat.veos.exceptions.io.*
 import ru.inforion.lab403.kopycat.veos.ports.posix.PosixError
 
 // TODO: sort by posix error
-fun Exception.toStdCErrno(where: Long) = when (this) {
+fun Exception.toStdCErrno(where: ULong) = when (this) {
     // If we got memory access error, then throw it because it is not usual for normal programs
     is MemoryAccessError -> throw this // PosixError.EFAULT
     is BadAddressException -> PosixError.EFAULT

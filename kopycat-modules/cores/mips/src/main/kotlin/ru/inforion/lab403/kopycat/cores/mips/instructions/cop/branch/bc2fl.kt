@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.branch
 
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.UnsupportedInstructionException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.CcOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -39,7 +38,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class bc2fl(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         cc: MipsImmediate,
         off: MipsNear) : CcOffsetInsn(core, data, Type.VOID, cc, off) {
 

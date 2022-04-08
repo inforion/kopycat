@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,18 +27,19 @@ package ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.support
 
 import ru.inforion.lab403.common.extensions.clr
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.inv
 import ru.inforion.lab403.common.extensions.set
 
-class Mask private constructor(val pandm: Long, val porm: Long /*, val mandm: Long, val morm: Long*/) {
+class Mask private constructor(val pandm: ULong, val porm: ULong /*, val mandm: ULong, val morm: ULong*/) {
     companion object {
         private fun preprocess(raw: String): String = raw.filter { it.isDigit() || it == 'x' }.reversed()
 
-        private fun m0(raw: String, offset: Int): Long =
-                preprocess(raw).foldIndexed(0x0000_0000L) { k, r, c ->
+        private fun m0(raw: String, offset: Int): ULong =
+                preprocess(raw).foldIndexed(0x0000_0000uL) { k, r, c ->
                     if (c == '1') r set (k + offset) else r }
 
-        private fun m1(raw: String, offset: Int): Long =
-                preprocess(raw).foldIndexed(0xFFFF_FFFFL) { k, r, c ->
+        private fun m1(raw: String, offset: Int): ULong =
+                preprocess(raw).foldIndexed(0xFFFF_FFFFuL) { k, r, c ->
                     if (c == '0') r clr (k + offset) else r }
 
         private fun getPosPart(raw: String): String {
@@ -53,7 +54,7 @@ class Mask private constructor(val pandm: Long, val porm: Long /*, val mandm: Lo
             return if (result != missingDelimiterValue) result.trim() else ""
         }
 
-        private fun getRaw(andm: Long, orm: Long): String {
+        private fun getRaw(andm: ULong, orm: ULong): String {
             return (31 downTo 0).joinToString("") { k ->
                 val b1 = andm[k]
                 val b2 = orm[k]
@@ -65,8 +66,8 @@ class Mask private constructor(val pandm: Long, val porm: Long /*, val mandm: Lo
             val pos = getPosPart(raw)
             val neg = getNegPart(raw)
 
-            var m0p = 0x0000_0000L
-            var m1p = 0xFFFF_FFFFL
+            var m0p = 0x0000_0000uL
+            var m1p = 0xFFFF_FFFFuL
             if (!pos.isBlank() && pos != "-" && pos.any { it != 'x' }) {
                 m0p = m0(pos, offset)
                 m1p = m1(pos, offset)
@@ -116,17 +117,17 @@ class Mask private constructor(val pandm: Long, val porm: Long /*, val mandm: Lo
     //private val me = "${getRaw(pandm, porm)}|${getRaw(mandm, morm)}"
 
     private constructor() : this(
-            0x0000_0000,
-            0xFFFF_FFFF /*,
+            0x0000_0000u,
+            0xFFFF_FFFFu /*,
             0xFFFF_FFFF,
             0x0000_0000*/)
 
-    fun suit(value: Long): Boolean =
+    fun suit(value: ULong): Boolean =
             ((value and pandm == pandm) && (value or porm == porm)) /*&&
                     ((value and mandm == mandm) && (value or morm == morm)).not()*/
 
     //fun isNegEmpty(): Boolean = mandm == 0xFFFF_FFFFL && morm == 0x0000_0000L
-    fun isPosEmpty(): Boolean = pandm == 0x0000_0000L && porm == 0xFFFF_FFFFL
+    fun isPosEmpty(): Boolean = pandm == 0x0000_0000uL && porm == 0xFFFF_FFFFuL
     fun isEmpty(): Boolean = isPosEmpty() //&& isNegEmpty()
 
 
@@ -138,13 +139,13 @@ class Mask private constructor(val pandm: Long, val porm: Long /*, val mandm: Lo
     fun intersect(other: Mask): Boolean {
         val nPandm = pandm or other.pandm
         val nPorm = porm and other.porm
-        return ((nPandm and nPorm.inv()) == 0L)
+        return (nPandm and inv(nPorm)) == 0uL
     }
 
     //Оператор плюс, так-то, делает то же самое, что и intersect, но возвращает маскуы
     operator fun plus(other: Mask): Mask {
-        //val nMandm: Long
-        //val nMorm: Long
+        //val nMandm: ULong
+        //val nMorm: ULong
 
 
         val nPandm = pandm or other.pandm

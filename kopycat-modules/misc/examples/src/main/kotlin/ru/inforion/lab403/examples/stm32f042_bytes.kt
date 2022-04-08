@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -65,7 +65,7 @@ object stm32f042_bytes {
         top.initializeAndResetAsTopInstance()
 
         // start GDB server on port 23946
-        val gdb = GDBServer(23946, true, binaryProtoEnabled = false)
+        val gdb = GDBServer(23946)
 
         // connect GDB and device debugger
         gdb.debuggerModule(top.debugger)

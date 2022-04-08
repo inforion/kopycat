@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.stack
 
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
@@ -36,12 +38,10 @@ class Leave(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         AX86Instruction(core, Type.VOID, opcode, prefs) {
     override val mnem = "leave"
 
-    override fun execute() {
-        if (prefs.is16BitAddressMode) core.cpu.regs.sp = core.cpu.regs.bp else core.cpu.regs.esp = core.cpu.regs.ebp
+    fun gpr(id: x86GPR, dtype: Datatype) = core.cpu.regs.gpr(id, dtype)
 
-        if(prefs.is16BitOperandMode)
-            core.cpu.regs.bp = x86utils.pop(core, prefs.opsize, prefs)
-        else
-            core.cpu.regs.ebp = x86utils.pop(core, prefs.opsize, prefs)
+    override fun execute() {
+        gpr(x86GPR.RSP, prefs.addrsize).value = gpr(x86GPR.RBP, prefs.addrsize).value
+        gpr(x86GPR.RBP, prefs.opsize).value = x86utils.pop(core, prefs.opsize, prefs)
     }
 }

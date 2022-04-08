@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,10 @@
  */
 package ru.inforion.lab403.elfloader.tables
 
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.inv
+import ru.inforion.lab403.common.extensions.uint_s
+import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.elfloader.assertMajorBit
 import java.nio.ByteBuffer
 
@@ -38,17 +42,16 @@ class ElfHashTable(input: ByteBuffer, offset: Int) : IHashTable {
     val chains: Array<Int>
 
     fun elfHash(name: String): Int {
-        var h = 0
-        var g: Int
-//        for (i in name) {
-        name.forEach {i ->
-            h = (h shl 4) + i.toInt()
-            g = h and 0xf0000000.toInt()
-            if (g != 0)
+        var h = 0u
+        var g: UInt
+        name.forEach { i ->
+            h = (h shl 4) + i.uint_s
+            g = h and 0xf0000000u
+            if (g != 0u)
                 h = h xor (g ushr 24)
-            h = h and g.inv()
+            h = h and inv(g)
         }
-        return h
+        return h.int
     }
 
     init {
@@ -57,8 +60,6 @@ class ElfHashTable(input: ByteBuffer, offset: Int) : IHashTable {
         nbucket = input.int
         nchain = input.int
 
-        //Overflow assertions...
-        //Yeah, still love JVM
         assertMajorBit(nbucket)
         assertMajorBit(nchain)
 

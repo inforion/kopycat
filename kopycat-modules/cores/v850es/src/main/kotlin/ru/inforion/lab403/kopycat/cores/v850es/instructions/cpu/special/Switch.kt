@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.v850es.instructions.cpu.special
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.v850es.instructions.AV850ESInstruction
@@ -40,11 +41,10 @@ class Switch(core: v850ESCore, size: Int, vararg operands: AOperand<v850ESCore>)
     // Format I - reg1, reg2
     override fun execute() {
         // insnSize add in CPU execute
-        val pc = core.cpu.regs.pc + size
+        val pc = core.cpu.regs.pc + size.uint
         val adr = pc + (op1.value(core) shl 1)
         val memory = v850esMemory(Datatype.WORD, adr)
-
-        val result = memory.ssext(core) shl 1
-        core.cpu.regs.pc = pc + result - size
+        val result = memory.usext(core) shl 1
+        core.cpu.regs.pc = pc + result - size.uint
     }
 }

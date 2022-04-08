@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc
 
-import gnu.trove.map.hash.THashMap
+import ru.inforion.lab403.common.extensions.dictionary
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
@@ -39,7 +39,7 @@ import java.util.logging.Level
 
 abstract class APPCSystemDecoder(val core: PPCCore) : ICoreUnit {
 
-    private val cache = THashMap<Long, APPCInstruction>(1024 * 1024)
+    private val cache = dictionary<ULong, APPCInstruction>(1024 * 1024)
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
         throw UnsupportedOperationException("not implemented")
@@ -59,13 +59,13 @@ abstract class APPCSystemDecoder(val core: PPCCore) : ICoreUnit {
     //InstructionTable - because it is faster
     internal open val baseOpcode = InstructionTable(
             8, 8,
-            { data: Long -> data[31..29] },
-            { data: Long -> data[28..26] }
+            { data -> data[31..29] },
+            { data -> data[28..26] }
     )
 
-    private fun fetch(where: Long): Long = core.fetch(where, 0, 4)
+    private fun fetch(where: ULong) = core.fetch(where, 0, 4)
 
-    fun decode(where: Long): APPCInstruction {
+    fun decode(where: ULong): APPCInstruction {
         val data = fetch(where)
         //var insn = cache[data]  TODO! cache is disabled for easy debugging
         //if (insn != null) return insn

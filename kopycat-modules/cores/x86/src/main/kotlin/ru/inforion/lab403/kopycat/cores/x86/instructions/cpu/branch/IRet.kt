@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -27,18 +27,13 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.x86.enums.Flags
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.CTRLR.cr0
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.cs
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.SSR.ss
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.eflags
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.flags
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -47,31 +42,49 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         AX86Instruction(core, Type.IRET, opcode, prefs) {
     override val mnem = "iret"
 
-    private fun realAddressingMode(): Unit = TODO("REAL-ADDRESS-MODE")
+    private fun realAddressingMode() {
+        val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+        val cs = core.cpu.sregs.cs
+
+        ip.value = x86utils.pop(core, prefs.opsize, prefs)
+        cs.value = x86utils.pop(core, prefs.opsize, prefs) and 0xFFFFu
+
+        if (!prefs.is16BitOperandMode) {
+            val tmpFlags = x86utils.pop(core, DWORD, prefs)
+            val flags = core.cpu.flags.eflags
+
+            flags.value = (tmpFlags and 0x257FD5u) or (flags.value and 0x1A0000u)
+        } else {
+            val tmpFlags = x86utils.pop(core, WORD, prefs)
+            val flags = core.cpu.flags.flags
+
+            flags.value = tmpFlags
+        }
+    }
 
     private fun returnFromVirtual8086Mode(): Unit = TODO("RETURN-FROM-VIRTUAL-8086-MODE")
 
     private fun protectedMode() {
-        val nt = eflags.nt(core)
+        val nt = core.cpu.flags.nt
 
         if (nt) taskReturn()
 
-        val cpl = cs.cpl(core)
+        val cpl = core.cpu.sregs.cs.cpl.uint
         val tmpip = x86utils.pop(core, prefs.opsize, prefs)
         val tmpcs = x86utils.pop(core, prefs.opsize, prefs)
 
         val flagsSize = if (!prefs.is16BitOperandMode) DWORD else WORD
         val tmpFlags = x86utils.pop(core, flagsSize, prefs)
 
-        val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
-        ip.value(core, tmpip)
-        cs.value(core, tmpcs)
+        val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+        ip.value = tmpip
+        core.cpu.sregs.cs.value = tmpcs
 
-        val rpl = cs.cpl(core)  // requested privileged level from cs register
+        val rpl = core.cpu.sregs.cs.cpl.uint  // requested privileged level from cs register
 
 //        log.fine { "CPL = $cpl RPL = $rpl" }
 
-        if (tmpFlags[Flags.VM.bit] == 1L && cpl == 0)
+        if (tmpFlags[Flags.VM.bit] == 1uL && cpl == 0u)
             returnToVirtual8086Mode()
         else
             protectedModeReturn(cpl, rpl, tmpFlags)
@@ -81,18 +94,18 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
 
     private fun returnToVirtual8086Mode(): Unit = TODO("RETURN-TO-VIRTUAL-8086-MODE")
 
-    private fun protectedModeReturn(cpl: Int, rpl: Int, tmpFlags: Long): Unit = if (rpl > cpl)
+    private fun protectedModeReturn(cpl: UInt, rpl: UInt, tmpFlags: ULong): Unit = if (rpl > cpl)
         returnToOuterPrivilegeLevel(cpl, tmpFlags)
     else
         returnToSamePrivilegeLevel(cpl, tmpFlags)
 
-    private fun returnToOuterPrivilegeLevel(cpl: Int, tmpFlags: Long) {
+    private fun returnToOuterPrivilegeLevel(cpl: UInt, tmpFlags: ULong) {
 //        log.fine { "returnToOuterPrivilegeLevel" }
-        val sp = x86Register.gpr(prefs.opsize, x86GPR.ESP)
+        val sp = core.cpu.regs.gpr(x86GPR.RSP, prefs.opsize)
         val tmpsp = x86utils.pop(core, prefs.opsize, prefs)
         val tmpss = x86utils.pop(core, prefs.opsize, prefs)
-        sp.value(core, tmpsp)
-        ss.value(core, tmpss)
+        sp.value = tmpsp
+        core.cpu.sregs.ss.value = tmpss
 
 //        IF new mode ≠ 64-Bit Mode
 //        THEN
@@ -103,20 +116,20 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
 //        THEN #GP(0); FI;
 //        FI;
 
-        val prevIF = eflags.ifq(core)
-        val prevIOPL = eflags.iopl(core)
+        val prevIF = core.cpu.flags.ifq
+        val prevIOPL = core.cpu.flags.iopl
 
         if (!prefs.is16BitOperandMode) {
             // IF OperandSize = 32 THEN EFLAGS(VM, VIF, VIP) ← tempEFLAGS; FI;
-            eflags.value(core, tmpFlags)
+            core.cpu.flags.eflags.value = tmpFlags
         } else {
-            flags.value(core, tmpFlags)
+            core.cpu.flags.flags.value = tmpFlags
         }
 
         // IF CPL ≤ IOPL THEN EFLAGS(IF) ← tempEFLAGS; FI;
-        if (cpl > prevIOPL) eflags.ifq(core, prevIF)
+        if (cpl > prevIOPL) core.cpu.flags.ifq = prevIF
         // IF CPL = 0 THEN EFLAGS(IOPL) ← tempEFLAGS;
-        if (cpl != 0) eflags.iopl(core, prevIOPL)
+        if (cpl != 0u) core.cpu.flags.iopl = prevIOPL
 
         // CPL ← CS(RPL);
 
@@ -134,7 +147,7 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
          */
     }
 
-    private fun returnToSamePrivilegeLevel(cpl: Int, tmpFlags: Long) {
+    private fun returnToSamePrivilegeLevel(cpl: UInt, tmpFlags: ULong) {
 //        log.fine { "returnToSamePrivilegeLevel" }
 //        IF new mode ≠ 64-Bit Mode
 //        THEN
@@ -145,36 +158,36 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
 //        THEN #GP(0); FI;
 //        FI;
 
-        val prevIF = eflags.ifq(core)
-        val prevIOPL = eflags.iopl(core)
-        val prevVIF = eflags.vif(core)
-        val prevVIP = eflags.vip(core)
+        val prevIF = core.cpu.flags.ifq
+        val prevIOPL = core.cpu.flags.iopl
+        val prevVIF = core.cpu.flags.vif
+        val prevVIP = core.cpu.flags.vip
 
 //        log.fine { "IF = $prevIF IOPL = $prevIOPL VIF = $prevVIF VIP = $prevVIP" }
 
         if (!prefs.is16BitOperandMode) {
-            eflags.value(core, tmpFlags)
+            core.cpu.flags.eflags.value = tmpFlags
         } else {
-            flags.value(core, tmpFlags)
+            core.cpu.flags.flags.value = tmpFlags
         }
 
         // IF CPL ≤ IOPL THEN EFLAGS(IF) ← tempEFLAGS; FI;
-        if (cpl > prevIOPL) eflags.ifq(core, prevIF)
+        if (cpl > prevIOPL) core.cpu.flags.ifq = prevIF
         // IF CPL = 0 THEN (* VM = 0 in flags image *)
-        if (cpl != 0) {
+        if (cpl != 0u) {
             // EFLAGS(IOPL) ← tempEFLAGS;
-            eflags.iopl(core, prevIOPL)
+            core.cpu.flags.iopl = prevIOPL
             // IF OperandSize = 32 or OperandSize = 64  THEN EFLAGS(VIF, VIP) ← tempEFLAGS; FI;
             if (!prefs.is16BitOperandMode) {
-                eflags.vif(core, prevVIF)
-                eflags.vip(core, prevVIP)
+                core.cpu.flags.vif = prevVIF
+                core.cpu.flags.vip = prevVIP
             }
         }
     }
 
     override fun execute() {
-        val pe = cr0.pe(core)
-        val vm = eflags.vm(core)
+        val pe = core.cpu.cregs.cr0.pe
+        val vm = core.cpu.flags.eflags.vm
 
         if (!pe) realAddressingMode()
         else {
@@ -184,15 +197,15 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
 
         log.finest {
             val prefs = Prefixes(core)
-            val ip = x86Register.gpr(prefs.opsize, x86GPR.EIP)
-            val sp = x86Register.gpr(prefs.opsize, x86GPR.ESP)
+            val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+            val sp = core.cpu.regs.gpr(x86GPR.RSP, prefs.opsize)
 
-            val cpl = cs.cpl(core)
-            val saved_eflags = eflags.value(core)
-            val saved_cs = cs.value(core)
-            val saved_ip = ip.value(core)
-            val saved_ss = ss.value(core)
-            val saved_sp = sp.value(core)
+            val cpl = core.cpu.sregs.cs.cpl
+            val saved_eflags = core.cpu.flags.eflags.value
+            val saved_cs = core.cpu.sregs.cs.value
+            val saved_ip = ip.value
+            val saved_ss = core.cpu.sregs.ss.value
+            val saved_sp = sp.value
 
             "<-- RET cpl=$cpl ip=${saved_cs.hex}:${saved_ip.hex} sp=${saved_ss.hex}:${saved_sp.hex} flags=${saved_eflags.hex}"
         }

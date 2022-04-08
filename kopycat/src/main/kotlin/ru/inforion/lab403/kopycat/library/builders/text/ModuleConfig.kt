@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,14 +30,14 @@ import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
 import ru.inforion.lab403.kopycat.library.builders.JsonModuleFactoryBuilder
 
 class ModuleConfig(
-        val name: String,
-        val plugin: String,
-        val library: String,
-        val params: Map<String, Any?>?,
-        val actions: Array<ActionConfig>?) {
-
+    val name: String,
+    val plugin: String,
+    val library: String,
+    val params: Map<String, Any?>?,
+    val actions: Array<ActionConfig>?
+) {
     fun create(registry: ModuleLibraryRegistry, parent: Module?, builder: JsonModuleFactoryBuilder? = null) =
-            registry[library].instantiate(parent, builder, plugin, name, params ?: emptyMap())
+        registry[library].instantiate(parent, builder, plugin, name, params ?: emptyMap())
 
     /**
      * {EN}
@@ -46,9 +46,9 @@ class ModuleConfig(
      * {EN}
      */
     fun create(
-            registry: ModuleLibraryRegistry,
-            parent: Module?,
-            builder: JsonModuleFactoryBuilder? = null,
-            params: Map<String, Any?>
+        registry: ModuleLibraryRegistry,
+        parent: Module?,
+        builder: JsonModuleFactoryBuilder? = null,
+        params: Map<String, Any?>
     ) = registry[library].instantiate(parent, builder, plugin, name, params)
 }

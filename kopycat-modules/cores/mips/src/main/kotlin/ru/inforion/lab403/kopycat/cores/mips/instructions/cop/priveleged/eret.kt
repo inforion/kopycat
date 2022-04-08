@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -36,7 +36,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class eret(
         core: MipsCore,
-        data: Long,
+        data: ULong,
         imm: MipsImmediate
 ) : Code19bitInsn(core, data, Type.IRET, imm) {
 
@@ -50,7 +50,7 @@ class eret(
             val StatusBEV = cop0.regs.Status.BEV
             val SRSCtlHSS = cop0.regs.SRSCtl.HSS
             
-            if (core.ArchitectureRevision >= 2 && SRSCtlHSS > 0 && !StatusBEV)
+            if (core.ArchitectureRevision >= 2 && SRSCtlHSS > 0u && !StatusBEV)
                 cop0.regs.SRSCtl.CSS = cop0.regs.SRSCtl.PSS
 
             cop0.regs.Status.EXL = false

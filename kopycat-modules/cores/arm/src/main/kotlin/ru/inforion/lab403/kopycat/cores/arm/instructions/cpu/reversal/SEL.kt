@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -32,9 +32,8 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class SEL(cpu: AARMCore,
-          opcode: Long,
+          opcode: ULong,
           cond: Condition,
           val rn: ARMRegister,
           val rd: ARMRegister,
@@ -43,9 +42,9 @@ class SEL(cpu: AARMCore,
     override val mnem = "SEL$mcnd"
 
     override fun execute() {
-        rd.bits(core,7..0,   if(core.cpu.status.ge[0] == 1L) rn.bits(core,7..0)   else rm.bits(core,7..0))
-        rd.bits(core,15..8,  if(core.cpu.status.ge[1] == 1L) rn.bits(core,15..8)  else rm.bits(core,15..8))
-        rd.bits(core,23..16, if(core.cpu.status.ge[2] == 1L) rn.bits(core,23..16) else rm.bits(core,23..16))
-        rd.bits(core,31..24, if(core.cpu.status.ge[3] == 1L) rn.bits(core,31..24) else rm.bits(core,31..24))
+        rd.bits(core,7..0,   if(core.cpu.status.ge[0] == 1uL) rn.bits(core,7..0)   else rm.bits(core,7..0))
+        rd.bits(core,15..8,  if(core.cpu.status.ge[1] == 1uL) rn.bits(core,15..8)  else rm.bits(core,15..8))
+        rd.bits(core,23..16, if(core.cpu.status.ge[2] == 1uL) rn.bits(core,23..16) else rm.bits(core,23..16))
+        rd.bits(core,31..24, if(core.cpu.status.ge[3] == 1uL) rn.bits(core,31..24) else rm.bits(core,31..24))
     }
 }

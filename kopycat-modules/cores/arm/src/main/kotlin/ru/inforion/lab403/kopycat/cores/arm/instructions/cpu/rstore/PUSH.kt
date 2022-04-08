@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rstore
 
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -35,11 +36,11 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.isStackPointer
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
-
+import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class PUSH(cpu: AARMCore,
-           opcode: Long,
+           opcode: ULong,
            cond: Condition,
            val rn: ARMRegister,
            private val unalignedAllowed: Boolean,
@@ -49,7 +50,7 @@ class PUSH(cpu: AARMCore,
     override val mnem = "PUSH$mcnd"
 
     override fun execute() {
-        val newBaseValue = rn.value(core) - 4 * registers.count
+        val newBaseValue = rn.value(core) - 4u * registers.count.uint
         var address = newBaseValue
         registers.forEach { reg ->
             if (reg.isStackPointer(core) && reg != registers.lowest) {  // SP
@@ -69,7 +70,7 @@ class PUSH(cpu: AARMCore,
                     // MemA[address,4] = R[i];
                 }
             }
-            address += 4
+            address += 4u
         }
         rn.value(core, newBaseValue)
     }

@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.arithm.registerShiftedRegister
 
-import ru.inforion.lab403.common.extensions.asInt
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.arm.AddWithCarry
 import ru.inforion.lab403.kopycat.cores.arm.SRType
 import ru.inforion.lab403.kopycat.cores.arm.Shift
@@ -37,9 +37,8 @@ import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
-
 class RSCrsr(cpu: AARMCore,
-             opcode: Long,
+             opcode: ULong,
              cond: Condition,
              var setFlags: Boolean,
              var rd: ARMRegister,
@@ -52,9 +51,9 @@ class RSCrsr(cpu: AARMCore,
     override val mnem = "RSC${if(setFlags) "S" else ""}$mcnd"
 
     override fun execute() {
-        val shiftN = rs.value(core)[7..0].asInt
-        val shifted = Shift(rm.value(core), rm.dtyp.bits, shiftT, shiftN, core.cpu.flags.c.asInt)
-        val (result, carry, overflow) = AddWithCarry(rn.dtyp.bits, rn.value(core).inv(), shifted, core.cpu.flags.c.asInt)
+        val shiftN = rs.value(core)[7..0].int
+        val shifted = Shift(rm.value(core), rm.dtyp.bits, shiftT, shiftN, core.cpu.flags.c.int)
+        val (result, carry, overflow) = AddWithCarry(rn.dtyp.bits, rn.value(core).inv(), shifted, core.cpu.flags.c.int)
         rd.value(core, result)
         if (setFlags)
             FlagProcessor.processArithmFlag(core, result, carry, overflow)

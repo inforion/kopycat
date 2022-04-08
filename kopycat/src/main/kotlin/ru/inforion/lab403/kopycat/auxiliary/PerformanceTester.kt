@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -25,15 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.auxiliary
 
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.toFile
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.proposal.toSerializable
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import java.util.concurrent.atomic.AtomicBoolean
-import java.util.logging.Level.FINER
 import kotlin.concurrent.thread
 import kotlin.system.measureTimeMillis
 
@@ -48,8 +46,8 @@ import kotlin.system.measureTimeMillis
  * {EN}
  */
 class PerformanceTester<T: Module>(
-        val exitPoint: Long,
-        val maxExecute: Long = Long.MAX_VALUE,
+        val exitPoint: ULong,
+        val maxExecute: ULong = ULONG_MAX,
         connectionInfo: Boolean = false,
         makeTop: () -> T
 ) {
@@ -57,10 +55,10 @@ class PerformanceTester<T: Module>(
         @Transient private val log = logger(FINER)
     }
 
-    data class Stats(val elapsed: Long = 0, val executed: Long = 0)
+    data class Stats(val elapsed: Long = 0, val executed: ULong = 0u)
 
     val kopycat = Kopycat(null).apply {
-        open(makeTop(), false, null)
+        open(makeTop(), null, false)
         if (connectionInfo) printModulesConnectionsInfo()
     }
 
@@ -69,14 +67,14 @@ class PerformanceTester<T: Module>(
 
     private var passed = 0
     private var afterResetCblk: (top: T) -> Unit = { }
-    private val oneShotTracePointCblks = mutableMapOf<Long, (top: T) -> Unit>()
-    private val alwaysTracePointClbks = mutableMapOf<Long, (top: T) -> Unit>()
+    private val oneShotTracePointCblks = mutableMapOf<ULong, (top: T) -> Unit>()
+    private val alwaysTracePointClbks = mutableMapOf<ULong, (top: T) -> Unit>()
 
     private val stopRequest = AtomicBoolean(false)
 
     private var failed = false
 
-    private fun stopCondition(step: Long, core: AGenericCore): Boolean {
+    private fun stopCondition(step: ULong, core: AGenericCore): Boolean {
         if (step >= maxExecute) {
             log.severe { "Maximum instructions count execution reached ($step == $maxExecute)" }
             return true
@@ -106,7 +104,7 @@ class PerformanceTester<T: Module>(
 
         afterResetCblk(top)
 
-        var executed: Long = 0
+        var executed: ULong = 0u
         val elapsed = measureTimeMillis {
             executed = kopycat.run { step, core ->
                 // execute one-shot trace point callback
@@ -143,10 +141,7 @@ class PerformanceTester<T: Module>(
      * @return self for chain access
      * {EN}
      */
-    fun afterReset(block: (top: T) -> Unit): PerformanceTester<T> {
-        afterResetCblk = block
-        return this
-    }
+    fun afterReset(block: (top: T) -> Unit) = apply { afterResetCblk = block }
 
     /**
      * {EN}
@@ -159,11 +154,9 @@ class PerformanceTester<T: Module>(
      * @return self for chain access
      * {EN}
      */
-    fun atAddressOnce(address: Long, block: (top: T) -> Unit): PerformanceTester<T> {
-        if (address in oneShotTracePointCblks)
-            throw IllegalArgumentException("Trace block already set for address ${address.hex8}")
+    fun atAddressOnce(address: ULong, block: (top: T) -> Unit) = apply {
+        require(address !in oneShotTracePointCblks) { "Trace block already set for address ${address.hex8}" }
         oneShotTracePointCblks[address] = block
-        return this
     }
 
     /**
@@ -177,11 +170,9 @@ class PerformanceTester<T: Module>(
      * @return self for chain access
      * {EN}
      */
-    fun atAddressAlways(address: Long, block: (top: T) -> Unit): PerformanceTester<T> {
-        if (address in alwaysTracePointClbks)
-            throw IllegalArgumentException("Trace block already set for address ${address.hex8}")
+    fun atAddressAlways(address: ULong, block: (top: T) -> Unit) = apply {
+        require(address !in alwaysTracePointClbks) { "Trace block already set for address ${address.hex8}" }
         alwaysTracePointClbks[address] = block
-        return this
     }
 
     /**
@@ -199,7 +190,7 @@ class PerformanceTester<T: Module>(
             val stream = tty.toFile().inputStream()
 
             do {
-                val char = stream.read().toChar()
+                val char = stream.read().char
             } while (predicate(char))
 
             stop(false)
@@ -251,8 +242,8 @@ class PerformanceTester<T: Module>(
 
         // Actual testing
 
-        var maxElapsed = Long.MIN_VALUE
-        var minElapsed = Long.MAX_VALUE
+        var maxElapsed = LONG_MIN
+        var minElapsed = LONG_MAX
         var totalElapsed: Long = 0
 
         var stats = Stats()
@@ -265,11 +256,11 @@ class PerformanceTester<T: Module>(
         }
 
         val avgElapsed = totalElapsed / count
-        val minKIPS = stats.executed / maxElapsed
-        val maxKIPS = stats.executed / minElapsed
-        val avgKIPS = stats.executed / avgElapsed
+        val minKIPS = stats.executed.long / maxElapsed
+        val maxKIPS = stats.executed.long / minElapsed
+        val avgKIPS = stats.executed.long / avgElapsed
 
         log.info { "(min/avg/max) count=%2d exec=%,12d  KIPS: %,5d/%,5d/%,5d  time (ms): %,7d/%,7d/%,7d  total=%,d".format(
-                count, stats.executed, minKIPS, avgKIPS, maxKIPS, minElapsed, avgElapsed, maxElapsed, totalElapsed) }
+                count, stats.executed.long, minKIPS, avgKIPS, maxKIPS, minElapsed, avgElapsed, maxElapsed, totalElapsed) }
     }
 }

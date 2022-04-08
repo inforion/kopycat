@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,15 +30,11 @@ import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.modules.BUS16
 
-class MSP430Debugger(parent: Module, name: String): Debugger(parent, name, BUS16) {
+class MSP430Debugger(parent: Module, name: String) : Debugger(parent, name, BUS16) {
     override fun ident() = "msp430"
 
-    override fun registers(): MutableList<Long> {
-        val core = core as MSP430Core
-        val gprRegs = Array(core.cpu.regs.count()) { regRead(it) }
-        val flags = Array(core.cpu.flags.count()) { core.cpu.regs.r2StatusRegister[it] }
-        val result = gprRegs.toMutableList()
-        result.addAll(flags)
-        return result
-    }
+    private val msp430 = core as MSP430Core
+
+    override fun registers() = List(msp430.cpu.regs.count()) { regRead(it) } +
+            List(msp430.cpu.flags.count()) { msp430.cpu.regs.r2StatusRegister[it] }
 }

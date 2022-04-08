@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,10 +26,12 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
+
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
@@ -64,7 +66,7 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 class FArithmDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Int, Array<AOperand<x86Core>>) -> AX86Instruction) :
         ADecoder<AX86Instruction>(core) {
-    private val RANGE_RM_MODE = 0x00..0xBF
+    private val RANGE_RM_MODE = 0x00u..0xBFu
 
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
         val opcode = s.last
@@ -76,13 +78,13 @@ class FArithmDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Int
                 if(currByte in RANGE_RM_MODE) {
                     arrayOf(x86FprRegister(0), rm.m32)
                 } else {
-                    val index = currByte[2..0].toInt()
+                    val index = currByte[2..0].int
                     s.readByte()
                     arrayOf(x86FprRegister(0), x86FprRegister(index))
                 }
             }
             0xDA -> {
-                when(currByte[5..3].toInt()){
+                when(currByte[5..3].int){
                     0 -> arrayOf(x86FprRegister(0), rm.m32)
                     else -> throw GeneralException("Incorrect opcode in decoder")
                 }
@@ -91,7 +93,7 @@ class FArithmDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Int
                 if(currByte in RANGE_RM_MODE) {
                     arrayOf(x86FprRegister(0), rm.m64)
                 } else {
-                    val index = currByte[2..0].toInt()
+                    val index = currByte[2..0].int
                     s.readByte()
                     arrayOf(x86FprRegister(index), x86FprRegister(0))
                 }
@@ -100,7 +102,7 @@ class FArithmDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Int
                 if(currByte in RANGE_RM_MODE) {
                     arrayOf(x86FprRegister(0), rm.m16)
                 } else {
-                    val index = currByte[2..0].toInt()
+                    val index = currByte[2..0].int
                     popCount = 1
                     s.readByte()
                     arrayOf(x86FprRegister(index), x86FprRegister(0))

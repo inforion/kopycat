@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,29 +30,22 @@ import ru.inforion.lab403.kopycat.cores.base.Bus
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.exceptions.ConnectionError
 
-class ConnectionConfig(items: Collection<String>): ArrayList<Any>(items) {
+typealias ConnectionConfig = ArrayList<String>
 
-    /**
-     * Required for jackson mapper deserialization
-     */
-    @Suppress("unused")
-    constructor() : this(emptyList())
+fun ConnectionConfig.create(module: Module) {
+    val conn1 = moduleTextParser.getConnector(this[0], module)
+    val conn2 = moduleTextParser.getConnector(this[1], module)
 
-    fun create(module: Module) {
-        val conn1 = moduleTextParser.getConnector(this[0] as String, module)
-        val conn2 = moduleTextParser.getConnector(this[1] as String, module)
+    val offset = if (size == 3) moduleTextParser.getOffset(this[2]) else 0u
 
-        val offset = if (size == 3) moduleTextParser.getOffset(this[2]) else 0
-
-        when {
-            conn1 is APort && conn2 is Bus -> conn1.connect(conn2, offset)
-            conn1 is APort && conn2 is APort -> module.buses.connect(conn1, conn2, offset)
-            else -> ConnectionError.raise {
-                "Can't connect($conn1, $conn2, $offset)\n" +
-                        "Use connection: \n" +
-                        "1. Port, Bus, [Offset|def=0]\n" +
-                        "2. Port, Port, [Offset|def=0]"
-            }
+    when {
+        conn1 is APort && conn2 is Bus -> conn1.connect(conn2, offset)
+        conn1 is APort && conn2 is APort -> module.buses.connect(conn1, conn2, offset)
+        else -> ConnectionError.raise {
+            "Can't connect($conn1, $conn2, $offset)\n" +
+                    "Use connection: \n" +
+                    "1. Port, Bus, [Offset|def=0]\n" +
+                    "2. Port, Port, [Offset|def=0]"
         }
     }
 }

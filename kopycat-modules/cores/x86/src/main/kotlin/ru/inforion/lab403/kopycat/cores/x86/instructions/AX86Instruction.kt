@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -26,13 +26,15 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions
 
 import ru.inforion.lab403.common.extensions.WRONGL
+import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.hexlify
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.enums.StringPrefix
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-
+import java.util.*
 
 
 abstract class AX86Instruction(
@@ -43,9 +45,9 @@ abstract class AX86Instruction(
         vararg operands: AOperand<x86Core>) : AInstruction<x86Core>(core, type, *operands) {
     final override val size: Int = opcode.size
     final override fun toString(): String {
-        val spref = if (prefs.string != StringPrefix.NO) "${prefs.string.toString().toLowerCase()} " else ""
+        val spref = if (prefs.string != StringPrefix.NO) "${prefs.string.toString().lowercase()} " else ""
         val lpref = if (prefs.lock) "lock " else ""
-        val address = if (ea != WRONGL) "[%08X]".format(ea.toInt()) else "[ UNDEF  ]"
+        val address = if (ea != WRONGL.ulong) "[${ea.hex8}]" else "[ UNDEF  ]"
         val opstr = "%-8s".format(opcode.hexlify())
         return "$address $opstr $lpref$spref$mnem ${joinToString()}"
     }

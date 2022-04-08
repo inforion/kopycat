@@ -2,7 +2,7 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2020 INFORION, LLC
+ * Copyright (C) 2022 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -39,7 +39,7 @@ import ru.inforion.lab403.kopycat.veos.loader.WindowsLoader
 import ru.inforion.lab403.kopycat.veos.ports.windows.WindowsProcess
 
 
-class WindowsVEOS<C: AGenericCore>(parent: Module, name: String, bus: Long = BUS32): VEOS<C>(parent, name, bus) {
+class WindowsVEOS<C: AGenericCore>(parent: Module, name: String, bus: ULong = BUS32): VEOS<C>(parent, name, bus) {
 
     override val loader = WindowsLoader(this)
 
@@ -52,19 +52,17 @@ class WindowsVEOS<C: AGenericCore>(parent: Module, name: String, bus: Long = BUS
 
     val x86mmu = object : AddressTranslator(this@WindowsVEOS, "x86mmu") {
 
-        override fun translate(ea: Long, ss: Int, size: Int, LorS: AccessAction): Long {
-            return when (ss) {
-                SSR.ES.id,
-                SSR.CS.id,
-                SSR.SS.id,
-                SSR.DS.id -> ea
-                SSR.FS.id -> {
-                    log.severe { "Access to TID at ${abi.programCounterValue.hex8}, offset ${ea.hex8}" }
-                    (currentProcess as WindowsProcess).segmentFS or (ea and 0xFFFL)
-                }
-
-                else -> TODO("Not implemented ss: $ss")
+        override fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction) = when (ss) {
+            SSR.ES.id,
+            SSR.CS.id,
+            SSR.SS.id,
+            SSR.DS.id -> ea
+            SSR.FS.id -> {
+                log.severe { "Access to TID at ${abi.programCounterValue.hex8}, offset ${ea.hex8}" }
+                (currentProcess as WindowsProcess).segmentFS or (ea and 0xFFFuL)
             }
+
+            else -> TODO("Not implemented ss: $ss")
         }
 
     }
