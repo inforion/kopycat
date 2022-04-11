@@ -73,7 +73,7 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         val tmpip = x86utils.pop(core, prefs.opsize, prefs)
         val tmpcs = x86utils.pop(core, prefs.opsize, prefs)
 
-        val flagsSize = if (!prefs.is16BitOperandMode) DWORD else WORD
+        val flagsSize = prefs.opsize // if (!prefs.is16BitOperandMode) DWORD else WORD
         val tmpFlags = x86utils.pop(core, flagsSize, prefs)
 
         val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)

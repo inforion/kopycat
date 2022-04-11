@@ -28,16 +28,15 @@ package ru.inforion.lab403.kopycat.cores.x86.operands
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-class x86MMXRegister(reg: Int) : ARegister<x86Core>(reg, Access.ANY) {
+class x86MMXRegister(reg: Int) : ARegister<x86Core>(reg, Access.ANY, Datatype.MMXWORD) {
 
-    override fun value(core: x86Core) = core.sse.mm[reg].uint.ulong_z
+    override fun value(core: x86Core) = core.fpu.getMMX(reg)
 
-    override fun value(core: x86Core, data: ULong) {
-        core.sse.mm[reg] = data[31..0]
-    }
+    override fun value(core: x86Core, data: ULong) = core.fpu.setMMX(reg, data)
 
     override fun toString() = "mmx${reg}"
 }

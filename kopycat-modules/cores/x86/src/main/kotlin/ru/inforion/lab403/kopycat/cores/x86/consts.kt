@@ -28,12 +28,16 @@ package ru.inforion.lab403.kopycat.cores.x86
 const val IA32_PLATFORM_ID: ULong = 0x17u
 const val IA32_APIC_BASE: ULong = 0x1Bu
 const val IA32_BIOS_SIGN_ID: ULong = 0x8Bu
-const val IA32_SMBASE: ULong = 0x9Eu
 const val IA32_MTRRCAP: ULong = 0xFEu
 const val MSR_BBL_CR_CTL3: ULong = 0x11Eu
 const val IA32_MISC_ENABLE: ULong = 0x1A0u
 const val MSR_FSB_FREQ: ULong = 0xCDu
 const val MSR_PLATFORM_INFO: ULong = 0xCEu
+
+const val IA32_PERFEVTSEL0: ULong = 0x186u
+const val IA32_PERFEVTSEL1: ULong = 0x187u
+const val IA32_PERFEVTSEL2: ULong = 0x188u
+const val IA32_PERFEVTSEL3: ULong = 0x189u
 
 const val IA32_PERF_STATUS: ULong = 0x198u
 
@@ -82,13 +86,10 @@ const val IA32_MTRR_DEF_TYPE: ULong = 0x2FFu
 const val MSR_PKG_POWER_SKU_UNIT: ULong = 0x606u
 const val MSR_PKG_POWER_LIMIT: ULong = 0x610u
 const val MSR_PP1_POWER_LIMIT: ULong = 0x638u
-
 const val MSR_IACORE_RATIOS: ULong = 0x66au
 const val MSR_IACORE_TURBO_RATIOS: ULong = 0x66cu
-
 const val MSR_IACORE_VIDS: ULong = 0x66bu
 const val MSR_IACORE_TURBO_VIDS: ULong = 0x66du
-
 const val MSR_PKG_TURBO_CFG1: ULong = 0x670u
 const val MSR_CPU_TURBO_WKLD_CFG1: ULong = 0x671u
 const val MSR_CPU_TURBO_WKLD_CFG2: ULong = 0x672u

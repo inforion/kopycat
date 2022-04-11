@@ -34,9 +34,12 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
+import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.modules.*
+import ru.inforion.lab403.kopycat.serializer.NotDeserializableObjectException
+import ru.inforion.lab403.kopycat.serializer.NotSerializableObjectException
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level
@@ -57,6 +60,19 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
     }
 
     override val ports = Ports()
+
+
+    private inner class DelayTimer(/*val delay: ULong*//*, val action: (() -> Unit)? = null*/):
+        SystemClock.OneshotTimer("delay timer") {
+        override fun trigger() {
+            log.finer { "$name triggered at %,d us".format(core.clock.time()) }
+            super.trigger()
+//            action?.invoke()
+            ports.irq.request(0)
+        }
+
+    }
+    private val delayTimer = DelayTimer()
 
     inner class RBR_THR_DLL_Register : Register(ports.mem, 0x00u, regDtype, "UART_RBR_THR_DLL") {
         var dll: ULong = 0x00u
@@ -90,7 +106,7 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
 
                 if (IER.ier and 0x2uL != 0uL) {
                     IIR.iir = 0b0000u
-                    ports.irq.request(0)
+                    delayTimer.enabled = true
                 }
             }
         }
@@ -307,7 +323,7 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
 
                     if (IER.ier and 0x1uL != 0uL) {
                         IIR.iir = 0b0100u
-                        ports.irq.request(0)
+                        delayTimer.enabled = true
                     }
                 }
 
@@ -318,6 +334,11 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
         }
     }
 
-
     fun sendText(string: String) = RBR.bytesIn.addAll(string.toCharArray().toList())
+
+    override fun initialize(): Boolean {
+        super.initialize()
+        core.clock.connect(delayTimer, 1000, false)
+        return true
+    }
 }

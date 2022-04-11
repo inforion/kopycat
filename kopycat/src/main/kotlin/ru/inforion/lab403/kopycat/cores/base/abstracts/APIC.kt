@@ -67,7 +67,7 @@ abstract class APIC(parent: Module, name: String): Module(parent, name) {
          * @throws IllegalArgumentException при неверном номере прерывания
          * {RU}
          */
-        operator fun get(irq: Int): T = table[irq].sure { "Wrong interrupt irq!" }
+        operator fun get(irq: Int): T = table[irq].sure { "Wrong interrupt irq: $irq!" }
 
         override fun fetch(ea: ULong, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
 

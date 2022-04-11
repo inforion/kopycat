@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory
 
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -39,7 +40,9 @@ class Lsl(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
     override fun execute() {
         val a2 = op2.value(core) and 0xFFFFu
         // TODO: Whether we should cache take into account?
-        val tempGLDT = core.mmu.readSegmentDescriptor(a2)
+        if (core.cpu.mode == x86CPU.Mode.R64)
+            TODO("LSL for IA-32e isn't implemented yet")
+        val tempGLDT = core.mmu.readSegmentDescriptor32(a2)
         val tempLimit = if(tempGLDT.g) tempGLDT.limit.shl(12) or 0x0FFFuL else tempGLDT.limit
         op1.value(core, tempLimit)
     }

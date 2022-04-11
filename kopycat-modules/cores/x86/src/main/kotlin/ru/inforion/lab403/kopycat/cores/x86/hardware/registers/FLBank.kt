@@ -163,6 +163,7 @@ class FLBank(val core: x86Core) : ARegistersBankNG<x86Core>("Flags Register", 3,
 //
     private val flagsRegister = Register("flagsRegister", 0)
 
+    val rflags get() = eflags
     val eflags = EFlagsRegister("eflags", 1)//XEFlagsRegister("eflags", 2, Datatype.DWORD)
     val flags = FlagsRegister("flags", 2) //XFlagsRegister("flags", 1, Datatype.WORD)
     // 3.4.3.4 RFLAGS Register in 64-Bit Mode

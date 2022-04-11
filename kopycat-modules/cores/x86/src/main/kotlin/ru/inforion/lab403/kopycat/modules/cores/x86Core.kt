@@ -32,7 +32,7 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.x86.IA32_MTRRCAP
+import ru.inforion.lab403.kopycat.cores.x86.*
 import ru.inforion.lab403.kopycat.cores.x86.config.*
 import ru.inforion.lab403.kopycat.cores.x86.config.CPUID0
 import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.*
@@ -44,7 +44,6 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86COP
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86FPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86MMU
-import ru.inforion.lab403.kopycat.cores.x86.x86ABI
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
@@ -82,9 +81,11 @@ class x86Core constructor(
     override val mmu = x86MMU(this, "mmu")
     override val fpu = x86FPU(this, "fpu")
 
+    val mmx get() = fpu.stack
+
     val sse = SSE(this)
 
-    val config = Configuration()
+    val config = Configuration(this)
 
     val is16bit get() = cpu.mode == x86CPU.Mode.R16
     val is32bit get() = cpu.mode == x86CPU.Mode.R32
@@ -92,11 +93,20 @@ class x86Core constructor(
 
     override fun abi() = x86ABI(this, false)
 
-    private fun String.getUInt(ind: Int): UInt {
-        val remaining = length - ind * 4
-        if (remaining <= 0) return 0u
-        val size = if (remaining > 4) 4 else remaining
-        return bytes.getUInt(ind * 4, size).uint
+    fun updateSnapshot() {
+//        config.cpuid4(0u, 0u, 0u, 0u, 0u)
+//        config.cpuid(0x2u,0u, 0u, 0u, 0u)
+//        config.cpuid(0xau,0u, 0u, 0u, 0u)
+//        config.cpuid(0x05u,0u, 0u, 0u, 0u)
+
+//        config.cpuid4(0x0u, 0u, 0u, 0u, 0u)
+//        (core.mmu as x86MMU).invalidatePagingCache()
+//        with(config) {
+//            msr(IA32_PERFEVTSEL0, 0u)
+//            msr(IA32_PERFEVTSEL1, 0u)
+//            msr(IA32_PERFEVTSEL2, 0u)
+//            msr(IA32_PERFEVTSEL3, 0u)
+//        }
     }
 
     private fun setModelName(name: String) {
@@ -125,6 +135,7 @@ class x86Core constructor(
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super<IAutoSerializable>.deserialize(ctxt, snapshot)
+        updateSnapshot()
     }
 
     override fun reset() {

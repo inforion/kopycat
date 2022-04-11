@@ -28,11 +28,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.sse
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86XMMRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import java.math.BigInteger
 
 
 class Movaps(
@@ -45,7 +41,7 @@ class Movaps(
     override val mnem = "movaps"
 
     override fun execute() {
-        val bytes = op2.bytes(core, 16)
-        op1.bytes(core, bytes)
+        val a2 = op2.extValue(core)
+        op1.extValue(core, a2)
     }
 }

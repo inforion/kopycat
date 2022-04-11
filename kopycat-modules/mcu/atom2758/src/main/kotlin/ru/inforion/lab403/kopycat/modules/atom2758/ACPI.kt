@@ -23,15 +23,11 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-@file:Suppress("unused")
-
 package ru.inforion.lab403.kopycat.modules.atom2758
 
-import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.cores.base.field
 import java.util.logging.Level.CONFIG
 import java.util.logging.Level.FINE
 
@@ -47,48 +43,8 @@ class ACPI(parent: Module, name: String) : Module(parent, name) {
 
     override val ports = Ports()
 
-    // intel-g1610t-cm8063701445100-user-manual.pdf - page 1007
-    private inner class PM1_STS_EN_CLASS : ByteAccessRegister(ports.io, 0x00u, DWORD, "PM1_STS_EN", level = CONFIG) {
-        var TMROF_STS by bit(0)
-        var GBL_STS by bit(5)
-        var PWRBTN_STS by bit(8)
-        var RTC_STS by bit(10)
-        var PWRBTNOR_STS by bit(11)
-        var USB_CLKLESS_STS by bit(13)
-        var PCIEXP_WAKE_STS by bit(14)
-        var WAK_STS by bit(15)
-        var TMROF_EN by bit(16)
-        var GBL_EN by bit(21)
-        var PWRBTN_EN by bit(24)
-        var RTC_EN by bit(26)
-        var USB_CLKLESS_EN by bit(29)
-        var PCIEXP_WAKE_DIS by bit(30)
-    }
-
-    // intel-g1610t-cm8063701445100-user-manual.pdf - page 1008
-    private inner class PM1_CNT_CLASS : ByteAccessRegister(ports.io, 0x04u, DWORD, "PM1_CNT", level = CONFIG) {
-        var SCI_EN by bit(0)
-        var BM_RLD by bit(1)
-        var GBL_RLS by bit(2)
-        var SLP_TYP by field(12..10)
-        var SLP_EN by bit(13)
-
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            super.write(ea, ss, size, value)
-            if (SLP_EN == 1) {
-                PM1_STS_EN.WAK_STS = 1
-            }
-        }
-
-        override fun read(ea: ULong, ss: Int, size: Int): ULong {
-            SLP_TYP = 1u  // required by PchSmmSxGoToSleep in edk2-platforms
-            return super.read(ea, ss, size)
-        }
-    }
-
-    private val PM1_STS_EN = PM1_STS_EN_CLASS()
-
-    private val PM1_CNT = PM1_CNT_CLASS()
+    private val PM1_STS_EN = ByteAccessRegister(ports.io, 0x00u, DWORD, "PM1_STS_EN", level = CONFIG)
+    private val PM1_CNT = ByteAccessRegister(ports.io, 0x04u, DWORD, "PM1_CNT", level = CONFIG)
 
     private val PM1_TMR = object : ByteAccessRegister(ports.io, 0x08u, DWORD, "PM1_TMR", level = FINE) {
         override fun read(ea: ULong, ss: Int, size: Int): ULong {

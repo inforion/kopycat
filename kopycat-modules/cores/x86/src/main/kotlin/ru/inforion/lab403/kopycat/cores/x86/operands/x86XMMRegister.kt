@@ -26,16 +26,24 @@
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.proposal.mask
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import java.math.BigInteger
 
-class x86XMMRegister(reg: Int) : ARegister<x86Core>(reg, Access.ANY) {
+class x86XMMRegister(reg: Int) : ARegister<x86Core>(reg, Access.ANY, Datatype.XMMWORD) {
 
-    override fun value(core: x86Core): ULong = core.sse.xmm[reg].int.ulong_z
+    override fun value(core: x86Core): ULong = core.sse.xmm[reg].ulong
 
     override fun value(core: x86Core, data: ULong) {
-        core.sse.xmm[reg] = BigInteger(data.hex4, 16)
+        core.sse.xmm[reg] = data.bigint
+    }
+
+    override fun extValue(core: x86Core) = core.sse.xmm[reg] mask dtyp.bits
+
+    override fun extValue(core: x86Core, data: BigInteger) {
+        core.sse.xmm[reg] = data mask dtyp.bits
     }
 
     override fun bytes(core: x86Core, size: Int): ByteArray {

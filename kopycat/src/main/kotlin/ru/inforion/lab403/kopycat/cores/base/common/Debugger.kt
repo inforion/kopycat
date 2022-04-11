@@ -98,9 +98,7 @@ open class Debugger(
         // For fetch we should stop core before instruction execution but for read and write
         // instruction must be executed and then core stops. Reason of this is to make possible
         // pass breakpoint IDA Pro disassembler.
-        override fun beforeFetch(from: MasterPort, ea: ULong) = checkHit(ea, EXEC) {
-            throw BreakpointException(it)
-        }
+        override fun beforeFetch(from: MasterPort, ea: ULong) = checkHit(ea, EXEC) { throw BreakpointException(it) }
         override fun beforeRead(from: MasterPort, ea: ULong) = checkHit(ea, READ) { isRunning = false }
         override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = checkHit(ea, WRITE) { isRunning = false }
     }

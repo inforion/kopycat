@@ -32,22 +32,17 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore.Stage
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.x86.enums.ExcCode
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register.*
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import ru.inforion.lab403.kopycat.serializer.loadValue
-import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level.CONFIG
 
 
@@ -58,24 +53,70 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
     }
 
     enum class GateType(val id: Int) {
+        // 0 - reserved
+        TSS_16_Avail(1),
+        LDT(2),
+        TSS_16_Busy(3),
+        CALL_GATE_16(4),
         TASK_GATE_16(5),
         INT_GATE_16(6),
         TRAP_GATE_16(7),
-        INT_GATE_32(0xE),
-        TRAP_GATE_32(0xF)
+        // 8 - reserved
+        TSS_32_64_Avail(9),
+        // 10 - reserved
+        TSS_32_64_Busy(11),
+        CALL_GATE_32_64(12),
+        // 13 - reserved
+        INT_GATE_32_64(14),
+        TRAP_GATE_32_64(15)
     }
 
-    data class LDTEntry(val data: ULong) {
-        val dataHi by lazy { data[63..32] }
-        val dataLo by lazy { data[31..0] }
-        val baseLow: ULong get() = dataLo[15..0]
-        val baseHigh: ULong get() = dataHi[31..16]
-        val selector: ULong get() = dataLo[31..16]
-        val p: ULong get() = dataHi[15]
-        val dpl: ULong get() = dataHi[14..13]
-        val s: ULong get() = dataHi[12]
-        val type: ULong get() = dataHi[11..8]
-        val base: ULong get() = baseLow.insert(baseHigh, 31..16)
+    interface CallGateDescriptor {
+        val selector: ULong
+        val type: ULong
+        val s: ULong // always 0?
+        val dpl: ULong
+        val p: ULong
+        val base: ULong
+    }
+
+    data class CallGateDescriptor32(val data: ULong) : CallGateDescriptor {
+        private val data0 by lazy { data[31..0] }
+        private val data1 by lazy { data[63..32] }
+
+        private val baseLow: ULong get() = data0[15..0]
+        override val selector: ULong get() = data0[31..16]
+
+        override val type: ULong get() = data1[11..8]
+        override val s: ULong get() = data1[12] // always 0?
+        override val dpl: ULong get() = data1[14..13]
+        override val p: ULong get() = data1[15]
+        private val baseHigh: ULong get() = data1[31..16]
+
+        override val base: ULong get() = baseLow.insert(baseHigh, 31..16)
+    }
+
+    data class CallGateDescriptor64(val dataLo: ULong, val dataHi: ULong) : CallGateDescriptor {
+        private val data0 by lazy { dataLo[31..0] }
+        private val data1 by lazy { dataLo[63..32] }
+        private val data2 by lazy { dataHi[31..0] }
+        private val data3 by lazy { dataHi[63..32] }
+
+        private val baseLow: ULong get() = data0[15..0]
+        override val selector: ULong get() = data0[31..16]
+
+        private val typeLow: ULong get() = data1[11..8]
+        override val s: ULong get() = data1[12] // always 0?
+        override val dpl: ULong get() = data1[14..13]
+        override val p: ULong get() = data1[15]
+        private val baseMid: ULong get() = data1[31..16]
+
+        private val baseHigh: ULong get() = data2
+
+        private val typeHigh: ULong get() = data3[12..8]
+
+        override val base: ULong get() = baseLow.insert(baseMid, 31..16).insert(baseHigh, 63..32)
+        override val type: ULong get() = typeLow.insert(typeHigh, 8..4)
     }
 
     data class HardwareError(val excCode: ExcCode, val value: ULong): IConstructorSerializable, IAutoSerializable
@@ -107,17 +148,24 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
      */
     private var error: HardwareError? = null
 
-    private fun idt(vector: UInt): LDTEntry {
-        val offset = idtr.base + vector * 8u
-        val data = core.mmu.linearRead(offset, 8, true)
-        return LDTEntry(data)
+    private fun idt(vector: UInt): CallGateDescriptor {
+        return if (core.cpu.mode == x86CPU.Mode.R64) {
+            val offset = idtr.base + vector * 16u
+            val dataLo = core.mmu.linearRead(offset, 8, true)
+            val dataHi = core.mmu.linearRead(offset + 8u, 8, true)
+            CallGateDescriptor64(dataLo, dataHi)
+        } else {
+            val offset = idtr.base + vector * 8u
+            val data = core.mmu.linearRead(offset, 8, true)
+            CallGateDescriptor32(data)
+        }
     }
 
     private fun saveContextGateSamePrivilegeLevel(
-            prefs: Prefixes, error: HardwareError?, dtyp: Datatype, eflags: ULong, cs: ULong, ip: ULong
+        prefs: Prefixes, error: HardwareError?, dtyp: Datatype, eflags: ULong, cs: ULong, ip: ULong
     ) {
-        val flagsSize = if (!prefs.is16BitOperandMode) DWORD else WORD
-        x86utils.push(core, eflags, flagsSize, prefs)
+//        val flagsSize = prefs.opsize //if (!prefs.is16BitOperandMode) DWORD else WORD
+        x86utils.push(core, eflags, dtyp, prefs)
         x86utils.push(core, cs, dtyp, prefs)
         x86utils.push(core, ip, dtyp, prefs)
         if (error != null && error.excCode.hasError)
@@ -127,19 +175,21 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
     }
 
     private fun saveOldStackToTaskStack(prefs: Prefixes, ss: ULong, sp: ULong) {
-        x86utils.push(core, ss, DWORD, prefs)
-        x86utils.push(core, sp, DWORD, prefs)
+        x86utils.push(core, ss, prefs.opsize, prefs)
+        x86utils.push(core, sp, prefs.opsize, prefs)
     }
 
     private fun loadStackFromTaskDescriptor(index: UInt, sp: ARegistersBankNG<x86Core>.Register) {
 //        https://wiki.osdev.org/Task_State_Segment
         val offset = 0x04u + index * 8u
-        val tss = core.mmu.readSegmentDescriptor(tssr).base
-        val ss_sp = core.mmu.linearRead(tss + offset, 8, true)
-        val tss_ss = ss_sp[47..32]
-        val tss_sp = ss_sp[31..0]
-        sp.value = tss_sp
-        core.cpu.sregs.ss.value = tss_ss
+        val tss = core.mmu.readTaskStateSegment(tssr).base
+        val cell = core.mmu.linearRead(tss + offset, 8, true)
+        sp.value = if (core.cpu.mode == x86CPU.Mode.R64)
+            cell
+        else {
+            core.cpu.sregs.ss.value = cell[47..32]
+            cell[31..0]
+        }
     }
 
     override fun handleException(exception: GeneralException?): GeneralException? {
@@ -193,9 +243,9 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
             else -> return
         }
 
-        if (vector.uint > idtr.limit) throw GeneralException("IDT vector > limit [$vector > ${idtr.limit}]")
+        check (vector.uint <= idtr.limit) { "IDT vector > limit [$vector > ${idtr.limit}]" }
 
-        val prefs = Prefixes(core)
+        val prefs = Prefixes(core).apply { rexW = true }
         val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
         val sp = core.cpu.regs.gpr(x86GPR.RSP, prefs.opsize)
 
@@ -223,34 +273,44 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
             "--> INT [0x${vector.hex}] IDTR=$idtr hdl=${idtEntry.selector.hex}:${idtEntry.base.hex} $context"
         }
 
-        when (val gateTypeId = idtEntry.type.int) {
-            GateType.TASK_GATE_16.id,
-            GateType.INT_GATE_16.id,
-            GateType.TRAP_GATE_16.id -> {
+        val gateType = GateType.values().find { it.id == idtEntry.type.int } ?: error("Incorrect Gate Type id: ${idtEntry.type}")
+        when (gateType) {
+            GateType.TASK_GATE_16,
+            GateType.INT_GATE_16,
+            GateType.TRAP_GATE_16 -> {
                 with (core.cpu.flags.eflags) {
                     ifq = false
                     af = false
                     tf = false
                 }
-                saveContextGateSamePrivilegeLevel(prefs, null, WORD, saved_eflags, saved_cs, saved_ip)
+                check (prefs.opsize == WORD) { "Something gone wrong" }
+                saveContextGateSamePrivilegeLevel(prefs, null, prefs.opsize, saved_eflags, saved_cs, saved_ip)
             }
 
-            GateType.INT_GATE_32.id,
-            GateType.TRAP_GATE_32.id -> {
+            GateType.TSS_16_Avail,
+            GateType.LDT,
+            GateType.TSS_16_Busy,
+            GateType.CALL_GATE_16 -> TODO("Gate ${idtEntry.type} is not implemented for 16 bit mode!")
+
+            GateType.TSS_32_64_Avail,
+            GateType.TSS_32_64_Busy,
+            GateType.CALL_GATE_32_64 -> TODO("Gate ${idtEntry.type} is not implemented yet")
+
+
+            GateType.INT_GATE_32_64,
+            GateType.TRAP_GATE_32_64 -> {
                 if (cpl != rpl) {
                     loadStackFromTaskDescriptor(rpl.uint, sp)
                     saveOldStackToTaskStack(prefs, saved_ss, saved_sp)
                 }
 
-                saveContextGateSamePrivilegeLevel(prefs, hwError, DWORD, saved_eflags, saved_cs, saved_ip)
+                saveContextGateSamePrivilegeLevel(prefs, hwError, prefs.opsize, saved_eflags, saved_cs, saved_ip)
 
                 // see Vol. 1 6-11 (PROCEDURE CALLS, INTERRUPTS, AND EXCEPTIONS)
                 // If the call is through an interrupt gate, clears the IF flag in the EFLAGS register.
-                if (gateTypeId == GateType.INT_GATE_32.id)
+                if (gateType == GateType.INT_GATE_32_64)
                     core.cpu.flags.eflags.ifq = false
             }
-
-            else -> throw GeneralException("Incorrect Gate type: ${idtEntry.type}")
         }
     }
 

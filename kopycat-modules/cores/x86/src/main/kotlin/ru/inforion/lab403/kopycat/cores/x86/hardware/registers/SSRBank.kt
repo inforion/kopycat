@@ -43,7 +43,8 @@ class SSRBank(val core: x86Core) : ARegistersBankNG<x86Core>("Segment Registers"
     }
 
     inner class CS : SSR("cs", 1, 0xFFFF000u) {
-        val cpl by fieldOf(1..0)
+        var ti by bitOf(2)
+        var cpl by fieldOf(1..0)
     }
 
     val es = SSR("es", 0)

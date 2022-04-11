@@ -41,7 +41,7 @@ class X86InstructionsTest32: AX86InstructionTest() {
         x86.ports.io.connect(buses.io)
         ram0.ports.mem.connect(buses.mem, 0u)
         ram1.ports.mem.connect(buses.io, 0u)
-        x86.cpu.csd = true
+        TODO ("x86.mmu.cs.d = true")
         initializeAndResetAsTopInstance()
     }
     override val mode: Long

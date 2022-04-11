@@ -33,24 +33,25 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movdqu
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movups
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Pcmpeqb
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Pmovmskb
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-class MovdquDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
+class PmovmskbDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
         val opcode = s.readOpcode()
         val rm = RMDC(s, prefs)
 
-        require(prefs.string == StringPrefix.REPZ || prefs.operandOverride) {
-            "x86 uses 0xF3 prefix (REPZ) or 0x66 (operand override) to encode SSE instruction also, but SSE instruction without it not implemented"
-        }
-
         val operands = when (opcode) {
-            0x6F -> arrayOf(rm.rxmm, rm.xmmpref)
-            0x7F -> arrayOf(rm.xmmpref, rm.rxmm)
+            0xD7 -> if (prefs.operandOverride) {
+                prefs.operandOverride = false // Reset override - r32 or r64 only
+                arrayOf(rm.rpref, rm.xmmpref)
+            } else arrayOf(rm.rpref, rm.mmxpref)
             else -> throw GeneralException("Incorrect opcode in decoder")
         }
 
-        return Movdqu(core, s.data, prefs, *operands)
+        return Pmovmskb(core, s.data, prefs, *operands)
     }
 }

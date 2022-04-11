@@ -34,8 +34,9 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.APIC
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
+import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.modules.*
-import kotlin.collections.set
 
 
 @Suppress("unused", "MemberVisibilityCanBePrivate", "PropertyName")
@@ -45,23 +46,12 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
 
         const val SLCT_ICW1_BIT = 4
         const val IS_OCW3_BIT = 3
-        const val GP_INTERRUPT_COUNT = 10
-        const val UART_INTERRUPT_COUNT = 2
-        const val PIT_INTERRUPT_COUNT = 2
+        const val PIC_INTERRUPT_COUNT = 16
     }
 
     inner class Ports : ModulePorts(this) {
-        // control ports
-        val mmcr = Slave("mmcr", BUS12)
         val io = Slave("io", BUS16)
-
-        // external ports
-        val gp = Slave("gp", GP_INTERRUPT_COUNT)
-        val pci = Slave("pci", PCI_INTERRUPTS_COUNT)
-        val uart = Slave("uart", UART_INTERRUPT_COUNT)
-
-        // internal ports
-        val pit = Slave("pit", PIT_INTERRUPT_COUNT)
+        val irq = Slave("master", PIC_INTERRUPT_COUNT)
     }
 
     override val ports = Ports()
@@ -73,18 +63,11 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
     enum class CR_LOW_READ_STATE { IR, ISR, NONE }
     enum class CR_HIGH_WRITE_STATE { MSK, ICW2, ICW3, ICW4 }
 
-    enum class IC_TYPE(val prefix: String, val portLo: ULong, val portHi: ULong) {
-        MASTER("MPIC", 0x0020u, 0x0021u),
-        SLAVE1("S1PIC", 0x00A0u, 0x00A1u),
-        SLAVE2("S2PIC", 0x0024u, 0x0025u),
-        NONE("NONE", -1uL, -1uL)
-    }
-
     class Pin(
             val num: Int,
             var inService: Boolean = false,
             var pending: Boolean = false,
-            var masked: Boolean = false)
+            var masked: Boolean = false): IAutoSerializable, IConstructorSerializable
 
     interface IMultiplexer {
         val pins: Array<Pin>
@@ -98,15 +81,24 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
         var vectorOffset: Int
     }
 
-    private abstract inner class I8259(val desc: IC_TYPE, val size: Int) : IMultiplexer {
+    inner class I8259(val offset: ULong) : IMultiplexer, IAutoSerializable {
         override var vectorOffset: Int = 0
-        override val pins = Array(size) { Pin(it) }
+        override val pins = Array(8) { Pin(it) }
         protected var portLowReadState = CR_LOW_READ_STATE.NONE
         protected var portHighWriteState = CR_HIGH_WRITE_STATE.MSK
         protected var omitICW3 = false
         protected var omitICW4 = false
 
-        private val xIR = object : Register(ports.io, desc.portLo, BYTE, "${desc.prefix}IR", writable = false) {
+        override fun masked(num: Int): Boolean = pins[num].masked
+        override fun pending(num: Int): Boolean {
+            return pins[num].pending
+        }
+
+        override fun inService(num: Int): Boolean {
+            return pins[num].inService
+        }
+
+        private val IR = object : Register(ports.io, offset, BYTE, "IR", writable = false) {
             override fun beforeRead(from: MasterPort, ea: ULong) = portLowReadState == CR_LOW_READ_STATE.IR
 
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
@@ -116,7 +108,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val xISR = object : Register(ports.io, desc.portLo, BYTE, "${desc.prefix}ISR", writable = false) {
+        private val ISR = object : Register(ports.io, offset, BYTE, "ISR", writable = false) {
             override fun beforeRead(from: MasterPort, ea: ULong) = portLowReadState == CR_LOW_READ_STATE.ISR
 
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
@@ -126,7 +118,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val xINTMSK = object : Register(ports.io, desc.portHi, BYTE, "${desc.prefix}INTMSK") {
+        private val INTMSK = object : Register(ports.io, offset + 1u, BYTE, "INTMSK") {
             override fun beforeRead(from: MasterPort, ea: ULong) = portHighWriteState == CR_HIGH_WRITE_STATE.MSK
             override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = portHighWriteState == CR_HIGH_WRITE_STATE.MSK
 
@@ -147,7 +139,26 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val xICW2 = object : Register(ports.io, desc.portHi, BYTE, "${desc.prefix}ICW2", readable = false) {
+        private val ICW1 = object : Register(ports.io, offset, BYTE, "ICW1", readable = false) {
+            val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
+            val LTIM by bit(3)
+            var ADI by bit(2)
+            val SNGL by bit(1)
+            val IC4 by bit(0)
+
+            override fun stringify() = "${super.stringify()} [SLCT_ICW1=$SLCT_ICW1 LTIM=$LTIM ADI=$ADI SNGL=$SNGL IC4=$IC4]"
+
+            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[SLCT_ICW1_BIT] == 1uL
+
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+                super.write(ea, ss, size, value)
+                omitICW4 = !IC4.truth
+                portHighWriteState = CR_HIGH_WRITE_STATE.ICW2
+            }
+        }
+
+
+        private val ICW2 = object : Register(ports.io, offset + 1u, BYTE, "ICW2", readable = false) {
             val T7T3 by field(7..3)
             var A10A8 by field(2..0)
 
@@ -168,7 +179,33 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val xICW4 = object : Register(ports.io, desc.portHi, BYTE, "${desc.prefix}ICW4", readable = false) {
+        private val ICW3 = object : Register(ports.io, offset + 1u, BYTE, "ICW3", readable = false) {
+            var S7 by bit(7)
+            var S6 by bit(6)
+            var S5 by bit(5)
+            var S4 by bit(4)
+
+            var S3 by bit(3)
+            var S2 by bit(2)
+            var S1 by bit(1)
+            var S0 by bit(0)
+
+            override fun stringify() = "${super.stringify()} [S2=$S2 S5=$S5]"
+
+            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+                    portHighWriteState == CR_HIGH_WRITE_STATE.ICW3
+
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+                super.write(ea, ss, size, value)
+                S0 = 0; S1 = 0; S3 = 0; S4 = 0; S6 = 0; S7 = 0
+                portHighWriteState = when {
+                    !omitICW4 -> CR_HIGH_WRITE_STATE.ICW4
+                    else -> CR_HIGH_WRITE_STATE.MSK
+                }
+            }
+        }
+
+        private val ICW4 = object : Register(ports.io, offset + 1u, BYTE, "ICW4", readable = false) {
             val SFNM by bit(4)
             val BUF_MS by field(3..2)
             val AEOI by bit(1)
@@ -186,7 +223,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val xOCW2 = object : Register(ports.io, desc.portLo, BYTE, "${desc.prefix}OCW2", readable = false) {
+        private val OCW2 = object : Register(ports.io, offset, BYTE, "OCW2", readable = false) {
             val R_SL_EOI by field(7..5)
             val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
             val IS_OCW3 by bit(IS_OCW3_BIT)
@@ -203,7 +240,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val xOCW3 = object : Register(ports.io, desc.portLo, BYTE, "${desc.prefix}OCW3", readable = false) {
+        private val OCW3 = object : Register(ports.io, offset, BYTE, "OCW3", readable = false) {
             val ESMM_SMM by field(6..5)
             val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
             val IS_OCW3 by bit(IS_OCW3_BIT)
@@ -224,173 +261,8 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
         }
     }
 
-    private inner class MasterIC : I8259(IC_TYPE.MASTER, 8) {
-        val selectors = Array(8) { false }
-        val slaves = Array<SlaveIC?>(8) { null }
-        var single = false
-
-        override fun masked(num: Int): Boolean = pins[num].masked
-        override fun pending(num: Int): Boolean {
-            val slave = slaves[num]
-            if (selectors[num] && slave != null)
-                return slave.pins.any { it.pending }
-            return pins[num].pending
-        }
-
-        override fun inService(num: Int): Boolean {
-            val slave = slaves[num]
-            if (selectors[num] && slave != null)
-                return slave.pins.any { it.inService }
-            return pins[num].inService
-        }
-
-        fun connect(id: Int, slave: SlaveIC) {
-            if (!single) {
-                slaves[id] = slave
-                slave.id = id
-                slave.master = this
-            }
-        }
-
-        private val xICW1 = object : Register(ports.io, desc.portLo, BYTE, "${desc.prefix}ICW1", readable = false) {
-            val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
-            val LTIM by bit(3)
-            var ADI by bit(2)
-            val SNGL by bit(1)
-            val IC4 by bit(0)
-
-            override fun stringify() = "${super.stringify()} [SLCT_ICW1=$SLCT_ICW1 LTIM=$LTIM ADI=$ADI SNGL=$SNGL IC4=$IC4]"
-
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[SLCT_ICW1_BIT] == 1uL
-
-            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-                super.write(ea, ss, size, value)
-                ADI = 1  // In the ÉlanSC520 microcontroller design, this PC/AT-compatible bit (ADI) is internally fixed to 1.
-                if (SNGL == 1) {
-                    omitICW3 = true
-                    selectors.indices.forEach { selectors[it] = false }
-                    slaves.indices.forEach { slaves[it] = null }
-                    single = true
-                    interruptRouter[ROUTE.P3] = Entry(master, 2)
-                    interruptRouter[ROUTE.P13] = Entry(master, 5)
-                } else {
-                    interruptRouter[ROUTE.P3] = Entry(slave1, 0)
-                    interruptRouter[ROUTE.P13] = Entry(slave2, 0)
-                }
-                omitICW4 = !IC4.truth
-                portHighWriteState = CR_HIGH_WRITE_STATE.ICW2
-            }
-        }
-
-        private val xICW3 = object : Register(ports.io, desc.portHi, BYTE, "${desc.prefix}ICW3", readable = false) {
-            var S7 by bit(7)
-            var S6 by bit(6)
-            var S5 by bit(5)
-            var S4 by bit(4)
-
-            var S3 by bit(3)
-            var S2 by bit(2)
-            var S1 by bit(1)
-            var S0 by bit(0)
-
-            override fun stringify() = "${super.stringify()} [S2=$S2 S5=$S5]"
-
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
-                    portHighWriteState == CR_HIGH_WRITE_STATE.ICW3
-
-            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-                super.write(ea, ss, size, value)
-                S0 = 0; S1 = 0; S3 = 0; S4 = 0; S6 = 0; S7 = 0
-                selectors[2] = S2.truth
-                selectors[5] = S5.truth
-                interruptRouter[ROUTE.P3] = if (selectors[2]) Entry(master, 2) else Entry(slave1, 0)
-                interruptRouter[ROUTE.P13] = if (selectors[5]) Entry(master, 5) else Entry(slave2, 0)
-                portHighWriteState = when {
-                    !omitICW4 -> CR_HIGH_WRITE_STATE.ICW4
-                    else -> CR_HIGH_WRITE_STATE.MSK
-                }
-            }
-        }
-    }
-
-    private inner class SlaveIC(desc: IC_TYPE) : I8259(desc, 8) {
-        var master: MasterIC? = null
-        var id: Int = -1
-
-        override fun masked(num: Int): Boolean {
-            val local = master
-            if (local != null && id != -1 && local.selectors[id] && local.pins[id].masked)
-                return true
-            return pins[num].masked
-        }
-
-        override fun pending(num: Int) = pins[num].pending
-        override fun inService(num: Int) = pins[num].inService
-
-        private val xICW1 = object : Register(ports.io, desc.portLo, BYTE, "${desc.prefix}ICW1", readable = false) {
-            val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
-            val LTIM by bit(3)
-            var ADI by bit(2)
-            var SNGL by bit(1)
-            val IC4 by bit(0)
-
-            override fun stringify() = "${super.stringify()} [SLCT_ICW1=$SLCT_ICW1 LTIM=$LTIM ADI=$ADI SNGL=$SNGL IC4=$IC4]"
-
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[SLCT_ICW1_BIT] == 1uL
-
-            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-                super.write(ea, ss, size, value)
-                ADI = 1  // In the ÉlanSC520 microcontroller design, this PC/AT-compatible bit (ADI) is internally fixed to 1.
-                SNGL = 0
-                omitICW3 = false
-                omitICW4 = !IC4.truth
-                portHighWriteState = CR_HIGH_WRITE_STATE.ICW2
-            }
-        }
-
-        private val xICW3 = object : Register(ports.io, desc.portHi, BYTE, "${desc.prefix}ICW3", readable = false) {
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
-                    portHighWriteState == CR_HIGH_WRITE_STATE.ICW3
-
-            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-                super.write(ea, ss, size, value)
-                data = 0b101u  // fixed
-                portHighWriteState = when {
-                    !omitICW4 -> CR_HIGH_WRITE_STATE.ICW4
-                    else -> CR_HIGH_WRITE_STATE.MSK
-                }
-            }
-        }
-    }
-
-    enum class ROUTE(val map: Int) {
-        P1(1), P2(2),
-        P3(3), P4(4),
-        P5(5), P6(6),
-        P7(7), P8(8),
-        P9(9), P10(10),
-        P11(11), P12(12),
-        P13(13), P14(14),
-        P15(15), P16(16),
-        P17(17), P18(18),
-        P19(19), P20(20),
-        P21(21), P22(22),
-        NMI(0b11111), DISABLED(-1)
-    }
-
-    data class Entry(val ic: IMultiplexer, val num: Int)
-
-    private val slave1 = SlaveIC(IC_TYPE.SLAVE1)
-    private val slave2 = SlaveIC(IC_TYPE.SLAVE2)
-    private val master = MasterIC().apply {
-        connect(2, slave1)
-        connect(5, slave2)
-    }
-
-    inner class Interrupt(irq: Int, val control: MAP_REG, val postfix: String) : AInterrupt(irq, postfix) {
+    inner class Interrupt(irq: Int, val pic: I8259, val postfix: String) : AInterrupt(irq, postfix), IAutoSerializable {
         override val cop get() = core.cop
-
-        var route = ROUTE.DISABLED
 
         override fun hashCode(): Int {
             var result = super.hashCode()
@@ -408,173 +280,49 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             return true
         }
 
-        override var inService: Boolean
-            get() {
-                val entry = interruptRouter[route] ?: return false
-                return entry.ic.inService(entry.num)
-            }
-            set(value) {
-                val entry = interruptRouter[route] ?: return
-                entry.ic.inService(entry.num, value)
-            }
-
         override val vector: Int
-            get() {
-                val entry = interruptRouter[route] ?: return 0
-                return entry.ic.vectorOffset or entry.num
-            }
+            get() = pic.vectorOffset or irq
 
-        override val priority: Int get() = route.map
-        override val nmi: Boolean get() = route == ROUTE.NMI
+        override val priority: Int get() = irq + 1
 
         override val masked: Boolean
             get() {
-                val entry = interruptRouter[route] ?: return false
-                return !enabled && entry.ic.masked(entry.num)
+                return !enabled && pic.masked(irq)
             }
 
         override fun onInterrupt() = Unit
 
-        override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + mapOf("route" to route)
-
-        override fun deserialize(ctxt: GenericSerializer, snapshot: kotlin.collections.Map<String, Any>) {
-            super.deserialize(ctxt, snapshot)
-            route = ROUTE.values().first { it.name == snapshot["route"] }
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+            return super<IAutoSerializable>.serialize(ctxt)
         }
 
-        init {
-            control.interrupt = this
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+            super<IAutoSerializable>.deserialize(ctxt, snapshot)
         }
     }
 
-    private val interruptRouter = mutableMapOf(
-            ROUTE.P1 to Entry(master, 0),
-            ROUTE.P2 to Entry(master, 1),
+    private val master = I8259(0x20u)
+    private val slave = I8259(0xA0u)
 
-            ROUTE.P3 to Entry(slave1, 0),
-            ROUTE.P4 to Entry(slave1, 1),
-            ROUTE.P5 to Entry(slave1, 2),
-            ROUTE.P6 to Entry(slave1, 3),
-            ROUTE.P7 to Entry(slave1, 4),
-            ROUTE.P8 to Entry(slave1, 5),
-            ROUTE.P9 to Entry(slave1, 6),
-            ROUTE.P10 to Entry(slave1, 7),
 
-            ROUTE.P11 to Entry(master, 3),
-            ROUTE.P12 to Entry(master, 4),
+    private val IRQ = Interrupts(ports.irq, "IRQ",
+        Interrupt(0, master,"IRQ0"), // IRQ 0 — system timer
+        Interrupt(1, master,"IRQ1"), // IRQ 1 — keyboard controller
+        // 2 is a cascade of slave
+        Interrupt(3, master,"IRQ3"), // IRQ 3 — serial port COM2, COM4
+        Interrupt(4, master,"IRQ4"), // IRQ 4 — serial port COM1, COM3
+        Interrupt(5, master,"IRQ5"), // IRQ 5 — parallel port 2 and 3 or sound card
+        Interrupt(6, master,"IRQ6"), // IRQ 6 — floppy controller
+        Interrupt(7, master,"IRQ7"), // IRQ 7 — parallel port 1
 
-            ROUTE.P13 to Entry(slave2, 0),
-            ROUTE.P14 to Entry(slave2, 1),
-            ROUTE.P15 to Entry(slave2, 2),
-            ROUTE.P16 to Entry(slave2, 3),
-            ROUTE.P17 to Entry(slave2, 4),
-            ROUTE.P18 to Entry(slave2, 5),
-            ROUTE.P19 to Entry(slave2, 6),
-            ROUTE.P20 to Entry(slave2, 7),
-
-            ROUTE.P21 to Entry(master, 6),
-            ROUTE.P22 to Entry(master, 7)
+        Interrupt(8, slave,"IRQ8"),  // IRQ 8 — RTC timer
+        Interrupt(9, slave,"IRQ9"),  // IRQ 9 — ACPI
+        Interrupt(10, slave,"IRQ10"),// IRQ 10 — open/SCSI/NIC
+        Interrupt(11, slave,"IRQ11"),// IRQ 11 — open/SCSI/NIC
+        Interrupt(12, slave,"IRQ12"),// IRQ 12 — mouse controller
+        Interrupt(13, slave,"IRQ13"),// IRQ 13 — math co-processor
+        Interrupt(14, slave,"IRQ14"),// IRQ 14 — ATA channel 1
+        Interrupt(15, slave,"IRQ15") // IRQ 15 — ATA channel 2
     )
-
-    inner class MAP_REG(port: SlavePort, address: ULong, name: String) : Register(port, address, BYTE, name) {
-
-        var interrupt: Interrupt? = null
-
-        val INT_MAP by field(4..0)
-
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            super.write(ea, ss, size, value)
-
-            val localInt = interrupt
-
-            if (localInt == null) {
-                log.warning { "Configuring not implemented interrupt: $this" }
-                return
-            }
-
-            val route = find<ROUTE> { it.map.ulong_z == INT_MAP } ?: ROUTE.DISABLED
-            if (localInt.route != route) {
-                localInt.route = route
-                log.fine { "${localInt.name} routed to -> ${localInt.irq}" }
-            }
-        }
-    }
-
-    val PICICR = Register(ports.mmcr, 0xD00u, BYTE, "PICICR")
-    val MPICMODE = Register(ports.mmcr, 0xD01u, BYTE, "MPICMODE")
-    val SL1PICMODE = Register(ports.mmcr, 0xD02u, BYTE, "SL1PICMODE")
-    val SL2PICMODE = Register(ports.mmcr, 0xD03u, BYTE, "SL2PICMODE")
-
-    val SWINT16_1 = Register(ports.mmcr, 0xD08u, WORD, "SWINT16_1")
-    val SWINT22_17 = Register(ports.mmcr, 0xD0Au, BYTE, "SWINT22_17")
-    val INTPINPOL = Register(ports.mmcr, 0xD10u, WORD, "INTPINPOL")
-
-    val PCIHOSTMAP = Register(ports.mmcr, 0xD14u, WORD, "PCIHOSTMAP")
-
-    val ECCMAP = Register(ports.mmcr, 0xD18u, WORD, "ECCMAP")
-
-    val GPTMR0MAP = MAP_REG(ports.mmcr, 0xD1Au, "GPTMR0MAP")
-    val GPTMR1MAP = MAP_REG(ports.mmcr, 0xD1Bu, "GPTMR1MAP")
-    val GPTMR2MAP = MAP_REG(ports.mmcr, 0xD1Cu, "GPTMR2MAP")
-
-    val PIT0MAP = MAP_REG(ports.mmcr, 0xD20u, "PIT0MAP")
-    val PIT1MAP = MAP_REG(ports.mmcr, 0xD21u, "PIT1MAP")
-    val PIT2MAP = MAP_REG(ports.mmcr, 0xD22u, "PIT2MAP")
-
-    val UART1MAP = MAP_REG(ports.mmcr, 0xD28u, "UART1MAP")
-    val UART2MAP = MAP_REG(ports.mmcr, 0xD29u, "UART2MAP")
-
-    val PCIINTAMAP = MAP_REG(ports.mmcr, 0xD30u, "PCIINTAMAP")
-    val PCIINTBMAP = MAP_REG(ports.mmcr, 0xD31u, "PCIINTBMAP")
-    val PCIINTCMAP = MAP_REG(ports.mmcr, 0xD32u, "PCIINTCMAP")
-    val PCIINTDMAP = MAP_REG(ports.mmcr, 0xD33u, "PCIINTDMAP")
-
-    val DMABCINTMAP = MAP_REG(ports.mmcr, 0xD40u, "DMABCINTMAP")
-    val SSIMAP = MAP_REG(ports.mmcr, 0xD41u, "SSIMAP")
-    val WDTMAP = MAP_REG(ports.mmcr, 0xD42u, "WDTMAP")
-    val RTCMAP = MAP_REG(ports.mmcr, 0xD43u, "RTCMAP")
-    val WPVMAP = MAP_REG(ports.mmcr, 0xD44u, "WPVMAP")
-    val ICEMAP = MAP_REG(ports.mmcr, 0xD45u, "ICEMAP")
-    val FERRMAP = MAP_REG(ports.mmcr, 0xD46u, "FERRMAP")
-
-    val GP0IMAP = MAP_REG(ports.mmcr, 0xD50u, "GP0IMAP")
-    val GP1IMAP = MAP_REG(ports.mmcr, 0xD51u, "GP1IMAP")
-    val GP2IMAP = MAP_REG(ports.mmcr, 0xD52u, "GP2IMAP")
-    val GP3IMAP = MAP_REG(ports.mmcr, 0xD53u, "GP3IMAP")
-    val GP4IMAP = MAP_REG(ports.mmcr, 0xD54u, "GP4IMAP")
-    val GP5IMAP = MAP_REG(ports.mmcr, 0xD55u, "GP5IMAP")
-    val GP6IMAP = MAP_REG(ports.mmcr, 0xD56u, "GP6IMAP")
-    val GP7IMAP = MAP_REG(ports.mmcr, 0xD57u, "GP7IMAP")
-    val GP8IMAP = MAP_REG(ports.mmcr, 0xD58u, "GP8IMAP")
-    val GP9IMAP = MAP_REG(ports.mmcr, 0xD59u, "GP9IMAP")
-    val GP10IMAP = MAP_REG(ports.mmcr, 0xD5Au, "GP10IMAP")
-
-    private val GP_IRQ = Interrupts(ports.gp, "GP_IRQ",
-            Interrupt(0, GP0IMAP, "GPIRQ0"),
-            Interrupt(1, GP1IMAP, "GPIRQ1"),
-            Interrupt(2, GP2IMAP, "GPIRQ2"),
-            Interrupt(3, GP3IMAP, "GPIRQ3"),
-            Interrupt(4, GP4IMAP, "GPIRQ4"),
-            Interrupt(5, GP5IMAP, "GPIRQ5"),
-            Interrupt(6, GP6IMAP, "GPIRQ6"),
-            Interrupt(7, GP7IMAP, "GPIRQ7"),
-            Interrupt(8, GP8IMAP, "GPIRQ8"),
-            Interrupt(9, GP9IMAP, "GPIRQ9"),
-            Interrupt(10, GP10IMAP, "GPIRQ10"))
-
-    private val PIT_IRQ = Interrupts(ports.pit, "PIT_IRQ",
-            Interrupt(0, PIT0MAP, "PIT0IRQ"),
-            Interrupt(1, PIT1MAP, "PIT1IRQ"),
-            Interrupt(2, PIT2MAP, "PIT2IRQ"))
-
-    private val PCI_IRQ = Interrupts(ports.pci, "PCI_IRQ",
-            Interrupt(0, PCIINTAMAP, "INTA"),
-            Interrupt(1, PCIINTBMAP, "INTB"),
-            Interrupt(2, PCIINTCMAP, "INTC"),
-            Interrupt(3, PCIINTDMAP, "INTD"))
-
-    private val UART_IRQ = Interrupts(ports.uart, "UART_IRQ",
-            Interrupt(0, UART1MAP, "UART1IRQ"),
-            Interrupt(1, UART2MAP, "UART1IRQ"))
 
 }

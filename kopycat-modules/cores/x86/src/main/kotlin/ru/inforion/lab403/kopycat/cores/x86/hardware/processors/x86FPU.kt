@@ -42,14 +42,29 @@ class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name), IAutoSeria
     }
 
     private var pos = 0
-    private val stack = Array(FPU_STACK_SIZE) { 0uL }
+
+    // TODO: FPU x87 has 80-bit data registers.
+    // TODO: Every float and double operation requires extension to 80-bit format (long double)
+    // TODO: But... it seems like we can leave it 64-bit because we haven't met any instruction that use 80-bit feature yet
+    // TODO: And also, don't forget that MMX extension also uses FPU stack as it's register file
+    // TODO: Good luck!
+    val stack = Array(FPU_STACK_SIZE) { 0uL }
+
     val fwr = FWRBank(core)
+//    val cwr = CWRBank(core)
+//    val swr = SWRBank(core)
 
     operator fun set(i: Int, e: ULong) {
         stack[i] = e
     }
 
     operator fun get(i: Int): ULong = stack[i]
+
+    // See 12.2 THE MMX STATE AND MMX REGISTER ALIASING and 12.6 DEBUGGING MMX CODE (Volume 3)
+    fun setMMX(i: Int, value: ULong) {
+        stack[(i - pos) % FPU_STACK_SIZE] = value
+    }
+    fun getMMX(i: Int): ULong = stack[(i - pos) % FPU_STACK_SIZE]
 
     fun push(e: ULong) {
         stack[pos] = e

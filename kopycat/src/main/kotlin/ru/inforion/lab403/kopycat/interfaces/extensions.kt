@@ -88,6 +88,7 @@ inline fun IReadable.inl(ea: ULong, ss: Int = 0): ULong = read(Datatype.DWORD, e
 @JvmName("inq")
 inline fun IReadable.inq(ea: ULong, ss: Int = 0): ULong = read(Datatype.QWORD, ea, ss)  // in quad
 
+
 @JvmName("ine")
 inline fun IReadable.ine(ea: ULong, size: Int, ss: Int = 0) = BigInteger(load(ea, size, ss).reversedArray())  // in extended
 
@@ -145,6 +146,8 @@ inline fun IWritable.outl(ea: ULong, value: ULong, ss: Int = 0) = write(Datatype
 @JvmName("outq")
 inline fun IWritable.outq(ea: ULong, value: ULong, ss: Int = 0) = write(Datatype.QWORD, ea, value, ss)  // out quad
 
+
 @JvmName("oute")
 inline fun IWritable.oute(ea: ULong, value: BigInteger, size: Int, ss: Int = 0) =
     store(ea, value.toByteArray().reversedArray().copyOf(size), ss)  // out extended
+

@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.sse
 
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
@@ -38,7 +40,7 @@ class Movd(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
     override val mnem = "movd"
 
     override fun execute() {
-        val a2 = op2.value(core)
+        val a2 = op2.value(core) like Datatype.DWORD
         op1.value(core, a2)
     }
 }

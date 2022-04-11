@@ -70,9 +70,6 @@ class PCIe(parent: Module, name: String, deviceId: Int) : PciDevice(parent, name
     val REG_EA = PCI_CONF_FUNC_WR(0xEA, DWORD, "REG_EA", 0u, CONFIG)
     val MANID = PCI_CONF_FUNC_WR(0xF8, DWORD, "MANID", 0x00000F00u, CONFIG)
 
-    val REG_108 = PCI_CONF_FUNC_WR(0x108, DWORD, "REG_108", 0u, CONFIG)
-    val REG_114 = PCI_CONF_FUNC_WR(0x114, DWORD, "REG_114", 0u, CONFIG)
-
     val MEM_800 = Memory(ports.pci, 0x200u, 0xC00u, "MEM_800", ACCESS.R_W)
 
 //    val REG_8F8 = PCI_CONF_FUNC_WR(0x8F8, DWORD, "REG_8F8", 0u, CONFIG)

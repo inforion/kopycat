@@ -42,7 +42,7 @@ class CmpxchgDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val opcode = s.readByte().int
         val rm = RMDC(s, prefs)
         val ops = when (opcode) {
-            0xB0 -> arrayOf(rm.r8, rm.m8)
+            0xB0 -> arrayOf(rm.m8, rm.r8)
             0xB1 -> arrayOf(rm.mpref, rm.rpref)
             else -> throw GeneralException("Incorrect opcode in decoder")
         }

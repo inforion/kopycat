@@ -122,7 +122,7 @@ open class Variable<T: AGenericCore>(default: ULong, dtyp: Datatype = DWORD) :
         return if (isSubtract) a < b else (a >= -b) && b != 0uL
     }
 
-    override fun toString(): String = if (value.long >= 0) "0x%X".format(value) else "-0x%X".format(value)
+    override fun toString(): String = if (value.long >= 0) "0x%X".format(value.long) else "-0x%X".format(value.long)
 
     /**
      * {EN}

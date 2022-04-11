@@ -39,15 +39,6 @@ class RAS(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F14
     val BAR_20 = PCI_BAR(0x20, DWORD, "BAR_20")
     val BAR_24 = PCI_BAR(0x24, DWORD, "BAR_24")
 
-    val REG_200 = PCI_CONF_FUNC_WR(0x200, DWORD, "REG_200", 0u, level = CONFIG)
-    val REG_204 = PCI_CONF_FUNC_WR(0x204, DWORD, "REG_204", 0u, level = CONFIG)
-    val REG_208 = PCI_CONF_FUNC_WR(0x208, DWORD, "REG_208", 0u, level = CONFIG)
-    val REG_20C = PCI_CONF_FUNC_WR(0x20C, DWORD, "REG_20C", 0u, level = CONFIG)
-    val REG_248 = PCI_CONF_FUNC_WR(0x248, DWORD, "REG_248", 0u, level = CONFIG)
-    val REG_24C = PCI_CONF_FUNC_WR(0x24C, DWORD, "REG_24C", 0u, level = CONFIG)
-    val REG_250 = PCI_CONF_FUNC_WR(0x250, DWORD, "REG_250", 0u, level = CONFIG)
-    val REG_258 = PCI_CONF_FUNC_WR(0x258, DWORD, "REG_258", 0u, level = CONFIG)
-
     val REG_3C0 = PCI_CONF_FUNC_WR(0x3C0, DWORD, "REG_3C0", 0u, level = CONFIG)
     val REG_3D0 = PCI_CONF_FUNC_WR(0x3D0, DWORD, "REG_3D0", 0u, level = CONFIG)
     val REG_400 = PCI_CONF_FUNC_WR(0x400, DWORD, "REG_400", 0u, level = CONFIG)

@@ -33,15 +33,10 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-abstract class AStringInstruction(
-    core: x86Core,
-    opcode: ByteArray,
-    prefs: Prefixes,
-    val isRepeOrRepne: Boolean,
-    vararg operands: AOperand<x86Core>
-): AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
+abstract class AStringInstruction(core: x86Core, opcode: ByteArray, prefs: Prefixes, val isRepeOrRepne:Boolean, vararg operands: AOperand<x86Core>):
+        AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
 
-    protected abstract fun executeStringInstruction()
+    abstract protected fun executeStringInstruction()
 
     final override fun execute() {
         if (prefs.string != StringPrefix.NO) {
@@ -52,9 +47,11 @@ abstract class AStringInstruction(
                 // TODO: ServiceInterrupts()
                 executeStringInstruction()
                 counter.minus(core, 1uL)
-                if (isRepeOrRepne)
+//                val zf = counter.value(cpu) == 0L
+                if(isRepeOrRepne)
                     if (isRepz && !core.cpu.flags.zf || isRepnz && core.cpu.flags.zf) break
             }
         } else executeStringInstruction()
+//        executeStringInstruction()
     }
 }

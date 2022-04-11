@@ -38,6 +38,11 @@ class Fxrstor(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands
     AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
     override val mnem = "fxrstor"
 
+
+    inline fun<T> Array<T>.reassign(ctor: (Int, T) -> T) = forEachIndexed { index: Int, value: T ->
+        set(index, ctor(index, value))
+    }
+
     private fun readHeader(base: ULong) {
         val fwr = core.fpu.fwr
 
@@ -53,18 +58,14 @@ class Fxrstor(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands
         core.inl(base + 28uL)
     }
 
-    private fun readPUMMX(base: ULong) = core.sse.mm
-        .indices
-        .forEach {
-            core.sse.mm[it] = core.inq(base + 32uL + (it * 16).uint)
-        }
+    private fun readPUMMX(base: ULong) = core.mmx.reassign { i, it -> core.inq(base + 32uL + (i * 16).uint) }
 
-    private fun readXMM(base: ULong, count: Int = 16) = core.sse.xmm
-        .indices
-        .filter { it < count }
-        .forEach {
-            core.sse.xmm[it] = core.ine(base + 160uL + (it * 16).uint,  Datatype.XMMWORD.bytes)
-        }
+    private fun readXMM(base: ULong, count: Int = 16) = core.sse.xmm.reassign { i, it ->
+        if (i < count)
+            core.ine(base + 160uL + (i * 16).uint,  Datatype.XMMWORD.bytes)
+        else
+            it
+    }
 
     private fun Load64BitFxrstore(base: ULong) {
         readHeader(base)

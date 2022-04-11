@@ -37,7 +37,11 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.EXCE
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.LOGGING
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.ConnectionError
+import ru.inforion.lab403.kopycat.cores.base.exceptions.CrossPageAccessException
+import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
 import ru.inforion.lab403.kopycat.modules.BUS32
@@ -321,6 +325,8 @@ open class ModulePorts(val module: Module) {
         fun access(ea: ULong, ss: Int = 0, size: Int = 0, LorS: AccessAction = LOAD) =
                 find(this, ea, ss, size, LorS, 0u) != null
 
+        fun moduleName(ea: ULong, ss: Int = 0) = find(this, ea, ss, 1, LOAD, 0u)?.toString()
+
         /**
          * {RU}
          * Выполняет поиск региона по заданного адреса [ea] и сегмента селектора [ss] и на заданное действие [LorS]
@@ -348,13 +354,48 @@ open class ModulePorts(val module: Module) {
         override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean =
                 throw IllegalAccessError("This method should not be called")
 
-        override fun fetch(ea: ULong, ss: Int, size: Int): ULong {
+        private fun fetchInternal(ea: ULong, ss: Int, size: Int): ULong {
             val found = find(this, ea, ss, size, FETCH, 0u)
-                    ?: throw MemoryAccessError(ULONG_MAX, ea, FETCH, "Nothing connected at $ss:${ea.hex16} port $this")
+                ?: throw MemoryAccessError(ULONG_MAX, ea, FETCH, "Nothing connected at $ss:${ea.hex16} port $this")
             return found.fetch(ss, size)
         }
 
-        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+        private fun fetchSupportedSize(ea: ULong, ss: Int, size: Int) = when (size) {
+            WORD.bytes,
+            FWORD.bytes,
+            DWORD.bytes,
+            WORD.bytes,
+            BYTE.bytes -> readInternal(ea, ss, size)
+            3 -> {
+                readInternal(ea, ss, WORD.bytes) or
+                        (readInternal(ea + WORD.bytes, ss, BYTE.bytes) shl WORD.bits)
+            }
+            5 -> {
+                readInternal(ea, ss, DWORD.bytes) or
+                        (readInternal(ea + DWORD.bytes, ss, BYTE.bytes) shl DWORD.bits)
+            }
+            7 -> {
+                readInternal(ea, ss, DWORD.bytes) or
+                        (readInternal(ea + DWORD.bytes, ss, WORD.bytes) shl DWORD.bits) or
+                        (readInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes) shl (DWORD.bits + WORD.bits))
+            }
+            else -> throw GeneralException("Unreachable size: $size")
+        }
+
+        override fun fetch(ea: ULong, ss: Int, size: Int) = try {
+            fetchInternal(ea, ss, size)
+        }
+        catch (ex: CrossPageAccessException) {
+            val nextPage = (ea + size - 1u) and ex.mask
+            val firstSize = (nextPage - ea).int
+            val secondSize = size - firstSize
+
+            fetchSupportedSize(ea, ss, firstSize) or (
+                    fetchSupportedSize(nextPage, ss, secondSize) shl (firstSize * BYTE_BITS)
+            )
+        }
+
+        private fun readInternal(ea: ULong, ss: Int, size: Int): ULong {
             val found = find(this, ea, ss, size, LOAD, 0u) ?: return when (onError) {
                 EXCEPTION ->
                     throw MemoryAccessError(ULONG_MAX, ea, LOAD, "Nothing connected at $ss:${ea.hex16} port $this")
@@ -364,11 +405,45 @@ open class ModulePorts(val module: Module) {
                 }
                 else -> 0u
             }
-
             return found.read(ss, size)
         }
 
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+        private fun readSupportedSize(ea: ULong, ss: Int, size: Int) = when (size) {
+            WORD.bytes,
+            FWORD.bytes,
+            DWORD.bytes,
+            WORD.bytes,
+            BYTE.bytes -> readInternal(ea, ss, size)
+            3 -> {
+                readInternal(ea, ss, WORD.bytes) or
+                (readInternal(ea + WORD.bytes, ss, BYTE.bytes) shl WORD.bits)
+            }
+            5 -> {
+                readInternal(ea, ss, DWORD.bytes) or
+                (readInternal(ea + DWORD.bytes, ss, BYTE.bytes) shl DWORD.bits)
+            }
+            7 -> {
+                readInternal(ea, ss, DWORD.bytes) or
+                (readInternal(ea + DWORD.bytes, ss, WORD.bytes) shl DWORD.bits) or
+                (readInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes) shl (DWORD.bits + WORD.bits))
+            }
+            else -> throw GeneralException("Unreachable size: $size")
+        }
+
+        override fun read(ea: ULong, ss: Int, size: Int) = try {
+             readInternal(ea, ss, size)
+        }
+        catch (ex: CrossPageAccessException) {
+            val nextPage = (ea + size - 1u) and ex.mask
+            val firstSize = (nextPage - ea).int
+            val secondSize = size - firstSize
+
+            readSupportedSize(ea, ss, firstSize) or (
+                    readSupportedSize(nextPage, ss, secondSize) shl (firstSize * BYTE_BITS)
+            )
+        }
+
+        private fun writeInternal(ea: ULong, ss: Int, size: Int, value: ULong) {
             val found = find(this, ea, ss, size, STORE, value) ?: return when (onError) {
                 EXCEPTION ->
                     throw MemoryAccessError(ULONG_MAX, ea, STORE, "Nothing connected at $ss:${ea.hex16} port $this")
@@ -377,6 +452,40 @@ open class ModulePorts(val module: Module) {
                 else -> return
             }
             found.write(ss, size, value)
+        }
+
+        private fun writeSupportedSize(ea: ULong, ss: Int, size: Int, value: ULong) = when (size) {
+            WORD.bytes,
+            FWORD.bytes,
+            DWORD.bytes,
+            WORD.bytes,
+            BYTE.bytes -> writeInternal(ea, ss, size, value)
+            3 -> {
+                writeInternal(ea, ss, WORD.bytes, value)
+                writeInternal(ea + WORD.bytes, ss, BYTE.bytes, value ushr WORD.bits)
+            }
+            5 -> {
+                writeInternal(ea, ss, DWORD.bytes, value)
+                writeInternal(ea + DWORD.bytes, ss, BYTE.bytes, value ushr DWORD.bits)
+            }
+            7 -> {
+                writeInternal(ea, ss, DWORD.bytes, value)
+                writeInternal(ea + DWORD.bytes, ss, WORD.bytes, value ushr DWORD.bits)
+                writeInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes, value ushr (DWORD.bits + WORD.bits))
+            }
+            else -> throw GeneralException("Unreachable size: $size")
+        }
+
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = try {
+            writeInternal(ea, ss, size, value)
+        }
+        catch (ex: CrossPageAccessException) {
+            val nextPage = (ea + size - 1u) and ex.mask
+            val firstSize = (nextPage - ea).int
+            val secondSize = size - firstSize
+
+            writeSupportedSize(ea, ss, firstSize, value)
+            writeSupportedSize(nextPage, ss, secondSize, value ushr (firstSize * BYTE_BITS))
         }
     }
 

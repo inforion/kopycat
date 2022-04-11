@@ -34,3 +34,4 @@ include(":kopycat-modules:misc:examples")
 
 include(":common:proposal")
 include(":common:elfloader")
+include(":common:elfloader2")

@@ -32,14 +32,18 @@ import java.math.BigInteger
 
 
 class SSE(val x86: x86Core) : ICoreUnit, IAutoSerializable {
-    override val name = "AVXExtension"
+    override val name = "SSExtension"
 
-    val mm = Array<ULong>(8) { 0u }
+    // TODO: Be careful when extending to AVX: you should leave high 128 bits unmodified in case of using SSE-instructions
+    // TODO: for ex: (operation definition of MOVUPS in Intel manual (volume 2))
+    // TODO: MOVUPS (128-bit load- and register-copy- form Legacy SSE version)
+    // TODO: DEST[127:0] := SRC[127:0]
+    // TODO: DEST[MAXVL-1:128] (Unmodified)
+    // TODO: also search for copyOf usage with xmm. It also may cause bugs
     val xmm = Array<BigInteger>(16) { BigInteger.ZERO }
 
     override fun reset() {
         super.reset()
         xmm.fill(BigInteger.ZERO)
-        mm.fill(0u)
     }
 }

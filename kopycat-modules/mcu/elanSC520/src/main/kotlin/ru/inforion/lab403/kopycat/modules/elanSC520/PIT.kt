@@ -88,6 +88,26 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
         // Readback count or status activated or status then count
         var READBACK = Status
 
+        private var outputValue = false
+
+        var output // real output value
+            get() = outputValue
+            set(value) {
+                if (value && !outputValue) // positive edge
+                    ports.irq.request(id)
+                outputValue = value
+            }
+
+        var mode = 0
+            set(value) {
+                field = value
+                outputValue = when (value) {
+                    in 0..1 -> false
+                    in 2..5 -> true
+                    else -> throw GeneralException("Unknown mode $value")
+                }
+            }
+
         override fun stringify() = "${super.stringify()} [LATCHED=$LATCHED ENABLED=${timer.enabled} OUTPUT=$OUTPUT NULL_CNT=$NULL_CNT RW=$RW CTR_MODE_STA=$CTR_MODE_STA BCD=$BCD]"
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
@@ -178,6 +198,7 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
             val PITCNT = PIT_CNT_STA[CTR_SEL.int]
             PITCNT.CTR_RW_LATCH = CTR_RW_LATCH
             PITCNT.no = 0
+            PITCNT.mode = CTR_MODE.int
         }
     }
 
@@ -267,22 +288,102 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
 
         override fun trigger() {
             super.trigger()
-//            log.finest { "$name COUNT0=${PIT_CNT_STA[0].COUNT} COUNT1=${PIT_CNT_STA[1].COUNT} COUNT2=${PIT_CNT_STA[2].COUNT} triggered at %,d ns".format(dev.timer.time(Time.ns)) }
-            when (PITMODECTL.CTR_MODE.int) {
-            // Counting data from LATCHED value to 0 for each channel where LATCHED != 0 (just for performance)
-            // When zero reached trigger interrupt and reload COUNT value
-                2, 3 -> PIT_CNT_STA // TODO: that's nothing common with UserManual
-                        .filter { it.LATCHED != 0uL }
-                        .forEach {
-                            it.COUNT -= 1u
-                            if (it.COUNT == 0uL) {
-                                ports.irq.request(it.id)
-                                it.COUNT = it.LATCHED
-                                log.finest { "%s counter reached latched value at %,d ns".format(name, core.clock.time(Time.ns)) }
-                            }
+            PIT_CNT_STA.filter { it.LATCHED != 0uL }.forEach { it ->
+                when (it.mode) {
+                    // MODE 0: INTERRUPT ON TERMINAL COUNT
+                    // Gate = pause
+                    0 -> {
+                        it.COUNT -= 1u
+                        if (it.COUNT == 0uL)
+                            it.output = true
+                    }
+                    // MODE 1: HARDWARE RETRIGGERABLE ONE-SHOT
+                    // Gate = reload
+                    1 -> {
+                        it.COUNT -= 1u
+                        if (it.COUNT == 0uL)
+                            it.output = true
+                    }
+                    // MODE 2: RATE GENERATOR
+                    2 -> {
+                        if (it.COUNT == 1uL) {
+                            it.output = false
+                            it.COUNT = it.LATCHED
                         }
-                else -> TODO("Timer mode not implemented yet or not supported ${PITMODECTL.CTR_MODE}")
+                        else
+                            it.COUNT -= 1u
+
+                        if (it.COUNT == 1uL)
+                            it.output = true
+                    }
+                    // MODE 3: SQUARE WAVE MODE
+                    3 -> {
+                        if (it.COUNT <= 1uL)
+                            it.COUNT = it.LATCHED
+                        else
+                            it.COUNT -= 2u
+
+                        if (it.COUNT <= 1uL)
+                            it.output = !it.output
+                    }
+                    // MODE 4: SOFTWARE TRIGGERED MODE
+                    // Gate = pause
+                    4 -> {
+                        if (it.COUNT == 0uL)
+                            it.output = false
+
+                        it.COUNT -= 1u
+
+                        if (it.COUNT == 0uL)
+                            it.output = true
+                    }
+                    // MODE 5: HARDWARE TRIGGERED STROBE (RETRIGGERABLE)
+                    // Gate = reload
+                    5 -> {
+                        if (it.COUNT == 0uL)
+                            it.output = false
+
+                        it.COUNT -= 1u
+
+                        if (it.COUNT == 0uL)
+                            it.output = true
+                    }
+
+
+//                    2, 3 -> PIT_CNT_STA // TODO: that's nothing common with UserManual
+//                        .filter { it.LATCHED != 0uL }
+//                        .forEach {
+//                            it.COUNT -= 1u
+//                            if (it.COUNT == 0uL) {
+//                                ports.irq.request(it.id)
+//                                it.COUNT = it.LATCHED
+//                                log.finest { "%s counter reached latched value at %,d ns".format(name, core.clock.time(Time.ns)) }
+//                            }
+//                        }
+
+                    else -> TODO("Timer mode not implemented yet or not supported ${PITMODECTL.CTR_MODE}")
+
+                }
             }
+//            log.finest { "$name COUNT0=${PIT_CNT_STA[0].COUNT} COUNT1=${PIT_CNT_STA[1].COUNT} COUNT2=${PIT_CNT_STA[2].COUNT} triggered at %,d ns".format(dev.timer.time(Time.ns)) }
+//            when (PITMODECTL.CTR_MODE.int) {
+//            // Counting data from LATCHED value to 0 for each channel where LATCHED != 0 (just for performance)
+//            // When zero reached trigger interrupt and reload COUNT value
+//                2, 3 -> PIT_CNT_STA // TODO: that's nothing common with UserManual
+//                        .filter { it.LATCHED != 0uL }
+//                        .forEach {
+//                            it.COUNT -= 1u
+//                            if (it.COUNT == 0uL) {
+//                                ports.irq.request(it.id)
+//                                it.COUNT = it.LATCHED
+//                                log.finest { "%s counter reached latched value at %,d ns".format(name, core.clock.time(Time.ns)) }
+//                            }
+//                        }
+//                4 -> {
+//
+//                }
+//                else -> TODO("Timer mode not implemented yet or not supported ${PITMODECTL.CTR_MODE}")
+//            }
         }
     }
 

@@ -33,6 +33,7 @@ import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.interfaces.*
+import java.math.BigInteger
 
 
 class x86Displacement constructor(
@@ -48,6 +49,8 @@ class x86Displacement constructor(
 
     override fun value(core: x86Core): ULong = core.read(dtyp, effectiveAddress(core), ssr.reg)
     override fun value(core: x86Core, data: ULong): Unit = core.write(dtyp, effectiveAddress(core), data, ssr.reg)
+    override fun extValue(core: x86Core): BigInteger = core.ine(effectiveAddress(core), dtyp.bytes, ssr.reg)
+    override fun extValue(core: x86Core, data: BigInteger): Unit = core.oute(effectiveAddress(core), data, dtyp.bytes, ssr.reg)
 
     override fun toString(): String {
         val reg = reg as x86Register  // should be removed when all registers will be NG

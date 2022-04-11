@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.base.abstracts
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
@@ -198,7 +199,7 @@ abstract class ACore<
 
         when (exception) {
             is BreakpointException -> {
-                log.fine { exception.explain("stop at ${exception.breakpoint}") }
+                log.config { exception.explain("stop at breakpoint hit") }
                 cpu.fault = false
                 return BREAKPOINT_EXCEPTION
             }
@@ -261,7 +262,15 @@ abstract class ACore<
     }
 
     fun doProcessInterrupts() {
-        cop.processInterrupts()
+        runCatching {
+            cop.processInterrupts()
+        }.onFailure {
+            // This code prevents cyclic hardware exception handling
+            // If COP for some architecture throws some kind of hardware exception,
+            // you should rewrite this code
+            it.logStackTrace(log)
+            error("COP shouldn't throw any exception during processInterrupts")
+        }
         stage = Stage.INTERRUPTS_PROCESSED
     }
 

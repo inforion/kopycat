@@ -31,7 +31,6 @@ import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
@@ -47,14 +46,14 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
     companion object {
         @Transient val log = logger(FINE)
 
-        const val INTERRUPT_COUNT = 3
+        const val CHANNEL_COUNT = 3
 
         private val CTR_SEL_RANGE = 7..6
         private val CTR_CMD_RANGE = 5..4
     }
 
     inner class Ports : ModulePorts(this) {
-        val irq = Master("irq", INTERRUPT_COUNT)
+        val irq = Master("irq", 1)
         val io = Slave("io", BUS16)
     }
 
@@ -89,6 +88,26 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
 
         // Readback count or status activated or status then count
         var READBACK = None
+
+        private var outputValue = false
+
+        var output // real output value
+            get() = outputValue
+            set(value) {
+                if (id == 0 && value && !outputValue) // positive edge
+                    ports.irq.request(id)
+                outputValue = value
+            }
+
+        var mode = 0
+            set(value) {
+                field = value
+                outputValue = when (value) {
+                    in 0..1 -> false
+                    in 2..5 -> true
+                    else -> throw GeneralException("Unknown mode $value")
+                }
+            }
 
         override fun stringify() = "${super.stringify()} [LATCHED=$LATCHED ENABLED=${timer.enabled} OUTPUT=$OUTPUT NULL_CNT=$NULL_CNT RW=$RW CTR_MODE_STA=$CTR_MODE_STA BCD=$BCD]"
 
@@ -157,7 +176,10 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
                     "CTR_RW_LATCH" to CTR_RW_LATCH,
                     "no" to no,
                     "READBACK_LATCHED" to READBACK_LATCHED,
-                    "READBACK" to READBACK)
+                    "READBACK" to READBACK,
+                    "mode" to mode,
+                    "output" to output
+            )
         }
 
         @Suppress("UNCHECKED_CAST")
@@ -169,10 +191,12 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
             no = loadValue(snapshot, "no") { 0 }
             READBACK = loadEnum(snapshot, "READBACK", Status)
             READBACK_LATCHED = loadValue(snapshot, "READBACK_LATCHED") { 0u }
+            mode = loadValue(snapshot, "mode") { 0 }
+            outputValue = loadValue(snapshot, "outputValue") { false }
         }
     }
 
-    private val PIT_CNT_STA = Array(INTERRUPT_COUNT) { PITxCNT_STA(ports.io, it) }
+    private val PIT_CNT_STA = Array(CHANNEL_COUNT) { PITxCNT_STA(ports.io, it) }
 
     private val PITMODECTL = object : Register(ports.io, 0x0043u, BYTE, name = "PITMODECTL") {
         val CTR_SEL by field(CTR_SEL_RANGE)
@@ -190,6 +214,7 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
             val PITCNT = PIT_CNT_STA[CTR_SEL.int]
             PITCNT.CTR_RW_LATCH = CTR_RW_LATCH
             PITCNT.no = 0
+            PITCNT.mode = CTR_MODE.int
         }
     }
 
@@ -289,32 +314,66 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
 
         override fun trigger() {
             super.trigger()
-//            log.finest { "$name COUNT0=${PIT_CNT_STA[0].COUNT} COUNT1=${PIT_CNT_STA[1].COUNT} COUNT2=${PIT_CNT_STA[2].COUNT} triggered at %,d ns".format(dev.timer.time(Time.ns)) }
-            when (PITMODECTL.CTR_MODE.int) {
-                0 -> PIT_CNT_STA // TODO: that's nothing common with UserManual
-                    .filter { it.LATCHED != 0uL }
-                    .forEach {
+            PIT_CNT_STA.filter { it.LATCHED != 0uL }.forEach {
+                when (it.mode) {
+                    // MODE 0: INTERRUPT ON TERMINAL COUNT
+                    // Gate = pause
+                    0 -> {
                         it.COUNT -= 1u
-                        if (it.COUNT == 0uL) {
-                            if (it.id == 0)
-                                ports.irq.request(it.id)
-                            it.COUNT = it.LATCHED
-                            log.finest { "%s counter reached latched value at %,d ns".format(name, core.clock.time(Time.ns)) }
-                        }
+                        if (it.COUNT == 0uL)
+                            it.output = true
                     }
-            // Counting data from LATCHED value to 0 for each channel where LATCHED != 0 (just for performance)
-            // When zero reached trigger interrupt and reload COUNT value
-                2, 3 -> PIT_CNT_STA // TODO: that's nothing common with UserManual
-                        .filter { it.LATCHED != 0uL }
-                        .forEach {
+                    // MODE 1: HARDWARE RETRIGGERABLE ONE-SHOT
+                    // Gate = reload
+                    1 -> {
+                        it.COUNT -= 1u
+                        if (it.COUNT == 0uL)
+                            it.output = true
+                    }
+                    // MODE 2: RATE GENERATOR
+                    2 -> {
+                        if (it.COUNT == 1uL) {
+                            it.output = true
+                            it.COUNT = it.LATCHED
+                        } else
                             it.COUNT -= 1u
-                            if (it.COUNT == 0uL) {
-//                                ports.irq.request(it.id)
-                                it.COUNT = it.LATCHED
-                                log.finest { "%s counter reached latched value at %,d ns".format(name, core.clock.time(Time.ns)) }
-                            }
-                        }
-                else -> TODO("Timer mode not implemented yet or not supported ${PITMODECTL.CTR_MODE}")
+
+                        if (it.COUNT == 1uL)
+                            it.output = false
+                    }
+                    // MODE 3: SQUARE WAVE MODE
+                    3 -> {
+                        if (it.COUNT <= 1uL)
+                            it.COUNT = it.LATCHED
+                        else
+                            it.COUNT -= 2u
+
+                        if (it.COUNT <= 1uL)
+                            it.output = !it.output
+                    }
+                    // MODE 4: SOFTWARE TRIGGERED MODE
+                    // Gate = pause
+                    4 -> {
+                        if (it.COUNT == 0uL)
+                            it.output = true
+
+                        it.COUNT -= 1u
+
+                        if (it.COUNT == 0uL)
+                            it.output = false
+                    }
+                    // MODE 5: HARDWARE TRIGGERED STROBE (RETRIGGERABLE)
+                    // Gate = reload
+                    5 -> {
+                        if (it.COUNT == 0uL)
+                            it.output = true
+
+                        it.COUNT -= 1u
+
+                        if (it.COUNT == 0uL)
+                            it.output = false
+                    }
+                }
             }
         }
     }

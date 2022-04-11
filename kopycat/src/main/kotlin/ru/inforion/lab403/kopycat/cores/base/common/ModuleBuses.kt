@@ -117,7 +117,8 @@ open class ModuleBuses(val module: Module) {
         // Ограничение введено в силу того, что при таком соединении неясно какого размера должна быть шина
         // Шина может быть размером как базовый порт, так и подключаемый порт
         ConnectionError.on(base.size != port.size) {
-            "Connected ports ($base and $port) has different size [${base.size} != ${port.size}]!"
+            "Connected ports ($base and $port) has different size [${base.size} != ${port.size}] - can't determine size!\n" +
+                    "Use fixed-size bus in the buses override instead"
         }
 
         val hasNameSimple = base.name in container

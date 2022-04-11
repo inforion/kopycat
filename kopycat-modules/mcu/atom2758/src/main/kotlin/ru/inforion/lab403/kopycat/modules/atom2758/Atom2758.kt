@@ -59,6 +59,7 @@ import ru.inforion.lab403.kopycat.modules.common.pci.pci_connect
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_proxy
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
+import ru.inforion.lab403.kopycat.modules.memory.VOID
 
 
 class Atom2758(
@@ -86,6 +87,8 @@ class Atom2758(
         val nb_mem = Bus("nb_mem", physicalBusSize)  // north bridge
         val nb_io = Bus("nb_io", BUS16)  // north bridge
 
+        val irq = Bus("irq", PIC8259.PIC_INTERRUPT_COUNT)  // north bridge
+
         val rcrb = Bus("rcrb", RCRB.BUS_SIZE)
         val spi = Bus("spi", SPI.BUS_SIZE)
 
@@ -104,7 +107,7 @@ class Atom2758(
 
     val uio = UnknownIO(this, "uio")
 
-    val mem_conv = RAM(this, "mem_conv", 0x100000)  // 1 MB
+//    val mem_conv = RAM(this, "mem_conv", 0x100000)  // 1 MB
 
     val mem_00 = RAM(this, "mem_0", 0x4000000)  // 64 MB
     val mem_04 = RAM(this, "mem_4", 0x4000000)
@@ -146,6 +149,8 @@ class Atom2758(
     val rcrb = RCRB(this, "rcrb")
     val uart0 = NS16550(this, "uart0", Datatype.BYTE)
     val uart1 = UART(this, "uart1", 1)
+    val uart3 = VOID(this, "uart3", 0x10)
+    val uart4 = VOID(this, "uart4", 0x10)
     val post = POST(this, "post")
     val smm = SMM(this, "smm")
 
@@ -210,11 +215,11 @@ class Atom2758(
                 0x01u,
                 CPUID1EAX(0u, 4u, ProcType.OEM, 6u, 13u, 0u),
                 CPUID1EBX(NotSupport, 8u, 0u, 0u),
-                CPUIDECX(pni, dtes64, monitor, ds_cpl, tm2, ssse3, cx16, xtpr, pdcm, movbe),
+                CPUIDECX(pni, dtes64, monitor, ds_cpl, tm2, /*ssse3,*/ cx16, xtpr, pdcm, movbe),
                 CPUIDEDX(
-                    fpu, vme, de, pse, tsc, msr, pae, mce, cx8,
+                    fpu, vme, de, pse, tsc, EDXFeatures.msr, pae, mce, cx8,
                     apic, sep, mtrr, pge, mca, cmov, pat, pse36, clflush,
-                    dts, EDXFeatures.acpi, mmx, fxsr, sse, sse2, ss, ht, tm, pbe
+                    dts, EDXFeatures.acpi, /*mmx,*/ fxsr, /*sse, sse2,*/ ss, ht, tm, pbe
                 ),
             )
 
@@ -246,6 +251,7 @@ class Atom2758(
 
             cpuid(0x06u, 0u, 0u, 0u, 0u)
             cpuid(0x07u, 0u, 0u, 0u, 0u)
+            cpuid(0x0Au,0u, 0u, 0u, 0u)
             // https://www.ti.uni-bielefeld.de/html/teaching/WS1920/techinf1/64-ia-32-architectures-software-developers-manual.pdf
             cpuid(0x0Bu, 0x0000_0001u, 0x0000_0002u, 0x0001_0000u, 0x0000_0000u)
             cpuid(0x0Du, 0u, 0u, 0u, 0u)
@@ -255,6 +261,8 @@ class Atom2758(
             // Digital thermal sensor: dts
             cpuid(0x8000_0000u, 0x8000_0008u, 0u, 0u, 0u)
             cpuid(0x8000_0001u, 0u, 0u, CPUIDECX(lahf_lm), CPUIDEDX(syscall, nx, lm))
+            // 0x8000_0002u - 0x8000_0004u
+            setModelName("Intel(R) Atom(TM) CPU D525   @ 1.80GHz")
             cpuid(0x8000_0007u, 0u, 0u, 0u, 0u)
             cpuid(0x8000_0008u,
                 insert(48u, 15..8)
@@ -263,7 +271,7 @@ class Atom2758(
 //            cpuid(0x80000008u, 0x0000_2424u, 0u, 0u, 0u)
 
             msr(IA32_PLATFORM_ID, insert(1uL, 52..50))
-            msr(IA32_APIC_BASE, 0xFEE0_0000u)  //  BSP flag[8] = 0, Enable x2APIC mode[10] = 0, APIC Global Enable[11] = 0
+            msr(IA32_APIC_BASE, 0xFEE0_0000u)
             msr(IA32_BIOS_SIGN_ID, 0u)
             msr(MSR_BBL_CR_CTL3, 0u)
             msr(MSR_FSB_FREQ, 800_000_000u)
@@ -276,12 +284,16 @@ class Atom2758(
             msr(MSR_PKG_POWER_LIMIT, 0u)
             msr(MSR_PKG_POWER_SKU_UNIT, 0u)
 
-            msr(IA32_SMBASE, 0x30000u)
-
             // IA32_MTRRCAP: 0xFEu have_fixed = 1
             msr(IA32_MTRRCAP, 0x108u)
 
             msr(IA32_MISC_ENABLE, 0u)
+
+            // Linux checks 22'nd bit
+            msr(IA32_PERFEVTSEL0, 0u)
+            msr(IA32_PERFEVTSEL1, 0u)
+            msr(IA32_PERFEVTSEL2, 0u)
+            msr(IA32_PERFEVTSEL3, 0u)
 
             msr(MSR_TURBO_RATIO_LIMIT, 0x0101_0101_0101_0101u)
             msr(IA32_MCG_CAP, 0u)
@@ -335,41 +347,11 @@ class Atom2758(
             // MTRR Enable = 1
             msr(IA32_MTRR_DEF_TYPE, 0x600u)
 
-//            https://cpp.hotexamples.com/examples/-/-/bus_freq_khz/cpp-bus_freq_khz-function-examples.html
-//            /* Set IA core speed ratio and voltages */
-//            msr = rdmsr(MSR_IACORE_RATIOS);
-//            attrs->iacore_ratios[IACORE_MIN] = msr.lo & 0x7f;
-//            attrs->iacore_ratios[IACORE_LFM] = (msr.lo >> 8) & 0x7f;
-//            attrs->iacore_ratios[IACORE_MAX] = (msr.lo >> 16) & 0x7f;
-//            msr = rdmsr(MSR_IACORE_TURBO_RATIOS);
-//            attrs->iacore_ratios[IACORE_TURBO] = (msr.lo & 0xff); /* 1 core max */
-//
-//            msr = rdmsr(MSR_IACORE_VIDS);
-//            attrs->iacore_vids[IACORE_MIN] = msr.lo & 0x7f;
-//            attrs->iacore_vids[IACORE_LFM] = (msr.lo >> 8) & 0x7f;
-//            attrs->iacore_vids[IACORE_MAX] = (msr.lo >> 16) & 0x7f;
-//            msr = rdmsr(MSR_IACORE_TURBO_VIDS);
-//            attrs->iacore_vids[IACORE_TURBO] = (msr.lo & 0xff); /* 1 core max */
-
-            // I don't know what the right values cus
-            // Intel don't give a fuck for these registers in their docs
-            msr(MSR_IACORE_RATIOS, 0x00_10_03_01u)
-            msr(MSR_IACORE_VIDS, 0x00_10_03_01u)
-
-            msr(MSR_IACORE_TURBO_RATIOS, 0x11u)
-            msr(MSR_IACORE_TURBO_VIDS, 0x11u)
-
+            msr(MSR_IACORE_RATIOS, 0u)
             msr(MSR_PKG_TURBO_CFG1, 0u)
             msr(MSR_CPU_TURBO_WKLD_CFG2, 0u)
             msr(MSR_CPU_THERM_CFG1, 0u)
             msr(MSR_CPU_THERM_CFG2, 0u)
-
-            x86.config.msr(0x2Au, 0x0u)
-            x86.config.msr(0x199u, 0x0u)
-            x86.config.msr(0xE4u, 0x0u)
-            x86.config.msr(0x194u, 0x0u)
-            x86.config.msr(MSR_CPU_THERM_SENS_CFG, 0x0u)
-            x86.config.msr(0x19Cu, 0x0u)
 
             efer = 0u
         }
@@ -424,7 +406,7 @@ class Atom2758(
         buses.connect(bridge.ports.smb20_1_mem, smb_20_1.mem)
 
         // should be moved out to ASA
-        mem_conv.ports.mem.connect(buses.nb_mem, 0xC00000u)
+//        mem_conv.ports.mem.connect(buses.nb_mem, 0xC00000u)
 
         mem_00.ports.mem.connect(buses.nb_mem, 0x60000000u)
         mem_04.ports.mem.connect(buses.nb_mem, 0x64000000u)
@@ -452,9 +434,7 @@ class Atom2758(
         pit.ports.io.connect(buses.nb_io)
         rtc.ports.io.connect(buses.nb_io)
         kb.ports.io.connect(buses.nb_io)
-
         uio.ports.io.connect(buses.nb_io)
-
         post.ports.io.connect(buses.nb_io)
         smm.ports.io.connect(buses.nb_io)
 
@@ -463,6 +443,13 @@ class Atom2758(
         uart0.ports.rx.connect(buses.rx_bus)
 
         uart1.ports.io.connect(buses.nb_io, 0x200u)
+
+        uart3.ports.mem.connect(buses.nb_io, 0x3E8u)
+        uart4.ports.mem.connect(buses.nb_io, 0x2E8u)
+
+        pic.ports.irq.connect(buses.irq)
+        pit.ports.irq.connect(buses.irq, 0u) // IRQ 0
+        uart0.ports.irq.connect(buses.irq, 4u) // IRQ 4
 
         bridge.ports.ecam.connect(buses.pci)
         pci_host.ports.pci.connect(buses.pci)
@@ -503,8 +490,8 @@ class Atom2758(
 
         usb20.ports.pci.pci_connect(buses.pci, 0, 22, 0)
 
-        sata2.ports.pci.pci_connect(buses.pci, 0, 23, 0)
-        sata3.ports.pci.pci_connect(buses.pci, 0, 24, 0)
+//        sata2.ports.pci.pci_connect(buses.pci, 0, 23, 0)
+//        sata3.ports.pci.pci_connect(buses.pci, 0, 24, 0)
 
         pci_stub_d25_f0.ports.pci.pci_connect(buses.pci, 0, 25, 0)
         pci_stub_d26_f0.ports.pci.pci_connect(buses.pci, 0, 26, 0)

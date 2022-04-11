@@ -40,10 +40,10 @@ enum class Datatype(val bits: Int, val bytes: Int, val msb: Int, val lsb: Int) {
 
     DFWORD(80, 10, 79, 0),  // LGDT, LIDT of x86 processor in 64-bit mode
     FPU80(80, 10, 79, 0),  // FRU of x86 processor
-    MMXWORD(80, 10, 79, 0),
+    MMXWORD(64, 8, 63, 0), // MMX
 
     BYTES5(40, 5, 39, 0),
     BYTES7(56, 7, 55, 0),
 
-    XMMWORD(128, 16, 127, 0);
+    XMMWORD(128, 16, 127, 0); // SSE
 }

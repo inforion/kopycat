@@ -26,17 +26,15 @@
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
 import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand.Access.ANY
 import ru.inforion.lab403.kopycat.cores.base.operands.Memory
 import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
-import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.interfaces.*
+import java.math.BigInteger
 
 class x86Memory constructor(dtyp: Datatype, atyp: Datatype, addr: ULong, override val ssr: x86Register, access: Access = ANY) :
         Memory<x86Core>(dtyp, atyp, addr, access) {
@@ -52,6 +50,9 @@ class x86Memory constructor(dtyp: Datatype, atyp: Datatype, addr: ULong, overrid
     override fun value(core: x86Core, data: ULong): Unit = core.write(dtyp, effectiveAddress(core), data, ssr.reg).also {
         require(dtyp.bytes <= 8) { "Can't read ${dtyp.bytes}" }
     }
+
+    override fun extValue(core: x86Core): BigInteger = core.ine(effectiveAddress(core), dtyp.bytes, ssr.reg)
+    override fun extValue(core: x86Core, data: BigInteger): Unit = core.oute(effectiveAddress(core), data, dtyp.bytes, ssr.reg)
 
     override fun toString() = buildString {
         if (ssr.reg != SSR.DS.id)

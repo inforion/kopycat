@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.system
 
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -43,7 +44,7 @@ class Ltr(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
 
         if (ss > core.mmu.gdtr.limit) throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
 
-        val desc = core.mmu.readSegmentDescriptor(ss)
+        val desc = core.mmu.readTaskStateSegment(ss)
 
         if (!desc.isForAnAvailableTSS) throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
         if (!desc.isPresent) throw x86HardwareException.SegmentNotPresent(core.pc, ss)

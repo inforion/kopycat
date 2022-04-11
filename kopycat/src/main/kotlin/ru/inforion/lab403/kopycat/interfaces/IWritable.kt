@@ -34,6 +34,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import java.math.BigInteger
 
 
 @Suppress("INAPPLICABLE_JVM_NAME")

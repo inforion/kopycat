@@ -53,7 +53,7 @@ class MovDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0x8B -> arrayOf(rm.rpref, rm.mpref)
 
             0x8C -> arrayOf(rm.m(WORD, GPR, UNKNOWN), rm.rssr)
-            0x8E -> arrayOf(rm.rssr, rm.m(WORD, GPR, WORD))  // fill with zero upper part
+            0x8E -> arrayOf(rm.rssr, rm.m(WORD, GPR, UNKNOWN))
 
             0xA0 -> arrayOf(al, s.mem8(prefs))
             0xA1 -> arrayOf(xax(prefs.opsize), s.mem(prefs))

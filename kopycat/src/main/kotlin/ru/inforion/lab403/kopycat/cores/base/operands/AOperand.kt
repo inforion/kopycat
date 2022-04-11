@@ -33,6 +33,7 @@ import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.like
 import java.io.Serializable
+import java.math.BigInteger
 
 @Suppress("INAPPLICABLE_JVM_NAME")
 abstract class AOperand<in T: AGenericCore>(
@@ -97,6 +98,12 @@ abstract class AOperand<in T: AGenericCore>(
      */
     @JvmName("value")
     abstract fun value(core: T, data: ULong)
+
+    @JvmName("extValue")
+    open fun extValue(core: T): BigInteger = throw NotImplementedError()
+
+    @JvmName("extValue")
+    open fun extValue(core: T, data: BigInteger): Unit = throw NotImplementedError()
 
     @JvmName("bytes")
     open fun bytes(core: T, size: Int): ByteArray = throw NotImplementedError()

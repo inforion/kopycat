@@ -125,10 +125,7 @@ class x64Debugger constructor(parent: Module, name: String, dbgAreaSize: ULong =
                 cpu.resetFault()
             }
             0x11 -> cpu.flags.eflags.value = value
-            0x12 -> {
-                cpu.invalidateDecoderCache()
-                cpu.sregs.cs.value = value
-            }
+            0x12 -> cpu.sregs.cs.value = value
             0x13 -> cpu.sregs.ss.value = value
             0x14 -> cpu.sregs.ds.value = value
             0x15 -> cpu.sregs.es.value = value
@@ -159,7 +156,6 @@ class x64Debugger constructor(parent: Module, name: String, dbgAreaSize: ULong =
     }
 
     override fun dbgStore(address: ULong, data: ByteArray) = with(ports.reader) {
-        x86.cpu.invalidateDecoderCache()
         if (x86.is16bit) store(address, data, UNDEF) else store(address, data, x86.cpu.sregs.cs.id)
     }
 }

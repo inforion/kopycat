@@ -25,10 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory
 
-import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.common.extensions.uint
-import ru.inforion.lab403.common.extensions.ulong
-import ru.inforion.lab403.common.extensions.ushr
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
@@ -77,28 +75,29 @@ class Fxsave(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands:
         core.outl(base + 28uL, 0uL)
     }
 
-    private fun writeMMX(base: ULong) = core.sse.mm.forEachIndexed { i, mm -> core.outq(base + 32uL + (i * 16).uint, mm) }
+    private fun writeFPUMMX(base: ULong) = core.mmx.forEachIndexed { i, mm -> core.outq(base + 32uL + (i * 16).uint, mm) }
 
     private fun writeXMM(base: ULong, count: Int = 16) = core.sse.xmm.take(count).forEachIndexed { i, xmm ->
-        core.outq(base + 160uL + (i * 16).uint, xmm.ulong)
-        core.outq(base + 160uL + (i * 16).uint, (xmm ushr 64).ulong)
+        core.oute(base + 160uL + (i * 16).uint, xmm, Datatype.XMMWORD.bytes)
+//        core.outq(base + 160uL + (i * 16).uint, xmm.ulong)
+//        core.outq(base + 168uL + (i * 16).uint, (xmm ushr 64).ulong)
     }
 
     private fun save64BitPromotedFxsave(base: ULong) {
         writeRexWHeader(base)
-        writeMMX(base)
+        writeFPUMMX(base)
         writeXMM(base)
     }
 
     private fun Save64BitDefaultFxsave(base: ULong) {
         writeLegacyHeader(base)
-        writeMMX(base)
+        writeFPUMMX(base)
         writeXMM(base)
     }
 
     private fun SaveLegacyFxsave(base: ULong) {
         writeLegacyHeader(base)
-        writeMMX(base)
+        writeFPUMMX(base)
         writeXMM(base, 8)
     }
     override fun execute() {

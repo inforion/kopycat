@@ -138,6 +138,7 @@ class RMDC(val stream: x86OperandStream, val prefixes: Prefixes) : ADecodable(st
     val m16x32 get() = m(FWORD)
     val m16x64 get() = m(DFWORD)
     val mpref get() = m()
+    val mmxpref: AOperand<x86Core> get() = m(MMXWORD, MMX)
     val xmmpref get() = m(XMMWORD, XMM)
     val mxpref get() = if (prefixes.opsize == QWORD) m16x64 else m16x32
 
@@ -145,9 +146,11 @@ class RMDC(val stream: x86OperandStream, val prefixes: Prefixes) : ADecodable(st
         if (opcode == -1)
             opcode = stream.readOpcode()
         val reg = opcode[5..3] or (prefixes.rexR.int shl 3)
-        val vopsize = if (opsize != UNKNOWN) opsize else prefixes.opsize
         return when (rtyp) {
-            GPR -> gpr(reg, vopsize, prefixes.rex)
+            GPR -> {
+                val vopsize = if (opsize != UNKNOWN) opsize else prefixes.opsize
+                gpr(reg, vopsize, prefixes.rex)
+            }
             SSR -> sreg(reg)
             MMX -> mmx(reg)
             XMM -> xmm(reg)
@@ -160,6 +163,6 @@ class RMDC(val stream: x86OperandStream, val prefixes: Prefixes) : ADecodable(st
     val r32 get() = r(DWORD)
     val rpref get() = r()
     val rssr get() = r(rtyp = SSR)
-    val rmmx get() = r(MMXWORD, MMX)
-    val rxmm get() = r(XMMWORD, XMM)
+    val rmmx get() = r(rtyp = MMX)
+    val rxmm get() = r(rtyp = XMM)
 }

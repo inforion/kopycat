@@ -306,8 +306,10 @@ open class UartTerminal(
     }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        require(rxBuffer.isEmpty()) { "Can't serialize UartTerminal if any data not flushed!" }
-        require(txBuffer.isEmpty()) { "Can't serialize UartTerminal if any data not flushed!" }
+        if (rxBuffer.isNotEmpty())
+            log.warning { "Can't serialize UartTerminal if any data not flushed!" }
+        if (txBuffer.isNotEmpty())
+            log.warning { "Can't serialize UartTerminal if any data not flushed!" }
         return emptyMap()
     }
 

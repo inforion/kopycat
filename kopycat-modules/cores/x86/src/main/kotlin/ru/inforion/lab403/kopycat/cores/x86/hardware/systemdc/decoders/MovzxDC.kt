@@ -43,7 +43,7 @@ class MovzxDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0x0F -> {
                 val rm1 = RMDC(s, prefs)
 //                val rm2 = RMDC(s, prefs)
-                val sopcode = s.readByte().int
+                val sopcode = s.readOpcode()
                 when (sopcode) {
                     0xB6 -> arrayOf(rm1.rpref, rm1.m8)
                     0xB7 -> arrayOf(rm1.rpref, rm1.m16)

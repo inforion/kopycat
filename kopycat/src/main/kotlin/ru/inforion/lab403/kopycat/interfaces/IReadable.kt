@@ -32,6 +32,7 @@ import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
+import java.math.BigInteger
 
 @Suppress("INAPPLICABLE_JVM_NAME")
 interface IReadable {

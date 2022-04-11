@@ -31,10 +31,8 @@ import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
-import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
 import java.util.logging.Level.CONFIG
-import java.util.logging.Level.WARNING
 
 class SATA(parent: Module, name: String, val num: Int) :
     PciDevice(parent, name, 0x8086, 0x1F20 or num, classCode = 0x010601) {
@@ -149,10 +147,10 @@ class SATA(parent: Module, name: String, val num: Int) :
         private fun address(offset: Int) = 0x100u + index.ulong_z * 0x80u + offset.ulong_z
 
         open inner class HBA_BYTES_REG(offset: Int, name: String, datatype: Datatype = DWORD) :
-            ByteAccessRegister(mem, address(offset), datatype, name, level = WARNING)
+            ByteAccessRegister(mem, address(offset), datatype, name)
 
         open inner class HBA_UNIFIED_REG(offset: Int, name: String, datatype: Datatype = DWORD) :
-            Register(mem, address(offset), datatype, name, level = WARNING)
+            Register(mem, address(offset), datatype, name)
 
         inner class SIG_CLASS(offset: Int) : HBA_UNIFIED_REG(offset, "SIG") {
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
@@ -162,15 +160,8 @@ class SATA(parent: Module, name: String, val num: Int) :
         }
 
         inner class SSTS_CLASS(offset: Int) : HBA_UNIFIED_REG(offset, "SSTS") {
-
-            var IPM by field(11..8)
-            var SPD by field(7..4)
-            var DET by field(3..0)
-
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
-                IPM = 1u // Interface in active state
-                SPD = 2u // Generation 2 communication rate negotiated
-                DET = 3u // Device presence detected and Phy communication established
+                data = data clr 0
                 return super.read(ea, ss, size)
             }
         }

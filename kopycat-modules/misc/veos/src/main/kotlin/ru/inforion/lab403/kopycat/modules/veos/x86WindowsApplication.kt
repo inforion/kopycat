@@ -51,7 +51,7 @@ class x86WindowsApplication constructor(
             useMMU = false
     ).apply {
         cpu.cregs.cr0.pe = true
-        cpu.csd = true
+        TODO ("mmu.cs.d = true")
     }
 
     val dbg = x86Debugger(this, "dbg")

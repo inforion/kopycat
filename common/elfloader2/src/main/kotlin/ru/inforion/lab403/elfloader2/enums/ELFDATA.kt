@@ -23,16 +23,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
-
-import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.modules.cores.x86Core
+package ru.inforion.lab403.elfloader2.enums
 
 
-class Rsm(core: x86Core, opcode: ByteArray, prefs: Prefixes):
-        AX86Instruction(core, Type.VOID, opcode, prefs) {
-    override val mnem = "rsm"
 
-    override fun execute() = core.cpu.leaveSmmMode()
+ 
+enum class ELFDATA(val id: UByte) {
+    ELFDATANONE(0u),
+    ELFDATA2LSB(1u),
+    ELFDATA2MSB(2u);
+
+    companion object {
+        fun cast(id: UByte, onFail: (UByte) -> ELFDATA) = values().find { it.id == id } ?: onFail(id)
+    }
 }
