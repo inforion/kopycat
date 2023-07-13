@@ -33,6 +33,11 @@ import ru.inforion.lab403.kopycat.modules.common.pci.PciAbstract
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
 import java.util.logging.Level.CONFIG
 
+/**
+ * **Intel Atom Processor E3800 Product Family**
+ *
+ * 33.7  PCU SMBUS Memory Mapped I/O Registers, page 4466
+ */
 class SMB_PCU(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F3C) {
     companion object {
         const val BUS_SIZE = 32

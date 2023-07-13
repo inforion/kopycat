@@ -29,9 +29,6 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Memory
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Phrase
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -40,12 +37,8 @@ class Lea(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
     override val mnem = "lea"
 
     override fun execute() {
-        val ea = if(op2 is x86Displacement)
-            (op2 as x86Displacement).effectiveAddress(core)
-        else if(op2 is x86Memory)
-            (op2 as x86Memory).effectiveAddress(core)
-        else if(op2 is x86Phrase)
-            (op2 as x86Phrase).effectiveAddress(core)
+        val ea = if (op2.hasEffectiveAddress)
+            op2.effectiveAddress(core)
         else
             throw GeneralException("Incorrect operand type")
 

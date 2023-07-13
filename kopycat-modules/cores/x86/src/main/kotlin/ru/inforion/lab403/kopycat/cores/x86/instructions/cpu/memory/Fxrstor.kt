@@ -28,6 +28,8 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
+import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86FPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -58,7 +60,9 @@ class Fxrstor(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands
         core.inl(base + 28uL)
     }
 
-    private fun readPUMMX(base: ULong) = core.mmx.reassign { i, it -> core.inq(base + 32uL + (i * 16).uint) }
+    private fun readPUMMX(base: ULong) = (0 until x86FPU.FPU_STACK_SIZE).forEach { i ->
+        core.fpu.st(i, core.ine(base + 32uL + (i * 16).uint, 10))
+    }
 
     private fun readXMM(base: ULong, count: Int = 16) = core.sse.xmm.reassign { i, it ->
         if (i < count)
@@ -80,6 +84,10 @@ class Fxrstor(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands
     }
 
     override fun execute() {
+        if (core.cpu.cregs.cr0.em || core.cpu.cregs.cr0.ts) {
+            throw x86HardwareException.DeviceNotAvailable(core.pc)
+        }
+
         val base = op1.effectiveAddress(core)
         if (core.is64bit)
             Load64BitFxrstore(base)

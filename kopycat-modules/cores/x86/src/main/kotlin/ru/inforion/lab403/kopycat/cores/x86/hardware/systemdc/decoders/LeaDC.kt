@@ -41,7 +41,7 @@ class LeaDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val rm = RMDC(s, prefs)
         val ops = when (opcode) {
             0x8D -> arrayOf(rm.rpref, rm.mpref)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Lea(core, s.data, prefs, *ops)
     }

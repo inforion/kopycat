@@ -43,7 +43,7 @@ class FstcwDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val rm = RMDC(s, prefs)
         val op = when (opcode) {
             0xD9 -> rm.m16
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Fstcw(core, s.data, prefs, op)
     }

@@ -29,7 +29,6 @@ import com.fazecast.jSerialComm.SerialPort
 import com.fazecast.jSerialComm.SerialPortDataListener
 import com.fazecast.jSerialComm.SerialPortEvent
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.utils.lazyTransient
 import ru.inforion.lab403.kopycat.auxiliary.Socat
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 
@@ -123,6 +122,10 @@ class UartSerialTerminal(
         return comPort
     }
 
+    fun termWriteString(s: String) {
+        comPort?.outputStream?.write(s.bytes)
+    }
+
     /**
      * {EN}
      * Be careful serial output stream is blocking on write also. When write data to this stream it can block it
@@ -137,11 +140,9 @@ class UartSerialTerminal(
     val socat = if (tty != null) Socat.createPseudoTerminal(this, tty) else null
 
     private val terminal = socat?.pty0 ?: tty
-    private val comPort by lazyTransient {
-        terminal ifItNotNull {
-            openComPort(it, baudRate, parity, numStopBits, numDataBits)
-        } otherwise {
-            log.severe { "Terminal wasn't opened for $this tty=$tty..." }
-        }
+    private val comPort = terminal ifItNotNull {
+        openComPort(it, baudRate, parity, numStopBits, numDataBits)
+    } otherwise {
+        log.severe { "Terminal wasn't opened for $this tty=$tty..." }
     }
 }

@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.proposal.mask
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core

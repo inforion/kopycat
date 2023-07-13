@@ -49,7 +49,7 @@ class ShiftRotateDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes,
             0xD1 -> arrayOf(rm.mpref, one)
             0xD2 -> arrayOf(rm.m8, cl)
             0xD3 -> arrayOf(rm.mpref, cl)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return construct(core, s.data, prefs, ops)
     }

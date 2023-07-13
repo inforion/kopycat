@@ -46,7 +46,7 @@ class FstswDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 s.readByte()
                 ax
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Fstsw(core, s.data, prefs, op)
     }

@@ -30,6 +30,7 @@ package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.CachedMemoryStream
+import ru.inforion.lab403.kopycat.cores.base.common.CachedMemoryStreamByteArray
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessType.INSTRUCTION
 import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
 import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
@@ -135,6 +136,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val btrDc = BtrDC(core)
     private val bsfDc = BitScanDC(core, ::Bsf)
     private val bsrDc = BitScanDC(core, ::Bsr)
+    private val btcDc = BtcDC(core)
 
     private val shldDc = ShxdDC(core, ::Shld)
     private val shrdDc = ShxdDC(core, ::Shrd)
@@ -158,7 +160,12 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val leaveDc = LeaveDC(core)
 
     private val cmpxchgDc = CmpxchgDC(core)
+    private val cmpxchgxbDc = CmpxchgxbDC(core)
     private val xaddDc = XaddDC(core)
+    private val cmpsxDc = CmpsxDC(core)
+    private val movnti = MovntiDC(core)
+    private val pinsrwDc = PinsrwDC(core)
+    private val shufpsDc = ShufpsDC(core)
     private val movDc = MovDC(core)
     private val xchgDc = XchgDC(core)
     private val bswapDc = BswapDC(core)
@@ -169,6 +176,8 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val leaDc = LeaDC(core)
     private val cwdeDc = SimpleDC(core, ::Cwde)
     private val cdqDc = SimpleDC(core, ::Cdq)
+    private val psrlwDc = PsrlwDC(core)
+    private val psllwDc = PsllwDC(core)
 
     private val lodsDc = LodsDC(core)
     private val stosDc = StosDC(core)
@@ -213,6 +222,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val cliDc = SimpleDC(core, ::Cli)
     private val stcDc = SimpleDC(core, ::Stc)
     private val stiDc = SimpleDC(core, ::Sti)
+    private val sahfDc = SimpleDC(core, ::Sahf)
     private val lahfDc = SimpleDC(core, ::Lahf)
     private val larDc = LarDC(core)
     private val lslDc = LslDC(core)
@@ -236,6 +246,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val invlpgDc = InvlpgDC(core)
 
     private val ltrDc = LtrDC(core)
+    private val strDc = StrDC(core)
 
     private val ldsDc = LFPDC(core, ::Lds)
     private val lesDc = LFPDC(core, ::Les)
@@ -272,6 +283,8 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val fstswDc = FstswDC(core)
     private val fsaveDc = FsaveRstorDC(core, ::Fsave)
     private val frstorDc = FsaveRstorDC(core, ::Frstor)
+    private val fldenvDc = FldenvDC(core)
+    private val fstenvDc = FstenvDC(core)
     private val fstcwDc = FstcwDC(core)
     private val fucomDc = FucomDC(core)
     private val fldcwDc = FldcwDC(core)
@@ -281,8 +294,15 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val fsubrDc = FArithmDC(core, ::Fsubr)
     private val fmulDc = FArithmDC(core, ::Fmul)
     private val fdivDc = FArithmDC(core, ::Fdiv)
+    private val fdivrDc = FArithmDC(core, ::Fdivr)
     private val fwaitDc = SimpleDC(core, ::Fwait)
     private val fsetpmDc = FLoadConstDC(core, ::Fsetpm)
+    private val frndintDc = FrndintDC(core)
+    private val fscaleDc = FscaleDC(core)
+    private val fcmovDc = FcmovDC(core)
+    private val fsqrtDc = FsqrtDC(core)
+    private val fabsDc = FabsDC(core)
+    private val fchsDc = FchsDC(core)
 
     private val fld1Dc = FLoadConstDC(core, ::Fld1)
     private val fldl2tDc = FLoadConstDC(core, ::Fldl2t)
@@ -299,26 +319,63 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val movapsDc = MovapsDC(core)
     private val movlpdDc = MovlpdDC(core)
     private val movhpdDc = MovhpdDC(core)
+
+    private val movmskpdDc = MovmskpdDC(core)
+    private val sqrtsdDc = SqrtsdDC(core)
+    private val andpdDc = AndpdDC(core)
+    private val andnpdDc = AndnpdDC(core)
+    private val orpdDc = OrpdDC(core)
+    private val pandDc = PandDC(core)
+    private val pandnDc = PandnDC(core)
     private val pxorDc = PxorDC(core)
     private val porDc = PorDC(core)
     private val pcmpeqbDc = PcmpeqbDC(core)
+    private val pcmpeqdDc = PcmpeqdDC(core)
+    private val pcmpgtbDc = PcmpgtbDC(core)
+    private val pcmpgtdDc = PcmpgtdDC(core)
+    private val paddqDc = PaddqDC(core)
     private val pmovmskbDc = PmovmskbDC(core)
+    private val psubusxDc = PsubusxDC(core)
+    private val pmaxubDc = PmaxubDC(core)
     private val pminubDc = PminubDC(core)
     private val pslldqDc = PslldqDC(core)
     private val psrldqDc = PsrldqDC(core)
+    private val pmuludqDc = PmuludqDC(core)
     private val psubDc = PsubDC(core)
+    private val packuswbDc = PackuswbDC(core)
     private val punpcklDc = PunpcklDC(core)
+    private val punpckhDc = PunpckhDC(core)
     private val pshufdDc = PshufdDC(core)
+
+    private val unpcklpdDc = UnpcklpdDC(core)
 
     private val rdmsrDc = SimpleDC(core, ::Rdmsr, 2)
     private val wrmsrDc = SimpleDC(core, ::Wrmsr, 2)
     private val rdtscDc = SimpleDC(core, ::Rdtsc, 2)
 
+    private val pshufbDc = PshufbDC(core)
+    private val phaddxDc = PhaddxDC(core)
+    private val movbeDc = MovbeDC(core)
 
     private val ldmxcsrDc = LdmxcsrDC(core)
     private val sfenceDc = SimpleDC(core, ::Sfence, 3)
     private val lfenceDc = SimpleDC(core, ::Lfence, 3)
     private val mfenceDc = SimpleDC(core, ::Mfence, 3)
+
+    private val addsdDc     = AddsdDC(core)
+    private val mulsxDc     = MulsxDC(core)
+    private val subxxDc     = SubxxDC(core)
+    private val minsdDc     = MinsdDC(core)
+    private val divsxDc     = DivsxDC(core)
+    private val maxsxDc     = MaxsxDC(core)
+    private val cvttsx2siDC = Cvttsx2siDC(core)
+    private val cvtsi2sxDC  = Cvtsi2sxDC(core)
+    private val cvtsx2sxDC  = Cvtsx2sxDC(core)
+    private val xorpsDC     = XorpsDC(core)
+    private val comisxDc    = ComisxDC(core)
+    private val palignrDc   = PalignrDC(core)
+
+    private val haddpdDc    = HaddpdDC(core)
 
     private val cmovoDc     = CmovccDC(core,    ::Cmovo)
     private val cmovnoDc    = CmovccDC(core,    ::Cmovno)
@@ -343,6 +400,8 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val swapgsDc = SimpleDC(core, ::Swapgs, 3)
     private val syscallDc = SimpleDC(core, ::Syscall, 2)
     private val sysretDc = SimpleDC(core, ::Sysret, 2)
+    private val sysenterDc = SimpleDC(core, ::Sysenter, 2)
+    private val sysexitDc = SimpleDC(core, ::Sysexit, 2)
 
     private val stmxcsrDc = StmxcsrDC(core)
     private val enbr32Dc = SimpleDC(core, ::Enbr32, 3)
@@ -376,13 +435,15 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val rdgsbaseDc = notImplementedDecoder("rdgsbaseDc")
     private val wrfsbaseDc = notImplementedDecoder("wrfsbaseDc")
     private val wrgsbaseDc = notImplementedDecoder("wrgsbaseDc")
-    private val psrlqDc = notImplementedDecoder("psrlqDc")
-    private val psllqDc = notImplementedDecoder("psllqDc")
+    private val psrlqDc = PsrlqDC(core)
+    private val psllqDc = PsllqDC(core)
+    private val psrldDc = PsrldDC(core)
+    private val psradDc = PsradDC(core)
 
-    private val group_9 = notImplementedDecoder("group_9")
+    private val emmsDC = EmmsDC(core)
+    private val fxchDC = FxchDC(core)
+
     private val group_10 = notImplementedDecoder("group_10")
-    private val group_12 = notImplementedDecoder("group_12")
-    private val group_13 = notImplementedDecoder("group_13")
 
     inline fun x86OperandStream.peekOpcodeForward(): Int {
         position += 1u
@@ -412,7 +473,9 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
         0 to opcode [7..6]
     }, memEntry, b11Entry)
 
-
+    /**
+     * Table A-6. Opcode Extensions for One- and Two-byte Opcodes by Group Number, p. 2672
+     */
     inline fun byte2RMDC_Memory(vararg entries: ITableEntry?) = RMDCMemory({ stream: x86OperandStream ->
         val opcode = stream.peekOpcodeForward()
         0 to opcode [5..3]
@@ -436,7 +499,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
             /////    0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
             /*C*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
             /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
-            /*E*/ fstswDc,    null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
+            /*E*/ fstswDc,    null,       null,       null,       null,       null,       null,       null,       null,       fucomDc,    fucomDc,    fucomDc,    fucomDc,    fucomDc,    fucomDc,    fucomDc,
             /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null
     )
 
@@ -444,15 +507,15 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val cell_de_a19 = byte1RMDC_Memory(
             /////           0           1           2           3           4           5           6           7
-            /*0*/         faddDc,     fmulDc,      null,       null,       fsubDc,   fsubrDc,     fdivDc,       null
+            /*0*/         faddDc,     fmulDc,      null,       null,       fsubDc,   fsubrDc,     fdivDc,    fdivrDc,
     )
 
     private val cell_de_a20 = byte1RMDC_11B(
             /////    0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
             /*C*/ faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,
             /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
-            /*E*/ fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,       fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,
-            /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc
+            /*E*/ fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,
+            /*F*/ fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc
     )
 
     private val cell_de = byte1RMDC(cell_de_a19,  cell_de_a20)
@@ -474,7 +537,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val cell_dc_a15 = byte1RMDC_Memory(
             /////           0           1           2           3           4           5           6           7
-            /*0*/         faddDc,     fmulDc,     null,       null,       fsubDc,    fsubrDc,     fdivDc,     null
+            /*0*/         faddDc,     fmulDc,     null,       null,       fsubDc,    fsubrDc,     fdivDc,     fdivrDc
     )
 
     private val cell_dc_a16 = byte1RMDC_11B(
@@ -482,7 +545,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
             /*C*/ faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,
             /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
             /*E*/ fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,
-            /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc
+            /*F*/ fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc
     )
 
     private val cell_dc = byte1RMDC(cell_dc_a15,  cell_dc_a16)
@@ -494,9 +557,9 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val cell_db_a14 = byte1RMDC_11B(
             /////    0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
-            /*C*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
-            /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
-            /*E*/ null,       null,       fclexDC,    finitDC,    fsetpmDc,   null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
+            /*C*/ fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,
+            /*D*/ fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,
+            /*E*/ null,       null,       fclexDC,    finitDC,    fsetpmDc,   null,       null,       null,       fucomDc,    fucomDc,    fucomDc,    fucomDc,    fucomDc,    fucomDc,    fucomDc,    fucomDc,
             /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null
     )
 
@@ -504,13 +567,13 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val cell_da_a11 = byte1RMDC_Memory(
             /////           0           1           2           3           4           5           6           7
-            /*0*/         faddDc,     fmulDc,     null,       null,       fsubDc,    fsubrDc,      fdivDc,      null
+            /*0*/         faddDc,     fmulDc,     null,       null,       fsubDc,    fsubrDc,      fdivDc,   fdivrDc
     )
 
     private val cell_da_a12 = byte1RMDC_11B(
             /////    0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
-            /*C*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
-            /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
+            /*C*/ fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,
+            /*D*/ fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,    fcmovDc,
             /*E*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       fucomDc,    null,       null,       null,       null,       null,       null,
             /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null
     )
@@ -519,22 +582,22 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val cell_d9_a9 = byte1RMDC_Memory(
             /////           0           1           2           3           4           5           6           7
-            /*0*/          fldDC,      null,       fstDc,      fstDc,      null,     fldcwDc,      null,      fstcwDc
+            /*0*/          fldDC,      null,       fstDc,      fstDc,  fldenvDc,     fldcwDc,      fstenvDc,  fstcwDc
     )
 
     private val cell_d9_a10 = byte1RMDC_11B(
             /////    0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
-            /*C*/ fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,       fldDC,     null,       null,       null,       null,       null,       null,       null,       null,
+            /*C*/ fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      null,       fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,
             /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
-            /*E*/ null,       null,       null,       null,       null,       null,       null,       null,       fld1Dc,     fldl2tDc,   fldl2eDc,   fldpiDc,    fldlg2Dc,   fldln2Dc,   fldzDc,     null,
-            /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null
+            /*E*/ fchsDc,     fabsDc,     null,       null,       null,       null,       null,       null,       fld1Dc,     fldl2tDc,   fldl2eDc,   fldpiDc,    fldlg2Dc,   fldln2Dc,   fldzDc,     null,
+            /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       fsqrtDc,       null,       frndintDc,  fscaleDc,   null,       null
     )
 
     private val cell_d9 = byte1RMDC(cell_d9_a9,  cell_d9_a10)
 
     private val cell_d8_a7 = byte1RMDC_Memory(
             /////           0           1           2           3           4           5           6           7
-            /*0*/         faddDc,     fmulDc,     null,       null,       fsubDc,    fsubrDc,     fdivDc,     null
+            /*0*/         faddDc,     fmulDc,     null,       null,       fsubDc,    fsubrDc,     fdivDc,     fdivrDc,
     )
 
     private val cell_d8_a8 = byte1RMDC_11B(
@@ -542,7 +605,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
             /*C*/ faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     faddDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,     fmulDc,
             /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
             /*E*/ fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubDc,     fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,    fsubrDc,
-            /*F*/ fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     null,       null,       null,       null,       null,       null,       null,       null
+            /*F*/ fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivDc,     fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc,    fdivrDc
     )
 
     private val cell_d8 = byte1RMDC(cell_d8_a7,  cell_d8_a8)
@@ -550,6 +613,11 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val group_8 = byte2RMDC_Memory(
             /////           0           1           2           3           4           5           6           7
             /*0*/ null,       null,       null,       null,        btDc,      btsDc,      btrDc,       null
+    )
+
+    private val group_9 = byte2RMDC_Memory(
+        ///// 0           1           2           3           4           5           6           7
+        /*0*/ null,       cmpxchgxbDc,null,       null,       null,       null,       null,       null,
     )
 
     private val group_1 = byte1RMDC_Memory(
@@ -593,7 +661,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val group_6 = byte2RMDC_Memory(
             /////   0           1           2           3           4           5           6           7
-            /*0*/  sldtDc,     null,      lldtDc,      ltrDc,      null,       null,        null,       null
+            /*0*/  sldtDc,     strDc,      lldtDc,      ltrDc,      null,       null,        null,       null
     )
 
     private val group_11_mem = byte1RMDC_Memory(
@@ -610,6 +678,16 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     )
 
     private val group_11 = byte1RMDC(group_11_mem, group_11_11b)
+
+    private val group_12 = byte2RMDC_Memory(
+        /////    0              1               2               3               4           5           6           7
+        /*0*/    null,          null,          psrlwDc,         null,           null,       null,       psllwDc,       null
+    )
+
+    private val group_13 = byte2RMDC_Memory(
+        ///// 0        1        2        3        4        5        6           7
+        /*0*/ null,    null,    psrldDc, null,    psradDc, null,    psllqDc,    null,
+    )
 
     private val group_14_mem = byte2RMDC_Memory(
         /////   0           1           2           3           4           5           6           7
@@ -643,10 +721,36 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val group_16_mem = byte2RMDC_Memory(
         /////    0              1               2               3               4           5           6           7
-        /*0*/    prefetchtDc,   prefetchtDc,    prefetchtDc,    prefetchtDc,    null,    null,   null, null
+        /*0*/    prefetchtDc,   prefetchtDc,    prefetchtDc,    prefetchtDc,    null,       null,      null,       null
     )
 
     private val group_16 = byte2RMDC(group_16_mem, null)
+
+    private val group_0x38 = x86InstructionTable(
+        0x10, 0x10,
+        { stream: x86OperandStream ->
+            stream.readByte()
+            val opcode = stream.readOpcode()
+            opcode[7..4] to opcode[3..0]
+        },
+        ///// 0        1        2        3        4        5        6        7        8        9        A        B        C        D        E        F
+        /*0*/ pshufbDc,phaddxDc,phaddxDc,null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*1*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*2*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*3*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*4*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*5*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*6*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*7*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*8*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*9*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*A*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*B*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*C*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*D*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*E*/ null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+        /*F*/ movbeDc, movbeDc, null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,    null,
+    )
 
     private val s_opcode = x86InstructionTable(
             0x10, 0x10,
@@ -655,21 +759,21 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
                 opcode[7..4] to opcode[3..0] },
             /////   0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
             /*0*/ group_6,    group_7,    larDc,      lslDc,      null,       syscallDc,  cltsDc,     sysretDc,   invdDc,     wbinvdDc,   null,       null,       null,       null,       null,       null,
-            /*1*/ movupsDc,   movupsDc,   movlpdDc,   null,       null,       null,       movhpdDc,   null,       group_16,   null,       bndmovDc,   bndmovDc,   null,       null,       enbr32Dc,   nopDc,
-            /*2*/ movctrl,    movdbg,     movctrl,    movdbg,     null,       null,       null,       null,       movapsDc,   movapsDc,   null,       null,       null,       null,       null,       null,
-            /*3*/ wrmsrDc,    rdtscDc,    rdmsrDc,    null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
+            /*1*/ movupsDc,   movupsDc,   movlpdDc,   movlpdDc,   unpcklpdDc, null,       movhpdDc,   null,       group_16,   null,       bndmovDc,   bndmovDc,   null,       null,       enbr32Dc,   nopDc,
+            /*2*/ movctrl,    movdbg,     movctrl,    movdbg,     null,       null,       null,       null,       movapsDc,   movapsDc,   cvtsi2sxDC, null,       cvttsx2siDC,null,       comisxDc,   comisxDc,
+            /*3*/ wrmsrDc,    rdtscDc,    rdmsrDc,    null,       sysenterDc, sysexitDc,  null,       null,       group_0x38, null,       palignrDc,  null,       null,       null,       null,       null,
             /*4*/ cmovoDc,    cmovnoDc,   cmovbDc,    cmovnbDc,   cmoveDc,    cmovneDc,   cmovbeDc,   cmovaDc,    cmovsDc,    cmovnsDc,   cmovpeDc,   cmovpoDc,   cmovlDc,    cmovgeDc,   cmovleDc,   cmovgDc,
-            /*5*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
-            /*6*/ punpcklDc,  punpcklDc,  punpcklDc,  null,       null,       null,       null,       null,       null,       null,       null,       null,       punpcklDc,  null,       movdDc,     movdqDc,
-            /*7*/ pshufdDc,   group_12,   group_13,   group_14,   pcmpeqbDc,  null,       null,       null,       null,       null,       null,       null,       null,       null,       movdDc,     movdqDc,
+            /*5*/ movmskpdDc, sqrtsdDc,   null,       null,       andpdDc,    andnpdDc,   orpdDc,     xorpsDC,    addsdDc,    mulsxDc,    cvtsx2sxDC, null,       subxxDc,    minsdDc,    divsxDc,    maxsxDc,
+            /*6*/ punpcklDc,  punpcklDc,  punpcklDc,  null,       pcmpgtbDc,  null,       pcmpgtdDc,  packuswbDc, punpckhDc,  punpckhDc,  punpckhDc,  null,       punpcklDc,  punpckhDc,  movdDc,     movdqDc,
+            /*7*/ pshufdDc,   group_12,   group_13,   group_14,   pcmpeqbDc,  null,       pcmpeqdDc,  emmsDC,     null,       null,       null,       null,       haddpdDc,   null,       movdDc,     movdqDc,
             /*8*/ joDc,       jnoDc,      jbDc,       jnbDc,      jeDc,       jneDc,      jbeDc,      jaDc,       jsDc,       jnsDc,      jpeDc,      jpoDc,      jlDc,       jgeDc,      jleDc,      jgDc,
             /*9*/ setoDc,     setnoDc,    setbDc,     setnbDc,    setzDc,     setneDc,    setbeDc,    setaDc,     setsDc,     setnsDc,    setpeDc,    setpoDc,    setlDc,     setgeDc,    setleDc,    setgDc,
             /*A*/ pushDc,     popDc,      CpuidDc,    btDc,       shldDc,     shldDc,     null,       null,       pushDc,     popDc,      null,       btsDc,      shrdDc,     shrdDc,     group_15,   imulDC,
-            /*B*/ cmpxchgDc,  cmpxchgDc,  lssDc,      btrDc,      lfsDc,      lgsDc,      movzx,      movzx,      null,       group_10,   group_8,    null,       bsfDc,      bsrDc,      movsx,      movsx,
-            /*C*/ xaddDc,     xaddDc,     null,       null,       null,       null,       null,       group_9,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,
-            /*D*/ null,       null,       null,       null,       null,       null,       null,       pmovmskbDc, null,       null,       pminubDc,   null,       null,       null,       null,       null,
+            /*B*/ cmpxchgDc,  cmpxchgDc,  lssDc,      btrDc,      lfsDc,      lgsDc,      movzx,      movzx,      null,       group_10,   group_8,    btcDc,      bsfDc,      bsrDc,      movsx,      movsx,
+            /*C*/ xaddDc,     xaddDc,     cmpsxDc,    movnti,     pinsrwDc,   null,       shufpsDc,   group_9,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,
+            /*D*/ null,       null,       null,       psrlqDc,    paddqDc,    null,       movdDc,     pmovmskbDc, psubusxDc,  psubusxDc,  pminubDc,   pandDc,     null,       null,       pmaxubDc,   pandnDc,
             /*E*/ null,       null,       null,       null,       null,       null,       null,       movntdqDc,  null,       null,       null,       porDc,      null,       null,       null,       pxorDc,
-            /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       psubDc,     null,       null,       null,       null,       null,       null,       null
+            /*F*/ null,       null,       null,       psllqDc,    pmuludqDc,  null,       null,       null,       psubDc,     psubDc,     psubDc,     psubDc,     paddqDc,    paddqDc,    paddqDc,    null
     )
 
     // For groups definition see table A-6 "Opcode Extensions for One- and Two-byte Opcodes by Group Number", vol. 2
@@ -688,7 +792,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
             /*6*/ pushaDc,    popaDc,     null,       movsx,      fsOvr,      gsOvr,      operOvr,    addrOvr,    pushDc,     imulDC,     pushDc,     imulDC,     null,       inswDc,     null,       outswDC,
             /*7*/ joDc,       jnoDc,      jbDc,       jnbDc,      jeDc,       jneDc,      jbeDc,      jaDc,       jsDc,       jnsDc,      jpeDc,      jpoDc,      jlDc,       jgeDc,      jleDc,      jgDc,
             /*8*/ group_1,    group_1,    group_1,    group_1,    testDc,     testDc,     xchgDc,     xchgDc,     movDc,      movDc,      movDc,      movDc,      movDc,      leaDc,      movDc,      popDc,
-            /*9*/ nopDc,      xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     cwdeDc,     cdqDc,      callDc,     fwaitDc,    pushfDc,    popfDc,     null,       lahfDc,
+            /*9*/ nopDc,      xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     cwdeDc,     cdqDc,      callDc,     fwaitDc,    pushfDc,    popfDc,     sahfDc,     lahfDc,
             /*A*/ movDc,      movDc,      movDc,      movDc,      movsDc,     movsDc,     cmpsDc,     cmpsDc,     testDc,     testDc,     stosDc,     stosDc,     lodsDc,     lodsDc,     scasDc,     scasDc,
             /*B*/ movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,
             /*C*/ group_2,    group_2,    retDc,      retDc,      lesDc,      ldsDc,      group_11,   group_11,   enterDc,    leaveDc,    retDc,      retDc,      int3Dc,     intDC,      intoDc,     iretDc,
@@ -699,7 +803,11 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val cache = dictionary<Long, AX86Instruction>(1024*1024)
 
-    private val cacheStream = CachedMemoryStream(cpu.ports.mem, 0u, SSR.CS.id, INSTRUCTION)
+    private val cacheStream = CachedMemoryStreamByteArray(cpu.ports.mem, 0u, SSR.CS.id, INSTRUCTION)
+
+    fun IMemoryStream.cachedOpcode() = data
+        .fold(0uL) { result, byte -> (result shl 8) or byte.ulong_z }
+        .let { if (it == 0x0FuL) (it shl 8) or this.peekOpcode().ulong_z else it }
 
     fun decode(where: ULong): AX86Instruction {
         // check previously decoded cached value
@@ -721,12 +829,10 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
 //        val stream = x86OperandStream(CachedMemoryStream(parent, cpu.mmu, cpu.memBus, where, cs.reg, INSTRUCTION, false))
 
-        fun IMemoryStream.cachedOpcode() = data.fold(0uL) { result, byte -> (result shl 8) or byte.ulong_z }
-
         cacheStream.reset(where)
         val stream = x86OperandStream(core, cacheStream)
-
         val prefixes = Prefixes(core)
+
         while (true) {
             when (val entry = e_opcode.lookup(stream)) {
                 null -> throw DecoderException(stream.cachedOpcode(), where)

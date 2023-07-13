@@ -25,13 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
-import ru.inforion.lab403.common.extensions.clr
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
-import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
-import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU.Companion.LME
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
@@ -69,7 +67,7 @@ class Jmp(
 
             //real-address or virtual-8086 mode
             if (!pe || (pe && vm)) {
-                core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize).value = op1.value(core)
+                core.cpu.regs.gpr(x86GPR.RIP, Datatype.QWORD).value = op1.value(core)
                 core.cpu.sregs.cs.value = (op1 as x86Far).ss
             }
 
@@ -85,8 +83,7 @@ class Jmp(
 //                val ss = (op1 as Far).ss
                 val address = op1.value(core)
                 core.cpu.sregs.cs.value = ss
-                val regip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
-                regip.value = address
+                core.cpu.regs.gpr(x86GPR.RIP, Datatype.QWORD).value = address
 //                SegmentsToCheck[] = {CS, DS, ES, FS, GS, SS};
 //                if(!CheckEffectiveAddresses(SegmentsToCheck) || TargetOperand.SegmentSelector == 0) Exception(GP(0)); //effective address in the CS, DS, ES, FS, GS, or SS segment is illegal
 //                if(!IsWithinDescriptorTableLimits(SegmentSelector.Index)) Exception(GP(NewSelector));

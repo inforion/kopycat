@@ -25,29 +25,27 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.ieee754
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
-class Fld(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operand: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operand) {
+class Fld(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operand: AOperand<x86Core>) :
+    AFPUInstruction(core, opcode, prefs, *operand) {
     override val mnem = "fld"
 
-    override fun execute() {
-        val value = if(op2 is x86FprRegister){
-            op2.value(core)
+    override fun executeFPUInstruction() {
+        val value = if (op2 is x86FprRegister) {
+            op2.extValue(core)
         } else {
-            when(op2.dtyp){
-                Datatype.DWORD -> op2.value(core).int.ieee754().double.ieee754AsUnsigned()
-                Datatype.QWORD -> op2.value(core)
-                Datatype.FPU80 -> TODO()
+            when (op2.dtyp) {
+                Datatype.DWORD -> op2.value(core).int.ieee754().longDouble(core.fpu.fwr.FPUControlWord).ieee754AsUnsigned()
+                Datatype.QWORD -> op2.value(core).ieee754().longDouble(core.fpu.fwr.FPUControlWord).ieee754AsUnsigned()
+                Datatype.FPU80 -> op2.extValue(core)
                 else -> throw GeneralException("Incorrect datatype")
             }
         }

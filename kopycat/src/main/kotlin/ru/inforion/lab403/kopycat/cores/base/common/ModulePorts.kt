@@ -68,7 +68,7 @@ import java.io.Serializable
  * }
  * override val ports = Ports()
  * Порты используются для соединения различных модулей друг с другом через шины.
- * Соединения должны проводиться только в рамках одного модуля,
+ * Соединения должны проводиться только в рамках одного модуля (верхнего уровня?),
  * то есть нельзя выполнять соединение внутрь другого модуля.
  * {RU}
  */
@@ -78,7 +78,7 @@ open class ModulePorts(val module: Module) {
     operator fun get(name: String) = container[name]
 
     /**
-     * {RU}Перечисление определяющее действие в случае не обнаружения примитива для заданного адреса{RU}
+     * {RU}Перечисление, определяющее действие в случае не обнаружения примитива для заданного адреса{RU}
      */
     enum class ErrorAction { EXCEPTION, LOGGING, IGNORE }
 
@@ -139,7 +139,11 @@ open class ModulePorts(val module: Module) {
     /**
      * {EN}Port to bus connection (there is also similar class for bus to port connection in [ModuleBuses]){EN}
      */
-    data class Connection(val bus: Bus, val offset: ULong): Serializable
+    data class Connection(val bus: Bus, val offset: ULong): Serializable {
+        override fun toString(): String {
+            return super.toString() + offset.hex
+        }
+    }
 
     class PortDefinitionError(message: String) : Exception(message)
 
@@ -173,7 +177,7 @@ open class ModulePorts(val module: Module) {
          *
          * {RU}
          * Этот метод генерирует сет модулей, которые подключены к этому порту. (Модули включают в себя примитивы -
-         * регистры и области, которые, в свою очередь могут быть подключеы к текущему порту)
+         * регистры и области, которые, в свою очередь, могут быть подключены к текущему порту)
          *
          * @return Множество модулей, которые подключены к текущему порту
          * {RU}
@@ -200,7 +204,7 @@ open class ModulePorts(val module: Module) {
          * @param offset - Значение смещения, по которому будет присоединен текущий порт.
          *
          * Например, если вызвать метод port.connect(bus, 0x8000_0000L),
-         * то порт будет находится на шине со смещением 0x8000_0000
+         * то порт будет находиться на шине со смещением 0x8000_0000
          * {RU}
          */
         open fun connect(bus: Bus, offset: ULong = 0u) {
@@ -303,10 +307,11 @@ open class ModulePorts(val module: Module) {
      *
      * @param name имя порта (должно совпадать с именем переменной!)
      * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
-     * @param onError определяет действие порта в том случае, если не было найдено никакого примитива для заданного адреса (по умолчанию выбрасывается исключение)
+     * @param onError определяет действие порта в том случае, если не было найдено никакого примитива для заданного адреса
+     * (по умолчанию выбрасывается исключение)
      * {RU}
      */
-    inner class Master constructor(name: String, size: ULong = BUS32, val onError: ErrorAction = EXCEPTION) :
+    open inner class Master constructor(name: String, size: ULong = BUS32, val onError: ErrorAction = EXCEPTION) :
             APort(name, size, Type.Master), IFetchReadWrite {
         constructor(name: String, size: Int, onError: ErrorAction = EXCEPTION) : this(name, size.ulong_z, onError)
 
@@ -618,7 +623,7 @@ open class ModulePorts(val module: Module) {
     ) : APort(name, size, Type.Translator) {
         /**
          * {RU}
-         * Метод используется для поиска примитивов сквозь сущность траслятора (от Slave-порта до Master-порта)
+         * Метод используется для поиска примитивов сквозь сущность транслятора (от Slave-порта до Master-порта)
          * с учетом преобразования адресов.
          *
          * @param source - мастер порт, который изначально инициировал порт

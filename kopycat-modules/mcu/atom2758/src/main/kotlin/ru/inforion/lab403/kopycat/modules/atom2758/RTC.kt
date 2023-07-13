@@ -61,11 +61,20 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
             val byte = when (val index = CMOSIDX.int) {
                 0 -> RTCCURSEC
-                1 -> TODO("RTCALMSEC not implemented!")
+                1 -> {
+                    log.warning { "[0x${core.pc.hex}] RTC[${this@RTC.name}] RTCALMSEC not implemented!" }
+                    0u
+                }
                 2 -> RTCCURMIN
-                3 -> TODO("RTCALMMIN not implemented!")
+                3 -> {
+                    log.warning { "[0x${core.pc.hex}] RTC[${this@RTC.name}] RTCALMMIN not implemented!" }
+                    0u
+                }
                 4 -> RTCCURHR
-                5 -> TODO("RTCALMHR not implemented!")
+                5 -> {
+                    log.warning { "[0x${core.pc.hex}] RTC[${this@RTC.name}] RTCALMHR not implemented!" }
+                    0u
+                }
                 6 -> RTCCURDOW
                 7 -> RTCCURDOM
                 8 -> RTCCURMON
@@ -77,7 +86,7 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
                 else -> RTCCMOS[index].uint_z
             }
             CMOSDATA = byte.ulong_z
-            log.warning { "RTC read $CMOSIDX -> $byte" }
+            log.warning { "[0x${core.pc.hex}] RTC read $CMOSIDX -> $byte" }
             return super.read(ea, ss, size)
         }
 
@@ -87,7 +96,7 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
             val off = offset(ea).int
             if (off == 0 && size > 1 || off == 1) {
                 val byte = CMOSDATA.uint
-                log.warning { "RTC write $CMOSIDX -> $byte" }
+                log.warning { "[0x${core.pc.hex}] RTC write $CMOSIDX -> $byte" }
                 when (val index = CMOSIDX.int) {
                     0 -> RTCCURSEC = byte
                     1 -> if (byte != 0u) TODO("RTCALMSEC not implemented!")
@@ -118,7 +127,10 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
     class DateRegister(val how: (date: DateTime) -> DateTime.Property) {
         operator fun getValue(thisRef: RTC, property: KProperty<*>) = how(thisRef.date).get().uint
         operator fun setValue(thisRef: RTC, property: KProperty<*>, value: UInt) {
-            thisRef.date = how(thisRef.date).setCopy(value.int)
+            if (value.int !in 0..59) {
+                log.warning { "RTC seconds are not in range [0,59]: ${value.int}, setting ${((value.int % 60) + 60) % 60}" }
+            }
+            thisRef.date = how(thisRef.date).setCopy(((value.int % 60) + 60) % 60)
             val year = thisRef.date.yearOfEra()
             if (year.get() < 2000)
                 thisRef.date = year.setCopy(2000)

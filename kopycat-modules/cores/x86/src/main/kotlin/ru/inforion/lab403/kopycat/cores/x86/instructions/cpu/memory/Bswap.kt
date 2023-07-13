@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
@@ -40,10 +41,22 @@ class Bswap(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: 
 
     override fun execute() {
         val temp = op1.value(core)
-        val result = insert(temp[31..24], 7..0)
+
+        val result = when (op1.dtyp) {
+            Datatype.DWORD -> insert(temp[31..24], 7..0)
                 .insert(temp[23..16], 15..8)
                 .insert(temp[15..8], 23..16)
                 .insert(temp[7..0], 31..24)
+            else -> insert(temp[63..56], 7..0)
+                .insert(temp[55..48], 15..8)
+                .insert(temp[47..40], 23..16)
+                .insert(temp[39..32], 31..24)
+                .insert(temp[31..24], 39..32)
+                .insert(temp[23..16], 47..40)
+                .insert(temp[15..8], 55..48)
+                .insert(temp[7..0], 63..56)
+        }
+
         op1.value(core, result)
     }
 }

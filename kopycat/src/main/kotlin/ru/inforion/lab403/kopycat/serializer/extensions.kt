@@ -28,34 +28,20 @@
 package ru.inforion.lab403.kopycat.serializer
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.optional.Optional
 import ru.inforion.lab403.common.reflection.*
-import ru.inforion.lab403.common.utils.DynamicClassLoader
-import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
-import ru.inforion.lab403.kopycat.cores.base.common.Component
-import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
-import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
-import ru.inforion.lab403.kopycat.interfaces.IOnlyAlias
+import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryDeserializeSizeMismatchException
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import ru.inforion.lab403.kopycat.serializer.Serializer.Companion.log
-import java.lang.invoke.MethodHandles
-import java.lang.invoke.MethodType
-import java.lang.reflect.Constructor
-import java.math.BigInteger
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
-import java.util.concurrent.locks.ReentrantLock
 import java.util.zip.ZipEntry
 import java.util.zip.ZipFile
 import java.util.zip.ZipOutputStream
 import kotlin.collections.ArrayList
-import kotlin.collections.HashMap
 import kotlin.reflect.*
 import kotlin.reflect.full.*
-import kotlin.reflect.jvm.isAccessible
-import kotlin.reflect.jvm.javaField
 
 fun <T : ISerializable?> Sequence<T>.deserialize(ctxt: GenericSerializer, snapshot: Any?) {
     val map = snapshot as ArrayList<Map<String, Any>>
@@ -345,7 +331,19 @@ fun loadByteBuffer(snapshot: Map<String, Any?>, key: String, buffer: ByteBuffer,
     }
 
     buffer.position(position)
-    buffer.limit(limit)
+    val oldLimit = buffer.limit()
+    if (oldLimit == limit) {
+        // No changes required
+    } else if (oldLimit > limit) {
+        log.warning { "[${key}] ByteBuffer limit is larger, than in the snapshot, " +
+                "oldLimit=0x${oldLimit.hex} snapshotLimit=0x${limit.hex}" }
+
+        log.warning { "[${key}] ByteBuffer trailing bytes will be zeroes" }
+        Arrays.fill(buffer.array(), limit, oldLimit, 0.byte)
+    } else {
+        throw MemoryDeserializeSizeMismatchException(key, limit, oldLimit)
+    }
+
     if (bigEndian) buffer.order(ByteOrder.BIG_ENDIAN) else buffer.order(ByteOrder.LITTLE_ENDIAN)
 }
 
@@ -386,6 +384,10 @@ internal fun ZipOutputStream.writeBinaryEntry(filename: String, data: ByteBuffer
 
 internal fun ZipFile.readBinaryEntry(filename: String, output: ByteBuffer): Boolean {
     val entry = getEntry(filename) ?: return false
+    if (entry.size > output.capacity()) {
+        throw MemoryDeserializeSizeMismatchException(name, entry.size.int, output.capacity())
+    }
+
     getInputStream(entry).use { stream -> stream.readBufferData(output) }
     return true
 }

@@ -75,7 +75,7 @@ class FileSystem(val sys: System): IAutoSerializable {
 
     // REVIEW: rename this
     //  it converts to absolute path
-    private fun concatPath(path: String): File {
+    fun concatPath(path: String): File {
         val rootDirectory = sys.conf.rootDirectory
         return when {
             path[0] == '/' -> {
@@ -129,7 +129,7 @@ class FileSystem(val sys: System): IAutoSerializable {
                 namedFile.file.open(it)
             }
         } else {
-            val file = CommonFile(concatPath(filename).absolutePath, flags)
+            val file = CommonFile(this, filename, flags)
             sys.ioSystem.register(file).also { file.open(it) }
         }
     }
@@ -181,7 +181,8 @@ class FileSystem(val sys: System): IAutoSerializable {
 
     fun exists(path: String) = concatPath(path).exists() // TODO: virtual files
 
-    fun absolutePath(path: String) = concatPath(path).absolutePath
+    fun absolutePath(path: String) = concatPath(path).invariantSeparatorsPath
+
 
     fun isDirectory(path: String) = concatPath(path).isDirectory // TODO: virtual files
 
@@ -193,6 +194,16 @@ class FileSystem(val sys: System): IAutoSerializable {
     }
 
     fun attributes(path: String): PosixFileAttributes {
+        val namedFile = virtualFiles[path]
+
+        if (namedFile != null) {
+            log.finer { "NamedFile detected '$namedFile'" }
+            try {
+                return namedFile.file.attributes()
+            } catch (e: NotImplementedError) {
+                log.warning { "Can't get attributes for virtual file '$namedFile'" }
+            }
+        }
         val file = concatPath(path)
         try {
             return file.veosAttributes()
@@ -213,14 +224,14 @@ class FileSystem(val sys: System): IAutoSerializable {
 
         val tmpdir = concatPath(sys.conf.tempDirectory)
         if (!tmpdir.exists())
-            check(tmpdir.mkdir()) { "Can't create temp directory ${tmpdir.absolutePath}" }
+            check(tmpdir.mkdirs()) { "Can't create temp directory ${tmpdir.absolutePath}" }
     }
 
     val stdout get() = file(STDOUT_INDEX)
     val stderr get() = file(STDERR_INDEX)
 
     fun openDir(path: String): Int {
-        val dir = CommonDirectory(concatPath(path).absolutePath)
+        val dir = CommonDirectory(concatPath(path).invariantSeparatorsPath)
         return sys.ioSystem.register(dir).also { dir.open(it) }
     }
 

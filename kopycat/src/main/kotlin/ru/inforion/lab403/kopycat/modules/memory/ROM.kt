@@ -33,7 +33,7 @@ import java.io.File
 import java.io.InputStream
 
 class ROM(parent: Module, name: String, size: Int, vararg items: Pair<Any, Int>) :
-        AMemory(parent, name, size, ACCESS.R_I, *items) {
+        AMemory(parent, name, size, ACCESS.R_I, false, *items) {
 
     @Suppress("RemoveRedundantSpreadOperator")
     constructor(parent: Module, name: String, size: Int) :
@@ -49,5 +49,5 @@ class ROM(parent: Module, name: String, size: Int, vararg items: Pair<Any, Int>)
             this(parent, name, size, gzipInputStreamIfPossible(data.path))
 
     constructor(parent: Module, name: String, size: Int, data: Resource) :
-            this(parent, name, size, data.inputStream())
+            this(parent, name, size, data.openStream())
 }

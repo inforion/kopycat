@@ -28,7 +28,6 @@
 package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.common.extensions.ULONG_MAX
-import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.Bus
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
@@ -39,8 +38,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.BUS40
-import java.util.logging.Level
-import java.util.logging.Level.*
+import java.util.logging.Level.CONFIG
 
 const val MESSAGE_BUS_SIZE = BUS40
 const val MESSAGE_PORT_SIZE = BUS32

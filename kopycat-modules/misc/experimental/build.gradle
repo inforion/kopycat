@@ -1,0 +1,16 @@
+plugins {
+    id 'ru.inforion.lab403.gradle.kopycat'
+    id 'maven-publish'
+}
+
+group 'ru.inforion.lab403.kopycat'
+version '0.1'
+
+repositories {
+    mavenCentral()
+}
+
+buildKopycatModule {
+    library = "experimental"
+    require += ["cores:x86", "cores:arm"]
+}

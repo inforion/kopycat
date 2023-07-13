@@ -25,16 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.common.extensions.swap32
-import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eOEA
 import ru.inforion.lab403.kopycat.cores.ppc.enums.eUISA
-import java.util.logging.Level
+import java.math.BigInteger
 
 
 class PPCDebugger(parent: Module, name: String): Debugger(parent, name) {
@@ -44,18 +42,18 @@ class PPCDebugger(parent: Module, name: String): Debugger(parent, name) {
 
     override fun ident() = "ppc"
 
-    override fun registers(): MutableList<ULong> {
+    override fun registers(): MutableList<BigInteger> {
         val core = core as PPCCore
-        val result = mutableListOf<ULong>().apply {
+        val result = mutableListOf<BigInteger>().apply {
             addAll(Array(eUISA.GPR31.id + 1) { k -> regRead(eUISA.GPR0.id + k) })
-            addAll(Array(64) { it.ulong_z or 0x80000000uL })
+            addAll(Array(64) { (it.ulong_z or 0x80000000uL).bigint })
             add(regRead(eUISA.PC.id))
-            add(core.cpu.oeaRegs.readIntern(eOEA.MSR.id))
+            add(core.cpu.oeaRegs.readIntern(eOEA.MSR.id).bigint)
             add(regRead(eUISA.CR.id))
             add(regRead(eUISA.LR.id))
             add(regRead(eUISA.CTR.id))
             add(regRead(eUISA.XER.id))
-            addAll(Array(32) { it.ulong_z or 0xFF000000uL })
+            addAll(Array(32) { (it.ulong_z or 0xFF000000uL).bigint })
 
 
             /*//addAll(Array(32) { k -> readRegister(eUISA.FPR0.id + k) })
@@ -83,9 +81,9 @@ class PPCDebugger(parent: Module, name: String): Debugger(parent, name) {
         return result
     }
 
-    override fun regWrite(index: Int, value: ULong) {
+    override fun regWrite(index: Int, value: BigInteger) {
         val core = core as PPCCore
-        val data = value.swap32()
+        val data = value.swap32().ulong
         if ((index >= eUISA.GPR0.id) && (index <= eUISA.GPR31.id)) {
             core.cpu.regs.writeIntern(index, data)
         }

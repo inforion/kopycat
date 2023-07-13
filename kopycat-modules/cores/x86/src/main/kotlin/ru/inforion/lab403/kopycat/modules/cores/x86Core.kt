@@ -25,20 +25,19 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
-import ru.inforion.lab403.common.extensions.*
+import InterruptHook
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.x86.*
 import ru.inforion.lab403.kopycat.cores.x86.config.*
 import ru.inforion.lab403.kopycat.cores.x86.config.CPUID0
 import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.*
-import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.ECXFeatures.*
-import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.EDXFeatures.*
-import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.MemoryType.*
+import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.extensions.SSE
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86COP
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
@@ -47,7 +46,6 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86MMU
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
-
 
 class x86Core constructor(
     parent: Module,
@@ -81,7 +79,8 @@ class x86Core constructor(
     override val mmu = x86MMU(this, "mmu")
     override val fpu = x86FPU(this, "fpu")
 
-    val mmx get() = fpu.stack
+    @DontAutoSerialize
+    val intHooks = InterruptHook();
 
     val sse = SSE(this)
 
@@ -90,6 +89,9 @@ class x86Core constructor(
     val is16bit get() = cpu.mode == x86CPU.Mode.R16
     val is32bit get() = cpu.mode == x86CPU.Mode.R32
     val is64bit get() = cpu.mode == x86CPU.Mode.R64
+
+    val isRing0 get() = cpu.sregs.cs.cpl == 0uL
+    val isRing3 get() = cpu.sregs.cs.cpl == 3uL
 
     override fun abi() = x86ABI(this, false)
 
@@ -143,5 +145,18 @@ class x86Core constructor(
         with (config) {
             cpuid(0x00u, CPUID0(1u, VENDOR.INTEL))
         }
+    }
+
+    /**
+     * Выкидывает page fault если память недоступна для доступа [LorS]
+     * @throws x86HardwareException.PageFault
+     */
+    fun raisePageFault(ea: ULong, ss: Int, size: Int, LorS: AccessAction) {
+        if (useMMU) mmu.translate(ea, ss, size, LorS)
+    }
+
+    override fun stringify() = buildString {
+        appendLine(mmu.stringifyTranslateAll(core.pc))
+        appendLine(super.stringify())
     }
 }

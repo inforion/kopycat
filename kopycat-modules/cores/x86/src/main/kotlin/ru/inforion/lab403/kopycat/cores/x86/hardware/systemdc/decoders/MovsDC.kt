@@ -47,7 +47,7 @@ class MovsDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0xA5 -> arrayOf(
                     x86Displacement(prefs.opsize, dst, es),
                     x86Displacement(prefs.opsize, src, prefs))
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Movs(core, s.data, prefs, *ops)
     }

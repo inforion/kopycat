@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.interactive.wsrpc
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.wsrpc.annotations.WebSocketRpcMethod
+import ru.inforion.lab403.common.wsrpc.endpoints.SequenceEndpoint.Companion.toSequenceEndpoint
 import ru.inforion.lab403.common.wsrpc.interfaces.WebSocketRpcEndpoint
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -35,6 +36,7 @@ import ru.inforion.lab403.kopycat.gdbstub.GDBServer
 import ru.inforion.lab403.kopycat.library.builders.text.*
 import ru.inforion.lab403.kopycat.library.types.LibraryInfo
 import ru.inforion.lab403.kopycat.serializer.Serializer
+import java.math.BigInteger
 import kotlin.reflect.full.functions
 
 class KopycatEndpoint constructor(
@@ -62,7 +64,7 @@ class KopycatEndpoint constructor(
     // Registry functions
 
     @WebSocketRpcMethod
-    fun modules() = modules.asSequence()
+    fun modules() = modules.toSequenceEndpoint()
 
     @WebSocketRpcMethod
     fun getAvailableTopModules() = registryOrThrow.getAvailableTopModules().getContentInfo()
@@ -141,7 +143,7 @@ class KopycatEndpoint constructor(
     fun regRead(index: Int) = kopycat.regRead(index)
 
     @WebSocketRpcMethod
-    fun regWrite(index: Int, value: ULong) = kopycat.regWrite(index, value)
+    fun regWrite(index: Int, value: BigInteger) = kopycat.regWrite(index, value)
 
     @WebSocketRpcMethod
     fun pcRead() = kopycat.pcRead()

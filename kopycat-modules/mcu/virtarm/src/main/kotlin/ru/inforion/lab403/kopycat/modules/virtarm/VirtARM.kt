@@ -47,14 +47,14 @@ import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
 import java.io.InputStream
 
 class VirtARM(
-        parent: Module?,
-        name: String,
-        tty: String = defaultTerminal,
-        bootloaderContent: InputStream = Resource(defaultBootloaderPath).inputStream(),
-        kernelContent: InputStream = Resource(defaultKernelPath).inputStream(),
-        filesystemContent: InputStream = Resource(defaultFilesystemPath).inputStream(),
-        kernelSymbols: InputStream? = Resource(defaultSymbolsPath).inputStream(),
-        bootloaderCmd: String? = defaultBootloaderCmd
+    parent: Module?,
+    name: String,
+    tty: String = defaultTerminal,
+    bootloaderContent: InputStream = Resource(defaultBootloaderPath).openStream(),
+    kernelContent: InputStream = Resource(defaultKernelPath).openStream(),
+    filesystemContent: InputStream = Resource(defaultFilesystemPath).openStream(),
+    kernelSymbols: InputStream? = Resource(defaultSymbolsPath).openStream(),
+    bootloaderCmd: String? = defaultBootloaderCmd
 ) : Module(parent, name) {
 
     companion object {

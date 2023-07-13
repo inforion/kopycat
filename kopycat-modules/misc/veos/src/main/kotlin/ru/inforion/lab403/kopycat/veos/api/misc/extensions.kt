@@ -49,5 +49,6 @@ fun Exception.toStdCErrno(where: ULong) = when (this) {
     is InvalidArgument -> PosixError.EINVAL
     is IONoSuchFileOrDirectory -> PosixError.ENOENT
     is IOFileExists -> PosixError.EEXIST
+    is NumberFormatException -> PosixError.ERANGE
     else -> throw CantDecodeVeosError("[0x${where.hex8}] Unknown exception = $this")
 }

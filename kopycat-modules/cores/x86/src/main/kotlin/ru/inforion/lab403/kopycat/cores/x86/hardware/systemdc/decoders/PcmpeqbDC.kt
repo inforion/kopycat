@@ -45,7 +45,7 @@ class PcmpeqbDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
 
         val operands = when (opcode) {
             0x74 -> if (prefs.operandOverride) arrayOf(rm.rxmm, rm.xmmpref) else arrayOf(rm.rmmx, rm.mmxpref)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
 
         return Pcmpeqb(core, s.data, prefs, *operands)

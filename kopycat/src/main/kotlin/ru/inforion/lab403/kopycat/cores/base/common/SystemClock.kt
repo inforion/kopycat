@@ -79,7 +79,7 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
         totalCycles += scaledCycles
         totalTicks += 1u
 
-        // ATTENTION: don't use for (k in indices) ... -> race conditions in core can occurred
+        // ATTENTION: don't use for (k in indices) ... -> race conditions in core can occur
 
         triggered.clear()
 
@@ -273,12 +273,16 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
         totalCycles = 0.0
     }
 
-    override fun serialize(ctxt: GenericSerializer) = storeValues("totalCycles" to totalCycles)
+    override fun serialize(ctxt: GenericSerializer) = storeValues(
+        "totalCycles" to totalCycles,
+        "totalTicks" to totalTicks,
+    )
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         // TODO: Remove backward compat. quirk ASAP
         val key = if ("totalCycles" !in snapshot) "ticks" else "totalCycles"
         totalCycles = loadValue(snapshot, key)
+        totalTicks = loadValue(snapshot, "totalTicks") { 0uL }
     }
 }

@@ -67,6 +67,8 @@ abstract class AOperand<in T: AGenericCore>(
         STOP(0x0040);
     }
 
+    open val hasEffectiveAddress = false
+
     val specflags = (access.flags or controls.flags)
 
     /**
@@ -100,16 +102,16 @@ abstract class AOperand<in T: AGenericCore>(
     abstract fun value(core: T, data: ULong)
 
     @JvmName("extValue")
-    open fun extValue(core: T): BigInteger = throw NotImplementedError()
+    open fun extValue(core: T): BigInteger = throw NotImplementedError("AOperand.extValue: BigInteger")
 
     @JvmName("extValue")
-    open fun extValue(core: T, data: BigInteger): Unit = throw NotImplementedError()
+    open fun extValue(core: T, data: BigInteger): Unit = throw NotImplementedError("AOperand.extValue: Unit")
 
     @JvmName("bytes")
-    open fun bytes(core: T, size: Int): ByteArray = throw NotImplementedError()
+    open fun bytes(core: T, size: Int): ByteArray = throw NotImplementedError("AOperand.bytes: ByteArray")
 
     @JvmName("bytes")
-    open fun bytes(core: T, data: ByteArray): Unit = throw NotImplementedError()
+    open fun bytes(core: T, data: ByteArray): Unit = throw NotImplementedError("AOperand.bytes: Unit")
 
     /**
      * {RU}Изменить текущее значение операнда в эмуляторе на значение другого указанного операнда в соответствии с типом операнда{RU}

@@ -31,21 +31,41 @@ import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.common.pci.PciAbstract
 import ru.inforion.lab403.kopycat.modules.common.pci.PciBridge
 import java.util.logging.Level.CONFIG
+import java.util.logging.Level.FINE
 
+/**
+ * Intel Atom Processor C2000 Product Family for Microserver
+ * System Agent Register Map, page 106
+ */
 class CUNIT(parent: Module, name: String) : PciBridge(
     parent, name, 0x8086, 0x1F18, secondaryBusNumber = 1) {
 
     val msg = ports.Master("msg", MESSAGE_BUS_SIZE)  // master access to whole bus
 
+    val CUNIT_MSG_DATA_REG = PCI_CONF_FUNC_WR(0xD4, DWORD, "CUNIT_MSG_DATA_REG", level = FINE)
+    val CUNIT_MSG_CTRL_REG_EXT = PCI_CONF_FUNC_WR(0xD8, DWORD, "CUNIT_MSG_CTRL_REG_EXT", level = FINE)
+    val CUNIT_MSG_CTRL_PACKET_REG = PCI_CONF_FUNC_WR(0xDC, DWORD, "CUNIT_MSG_CTRL_PACKET_REG", level = CONFIG)
+    val CUNIT_MANUFACTURING_ID = PCI_CONF_FUNC_WR(0xF8, DWORD, "CUNIT_MANUFACTURING_ID", level = CONFIG)
+
     val BAR_10 = PCI_BAR(0x10, DWORD, "BAR_10")
     val BAR_14 = PCI_BAR(0x14, DWORD, "BAR_14")
 
+    // Not in docs
     val UNKNOWN_54 = PCI_CONF_FUNC_WR(0x54, DWORD, "UNKNOWN_54", level = CONFIG)
     val UNKNOWN_64 = PCI_CONF_FUNC_WR(0x64, DWORD, "UNKNOWN_64", level = CONFIG)
     val UNKNOWN_C4 = PCI_CONF_FUNC_WR(0xC4, DWORD, "UNKNOWN_C4", level = CONFIG)
+    val UNKNOWN_C8 = PCI_CONF_FUNC_WR(0xC8,  DWORD, "UNKNOWN_C8", level = CONFIG)
+
+    val CUNIT_MDR_SAI = PCI_CONF_FUNC_WR(0x118, DWORD, "CUNIT_MDR_SAI", 0u, level = CONFIG)
+    val UNKNOWN_12C = PCI_CONF_FUNC_WR(0x12C, DWORD, "UNKNOWN_12C", 0u, level = CONFIG)
+    val UNKNOWN_198 = PCI_CONF_FUNC_WR(0x198, DWORD, "UNKNOWN_198", 0u, level = CONFIG)
+    val UNKNOWN_1AC = PCI_CONF_FUNC_WR(0x1AC, DWORD, "UNKNOWN_1AC", 0u, level = CONFIG)
+    val UNKNOWN_218 = PCI_CONF_FUNC_WR(0x218, DWORD, "UNKNOWN_218", 0u, level = CONFIG)
+    val UNKNOWN_22C = PCI_CONF_FUNC_WR(0x22C, DWORD, "UNKNOWN_22С", 0u, level = CONFIG)
+    val UNKNOWN_298 = PCI_CONF_FUNC_WR(0x298, DWORD, "UNKNOWN_298", 0u, level = CONFIG)
+    val UNKNOWN_2AC = PCI_CONF_FUNC_WR(0x2AC, DWORD, "UNKNOWN_2AC", 0u, level = CONFIG)
 
     val CUNIT_MSG_CTRL_REG = object : PCI_CONF_FUNC_WR(0xD0, DWORD, "CUNIT_MSG_CTRL_REG", level = CONFIG) {
         val MESSAGE_OPCODE by field(31..24)
@@ -57,6 +77,8 @@ class CUNIT(parent: Module, name: String) : PciBridge(
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
 
+            // Intel Atom Processor E3800 Product Family Datasheet
+            // 13.4.6 CUNIT_MSG_CTRL_REG—Offset D0h, page 348
             val opcode = MESSAGE_OPCODE
             val port = MESSAGE_PORT
             val offset = MESSAGE_ADDRESS_OFFSET
@@ -73,10 +95,10 @@ class CUNIT(parent: Module, name: String) : PciBridge(
                 MESSAGE_BUS_READ_OPERATION -> {
                     val result = if (msg.access(address, -1, wrSize)) {
                         msg.read(address, -1, wrSize).also {
-                            log.config { "Read from message bus port=$port offset=0x${(ext or offset).hex8} value=0x${it.hex}" }
+                            log.config { "[0x${core.pc.hex}] Read from message bus port=$port offset=0x${(ext or offset).hex8} value=0x${it.hex}" }
                         }
                     } else {
-                        log.warning { "Can't access on read to message bus port=$port offset=${(ext or offset).hex8}" }
+                        log.warning { "[0x${core.pc.hex}] Can't access on read to message bus port=$port offset=${(ext or offset).hex8}" }
                         0u
                     }
                     CUNIT_MSG_DATA_REG.data = result
@@ -86,33 +108,25 @@ class CUNIT(parent: Module, name: String) : PciBridge(
                     val data = CUNIT_MSG_DATA_REG.data
                     if (msg.access(address, -1, wrSize)) {
                         msg.write(address, -1, wrSize, data).also {
-                            log.config { "Write to message bus port=$port offset=0x${(ext or offset).hex8} value=0x${data.hex}" }
+                            log.config { "[0x${core.pc.hex}] Write to message bus port=$port offset=0x${(ext or offset).hex8} value=0x${data.hex}" }
                         }
                     } else {
-                        log.warning { "Can't access on write to message bus port=$port offset=0x${(ext or offset).hex8} value=0x${data.hex8}" }
+                        log.warning { "[0x${core.pc.hex}] Can't access on write to message bus port=$port offset=0x${(ext or offset).hex8} value=0x${data.hex8}" }
                     }
                 }
 
                 MESSAGE_BUS_UNKNOWN_OPERATION -> {
-                    log.severe { "Device on message bus port=$port try to execute unknown opcode 0x${opcode.hex}" }
+                    log.severe { "[0x${core.pc.hex}] Device on message bus port=$port try to execute unknown opcode 0x${opcode.hex}" }
                     CUNIT_MSG_DATA_REG.data = 0u
                 }
 
                 MESSAGE_BUS_DEVICE_NOT_SUPPORTED -> {
-                    log.severe { "Device on message bus port=$port service point not found at 0x${MESSAGE_BUS_SERVICE_ADDR.hex} set CUNIT_MSG_DATA_REG to 0" }
+                    log.severe { "[0x${core.pc.hex}] Device on message bus port=$port service point not found at 0x${MESSAGE_BUS_SERVICE_ADDR.hex} set CUNIT_MSG_DATA_REG to 0" }
                     CUNIT_MSG_DATA_REG.data = 0u
                 }
 
-                else -> error("Device on message bus port=$port return unknown operation type=0x${operation.hex}")
+                else -> error("[0x${core.pc.hex}] CUNIT Device on message bus port=$port return unknown operation type=0x${operation.hex}")
             }
         }
     }
-
-    val CUNIT_MSG_DATA_REG = PCI_CONF_FUNC_WR(0xD4, DWORD, "CUNIT_MSG_DATA_REG", level = CONFIG)
-
-    val CUNIT_MSG_CTRL_REG_EXT = PCI_CONF_FUNC_WR(0xD8, DWORD, "CUNIT_MSG_CTRL_REG_EXT", level = CONFIG)
-
-    val UNKNOWN_DC = PCI_CONF_FUNC_WR(0xDC, DWORD, "UNKNOWN_DC", level = CONFIG)
-
-    val CUNIT_MANUFACTURING_ID = PCI_CONF_FUNC_WR(0xF8, DWORD, "CUNIT_MANUFACTURING_ID", level = CONFIG)
 }

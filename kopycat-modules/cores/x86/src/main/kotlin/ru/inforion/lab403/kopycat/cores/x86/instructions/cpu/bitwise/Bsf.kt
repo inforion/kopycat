@@ -27,7 +27,9 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.extensions.untruth
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
+import ru.inforion.lab403.kopycat.cores.x86.enums.StringPrefix
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -35,16 +37,39 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 class Bsf(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
-    override val mnem = "bsf"
+    private val tzcnt = prefs.string == StringPrefix.REPZ
+    override val mnem = if (tzcnt) "tzcnt" else "bsf"
+
+    init {
+        prefs.string = StringPrefix.NO
+    }
+
+    override val cfChg: Boolean = tzcnt
+    override val zfChg: Boolean = true
 
     override fun execute() {
         val src = op2.value(core)
+
         if (src == 0uL) {
-            core.cpu.flags.zf = true
-            op1.value(core, 0uL)
+            core.cpu.flags.apply {
+                if (tzcnt) {
+                    cf = true
+                    zf = false
+                    op1.value(core, op2.dtyp.bits.ulong_z)
+                }
+                else {
+                    zf = true
+                    // bsf: DEST is undefined
+                }
+            }
         } else {
-            core.cpu.flags.zf = false
             val counter = (0..prefs.opsize.bits).takeWhile { src[it] == 0uL }.count().ulong_z // TODO: ulong _z? or _s?
+            core.cpu.flags.apply {
+                if (tzcnt) {
+                    cf = false
+                    zf = counter.untruth
+                } else zf = false
+            }
             op1.value(core, counter)
         }
     }

@@ -48,10 +48,10 @@ class PsrldqDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 val sopcode = s.peekOpcode()
                 when (sopcode) {
                     in 0xD8..0xDF -> arrayOf(rm.xmmpref, s.imm8)
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
 
         return Psrldq(core, s.data, prefs, *operands)

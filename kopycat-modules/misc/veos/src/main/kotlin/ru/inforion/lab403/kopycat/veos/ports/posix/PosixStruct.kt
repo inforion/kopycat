@@ -104,11 +104,54 @@ class timeval constructor(var tv_sec: Int = 0, var tv_usec: Int = 0) {
             val tv_usec = bytes.getUInt32(4).int        /* microseconds */
             return timeval(tv_sec, tv_usec)
         }
+
+        fun from_millis(msec: Long) = timeval((msec / 1000).int, (msec % 1000).int)
     }
 
     val asBytes get() = ByteArray(sizeof).apply {
         putUInt32(0, tv_sec.ulong_z)
         putUInt32(4, tv_usec.ulong_z)
+    }
+}
+
+class timeval64 constructor(var tv_sec: Long = 0, var tv_usec: Long = 0) {
+
+    companion object {
+        const val sizeof = 16
+
+        fun fromBytes(bytes: ByteArray): timeval64 {
+            val tv_sec = bytes.getUInt64(0).long         /* seconds */
+            val tv_usec = bytes.getUInt32(8).long        /* microseconds */
+            return timeval64(tv_sec, tv_usec)
+        }
+
+        fun from_millis(msec: Long) = timeval64((msec / 1000), (msec % 1000))
+    }
+
+    val asBytes get() = ByteArray(sizeof).apply {
+        putUInt64(0, tv_sec.ulong)
+        putUInt64(8, tv_usec.ulong)
+    }
+}
+
+class timezone constructor(
+    var tz_minuteswest: Int = 0, /* minutes west of Greenwich */
+    var tz_dsttime: Int = 0 /* type of DST correction */
+) {
+
+    companion object {
+        const val sizeof = 0x8
+
+        fun fromBytes(bytes: ByteArray): timezone {
+            val tz_minuteswest = bytes.getUInt32(0).int
+            val tz_dsttime = bytes.getUInt32(4).int
+            return timezone(tz_minuteswest, tz_dsttime)
+        }
+    }
+
+    val asBytes get() = ByteArray(sizeof).apply {
+        putUInt32(0, tz_minuteswest.ulong_z)
+        putUInt32(4, tz_dsttime.ulong_z)
     }
 }
 
@@ -235,7 +278,7 @@ class fd_set(val fds_bits: Array<ULong>) {
     }
 
     constructor(bytes: ByteArray, n: Int) : this(
-            List(n.ceil(32)) { bytes.getUInt32(it * 4) }.toTypedArray()
+            List(n ceil 32) { bytes.getUInt32(it * 4) }.toTypedArray()
     )
 
     val asBytes: ByteArray

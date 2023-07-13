@@ -48,7 +48,7 @@ class BndmovDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val operands = when (opcode) {
             0x1A -> arrayOf(rm.rpref, rm.mpref)
             0x1B -> arrayOf(rm.mpref, rm.rpref)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
 
         return Bndmov(core, s.data, prefs, *operands)

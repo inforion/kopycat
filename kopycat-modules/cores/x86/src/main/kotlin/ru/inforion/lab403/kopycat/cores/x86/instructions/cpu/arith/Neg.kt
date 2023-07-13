@@ -47,10 +47,9 @@ class Neg(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
     override val ofChg = true
 
     override fun execute() {
-        val res = -op1.value(core)
         val result = Variable<x86Core>(0u, op1.dtyp)
-        result.value(core, res)
-        FlagProcessor.processNegFlag(core, result)
+        result.value(core, -op1.value(core))
+        FlagProcessor.processNegFlag(core, result, Variable(0uL, op1.dtyp), op1)
         op1.value(core, result)
     }
 }

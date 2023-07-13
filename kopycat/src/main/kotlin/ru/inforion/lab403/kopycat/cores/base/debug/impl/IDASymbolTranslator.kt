@@ -36,7 +36,7 @@ class IDASymbolTranslator(stream: InputStream) : IDebugSymbolTranslator {
     companion object {
         fun InputStream.toIDASymbolTranslator() = IDASymbolTranslator(this)
 
-        fun Resource.toIDASymbolTranslator() = inputStream().toIDASymbolTranslator()
+        fun Resource.toIDASymbolTranslator() = openStream().toIDASymbolTranslator()
     }
 
     private enum class MapDataState { Begin, Segments, Symbols, End }

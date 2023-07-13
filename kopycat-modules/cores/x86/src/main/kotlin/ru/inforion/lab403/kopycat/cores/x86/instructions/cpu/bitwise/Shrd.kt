@@ -27,7 +27,9 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.ushr
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor
@@ -51,14 +53,14 @@ class Shrd(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
         var dst = op1.value(core)
         val src = op2.value(core)
         val operandSize = op1.dtyp.bits
-        val count = op3.value(core).int % 32
+        val count = op3.value(core).int % if (op1.dtyp == Datatype.QWORD) 64 else 32
         if (count > operandSize) {
             log.warning { "count > opsize for shrd" }
         } else {
-            val cf = dst[count - 1] == 1uL
-            dst = (dst ushr count) or (src shl (operandSize - count))
+            val cf = dst[count - 1].truth
+            dst = (dst ushr count) or if (operandSize - count != 64) (src shl (operandSize - count)) else 0uL
             val result = Variable<x86Core>(dst, op1.dtyp)
-            FlagProcessor.processShiftFlag(core, result, op1, op2, false, false, cf)
+            FlagProcessor.processShiftFlag(core, result, op1, count, false, false, cf)
             op1.value(core, result)
         }
     }

@@ -28,7 +28,6 @@ package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.branch
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.signextRenameMeAfter
-import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.UN
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.branch.BLXi
@@ -41,7 +40,7 @@ object ArmBranchWithLinkDecoder {
             val imm26 = imm24 shl 2
             val targetInstrSet = AARMCore.InstructionSet.ARM
             val imm32 = imm(imm26.signextRenameMeAfter(25), true)
-            return BLXi(core, data, UN, imm32, targetInstrSet, 4)
+            return BLXi(core, data, cond(data), imm32, targetInstrSet, 4)
         }
     }
 
@@ -52,7 +51,7 @@ object ArmBranchWithLinkDecoder {
             val imm26 = (imm24 shl 2) or (hbit shl 1)
             val targetInstrSet = AARMCore.InstructionSet.THUMB
             val imm32 = imm(imm26.signextRenameMeAfter( 25), true)
-            return BLXi(core, data, UN, imm32, targetInstrSet, 4)
+            return BLXi(core, data, cond(data), imm32, targetInstrSet, 4)
         }
     }
 }

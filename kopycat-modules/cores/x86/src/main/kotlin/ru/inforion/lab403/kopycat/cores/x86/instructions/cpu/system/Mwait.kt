@@ -35,7 +35,7 @@ class Mwait(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "mwait"
 
     override fun execute() {
-        log.warning { "mwait -> wait for interrupt" }
+//        log.warning { "mwait -> wait for interrupt" }
         core.cpu.halted = true
     }
 }

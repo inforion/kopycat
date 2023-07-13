@@ -26,16 +26,13 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
-class Fclex(core: x86Core, opcode: ByteArray, prefs: Prefixes):
-        AX86Instruction(core, Type.VOID, opcode, prefs) {
+class Fclex(core: x86Core, opcode: ByteArray, prefs: Prefixes) :
+    AFPUInstruction(core, opcode, prefs) {
     override val mnem = "fclex"
 
-    override fun execute() {
+    override fun executeFPUInstruction() {
         core.fpu.fwr.FPUStatusWord.b = false
         core.fpu.fwr.FPUStatusWord.ie = false
         core.fpu.fwr.FPUStatusWord.de = false

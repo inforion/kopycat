@@ -31,6 +31,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.AccessType
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.IMemoryStream
+import java.nio.ByteBuffer
 import java.nio.ByteOrder.LITTLE_ENDIAN
 
 /**
@@ -75,11 +76,12 @@ import java.nio.ByteOrder.LITTLE_ENDIAN
  * {EN}
  */
 class CachedMemoryStream(
-        private val reader: MasterPort,
-        where: ULong,
-        val ss: Int,
-        val type: AccessType,
-        private val cacheSize: Int = 16): IMemoryStream {
+    private val reader: MasterPort,
+    where: ULong,
+    val ss: Int,
+    val type: AccessType,
+    private val cacheSize: Int = 16
+) : IMemoryStream {
 
     companion object {
         const val PAGE_SIZE = 4096
@@ -87,11 +89,18 @@ class CachedMemoryStream(
         const val LOAD_CHUNK_SIZE = 8  // may not be bigger 8
     }
 
-    private var cache = ByteArray(cacheSize)
+    private var cache = ByteBuffer
+        .allocateDirect(cacheSize)
+        .apply { order(LITTLE_ENDIAN) }
+
     private var readBytes = 0  // read from stream bytes
     private var loadedBytes = 0  // loaded to stream bytes
 
-    override var position get() = readBytes.ulong_z; set(value) { readBytes = value.int }
+    override var position
+        get() = readBytes.ulong_z;
+        set(value) {
+            readBytes = value.int
+        }
 
     override var mark: ULong = where
     override var last: Int = 0
@@ -105,11 +114,11 @@ class CachedMemoryStream(
     }
 
     private fun writeCache(value: ULong, size: Int) {
-        cache.putInt(loadedBytes, value.long, size, LITTLE_ENDIAN)
+        cache.putNumber(loadedBytes, value, size)
         loadedBytes += size
     }
 
-    private fun peekCache(size: Int) = cache.getInt(readBytes, size, LITTLE_ENDIAN).ulong
+    private fun peekCache(size: Int) = cache.getNumber(readBytes, size)
 
     /**
      * {RU}
@@ -128,7 +137,8 @@ class CachedMemoryStream(
      * @throws GeneralException
      * {EN}
      */
-    private fun readCache(size: Int): ULong {
+
+    fun readCache(size: Int): ULong {
         val data = peekCache(size)
         readBytes += size
         return data
@@ -214,7 +224,8 @@ class CachedMemoryStream(
      * @throws GeneralException
      * {EN}
      */
-    override fun write(datatype: Datatype, data: ULong) = throw GeneralException("You can't write in CachedMemoryStream!")
+    override fun write(datatype: Datatype, data: ULong) =
+        throw GeneralException("You can't write in CachedMemoryStream!")
 
     /**
      * {RU}
@@ -239,10 +250,86 @@ class CachedMemoryStream(
      * {RU}Откат текущей позиции к исходному состоянию{RU}
      */
     override fun rewind() {
+        // TODO: use ByteBuffer's internal position
         readBytes = 0
     }
 
     override val offset get() = (readBytes.ulong_z - mark).int
 
-    override val data: ByteArray get() = cache.copyOfRange(0, readBytes)
+    override val data: ByteArray
+        get() {
+            cache.position(0)
+            cache.limit(readBytes)
+            return cache.slice().let {
+                if (it.hasArray()) {
+                    it.array()
+                } else {
+                    val newArray = ByteArray(readBytes)
+                    it.get(newArray)
+                    newArray
+                }
+            }.also {
+                cache.limit(cache.capacity())
+            }
+        }
+}
+
+fun ByteBuffer.getNumber(position: Int, size: Int): ULong =
+    if (order() != LITTLE_ENDIAN) {
+        throw IllegalStateException("Unable to use the ByteBuffer.getNumber with not LE ByteBuffer (Not Implemented)");
+    } else {
+        when (size) {
+            1 -> this.get(position).ulong_z
+            2 -> this.getShort(position).ulong_z
+            3 -> this.getChar(position).byte.ulong_z or (this.getShort(position + 1).ulong_z shl 8)
+            4 -> this.getInt(position).ulong_z
+            5 -> this.getChar(position).byte.ulong_z or (this.getInt(position + 1).ulong_z shl 8)
+            6 -> this.getShort(position).ulong_z or (this.getInt(position + 2).ulong_z shl 16)
+            7 -> {
+                // TODO: optimize using read of 8 bytes, if the borders allows
+                this.getChar(position).byte.ulong_z or
+                        (this.getShort(position + 1).ulong_z shl 8) or
+                        (this.getInt(position + 3).ulong_z shl 24)
+            }
+
+            8 -> {
+                this.getLong(position).ulong
+            }
+
+            else -> throw IllegalArgumentException("Wrong ByteBuffer.getNumber size: $size at position $position")
+        }
+    }
+
+fun ByteBuffer.putNumber(position: Int, value: ULong, size: Int): Unit {
+    if (order() != LITTLE_ENDIAN) {
+        throw IllegalStateException("Unable to use the ByteBuffer.getNumber with not LE ByteBuffer (Not Implemented)");
+    } else when (size) {
+        1 -> this.put(position, value.byte)
+        2 -> this.putShort(position, value.short)
+        3 -> {
+            this.putChar(position, value.byte.char)
+            this.putShort(position + 1, value[23..8].short)
+        }
+
+        4 -> this.putInt(position, value.int)
+        5 -> {
+            this.putChar(position, value.byte.char)
+            this.putInt(position + 1, value[39..8].int)
+        }
+
+        6 -> {
+            this.putShort(position, value.short)
+            this.putInt(position + 2, value[47..16].int)
+        }
+
+        7 -> {
+            this.putChar(position, value.byte.char)
+            this.putShort(position + 1, value[23..8].short)
+            this.putInt(position + 3, value[55..24].int)
+        }
+
+        8 -> this.putLong(position, value.long)
+
+        else -> throw IllegalArgumentException("Wrong ByteBuffer.getNumber size: $size at position $position")
+    }
 }

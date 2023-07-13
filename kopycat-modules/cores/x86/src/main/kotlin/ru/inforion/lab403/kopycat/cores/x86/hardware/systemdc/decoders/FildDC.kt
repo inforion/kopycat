@@ -49,10 +49,10 @@ class FildDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 when(currByte){
                     0x00 -> rm.m16
                     0x05 -> rm.m64
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         val op0 = x86FprRegister(-1)
         return Fild(core, s.data, prefs, op0, op1)

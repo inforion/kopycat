@@ -26,36 +26,37 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
 import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86FPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.pageFault
+import ru.inforion.lab403.kopycat.interfaces.oute
+import ru.inforion.lab403.kopycat.interfaces.outl
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import ru.inforion.lab403.kopycat.interfaces.*
 
-
-
-class Fsave(core: x86Core, opcode: ByteArray, prefs: Prefixes, val dst: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, dst) {
+class Fsave(core: x86Core, opcode: ByteArray, prefs: Prefixes, val dst: AOperand<x86Core>) :
+    AFPUInstruction(core, opcode, prefs, dst) {
     override val mnem = "fsave"
 
-    override fun execute() {
+    override fun executeFPUInstruction() {
         val address = dst.effectiveAddress(core)
 
-        if (!core.cpu.cregs.cr0.pe || !core.is32bit)
-            TODO("Only for PE and 32-bit mode implemented!")
+        pageFault(core) {
+            (0uL until 7uL).forEach { outl(address + it * 4u) }
+            (0uL until x86FPU.FPU_STACK_SIZE.ulong_z).forEach { oute(address + 28u + 10u * it.uint, 10) }
+        }
 
-        core.outl(address +  0u, core.fpu.fwr.FPUControlWord.value)
-        core.outl(address +  4u, core.fpu.fwr.FPUStatusWord.value)
-        core.outl(address +  8u, core.fpu.fwr.FPUTagWord.value)
+        core.outl(address + 0u, core.fpu.fwr.FPUControlWord.value)
+        core.outl(address + 4u, core.fpu.fwr.FPUStatusWord.value)
+        core.outl(address + 8u, core.fpu.fwr.FPUTagWord.value)
         core.outl(address + 12u, core.fpu.fwr.FPUInstructionPointer.value)
         core.outl(address + 16u, 0u)  // FPUInstructionPointer Selector
         core.outl(address + 20u, core.fpu.fwr.FPUDataPointer.value)
         core.outl(address + 24u, 0u)  // FPUDataPointer Selector
 
         repeat(x86FPU.FPU_STACK_SIZE) {
-            core.outl(address + 28u + 10u * it.uint, core.fpu[it])
+            core.oute(address + 28u + 10u * it.uint, core.fpu.st(it), 10)
         }
         // occupied 0x6C bytes (108)
 

@@ -45,7 +45,7 @@ class MBD18(parent: Module, name: String) : Module(parent, name) {
         when (ss) {
             6 -> MESSAGE_BUS_READ_OPERATION
             7 -> MESSAGE_BUS_WRITE_OPERATION
-            else -> error("Unknown opcode: 0x${ss.hex}")
+            else -> error("Unknown MBD18 opcode: 0x${ss.hex}")
         }
     }
 

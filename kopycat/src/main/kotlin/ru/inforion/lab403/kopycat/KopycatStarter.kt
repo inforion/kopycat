@@ -27,14 +27,17 @@ package ru.inforion.lab403.kopycat
 
 import ru.inforion.lab403.common.argparse.parseArguments
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.javalin.JavalinServer
 import ru.inforion.lab403.common.jline.jline
 import ru.inforion.lab403.common.jline.waitUntilReturn
-import ru.inforion.lab403.common.javalin.JavalinServer
-import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.logging.FINEST
+import ru.inforion.lab403.common.logging.formatters.Absent
+import ru.inforion.lab403.common.logging.formatters.Informative
 import ru.inforion.lab403.common.logging.logStackTrace
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.logging.logger.Logger
 import ru.inforion.lab403.common.logging.loggerConfigure
-import ru.inforion.lab403.common.optional.opt
+import ru.inforion.lab403.common.logging.publishers.BeautyPublisher
 import ru.inforion.lab403.common.wsrpc.WebSocketRpcServer
 import ru.inforion.lab403.kopycat.consoles.AConsole
 import ru.inforion.lab403.kopycat.consoles.Kotlin
@@ -42,16 +45,21 @@ import ru.inforion.lab403.kopycat.consoles.Python
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
 import ru.inforion.lab403.kopycat.interactive.REPL
-import ru.inforion.lab403.kopycat.interactive.protocols.ConsoleRestProtocol
 import ru.inforion.lab403.kopycat.interactive.protocols.KopycatRestProtocol
 import ru.inforion.lab403.kopycat.interactive.protocols.RegistryRestProtocol
 import ru.inforion.lab403.kopycat.interactive.wsrpc.KopycatEndpoint
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
+import java.io.File
+import kotlin.io.path.Path
+import kotlin.io.path.createDirectories
+import kotlin.io.path.div
+import kotlin.io.path.isDirectory
 import kotlin.system.exitProcess
 
 
 object KopycatStarter {
-    @Transient val log = logger(FINEST)
+    @Transient
+    val log = logger(FINEST)
 
     /**
      * {EN}
@@ -77,13 +85,40 @@ object KopycatStarter {
                 ?: Kotlin(kopycat).takeIf { it.initialized() }
     }
 
+    var initScript: File? = null
+
     @JvmStatic
     fun main(args: Array<String>) {
+        Logger.removePublisher(Logger.defaultPublisher)
+        Logger.removeSLF4JPublisher(Logger.defaultPublisher)
+        BeautyPublisher.stdout(
+            formatter = Informative(
+                messageFormat = Informative.newInformativeMessageFormat
+            )
+        ).let {
+            Logger.addPublisher(it)
+            Logger.addSLF4JPublisher(it)
+        }
+
         log.info { "Build version: ${buildInformationString()} [JRE v$javaVersion]" }
 
         val opts = args.parseArguments<Options>()
 
         opts.loggingLevel?.loggerConfigure()
+        opts.loggingFile?.let { Path(it) }?.also { path ->
+            if (!path.parent.isDirectory()) {
+                path.parent.createDirectories()
+            }
+
+            Logger.addPublisher(
+                BeautyPublisher.file(
+                    path.toFile(),
+                    append = true,
+                    formatter = Informative(Absent)
+                )
+            )
+            log.info { "Set additional log file: '${path}'" }
+        }
 
         val fullRegistriesPaths = getRegistryPath(opts.registriesPaths)
 
@@ -91,7 +126,14 @@ object KopycatStarter {
 
         log.info { "registry='${registry.regCfgLine}' libraries='${registry.libCfgLine}'" }
 
-        val kopycat = Kopycat(registry).also { it.setSnapshotsDirectory(opts.snapshotsDir) }
+        val kopycat = Kopycat(registry).also {
+            it.setSnapshotsDirectory(opts.snapshotsDir)
+            it.setResourceDirectory(opts.resourceDir)
+            it.setScriptDirectory(opts.scriptDir)
+        }
+
+        // TODO: check file existence
+        initScript = opts.initScript?.let { (Path(Kopycat.scriptDir) / Path(it)).toFile() }
 
         if (opts.modulesRegistryAllInfo) {
             kopycat.printModulesRegistryInfo(false)
@@ -151,7 +193,11 @@ object KopycatStarter {
 
         console(kopycat, opts) ifNotNull {
             log.info { "${this.name} console enabled" }
-            REPL(this)
+
+            REPL.create(
+                this,
+                initScript
+            )
         } otherwise {
             log.warning { "No valid console have been detected" }
             jline().waitUntilReturn()

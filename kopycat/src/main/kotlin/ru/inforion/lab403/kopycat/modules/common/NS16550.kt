@@ -38,18 +38,14 @@ import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.modules.*
-import ru.inforion.lab403.kopycat.serializer.NotDeserializableObjectException
-import ru.inforion.lab403.kopycat.serializer.NotSerializableObjectException
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level
 
-
 // Based on https://linux-sunxi.org/images/d/d2/Dw_apb_uart_db.pdf
 class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(parent, name) {
-
     companion object {
-        @Transient val log = logger(SEVERE)
+        @Transient private val log = logger(SEVERE)
     }
 
     inner class Ports : ModulePorts(this) {
@@ -61,60 +57,131 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
 
     override val ports = Ports()
 
-
-    private inner class DelayTimer(/*val delay: ULong*//*, val action: (() -> Unit)? = null*/):
-        SystemClock.OneshotTimer("delay timer") {
+    /**
+     * Таймер для троттлинга байтов хост->эмулируемая система.
+     * Без него эмулируемая система не успевает обрабатывать входящий поток.
+     *
+     * Пример симптома: `ttyS0: 3 input overrun(s)`.
+     */
+    private val t2mTimer = object : SystemClock.PeriodicalTimer("terminal 2 machine timer") {
         override fun trigger() {
-            log.finer { "$name triggered at %,d us".format(core.clock.time()) }
-            super.trigger()
-//            action?.invoke()
-            ports.irq.request(0)
+            if (RBR_THR_DLL.bytesIn.isNotEmpty()) {
+                if (FCR_IIR.fcr[0].untruth && LSR.DR.truth) {
+                    LSR.OE = 1
+                }
+
+                LSR.DR = 1
+                log.info { "T2M: ${RBR_THR_DLL.bytesIn[0].ulong_z8.hex2}" }
+                timeoutIntr = true
+                checkIrq()
+            }
+        }
+    }
+
+    /** Флаг прерывания "THR пуст" */
+    private var thrIntr = false
+
+    /** Флаг прерывания таймаута ("character timeout") */
+    private var timeoutIntr = false
+
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
+        "thrIntr" to thrIntr,
+        "timeoutIntr" to timeoutIntr,
+    )
+
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        super.deserialize(ctxt, snapshot)
+        thrIntr = loadValue(snapshot, "thrIntr") { false }
+        timeoutIntr = loadValue(snapshot, "timeoutIntr") { false }
+    }
+
+    private fun checkIrq() {
+        val iir = when {
+            IER_DLH.ier[2].truth && (LSR.data and 0x1EuL).truth -> 0x06uL
+            IER_DLH.ier[0].truth && timeoutIntr -> 0x0CuL
+            IER_DLH.ier[0].truth && LSR.DR.truth && FCR_IIR.fcr[0].untruth -> 0x04uL
+            IER_DLH.ier[1].truth && thrIntr -> {
+                // MSR.data = MSR.data or 0b1011uL
+                // log.severe { "MSR update interrupt sent" }
+                // 0x00uL
+                0x02uL
+            }
+            IER_DLH.ier[3].truth && (MSR.data and 0x0FuL).truth -> 0x00uL
+            else -> 0x01uL
         }
 
-    }
-    private val delayTimer = DelayTimer()
+        FCR_IIR.iir = iir or (FCR_IIR.iir and 0xF0uL)
 
-    inner class RBR_THR_DLL_Register : Register(ports.mem, 0x00u, regDtype, "UART_RBR_THR_DLL") {
+        if (iir != 0x01uL) {
+            log.info { "Interrupt, IIR = ${iir.hex2}" }
+            ports.irq.request(0)
+        }
+    }
+
+    /** Регистры RBR, THR, DLL */
+    private inner class RBR_THR_DLL_Register : Register(ports.mem, 0x00u, regDtype, "RBR_THR_DLL") {
+        /**
+         * Divisor Latch (Low) (DWORD, R/W).
+         *
+         * Dependencies: LCR[7] = 1
+         */
         var dll: ULong = 0x00u
-        val bytesOut = mutableListOf<Char>() // to terminal
-        val bytesIn = mutableListOf<Char>() // from terminal
+
+        /** Буфер с данными хост->эмулируемая система. */
+        val bytesIn = mutableListOf<Char>()
 
         override fun read(ea: ULong, ss: Int, size: Int) = when {
-            LCR.data[7].truth -> {
+            LCR.DLAB.truth -> {
                 // Driven by DDL
                 log.info { "Read from DLL: ${dll.hex8}" }
                 dll
             }
-            bytesIn.isEmpty() -> 0uL // Driven by RBR
-            else -> bytesIn.removeAt(0).ulong_z8
+            else -> {
+                val ret = if (bytesIn.isEmpty()) 0uL else bytesIn.removeAt(0).ulong_z8
+
+                log.info { "Read from RBR: ${ret.hex2}" }
+
+                if (FCR_IIR.fcr[0].truth) {
+                    if (bytesIn.isEmpty()) {
+                        LSR.DR = 0
+                        LSR.BI = 0
+                    }
+                    timeoutIntr = false
+                } else {
+                    LSR.DR = 0
+                    LSR.BI = 0
+                }
+
+                checkIrq()
+                ret
+            }
         }
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            if (LCR.data[7].truth) {
+            if (LCR.DLAB.truth) {
                 // Driven by DLL
                 log.info { "Write to DLL: ${value.hex8}" }
                 dll = value
             } else {
                 // Driven by THR
+                log.info { "Write to THR: ${value.hex2}" }
+
                 if (value.char == '\n') {
-                    log.finest { "${this.name}:\n${bytesOut.joinToString("")}" }
-                    bytesOut.clear()
                     writeData('\r')
-                } else bytesOut.add(value.char)
+                }
+
+                thrIntr = true
+                LSR.THRE = 1
+                LSR.TEMT = 1
+                checkIrq()
 
                 writeData(value.char)
-
-                if (IER.ier and 0x2uL != 0uL) {
-                    IIR.iir = 0b0000u
-                    delayTimer.enabled = true
-                }
             }
         }
 
         override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
-                "dll" to dll,
-                "bytesOut" to bytesOut,
-                "bytesIn" to bytesIn
+            "dll" to dll,
+            "bytesIn" to bytesIn,
         )
 
         @Suppress("UNCHECKED_CAST")
@@ -122,34 +189,37 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
             super.deserialize(ctxt, snapshot)
             dll = loadValue(snapshot, "dll")
 
-            bytesOut.clear()
             bytesIn.clear()
-            bytesOut.addAll((snapshot["bytesOut"] as ArrayList<String>).map { it[0] })
             bytesIn.addAll((snapshot["bytesIn"] as ArrayList<String>).map { it[0] })
         }
     }
 
-    // Receive Buffer Register (DWORD, R)
-    // Reset value: 0x0
-    // Dependencies: LCR[7] = 0
-    val RBR = RBR_THR_DLL_Register()
-    // Transmit Holding Register (DWORD, W)
-    // Reset value: 0x0
-    // Dependencies: LCR[7] = 0
-    val THR
-        get() = RBR
-    // Divisor Latch (Low) (DWORD, R/W)
-    // Reset value: 0x0
-    // Dependencies: LCR[7] = 1
-    val DLL get() = RBR
+    /** Регистры RBR, THR, DLL */
+    private val RBR_THR_DLL = RBR_THR_DLL_Register()
 
-
-    inner class UART_IER_DLH: Register(ports.mem, regDtype.bytes.ulong_z * 1u, regDtype, "UART_IER_DLH") {
+    /** Регистры IER, DLH */
+    private inner class IER_DLH_Register : Register(
+        ports.mem,
+        regDtype.bytes.ulong_z * 1u,
+        regDtype,
+        "IER_DLH",
+    ) {
+        /**
+         * Interrupt Enable Register (DWORD, R/W).
+         *
+         * Dependencies: LCR[7] = 0
+         */
         var ier = 0x00uL
+
+        /**
+         * Divisor Latch (High) (DWORD, R/W).
+         *
+         * Dependencies: LCR[7] = 1
+         */
         var dlh = 0x00uL
 
         override fun read(ea: ULong, ss: Int, size: Int) = when {
-            LCR.data[7].truth -> {
+            LCR.DLAB.truth -> {
                 // Driven by DLH
                 log.info { "Read from DLH: ${dlh.hex8}" }
                 dlh
@@ -162,7 +232,7 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
         }
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = when {
-            LCR.data[7].truth -> {
+            LCR.DLAB.truth -> {
                 // Driven by DLH
                 log.info { "Write to DLH: ${value.hex8}" }
                 dlh = value
@@ -170,13 +240,25 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
             else -> {
                 // Driven by IER
                 log.info { "Write to IER: ${value.hex8}" }
-                ier = value
+
+                val changed = ((ier xor value) and 0x0fuL)
+                ier = value and 0x0fuL
+
+                if (changed[1].truth) {
+                    thrIntr = ier[1].truth && LSR.THRE.truth
+                }
+
+                if (changed.truth) {
+                    checkIrq()
+                }
+
+                Unit
             }
         }
 
         override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
-                "ier" to ier,
-                "dlh" to dlh
+            "ier" to ier,
+            "dlh" to dlh
         )
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -186,34 +268,59 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
         }
     }
 
-    // Interrupt Enable Register (DWORD, R/W)
-    // Reset value: 0x0
-    // Dependencies: LCR[7] = 0
-    val IER = UART_IER_DLH()
-    // Divisor Latch (High) (DWORD, R/W)
-    // Reset value: 0x0
-    // Dependencies: LCR[7] = 1
-    val DLH get() = IER
+    /** Регистры IER, DLH */
+    private val IER_DLH = IER_DLH_Register()
 
-    inner class UART_FCR_IIR : Register(ports.mem, regDtype.bytes.ulong_z * 2u, regDtype, "UART_FCR_IIR") {
+    /** Регистры FCR, IIR */
+    inner class FCR_IIR_Register : Register(ports.mem, regDtype.bytes.ulong_z * 2u, regDtype, "FCR_IIR") {
+        /** Interrupt Identification Register (DWORD, R) */
         var iir: ULong = 0x01u
+
+        /** FIFO Control Register (DWORD, W) */
         var fcr: ULong = 0x00u
 
-        // Driven by IIR
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
-            log.info { "Read from IIR: ${iir.hex8}" }
+            // Driven by IIR
+            log.info { "Read from IIR: ${iir.hex2}" }
+
+            // if (iir and 0x06uL == 0x02uL) {
+                // thrIntr = false
+                // checkIrq()
+            // }
+
             return iir
         }
 
-        // Driven by FCR
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            log.info { "Write to FCR: ${value.hex8}" }
-            fcr = value
+            // Driven by FCR
+            log.info { "Write to FCR: ${value.hex2}" }
+
+            var newValue = value
+
+            if ((newValue xor fcr)[0].truth) {
+                newValue = newValue or 0x04uL or 0x02uL
+            }
+
+            if (newValue[1].truth) {
+                LSR.DR = 0
+                LSR.BI = 0
+                timeoutIntr = false
+                RBR_THR_DLL.bytesIn.clear()
+            }
+
+            if (newValue[2].truth) {
+                LSR.THRE = 1
+                thrIntr = true
+            }
+
+            fcr = newValue and 0xC9uL
+            iir = if (fcr[0].truth) iir or 0xC0uL else iir and 0xC0uL.inv()
+            checkIrq()
         }
 
         override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
-                "iir" to iir,
-                "fcr" to fcr
+            "iir" to iir,
+            "fcr" to fcr
         )
 
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -223,42 +330,56 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
         }
     }
 
+    /** Регистры FCR, IIR */
+    private val FCR_IIR = FCR_IIR_Register()
 
-    // FIFO Control Register (DWORD, W)
-    // Reset value: 0x0
-    val FCR = UART_FCR_IIR()
+    /** Line Control Register (DWORD, R/W) */
+    private inner class LCR_Register : Register(ports.mem, regDtype.bytes.ulong_z * 3u, regDtype, "LCR") {
+        var DLAB by bit(7)
 
-    // Interrupt Identification Register (DWORD, R)
-    // Reset value: 0x01
-    val IIR get() = FCR
-
-    // Line Control Register (DWORD, R/W)
-    // Reset value: 0x0
-    val LCR = object : Register(ports.mem, regDtype.bytes.ulong_z * 3u, regDtype, "UART_LCR") {
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
-            log.info { "Read from ${this.name}: ${data.hex8}" }
+            log.info { "Read from LCR: ${data.hex8}" }
             return super.read(ea, ss, size)
         }
+
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            log.info { "Write to ${this.name}: ${value.hex8}" }
+            log.info { "Write to LCR: ${value.hex8}" }
             super.write(ea, ss, size, value)
         }
     }
 
-    // Modem Control Register (DWORD, R/W)
-    // Reset value: 0x0
-    val MCR = object : Register(ports.mem, regDtype.bytes.ulong_z * 4u, regDtype, "UART_MCR") {
+    /** Line Control Register (DWORD, R/W) */
+    private val LCR = LCR_Register()
+
+    /** Modem Control Register (DWORD, R/W) */
+    private val MCR = object : Register(
+        ports.mem,
+        regDtype.bytes.ulong_z * 4u,
+        regDtype,
+        "MCR",
+        0x08uL,
+    ) {
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
-            log.info { "Read from ${this.name}: ${data.hex8}" }
+            log.info { "Read from MCR: ${data.hex8}" }
             return super.read(ea, ss, size)
         }
+
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            log.info { "Write to ${this.name}: ${value.hex8}" }
+            log.info { "Write to MCR: ${value.hex8}" }
             super.write(ea, ss, size, value)
+            data = data and 0x1fuL
         }
     }
 
-     inner class LSR_Register : Register(ports.mem, regDtype.bytes.ulong_z * 5u, regDtype, "UART_LSR", 0x60u, writable = false) {
+    /** Line Status Register (DWORD, R) */
+    private inner class LSR_Register : Register(
+        ports.mem,
+        regDtype.bytes.ulong_z * 5u,
+        regDtype,
+        "LSR",
+        0x60u,
+        writable = false
+    ) {
         var RFE by bit(7)
         var TEMT by bit(6)
         var THRE by bit(5)
@@ -268,77 +389,82 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
         var OE by bit(1)
         var DR by bit(0)
 
-
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
-            DR = RBR.bytesIn.isNotEmpty().int
-            return super.read(ea, ss, size)
-        }
-    }
-    // Line Status Register (DWORD, R)
-    // Reset value: 0x60
-    val LSR = LSR_Register()
+            val ret = super.read(ea, ss, size)
+            log.info { "Read from LSR: ${ret.hex2}" }
 
-    // Modem Status Register (DWORD, R)
-    // Reset value: 0x0
-    val MSR = object : Register(ports.mem, regDtype.bytes.ulong_z * 6u, regDtype, "UART_MSR", writable = false) {
-        override fun read(ea: ULong, ss: Int, size: Int): ULong {
-            log.info { "Read from ${this.name}: ${data.hex8}" }
-            return super.read(ea, ss, size)
+            if (BI.truth || OE.truth) {
+                BI = 0
+                OE = 0
+                checkIrq()
+            }
+
+            return ret
         }
     }
 
-    // Scratchpad Register (DWORD, R/W)
-    // Reset value: 0x0
-    val SPR = object : Register(ports.mem, regDtype.bytes.ulong_z * 7u, regDtype, "UART_SPR") {
+    /** Line Status Register (DWORD, R) */
+    private val LSR = LSR_Register()
+
+    /** Modem Status Register (DWORD, R) */
+    private val MSR = object : Register(
+        ports.mem,
+        regDtype.bytes.ulong_z * 6u,
+        regDtype,
+        "MSR",
+        writable = false,
+    ) {
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
-            log.info { "Read from ${this.name}: ${data.hex8}" }
-            return super.read(ea, ss, size)
-        }
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            log.info { "Write to ${this.name}: ${value.hex8}" }
-            super.write(ea, ss, size, value)
+            log.info { "Read from MSR: ${data.hex2}" }
+
+            val ret = super.read(ea, ss, size)
+
+            data = data or 0xb0uL
+            if ((data and 0x0fuL).truth) {
+                data = data and 0xf0uL
+                checkIrq()
+            }
+
+            return ret
         }
     }
+
+    /** Scratchpad Register (DWORD, R/W) */
+    private val SCR = Register(ports.mem, regDtype.bytes.ulong_z * 7u, regDtype, "SCR")
 
     private fun writeData(value: Int) = ports.tx.write(UART_MASTER_BUS_DATA, 0, 1, value.ulong_z)
     private fun readData() = ports.tx.read(UART_MASTER_BUS_DATA, 0, 1).int
 
     private fun writeData(value: Char) = writeData(value.int_z8)
 
-    val TERMINAL_REQUEST_REG = object : Register(
-            ports.rx,
-            UART_SLAVE_BUS_REQUEST,
-            Datatype.DWORD,
-            "TERMINAL_REQUEST_REG",
-            readable = false,
-            level = Level.SEVERE
+    private val TERMINAL_REQUEST_REG = object : Register(
+        ports.rx,
+        UART_SLAVE_BUS_REQUEST,
+        Datatype.DWORD,
+        "TERMINAL_REQUEST_REG",
+        readable = false,
+        level = Level.SEVERE,
     ) {
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (ss) {
                 UART_SLAVE_DATA_RECEIVED -> {
-                    when (val x = readData().char) {
-                        '\r' -> RBR.bytesIn.add('\n')
-                        else -> RBR.bytesIn.add(x)
-                    }
-
-                    if (IER.ier and 0x1uL != 0uL) {
-                        IIR.iir = 0b0100u
-                        delayTimer.enabled = true
-                    }
+                    RBR_THR_DLL.bytesIn.add(
+                        when (val x = readData().char) {
+                            '\r' -> '\n'
+                            else -> x
+                        }
+                    )
                 }
-
-                UART_SLAVE_DATA_TRANSMITTED -> {
-
-                }
+                UART_SLAVE_DATA_TRANSMITTED -> { }
             }
         }
     }
 
-    fun sendText(string: String) = RBR.bytesIn.addAll(string.toCharArray().toList())
+    fun sendText(string: String) = RBR_THR_DLL.bytesIn.addAll(string.toCharArray().toList())
 
     override fun initialize(): Boolean {
         super.initialize()
-        core.clock.connect(delayTimer, 1000, false)
+        core.clock.connect(t2mTimer, 1_000, Time.ns, true)
         return true
     }
 }

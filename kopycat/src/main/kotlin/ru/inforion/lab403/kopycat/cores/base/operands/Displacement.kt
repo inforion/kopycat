@@ -55,6 +55,7 @@ open class Displacement<in T : AGenericCore>(
     access: Access,
     num: Int = WRONGI
 ) : AOperand<T>(DISPL, access, VOID, num, dtyp) {
+    override val hasEffectiveAddress = true
 
     // TODO: CHECK IT FOR X86 AND MIPS!!!!!!!!
     final override fun effectiveAddress(core: T): ULong = (reg.value(core) + off.usext(core)) like reg.dtyp

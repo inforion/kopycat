@@ -46,7 +46,7 @@ class ScasDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 val src = xax(prefs.opsize)
                 arrayOf(src, x86Displacement(prefs.opsize, reg, es))
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Scas(core, s.data, prefs, *ops)
     }

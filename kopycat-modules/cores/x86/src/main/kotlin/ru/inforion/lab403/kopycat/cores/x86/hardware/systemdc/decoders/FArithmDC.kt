@@ -64,7 +64,7 @@ import ru.inforion.lab403.kopycat.modules.cores.x86Core
  * Then you must get value (i = byte % 0x08) and instruction operands will be ST(i), ST(0)
  */
 
-class FArithmDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Int, Array<AOperand<x86Core>>) -> AX86Instruction) :
+class FArithmDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Int, Boolean, Array<AOperand<x86Core>>) -> AX86Instruction) :
         ADecoder<AX86Instruction>(core) {
     private val RANGE_RM_MODE = 0x00u..0xBFu
 
@@ -73,43 +73,43 @@ class FArithmDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Int
         val currByte = s.peekByte()
         val rm = RMDC(s, prefs)
         var popCount = 0
-        val ops = when (opcode) {
+        val (int, ops) = when (opcode) {
             0xD8 -> {
-                if(currByte in RANGE_RM_MODE) {
-                    arrayOf(x86FprRegister(0), rm.m32)
+                if (currByte in RANGE_RM_MODE) {
+                    false to arrayOf(x86FprRegister(0), rm.m32)
                 } else {
                     val index = currByte[2..0].int
                     s.readByte()
-                    arrayOf(x86FprRegister(0), x86FprRegister(index))
+                    false to arrayOf(x86FprRegister(0), x86FprRegister(index))
                 }
             }
             0xDA -> {
-                when(currByte[5..3].int){
-                    0 -> arrayOf(x86FprRegister(0), rm.m32)
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                when (currByte[5..3].int) {
+                    0, 1, 4, 5, 6, 7 -> true to arrayOf(x86FprRegister(0), rm.m32)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
             0xDC -> {
-                if(currByte in RANGE_RM_MODE) {
-                    arrayOf(x86FprRegister(0), rm.m64)
+                if (currByte in RANGE_RM_MODE) {
+                    false to arrayOf(x86FprRegister(0), rm.m64)
                 } else {
                     val index = currByte[2..0].int
                     s.readByte()
-                    arrayOf(x86FprRegister(index), x86FprRegister(0))
+                    false to arrayOf(x86FprRegister(index), x86FprRegister(0))
                 }
             }
             0xDE -> {
-                if(currByte in RANGE_RM_MODE) {
-                    arrayOf(x86FprRegister(0), rm.m16)
+                if (currByte in RANGE_RM_MODE) {
+                    true to arrayOf(x86FprRegister(0), rm.m16)
                 } else {
                     val index = currByte[2..0].int
                     popCount = 1
                     s.readByte()
-                    arrayOf(x86FprRegister(index), x86FprRegister(0))
+                    false to arrayOf(x86FprRegister(index), x86FprRegister(0))
                 }
             }
             else -> throw GeneralException("Incorrect opcode in decoder")
         }
-        return construct(core, s.data, prefs, popCount, ops as Array<AOperand<x86Core>>)
+        return construct(core, s.data, prefs, popCount, int, ops as Array<AOperand<x86Core>>)
     }
 }

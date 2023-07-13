@@ -25,16 +25,27 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.exceptions
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.ULONG_MAX
+import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.modules.common.pci.PciAddress
 
 
-class MemoryAccessError(where: ULong, val address: ULong, val LorS: AccessAction, message: String? = null) :
+open class MemoryAccessError(where: ULong, val address: ULong, val LorS: AccessAction, message: String? = null) :
         HardwareException(if (LorS == AccessAction.LOAD) AccessAction.LOAD else AccessAction.STORE, where, message) {
 
     override fun toString(): String {
         val msg = if (message != null) " >> %s".format(message) else ""
         val pc = if (where != ULONG_MAX) "[${where.hex8}]" else ""
         return "$prefix$pc: $LorS ${address.hex8}$msg"
+    }
+}
+
+class MemoryAccessPciError(where: ULong, address: ULong, LorS: AccessAction, message: String? = null, private val pciAddr: PciAddress) :
+    MemoryAccessError(where, address, LorS, message) {
+    override fun toString(): String {
+        return super.toString() +
+        "bus=${pciAddr.bus}, device=${pciAddr.device}, func=${pciAddr.func}, reg=0x${pciAddr.reg.hex};"
     }
 }

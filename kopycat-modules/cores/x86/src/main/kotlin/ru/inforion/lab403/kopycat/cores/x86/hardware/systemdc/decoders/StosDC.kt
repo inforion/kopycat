@@ -42,7 +42,7 @@ class StosDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val ops = when (opcode) {
             0xAA -> arrayOf(x86Displacement(Datatype.BYTE, reg, es), al)
             0xAB -> arrayOf(x86Displacement(prefs.opsize, reg, es), xax(prefs.opsize))
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
 //        prefs.string = StringPrefix.REP
         return Stos(core, s.data, prefs, *ops)

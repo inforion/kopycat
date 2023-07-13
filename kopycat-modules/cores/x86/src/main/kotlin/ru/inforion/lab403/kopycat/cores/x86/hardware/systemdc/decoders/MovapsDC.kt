@@ -42,7 +42,7 @@ class MovapsDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val operands = when (opcode) {
             0x28 -> arrayOf(rm.rxmm, rm.xmmpref)
             0x29 -> arrayOf(rm.xmmpref, rm.rxmm)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
 
         return Movaps(core, s.data, prefs, *operands)

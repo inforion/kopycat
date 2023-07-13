@@ -146,6 +146,22 @@ internal fun convertParameterType(name: String, value: Any?, type: KType): Any? 
                 .toLongArray()
             else -> null
         }
+        UIntArray::class -> when (value) {
+            is UIntArray -> value
+            is String -> value
+                .preparse2Array()
+                .map { it.uint }
+                .toUIntArray()
+            else -> null
+        }
+        ULongArray::class -> when (value) {
+            is ULongArray -> value
+            is String -> value
+                .preparse2Array()
+                .map { it.ulong }
+                .toULongArray()
+            else -> null
+        }
         File::class -> when (value) {
             is File -> value
             is String -> value.toFile()

@@ -43,7 +43,7 @@ class LodsDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val ops = when (opcode) {
             0xAC -> arrayOf(al, x86Displacement(Datatype.BYTE, reg, prefs))
             0xAD -> arrayOf(xax(prefs.opsize), x86Displacement(prefs.opsize, reg, prefs))
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Lods(core, s.data, prefs, *ops)
     }

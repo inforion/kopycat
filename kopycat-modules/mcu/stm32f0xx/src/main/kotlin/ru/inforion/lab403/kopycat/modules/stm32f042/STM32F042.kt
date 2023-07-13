@@ -42,7 +42,7 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
 
     constructor(parent: Module, name: String, firmware: ByteArray) : this(parent, name, firmware to 0)
     constructor(parent: Module, name: String, firmware: InputStream) : this(parent, name, firmware.readBytes())
-    constructor(parent: Module, name: String, firmware: Resource) : this(parent, name, firmware.inputStream())
+    constructor(parent: Module, name: String, firmware: Resource) : this(parent, name, firmware.openStream())
     constructor(parent: Module, name: String, firmware: File) : this(parent, name, firmware.inputStream())
 
     inner class Ports : ModulePorts(this) {

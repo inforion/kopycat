@@ -27,35 +27,29 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86FPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.interfaces.ine
+import ru.inforion.lab403.kopycat.interfaces.inl
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import ru.inforion.lab403.kopycat.interfaces.*
 
-
-
-class Frstor(core: x86Core, opcode: ByteArray, prefs: Prefixes, val src: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, src) {
+class Frstor(core: x86Core, opcode: ByteArray, prefs: Prefixes, val src: AOperand<x86Core>) :
+    AFPUInstruction(core, opcode, prefs, src) {
     override val mnem = "frstor"
 
-    override fun execute() {
+    override fun executeFPUInstruction() {
         val address = src.effectiveAddress(core)
 
-        if (!core.cpu.cregs.cr0.pe || !core.is32bit)
-            TODO("Only for PE and 32-bit mode implemented!")
-
-        core.fpu.fwr.FPUControlWord.value = core.inl(address +  0u)
-        core.fpu.fwr.FPUStatusWord.value = core.inl(address +  4u)
-        core.fpu.fwr.FPUTagWord.value = core.inl(address +  8u)
+        core.fpu.fwr.FPUControlWord.value = core.inl(address + 0u)
+        core.fpu.fwr.FPUStatusWord.value = core.inl(address + 4u)
+        core.fpu.fwr.FPUTagWord.value = core.inl(address + 8u)
         core.fpu.fwr.FPUInstructionPointer.value = core.inl(address + 12u)
 //      FPUInstructionPointer Selector = core.read_word(address + 16)
         core.fpu.fwr.FPUDataPointer.value = core.inl(address + 20u)
 //      FPUDataPointer Selector = core.read_word(address + 24)
 
         repeat(x86FPU.FPU_STACK_SIZE) {
-            core.fpu[it] = core.inl(address + 28u + 10u * it.uint)
+            core.fpu.st(it, core.ine(address + 28u + 10u * it.uint, 10))
         }
 
         // occupied 0x6C bytes (108)

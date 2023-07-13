@@ -40,6 +40,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
 import ru.inforion.lab403.kopycat.interfaces.IDebugger
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.settings
+import java.math.BigInteger
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
 import kotlin.time.Duration
@@ -149,7 +150,7 @@ open class Debugger(
      * @return значение регистра
      * {RU}
      */
-    override fun regRead(index: Int) = core.cpu.reg(index)
+    override fun regRead(index: Int) = core.cpu.reg(index).bigint
 
     /**
      * {RU}
@@ -159,7 +160,7 @@ open class Debugger(
      * @param value значение для записи в регистр
      * {RU}
      */
-    override fun regWrite(index: Int, value: ULong) = core.cpu.reg(index, value)
+    override fun regWrite(index: Int, value: BigInteger) = core.cpu.reg(index, value.ulong)
 
     override fun regSize(index: Int) = Datatype.DWORD
 
@@ -255,8 +256,13 @@ open class Debugger(
             if (!core.enter().resume)
                 return false
 
-            if (!core.decode().resume)
+            status = core.decode()
+            if (!status.resume)
                 return false
+            if (status != CORE_EXECUTED) {
+                core.enter()
+                return true
+            }
 
             return when (val code = preExecute()) {
                 TRACER_STATUS_SUCCESS -> {

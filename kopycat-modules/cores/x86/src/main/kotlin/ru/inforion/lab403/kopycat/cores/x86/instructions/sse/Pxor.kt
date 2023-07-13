@@ -25,22 +25,16 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.sse
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import java.math.BigInteger
-
 
 class Pxor(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>) :
-    AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
+    ASSEInstruction(core, opcode, prefs, *operands) {
 
     override val mnem = "pxor"
 
-    override fun execute() {
+    override fun executeSSEInstruction() {
         val a1 = op1.extValue(core)
         val a2 = op2.extValue(core)
         op1.extValue(core, a1 xor a2)

@@ -25,61 +25,121 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.hardware.processors
 
-import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AFPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.FWRBank
+import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.LongDouble
+import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.longDouble
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import ru.inforion.lab403.kopycat.serializer.deserialize
-import ru.inforion.lab403.kopycat.serializer.loadValue
-
-
+import java.math.BigInteger
 
 class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name), IAutoSerializable {
     companion object {
         const val FPU_STACK_SIZE = 8
     }
 
-    private var pos = 0
-
-    // TODO: FPU x87 has 80-bit data registers.
-    // TODO: Every float and double operation requires extension to 80-bit format (long double)
-    // TODO: But... it seems like we can leave it 64-bit because we haven't met any instruction that use 80-bit feature yet
-    // TODO: And also, don't forget that MMX extension also uses FPU stack as it's register file
-    // TODO: Good luck!
-    val stack = Array(FPU_STACK_SIZE) { 0uL }
+    private val stack = Array(FPU_STACK_SIZE) { BigInteger.ZERO }
 
     val fwr = FWRBank(core)
 //    val cwr = CWRBank(core)
 //    val swr = SWRBank(core)
 
-    operator fun set(i: Int, e: ULong) {
-        stack[i] = e
+    /** Returns st([i]) */
+    fun st(i: Int): BigInteger = stack[(fwr.FPUStatusWord.top.int + i) % 8]
+
+    /** Returns st([i]) */
+    fun stld(i: Int) = st(i).longDouble(fwr.FPUControlWord)
+
+    /** Sets st([i]) = [v] */
+    fun st(i: Int, v: BigInteger) {
+        stack[(fwr.FPUStatusWord.top.int + i) % 8] = v
     }
 
-    operator fun get(i: Int): ULong = stack[i]
-
-    // See 12.2 THE MMX STATE AND MMX REGISTER ALIASING and 12.6 DEBUGGING MMX CODE (Volume 3)
-    fun setMMX(i: Int, value: ULong) {
-        stack[(i - pos) % FPU_STACK_SIZE] = value
-    }
-    fun getMMX(i: Int): ULong = stack[(i - pos) % FPU_STACK_SIZE]
-
-    fun push(e: ULong) {
-        stack[pos] = e
-        pos++
+    /** Sets st([i]) = [v] */
+    fun stld(i: Int, v: LongDouble) {
+        stack[(fwr.FPUStatusWord.top.int + i) % 8] = v.ieee754AsUnsigned()
     }
 
-    fun pop(): ULong {
-        pos--
-        return stack[pos]
+    /**
+     * Returns mmx register value
+     * @param i register number
+     * @return mmx register value
+     */
+    fun mmx(i: Int): ULong = stack[i].ulong
+
+    /**
+     * Sets mmx register value
+     * @param n register number
+     * @param v new value
+     */
+    fun mmx(n: Int, v: ULong) {
+        stack[n] = v.bigint.insert(0xFFFFuL, 79..64)
+
+        fwr.FPUStatusWord.value = 0uL
+        for (i in 0 until FPU_STACK_SIZE) {
+            if (stack[i][79..64] == 0xFFFFuL.bigint) {
+                fwr.FPUTagWord[i] = FWRBank.TagValue.Special
+            } else if (stack[i][63..0] == BigInteger.ZERO) {
+                fwr.FPUTagWord[i] = FWRBank.TagValue.Zero
+            }
+        }
     }
 
+    /** Pushes [v] to x87 stack */
+    fun push(v: BigInteger) {
+        if (fwr.FPUStatusWord.top == 0uL) {
+            fwr.FPUStatusWord.top = 7uL
+        } else {
+            fwr.FPUStatusWord.top--
+        }
+
+        if (fwr.FPUTagWord[fwr.FPUStatusWord.top.int] != FWRBank.TagValue.Empty) {
+            // Overflow
+            fwr.FPUStatusWord.ie = true
+            fwr.FPUStatusWord.sf = true
+            fwr.FPUStatusWord.c1 = true
+
+            // Real CPU pushes NaN on stack overflow
+            // Unicorn pushes the value
+//            stack[fwr.FPUStatusWord.top.int] = "ffffc000000000000000".bigintByHex
+//            fwr.FPUTagWord[fwr.FPUStatusWord.top.int] = FWRBank.TagValue.Special
+        } //else {
+            stack[fwr.FPUStatusWord.top.int] = v
+            fwr.FPUTagWord[fwr.FPUStatusWord.top.int] = if (v.longDouble(fwr.FPUControlWord).isZero()) {
+                FWRBank.TagValue.Zero
+            } else {
+                FWRBank.TagValue.Valid
+            }
+     //   }
+    }
+
+    /** Pops from x87 stack */
+    fun pop(): BigInteger {
+        val value = stack[fwr.FPUStatusWord.top.int]
+        fwr.FPUTagWord[fwr.FPUStatusWord.top.int] = FWRBank.TagValue.Empty
+
+        if (fwr.FPUStatusWord.top == 7uL) {
+            fwr.FPUStatusWord.top = 0uL
+
+            /*
+            // Underflow
+            fwr.FPUStatusWord.ie = true
+            fwr.FPUStatusWord.sf = true
+            fwr.FPUStatusWord.c1 = false
+            */
+        } else {
+            fwr.FPUStatusWord.top++
+        }
+        return value
+    }
+
+    /** Pops from x87 stack [count] times */
     fun pop(count: Int) = repeat(count) { pop() }
 
     override fun reset() {
-        stack.fill(0u)
+        stack.fill(BigInteger.ZERO)
         fwr.reset()
     }
 
@@ -103,6 +163,14 @@ class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name), IAutoSeria
     }
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        super<IAutoSerializable>.deserialize(ctxt, snapshot)
+        super<IAutoSerializable>.deserialize(
+            ctxt,
+            if ("stack" in snapshot && (snapshot["stack"] as List<HashMap<String, String>>)[0]["class"] == "kotlin.ULong") {
+                // Old snapshot; discard stack
+                snapshot.filterKeys { it != "stack" }
+            } else {
+                snapshot
+            }
+        )
     }
 }

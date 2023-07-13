@@ -39,8 +39,13 @@ internal class RegisterReadMessage(val index: Int) : AbstractMessage() {
 
     override fun Context.process() {
         val value = debugger.regRead(index)
-        val size = debugger.regSize(index)
-        val message = if (size == QWORD) value.swap64().long.lhex16 else value.swap32().long.lhex8
+        val message = when (debugger.regSize(index)) {
+            XMMWORD -> value.swap128().lhex32
+            FPU80 -> value.swap80().lhex20
+            QWORD -> value.ulong.swap64().long.lhex16
+            DWORD -> value.ulong.swap32().long.lhex8
+            else -> throw NotImplementedError("Unknown register data type")
+        }
         socket.sendMessageResponse(message)
     }
 

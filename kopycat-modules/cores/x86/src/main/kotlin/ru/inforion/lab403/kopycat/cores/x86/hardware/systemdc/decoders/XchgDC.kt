@@ -46,7 +46,7 @@ class XchgDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97 -> arrayOf(
                     xax(prefs.opsize),
                     gprr(opcode % 0x90, prefs.rexB, prefs.opsize))
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Xchg(core, s.data, prefs, *ops)
     }

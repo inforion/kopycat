@@ -25,33 +25,69 @@
  */
 package ru.inforion.lab403.kopycat.library.types
 
+import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.utils.DynamicClassLoader
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.InputStream
-import java.net.URL
+import ru.inforion.lab403.kopycat.Kopycat
+import ru.inforion.lab403.kopycat.library.exceptions.ResourceGzipError
+import java.io.*
+import java.nio.file.Path
 import java.util.zip.GZIPInputStream
+import kotlin.io.path.*
 
-class Resource(private val path: String) {
-    private fun getResource(path: String) = DynamicClassLoader.getResource(path)
 
-    private fun openResourceStream(resource: String): InputStream {
-        // WARNING: don't change -> with function not working
-        return DynamicClassLoader.getResourceAsStream(resource)
-                ?: throw FileNotFoundException("Can't open resource $resource within path ${getResource("")}")
+class ResourceNotFoundException(val path: String) : FileNotFoundException(
+    "Can't open resource within path '$path'. " +
+            "Searched in resource runtime directory and JAR resource"
+) {
+    constructor(path: Path) : this(path.pathString)
+}
+
+/**
+ * Searches the resource within JAR resources and runtime provided resource path
+ *
+ * Search priority:
+ * 1. Runtime path
+ * 2. JAR resources
+ *
+ * @throws FileNotFoundException Is the resource not found
+ */
+class Resource(val path: Path) {
+    constructor(path: String) : this(Path(path))
+
+    companion object {
+        @Transient
+        val log = logger(INFO)
     }
 
-    fun exists(): Boolean {
-        val stream = DynamicClassLoader.getResourceAsStream(path)
-        return stream == null
+    /**
+     * Path string with POSIX-like separators
+     */
+    val pathString: String = path.invariantSeparatorsPathString
+
+    fun openStream(): InputStream {
+        return let {
+            // WARNING: don't change -> with function not working
+            val runtimePath = Path(Kopycat.resourceDir) / path
+            if (runtimePath.exists()) {
+                return@let File(runtimePath.toString()).inputStream()
+            }
+            log.trace { "Runtime file '${runtimePath}' not found, trying to load JAR resource" }
+
+            return@let DynamicClassLoader.getResourceAsStream(pathString)
+        }.let { resource ->
+            if (resource == null) {
+                throw ResourceNotFoundException(pathString)
+            }
+            resource
+        }.let { stream ->
+            if (path.extension == "gz") try {
+                GZIPInputStream(stream)
+            } catch (e: IOException) {
+                throw ResourceGzipError(path, e)
+            } else stream
+        }
     }
 
-    fun inputStream(): InputStream {
-        val stream = openResourceStream(path)
-        return if (File(path).extension == "gz") GZIPInputStream(stream) else stream
-    }
-
-    val url get() = getResource(path) ?: throw FileNotFoundException("Can't open resource $path within path ${getResource("")}")
-
-    fun readBytes(): ByteArray = inputStream().readBytes()
+    fun readBytes(): ByteArray = openStream().readBytes()
 }

@@ -31,6 +31,10 @@ import ru.inforion.lab403.kopycat.modules.common.pci.PciAbstract
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
 import java.util.logging.Level.CONFIG
 
+/**
+ * Intel Atom Processor C2000 Product Family for Microserver
+ * 4.11 RAS Register Map, page 107
+ */
 class RAS(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F14) {
     val BAR_10 = PCI_BAR(0x10, DWORD, "BAR_10")
     val BAR_14 = PCI_BAR(0x14, DWORD, "BAR_14")
@@ -42,9 +46,9 @@ class RAS(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F14
     val REG_3C0 = PCI_CONF_FUNC_WR(0x3C0, DWORD, "REG_3C0", 0u, level = CONFIG)
     val REG_3D0 = PCI_CONF_FUNC_WR(0x3D0, DWORD, "REG_3D0", 0u, level = CONFIG)
     val REG_400 = PCI_CONF_FUNC_WR(0x400, DWORD, "REG_400", 0u, level = CONFIG)
-    val REG_404 = PCI_CONF_FUNC_WR(0x404, DWORD, "REG_404", 0u, level = CONFIG)
-    val REG_408 = PCI_CONF_FUNC_WR(0x408, DWORD, "REG_408", 0u, level = CONFIG)
-    val REG_40C = PCI_CONF_FUNC_WR(0x40C, DWORD, "REG_40C", 0u, level = CONFIG)
+    val RTF_BMBOUND = PCI_CONF_FUNC_WR(0x404, DWORD, "RTF_BMBOUND", 0u, level = CONFIG)
+    val RTF_BMBOUNDHI = PCI_CONF_FUNC_WR(0x408, DWORD, "RTF_BMBOUNDHI", 0u, level = CONFIG)
+    val RP_BIFCTL = PCI_CONF_FUNC_WR(0x40C, DWORD, "RP_BIFCTL", 0u, level = CONFIG)
     val REG_410 = PCI_CONF_FUNC_WR(0x410, DWORD, "REG_410", 0u, level = CONFIG)
     val REG_414 = PCI_CONF_FUNC_WR(0x414, DWORD, "REG_414", 0u, level = CONFIG)
 }

@@ -25,15 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
-import ru.inforion.lab403.common.extensions.truth
-import ru.inforion.lab403.common.extensions.clr
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.set
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.mips.enums.InstructionSet
+import java.math.BigInteger
 
 
 class MipsDebugger(parent: Module, name: String): Debugger(parent, name) {
@@ -57,31 +55,31 @@ class MipsDebugger(parent: Module, name: String): Debugger(parent, name) {
     override fun registers() = Array(REG_TOTAL) { regRead(it) }.toMutableList()
 
     override fun regRead(index: Int) = when (index) {
-        REG_STATUS -> mips.cop.regs.Status.value
-        REG_LO -> mips.cpu.lo
-        REG_HI -> mips.cpu.hi
-        REG_EPC -> mips.cop.regs.EPC.value
-        REG_CAUSE -> mips.cop.regs.Cause.value
-        REG_PC -> if (mips.cpu.iset == InstructionSet.MIPS32) mips.cpu.pc else (mips.cpu.pc set 0)
-        else -> mips.cpu.regs.read(index)
+        REG_STATUS -> mips.cop.regs.Status.value.bigint
+        REG_LO -> mips.cpu.lo.bigint
+        REG_HI -> mips.cpu.hi.bigint
+        REG_EPC -> mips.cop.regs.EPC.value.bigint
+        REG_CAUSE -> mips.cop.regs.Cause.value.bigint
+        REG_PC -> if (mips.cpu.iset == InstructionSet.MIPS32) mips.cpu.pc.bigint else (mips.cpu.pc set 0).bigint
+        else -> mips.cpu.regs.read(index).bigint
     }
 
-    override fun regWrite(index: Int, value: ULong) = when (index) {
-        REG_STATUS -> mips.cop.regs.Status.value = value
+    override fun regWrite(index: Int, value: BigInteger) = when (index) {
+        REG_STATUS -> mips.cop.regs.Status.value = value.ulong
 
-        REG_LO -> mips.cpu.lo = value
-        REG_HI -> mips.cpu.hi = value
+        REG_LO -> mips.cpu.lo = value.ulong
+        REG_HI -> mips.cpu.hi = value.ulong
 
-        REG_EPC -> mips.cop.regs.EPC.value = value
-        REG_CAUSE -> mips.cop.regs.Cause.value = value
+        REG_EPC -> mips.cop.regs.EPC.value = value.ulong
+        REG_CAUSE -> mips.cop.regs.Cause.value = value.ulong
 
         REG_PC -> {
-            mips.cpu.branchCntrl.setIp(value clr 0)
-            mips.cpu.iset = if (value[0].truth) InstructionSet.MIPS16 else InstructionSet.MIPS32
+            mips.cpu.branchCntrl.setIp(value.ulong clr 0)
+            mips.cpu.iset = if (value.ulong[0].truth) InstructionSet.MIPS16 else InstructionSet.MIPS32
             // dirty hack to make possible reset exception bypassing IDA Pro
             mips.cpu.resetFault()
         }
 
-        else -> mips.cpu.regs.write(index, value)
+        else -> mips.cpu.regs.write(index, value.ulong)
     }
 }

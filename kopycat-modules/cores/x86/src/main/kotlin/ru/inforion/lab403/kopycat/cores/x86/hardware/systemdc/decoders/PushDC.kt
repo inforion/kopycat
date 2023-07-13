@@ -63,10 +63,10 @@ class PushDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 when (sopcode) {
                     0xA0 -> { isSSR = true; fs }
                     0xA8 -> { isSSR = true; gs }
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Push(core, s.data, prefs, isSSR, op)
     }

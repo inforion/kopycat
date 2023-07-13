@@ -29,10 +29,9 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.pageFault
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-
-
 
 class Leave(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         AX86Instruction(core, Type.VOID, opcode, prefs) {
@@ -41,6 +40,11 @@ class Leave(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     fun gpr(id: x86GPR, dtype: Datatype) = core.cpu.regs.gpr(id, dtype)
 
     override fun execute() {
+        pageFault(core) {
+            gpr(x86GPR.RSP, prefs.addrsize).value = gpr(x86GPR.RBP, prefs.addrsize).value
+            pop(prefs.opsize, prefs)
+        }
+
         gpr(x86GPR.RSP, prefs.addrsize).value = gpr(x86GPR.RBP, prefs.addrsize).value
         gpr(x86GPR.RBP, prefs.opsize).value = x86utils.pop(core, prefs.opsize, prefs)
     }

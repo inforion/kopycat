@@ -29,12 +29,14 @@ import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 
-class VOID(parent: Module, name: String, val size: Int): Module(parent, name) {
+class VOID(parent: Module, name: String, val size: ULong): Module(parent, name) {
+    constructor(parent: Module, name: String, size: Int) : this(parent, name, size.ulong_z)
+
     inner class Ports : ModulePorts(this) {
         val mem = Slave("mem", this@VOID.size)
     }
 
     override val ports = Ports()
 
-    private val memory = Void(ports.mem, 0u, size.ulong_z - 1u, "VOID")
+    private val memory = Void(ports.mem, 0u, size - 1u, "VOID")
 }

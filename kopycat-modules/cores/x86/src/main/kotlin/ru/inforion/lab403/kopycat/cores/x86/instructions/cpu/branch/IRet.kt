@@ -28,10 +28,12 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.uint
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
+import ru.inforion.lab403.common.extensions.untruth
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.x86.enums.Flags
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
+import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
+import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
@@ -84,7 +86,7 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
 
 //        log.fine { "CPL = $cpl RPL = $rpl" }
 
-        if (tmpFlags[Flags.VM.bit] == 1uL && cpl == 0u)
+        if (tmpFlags[Flags.VM.bit] == 1uL && core.isRing0)
             returnToVirtual8086Mode()
         else
             protectedModeReturn(cpl, rpl, tmpFlags)
@@ -185,14 +187,48 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         }
     }
 
+    private fun ia32Mode() {
+        // IF NT = 1
+        if (core.cpu.flags.nt) {
+            throw x86HardwareException.GeneralProtectionFault(core.pc, 0uL)
+        }
+
+        val cpl = core.cpu.sregs.cs.cpl.uint
+        val tmpip = x86utils.pop(core, prefs.opsize, prefs)
+        val tmpcs = x86utils.pop(core, prefs.opsize, prefs)
+        val tmpFlags = x86utils.pop(core, prefs.opsize, prefs)
+
+        val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
+        ip.value = tmpip
+        core.cpu.sregs.cs.value = tmpcs
+
+        val rpl = core.cpu.sregs.cs.cpl.uint  // requested privileged level from cs register
+
+        // IF CS.RPL > CPL
+        if (rpl > cpl) {
+            returnToOuterPrivilegeLevel(cpl, tmpFlags)
+        } else {
+            if (core.cpu.mode == x86CPU.Mode.R64) {
+                val rsp = x86utils.pop(core, prefs.opsize, prefs)
+                val ss = x86utils.pop(core, prefs.opsize, prefs)[15..0]
+
+                core.cpu.regs.gpr(x86GPR.RSP, QWORD).value = rsp
+                core.cpu.sregs.ss.value = ss
+            }
+            returnToSamePrivilegeLevel(cpl, tmpFlags)
+        }
+    }
+
     override fun execute() {
         val pe = core.cpu.cregs.cr0.pe
         val vm = core.cpu.flags.eflags.vm
 
         if (!pe) realAddressingMode()
-        else {
+        else if (core.cpu.x86.config.efer[x86CPU.LME].untruth /* docs: IA32_EFER.LMA = 0 */) {
             if (vm) returnFromVirtual8086Mode()
             else protectedMode()
+        } else {
+            ia32Mode()
         }
 
         log.finest {

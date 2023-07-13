@@ -43,6 +43,7 @@ class Kotlin(val kopycat: Kopycat) : AConsole("Kotlin") {
     private lateinit var engine: ScriptEngine
 
     override fun onInitialize() = runCatching {
+        System.setProperty("idea.use.native.fs.for.win", "false")
         engine = kotlinScriptEngine(
             "kopycat" to kopycat,
             "kc" to kopycat

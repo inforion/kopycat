@@ -47,7 +47,7 @@ class TestDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0xF7 -> arrayOf(rm.mpref, s.imm(prefs))
             0x84 -> arrayOf(rm.m8, rm.r8)
             0x85 -> arrayOf(rm.mpref, rm.rpref)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Test(core, s.data, prefs, *ops)
     }

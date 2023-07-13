@@ -37,6 +37,12 @@ import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
 import java.util.logging.Level
 import java.util.logging.Level.CONFIG
 
+/**
+ * **Intel Atom Processor E3800 Product Family**
+ *
+ * 35.6 PCU iLB Low Pin Count (LPC) Bridge PCI Configuration Registers,
+ * page 4537
+ */
 class LPC(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F38) {
     inner class SPEC_BAR(reg: Int, name: String, var range: Int, var area: Int, val bus: Int) :
         PCI_CONF_FUNC_WR(reg, DWORD, name, 0u, Level.WARNING) {

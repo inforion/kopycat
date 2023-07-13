@@ -32,6 +32,7 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.modules.memory.VirtualMemory
@@ -104,7 +105,9 @@ open class Process constructor(
     private val handlers = mutableMapOf<ULong, Handler>()
 
     fun setHandler(address: ULong, handler: Handler) {
-        require(address !in handlers) { "Try of rewriting handler at address ${address.hex8}" }
+        if (address in handlers) {
+            log.severe { "Rewriting handler at address ${address.hex8} ${handlers[address]!!.name} to ${handler.name}" }
+        }
         handlers[address] = handler
     }
 
@@ -235,4 +238,10 @@ open class Process constructor(
     override fun toString(): String = "$processType:$id(state=$state)"
 
     val hasDelayedJob get() = delayedJob != null
+
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        super<IAutoSerializable>.deserialize(ctxt, snapshot)
+        delayedJob?.cancel()
+        delayedJob = null
+    }
 }

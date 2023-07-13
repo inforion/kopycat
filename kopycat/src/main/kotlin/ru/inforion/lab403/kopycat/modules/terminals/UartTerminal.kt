@@ -33,6 +33,7 @@ import ru.inforion.lab403.common.iobuffer.isEmpty
 import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.utils.lazyTransient
+import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ATerminal
@@ -45,6 +46,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareNotReadyException
 import ru.inforion.lab403.kopycat.modules.*
 import java.io.Serializable
+import java.lang.IllegalArgumentException
 import kotlin.concurrent.thread
 
 /**
@@ -103,10 +105,14 @@ open class UartTerminal(
      */
     private fun dataTransmittedRequest() = ports.term_m.write(UART_SLAVE_BUS_REQUEST, UART_SLAVE_DATA_TRANSMITTED, 1, 1u)
 
-    private class LoggingBuffer(val name: String, val postfix: String): Serializable {
+    private class LoggingBuffer(
+        val name: String,
+        val postfix: String,
+        val core: AGenericCore
+    ) : Serializable {
         private var buffer = StringBuffer()
 
-        fun message(string: String) = log.info { "UART[$name] $postfix: $string" }
+        fun message(string: String) = log.info { "[0x${core.pc.hex}] UART[$name] $postfix: $string" }
 
         fun add(byte: Byte) {
             val ch = byte.char
@@ -124,15 +130,15 @@ open class UartTerminal(
     }
 
     private val REG_UART_DATA = object : Register(ports.term_s, UART_MASTER_BUS_DATA, BYTE, "REG_UART_DATA") {
-        private val logBufferTx = LoggingBuffer(name, "send")
-        private val logBufferRx = LoggingBuffer(name, "recv")
+        private val logBufferTx by lazy { LoggingBuffer(name, "send", core) }
+        private val logBufferRx by lazy { LoggingBuffer(name, "recv", core) }
 
         override fun beforeRead(from: MasterPort, ea: ULong) = terminalReceiveEnabled
         override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = terminalTransmitEnabled
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
             val byte = rxBuffer.poll(1, ioRegisterTimeout).firstOrNull()
-                    ?: throw HardwareNotReadyException(core.pc, "UART[$name] reading empty UART -> rxBuffer underflow")
+                ?: throw HardwareNotReadyException(core.pc, "UART[$name] reading empty UART -> rxBuffer underflow")
 
             log.finest { "UART[$name] receive byte ${byte.char}[${byte.hex2}]" }
 
@@ -305,11 +311,26 @@ open class UartTerminal(
         dataReceivedRequest()
     }
 
+    /**
+     * Non-blocking Nullable read
+     */
+    fun read(count: Int = 1): Byte? = try {
+        rxBuffer.read(count).getOrNull(0)
+    } catch (e: IllegalArgumentException) {
+        null
+    }
+
+    fun writeFromDev(char: Char) = writeFromDev(char.byte)
+    fun writeFromDev(byte: Byte) = writeFromDev(byteArrayOf(byte))
+    fun writeFromDev(string: String) = writeFromDev(string.bytes)
+    fun writeFromDev(bytes: ByteArray) {
+        txBuffer.put(bytes)
+        dataTransmittedRequest()
+    }
+
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        if (rxBuffer.isNotEmpty())
-            log.warning { "Can't serialize UartTerminal if any data not flushed!" }
-        if (txBuffer.isNotEmpty())
-            log.warning { "Can't serialize UartTerminal if any data not flushed!" }
+        require(rxBuffer.isEmpty()) { "Can't serialize UartTerminal if any data not flushed!" }
+        require(txBuffer.isEmpty()) { "Can't serialize UartTerminal if any data not flushed!" }
         return emptyMap()
     }
 

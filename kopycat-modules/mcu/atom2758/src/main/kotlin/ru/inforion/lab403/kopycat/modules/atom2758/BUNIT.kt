@@ -29,6 +29,7 @@ import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.inv
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
+import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.extensions.PCI_ECAM_BUS_INDEX
 import ru.inforion.lab403.kopycat.cores.base.extensions.mapOffset
@@ -49,7 +50,7 @@ class BUNIT(parent: Module, name: String) : Module(parent, name) {
         when (ss) {
             6, 0x10 -> MESSAGE_BUS_READ_OPERATION
             7, 0x11 -> MESSAGE_BUS_WRITE_OPERATION
-            else -> error("Unknown opcode: 0x${ss.hex}")
+            else -> error("Unknown BUNIT opcode: 0x${ss.hex}")
         }
     }
 
@@ -86,4 +87,8 @@ class BUNIT(parent: Module, name: String) : Module(parent, name) {
     private val BIMR0H = Register(ports.msg, 0x81u, BYTE, "BIMR0H", level = CONFIG)
     private val BIMR0RAC = Register(ports.msg, 0x82u, BYTE, "BIMR0RAC", level = CONFIG)
     private val BIMR0WAC = Register(ports.msg, 0x83u, BYTE, "BIMR0WAC", level = CONFIG)
+
+    // Unknown registers that is being used in runtime
+    private val AREA_08_1F = Memory(ports.msg, 0x08u, 0x1Fu, "AREA_08_1F", ACCESS.R_W)
+    private val AREA_38_4F = Memory(ports.msg, 0x38u, 0x4Fu, "AREA_38_4F", ACCESS.R_W)
 }

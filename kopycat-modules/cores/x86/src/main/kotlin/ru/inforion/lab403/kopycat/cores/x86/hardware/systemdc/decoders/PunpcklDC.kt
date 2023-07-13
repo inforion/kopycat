@@ -26,8 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.x86.enums.Regtype.*
-import ru.inforion.lab403.kopycat.cores.x86.enums.StringPrefix
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
@@ -41,12 +39,13 @@ class PunpcklDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val opcode = s.readOpcode()
         val rm = RMDC(s, prefs)
 
-        val operands = if (prefs.operandOverride) arrayOf(rm.rxmm, rm.xmmpref) else TODO("mm/m32???") /*arrayOf(rm.rmmx, rm.mmxpref)*/
+        // https://www.felixcloutier.com/x86/punpcklbw:punpcklwd:punpckldq:punpcklqdq
+        val operands = if (prefs.operandOverride) arrayOf(rm.rxmm, rm.xmmpref) else arrayOf(rm.rmmx, rm.mmxpref)
 
         return when (opcode) {
             0x60 -> Punpcklbw(core, s.data, prefs, *operands)
             0x61 -> Punpcklwd(core, s.data, prefs, *operands)
-            0x62 -> TODO("Punpckldq(core, s.data, prefs, *operands)")
+            0x62 -> Punpckldq(core, s.data, prefs, *operands)
             0x6C -> {
                 require(prefs.operandOverride) { "Wrong instruction encoding, override byte required" }
                 Punpcklqdq(core, s.data, prefs, *operands)

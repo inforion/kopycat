@@ -43,6 +43,7 @@ class InternalFactoriesEnumerator(private val internalClassDirectory: String) : 
 
     override fun preload() {
         builders = internalClassDirectory.scanSubtypesOf<Module>()
+                // PERF: maybe do filtering before scanning?
                 .filter { it.name.startsWith(internalClassDirectory) && anonymousClassPattern !in it.name }
                 .map { ClassModuleFactoryBuilder(it) }
     }

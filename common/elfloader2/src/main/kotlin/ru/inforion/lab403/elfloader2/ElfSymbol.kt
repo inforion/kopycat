@@ -160,6 +160,9 @@ class ElfSymbol(
                 TODO("There should be call of decoder")
                 //decoder.checkSymbolType(infoType)
             }
+            else -> {
+                TODO("Unknown st_type: $st_type")
+            }
         }
 
         if (st_other != 0u.ubyte)

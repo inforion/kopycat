@@ -26,9 +26,8 @@
 package ru.inforion.lab403.kopycat.modules.memory
 
 import ru.inforion.lab403.common.extensions.gzipInputStreamIfPossible
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.extensions.ulong_z
-import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
+import ru.inforion.lab403.kopycat.cores.base.HardwareErrorHandler
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
@@ -39,28 +38,63 @@ import java.io.InputStream
 import java.nio.ByteOrder
 
 abstract class AMemory(
-        parent: Module,
-        name: String,
-        val size: Int,
-        access: ACCESS,
-        vararg items: Pair<Any, Int>
-): Module(parent, name), IFetchReadWrite {
+    parent: Module,
+    name: String,
+    val size: Int,
+    access: ACCESS,
+    verbose: Boolean,
+    vararg items: Pair<Any, Int>
+) : Module(parent, name), IFetchReadWrite {
 
     @Suppress("RemoveRedundantSpreadOperator")
-    constructor(parent: Module, name: String, size: Int, access: ACCESS) :
-            this(parent, name, size, access, *emptyArray())
+    constructor(
+        parent: Module,
+        name: String,
+        size: Int,
+        access: ACCESS,
+        verbose: Boolean
+    ) :
+            this(parent, name, size, access, verbose, *emptyArray())
 
-    constructor(parent: Module, name: String, size: Int, access: ACCESS, data: ByteArray) :
-            this(parent, name, size, access,data to 0)
+    constructor(
+        parent: Module,
+        name: String,
+        size: Int,
+        access: ACCESS,
+        verbose: Boolean,
+        data: ByteArray
+    ) :
+            this(parent, name, size, access, verbose, data to 0)
 
-    constructor(parent: Module, name: String, size: Int, access: ACCESS, data: InputStream) :
-            this(parent, name, size, access, data.readBytes())
+    constructor(
+        parent: Module,
+        name: String,
+        size: Int,
+        access: ACCESS,
+        verbose: Boolean,
+        data: InputStream
+    ) :
+            this(parent, name, size, access, verbose, data.readBytes())
 
-    constructor(parent: Module, name: String, size: Int, access: ACCESS, data: File) :
-            this(parent, name, size, access, gzipInputStreamIfPossible(data.path))
+    constructor(
+        parent: Module,
+        name: String,
+        size: Int,
+        access: ACCESS,
+        verbose: Boolean,
+        data: File
+    ) :
+            this(parent, name, size, access, verbose, gzipInputStreamIfPossible(data.path))
 
-    constructor(parent: Module, name: String, size: Int, access: ACCESS, data: Resource) :
-            this(parent, name, size, access, data.inputStream())
+    constructor(
+        parent: Module,
+        name: String,
+        size: Int,
+        access: ACCESS,
+        verbose: Boolean,
+        data: Resource
+    ) :
+            this(parent, name, size, access, verbose, data.openStream())
 
     inner class Ports : ModulePorts(this) {
         val mem = Slave("mem", this@AMemory.size)
@@ -81,7 +115,7 @@ abstract class AMemory(
         it.second to result
     }
 
-    private val memory = Memory(ports.mem, 0u, size.ulong_z - 1u, "${prefix}_MEMORY", access)
+    private val memory = Memory(ports.mem, 0u, size.ulong_z - 1u, "${prefix}_MEMORY", access, verbose)
 
     var endian: ByteOrder
         get() = memory.endian
@@ -97,4 +131,8 @@ abstract class AMemory(
     override fun read(ea: ULong, ss: Int, size: Int): ULong = memory.read(ea, ss, size)
     override fun write(ea: ULong, ss: Int, size: Int, value: ULong): Unit = memory.write(ea, ss, size, value)
     override fun fetch(ea: ULong, ss: Int, size: Int): ULong = memory.fetch(ea, ss, size)
+
+    // TODO: loss performance, need testing
+//    override fun load(ea: ULong, size: Int, ss: Int, onError: HardwareErrorHandler?): ByteArray = memory.load(ea, size, ss, onError)
+//    override fun store(ea: ULong, data: ByteArray, ss: Int, onError: HardwareErrorHandler?) = memory.store(ea, data, ss, onError)
 }

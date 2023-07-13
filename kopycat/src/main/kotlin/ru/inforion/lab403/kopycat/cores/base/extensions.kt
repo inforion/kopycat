@@ -27,9 +27,91 @@
 
 package ru.inforion.lab403.kopycat.cores.base
 
+import ru.inforion.lab403.common.extensions.byte
 import ru.inforion.lab403.common.extensions.mask
+import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 
+fun ByteArray.putNumberLE(position: Int, value: ULong, size: Int) {
+    when (size) {
+        1 -> {
+            this[position] = value.byte
+        }
+
+        2 -> {
+            this[position] = value.byte
+            this[position + 1] = (value ushr 8).byte
+        }
+
+        3 -> {
+            this[position] = value.byte
+            this[position + 1] = (value ushr 8).byte
+            this[position + 2] = (value ushr 16).byte
+        }
+
+        4 -> {
+            this[position] = value.byte
+            this[position + 1] = (value ushr 8).byte
+            this[position + 2] = (value ushr 16).byte
+            this[position + 3] = (value ushr 24).byte
+        }
+
+        5 -> {
+            this[position] = value.byte
+            this[position + 1] = (value ushr 8).byte
+            this[position + 2] = (value ushr 16).byte
+            this[position + 3] = (value ushr 24).byte
+            this[position + 4] = (value ushr 32).byte
+        }
+
+        6 -> {
+            this[position] = value.byte
+            this[position + 1] = (value ushr 8).byte
+            this[position + 2] = (value ushr 16).byte
+            this[position + 3] = (value ushr 24).byte
+            this[position + 4] = (value ushr 32).byte
+            this[position + 5] = (value ushr 40).byte
+        }
+
+        7 -> {
+            this[position] = value.byte
+            this[position + 1] = (value ushr 8).byte
+            this[position + 2] = (value ushr 16).byte
+            this[position + 3] = (value ushr 24).byte
+            this[position + 4] = (value ushr 32).byte
+            this[position + 5] = (value ushr 40).byte
+            this[position + 6] = (value ushr 48).byte
+        }
+
+        8 -> {
+            this[position] = value.byte
+            this[position + 1] = (value ushr 8).byte
+            this[position + 2] = (value ushr 16).byte
+            this[position + 3] = (value ushr 24).byte
+            this[position + 4] = (value ushr 32).byte
+            this[position + 5] = (value ushr 40).byte
+            this[position + 6] = (value ushr 48).byte
+            this[position + 7] = (value ushr 56).byte
+        }
+
+        else -> throw IllegalArgumentException("ByteArray.putNumberLE Wrong int size=$size")
+    }
+}
+
+fun ByteArray.getNumberLE(position: Int, size: Int): ULong {
+    return when (size) {
+        1 -> this[position].ulong_z
+        2 -> this[position].ulong_z or (this[position + 1].ulong_z shl 8)
+        3 -> this[position].ulong_z or (this[position + 1].ulong_z shl 8) or (this[position + 2].ulong_z shl 16)
+        4 -> this[position].ulong_z or (this[position + 1].ulong_z shl 8) or (this[position + 2].ulong_z shl 16) or (this[position + 3].ulong_z shl 24)
+        5 -> this[position].ulong_z or (this[position + 1].ulong_z shl 8) or (this[position + 2].ulong_z shl 16) or (this[position + 3].ulong_z shl 24) or (this[position + 4].ulong_z shl 32)
+        6 -> this[position].ulong_z or (this[position + 1].ulong_z shl 8) or (this[position + 2].ulong_z shl 16) or (this[position + 3].ulong_z shl 24) or (this[position + 4].ulong_z shl 32) or (this[position + 5].ulong_z shl 40)
+        7 -> this[position].ulong_z or (this[position + 1].ulong_z shl 8) or (this[position + 2].ulong_z shl 16) or (this[position + 3].ulong_z shl 24) or (this[position + 4].ulong_z shl 32) or (this[position + 5].ulong_z shl 40) or (this[position + 6].ulong_z shl 48)
+        8 -> this[position].ulong_z or (this[position + 1].ulong_z shl 8) or (this[position + 2].ulong_z shl 16) or (this[position + 3].ulong_z shl 24) or (this[position + 4].ulong_z shl 32) or (this[position + 5].ulong_z shl 40) or (this[position + 6].ulong_z shl 48) or (this[position + 7].ulong_z shl 56)
+        else -> throw IllegalArgumentException("ByteArray.getNumberLE Wrong int size=$size")
+    }
+}
 
 
 inline infix fun ULong.like(dtyp: Datatype): ULong = this mask dtyp.bits

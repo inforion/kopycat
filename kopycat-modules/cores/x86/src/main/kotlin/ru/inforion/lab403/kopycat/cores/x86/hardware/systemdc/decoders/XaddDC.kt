@@ -42,9 +42,9 @@ class XaddDC(dev: x86Core) : ADecoder<AX86Instruction>(dev) {
         val opcode = s.readByte().int
         val rm = RMDC(s, prefs)
         val ops = when (opcode) {
-            0xC0 -> arrayOf(rm.r8, rm.m8)
+            0xC0 -> arrayOf(rm.m8, rm.r8)
             0xC1 -> arrayOf(rm.mpref, rm.rpref)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Xadd(core, s.data, prefs, ops[0], ops[1])
     }

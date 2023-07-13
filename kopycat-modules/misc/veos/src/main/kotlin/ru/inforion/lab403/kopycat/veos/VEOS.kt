@@ -360,28 +360,7 @@ abstract class VEOS<C : AGenericCore> constructor(
             // TODO: merge with APIFunction
             val args = abi.getCArgs(handler.func.args)
 
-            val result = try {
-                handler.func.exec(handler.name, *args.toULongArray())
-            } catch (error: MemoryAccessError) {
-                return scheduling.withLock {
-                    // TODO: Wrong implementation
-                    if (processes.any { it.isReady || it.isBlocked }) {
-                        log.warning { "[0x${abi.programCounterValue.hex8}] $currentProcess -> Segmentation fault" }
-                        currentProcess.segfault() /** REVIEW: as [exitProcess] */
-                        schedule()
-                        TRACER_STATUS_SKIP
-                    } else {
-                        log.finest { "[0x${abi.programCounterValue.hex8}] Application exited (Segmentation fault)" }
-                        state = State.Exception
-                        log.severe { "$this -> $error\n${error.stackTraceToString()}" }
-                        TRACER_STATUS_STOP
-                    }
-                }
-            } catch (error: Throwable) {
-                state = State.Exception
-                error.logStackTrace(log, "[0x${abi.returnAddressValue.hex8}] $this")
-                return TRACER_STATUS_STOP
-            }
+            val result = handler.func.exec(handler.name, *args.toULongArray())
 
             state = State.Running
 
@@ -514,13 +493,19 @@ abstract class VEOS<C : AGenericCore> constructor(
         val backup = ArrayList(components)
         components.clear()
 
-        val a = super<IAutoSerializable>.serialize(ctxt).also {
+        return super<IAutoSerializable>.serialize(ctxt).also {
             components.addAll(backup)
-        }
-        val b = mapOf("processes" to processes.mapIndexed { i, it ->
-            ctxt.serializeItem(it, i.toString(), false)
+        } + mapOf("processes" to processes.mapIndexed { i, it ->
+            val snapshot = ctxt.serializeItem(it, i.toString(), false)
+            // Process isn't a subclass of Module
+            // But VirtualMemory is component
+            // So it will be filtered out during auto-serialization
+            // So we do it explicitly
+            val ctor = snapshot["ctor"] as Array<Any>
+            val virtualMemoryFull = ctor[2] as Map<String, Any>
+            val virtualMemorySnapshot = virtualMemoryFull["snapshot"]
+            snapshot + mapOf("memory" to virtualMemorySnapshot)
         })
-        return a + b
     }
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -542,6 +527,11 @@ abstract class VEOS<C : AGenericCore> constructor(
                 check (processes.size == procSnapshot.size) { "Can't restore in case that process count differs" }
                 (processes zip procSnapshot).forEach { (proc, snapshot) ->
                     proc.deserialize(ctxt, snapshot["snapshot"] as Map<String, Any>)
+                    // Process isn't a subclass of Module
+                    // But VirtualMemory is component
+                    // So it will be filtered out during auto-serialization
+                    // So we do it explicitly
+                    proc.memory.deserialize(ctxt, snapshot["memory"] as Map<String, Any>)
                 }
             } else {
                 // processes-map is empty because of reset

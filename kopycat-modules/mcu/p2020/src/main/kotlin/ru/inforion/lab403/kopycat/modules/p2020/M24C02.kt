@@ -51,7 +51,7 @@ class M24C02(
     }
 
     constructor(parent: Module, name: String, data: Resource, chipSelect: Int = 0) :
-            this(parent, name, data.inputStream(), chipSelect)
+            this(parent, name, data.openStream(), chipSelect)
 
     private val memory = ByteArray(size).apply { stream?.read(this) }
 

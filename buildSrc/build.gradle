@@ -1,14 +1,30 @@
 plugins {
-    id 'org.jetbrains.kotlin.jvm' version("1.5.21")
+    id 'org.jetbrains.kotlin.jvm' version("1.7.21")
     id 'org.gradle.java-gradle-plugin'
 }
 
 repositories {
     mavenLocal()
-    mavenCentral()
-    jcenter()
-    maven { url "https://jitpack.io" }
+
+    project.properties.getOrDefault("mavenInternalRepositoryUrl", "").tap { localUrl ->
+        if (localUrl.empty) {
+            project.logger.error("Using mavenCentral repository")
+            mavenCentral()
+        } else {
+            project.logger.error("Using internal URL repository: ${localUrl}")
+            maven {
+                url localUrl
+
+                credentials {
+                    username = project.properties["mavenUsername"]
+                    password = project.properties["mavenPassword"]
+                }
+            }
+        }
+    }
 }
+
+
 
 dependencies {
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
@@ -20,11 +36,11 @@ dependencies {
     implementation group: 'com.auth0', name: 'java-jwt', version: '3.10.3'
     implementation group: 'com.github.oshi', name: 'oshi-core', version: '3.13.0'
 
-    implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'
+    implementation group: 'org.reflections', name: 'reflections', version: '0.10.2'
     implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
 
-    implementation group: 'com.github.inforion.common', name: 'extensions', version: '0.4.0'
-    implementation group: 'com.github.inforion.common', name: 'gson-json', version: '0.4.0'
+    implementation group: 'com.github.inforion.common', name: 'extensions', version: '0.4.3'
+    implementation group: 'com.github.inforion.common', name: 'gson-json', version: '0.4.3'
 
     testImplementation group: 'junit', name: 'junit', version: '4.13'
 }
@@ -60,13 +76,13 @@ gradlePlugin {
 compileKotlin {
     kotlinOptions {
         jvmTarget = "11"
-        freeCompilerArgs += ['-Xuse-experimental=kotlin.contracts.ExperimentalContracts']
+        freeCompilerArgs += ['-Xopt-in=kotlin.contracts.ExperimentalContracts']
     }
 }
 
 compileTestKotlin {
     kotlinOptions {
         jvmTarget = "11"
-        freeCompilerArgs += ['-Xuse-experimental=kotlin.contracts.ExperimentalContracts']
+        freeCompilerArgs += ['-Xopt-in=kotlin.contracts.ExperimentalContracts']
     }
 }

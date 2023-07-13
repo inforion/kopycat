@@ -68,7 +68,7 @@ class MovDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
 
             0xC6 -> arrayOf(rm.m8, s.imm8)
             0xC7 -> arrayOf(rm.mpref, s.imm(prefs))
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Mov(core, s.data, prefs, *ops)
     }

@@ -27,10 +27,7 @@
 
 package ru.inforion.lab403.kopycat.modules.atom2758
 
-import ru.inforion.lab403.common.extensions.GHz
-import ru.inforion.lab403.common.extensions.insert
-import ru.inforion.lab403.common.extensions.log2
-import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -52,6 +49,8 @@ import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.MemoryType.*
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.BUS36
+import ru.inforion.lab403.kopycat.modules.atom2758.e1000.E1000
+import ru.inforion.lab403.kopycat.modules.atom2758.sata.SATA
 import ru.inforion.lab403.kopycat.modules.common.NS16550
 import ru.inforion.lab403.kopycat.modules.common.pci.PciHost
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_bus
@@ -66,7 +65,12 @@ class Atom2758(
     parent: Module,
     name: String,
     val virtualBusSize: ULong = BUS32,
-    val physicalBusSize: ULong = BUS36
+    val physicalBusSize: ULong = BUS36,
+    val enableACPI: Boolean = true,
+    val enableRAM: Boolean = true,
+    val enableSATA2: Boolean = true,
+    val enableSATA3: Boolean = true,
+    
 ) : Module(parent, name), IAutoSerializable {
 
     inner class Ports : ModulePorts(this) {
@@ -87,7 +91,7 @@ class Atom2758(
         val nb_mem = Bus("nb_mem", physicalBusSize)  // north bridge
         val nb_io = Bus("nb_io", BUS16)  // north bridge
 
-        val irq = Bus("irq", PIC8259.PIC_INTERRUPT_COUNT)  // north bridge
+        val irq = Bus("irq", 255)  // north bridge
 
         val rcrb = Bus("rcrb", RCRB.BUS_SIZE)
         val spi = Bus("spi", SPI.BUS_SIZE)
@@ -109,10 +113,10 @@ class Atom2758(
 
 //    val mem_conv = RAM(this, "mem_conv", 0x100000)  // 1 MB
 
-    val mem_00 = RAM(this, "mem_0", 0x4000000)  // 64 MB
-    val mem_04 = RAM(this, "mem_4", 0x4000000)
-    val mem_08 = RAM(this, "mem_8", 0x4000000)
-    val mem_0c = RAM(this, "mem_c", 0x4000000)
+    val mem_00 = if (enableRAM) RAM(this, "mem_0", 0x4000000) else null // 64 MB
+    val mem_04 = if (enableRAM) RAM(this, "mem_4", 0x4000000) else null
+    val mem_08 = if (enableRAM) RAM(this, "mem_8", 0x4000000) else null
+    val mem_0c = if (enableRAM) RAM(this, "mem_c", 0x4000000) else null
 
     val bridge = BRIDGE(this, "bridge", physicalBusSize)
     val pci_host = PciHost(this, "pci")
@@ -120,7 +124,8 @@ class Atom2758(
     val bunit = BUNIT(this, "bunit")
     val cunit = CUNIT(this, "cunit")
     val punit = PUNIT(this, "punit")
-    val mbd16 = MBD16(this, "mbd16")
+    val dunit0 = DUNIT0(this, "dunit0")
+    val dunit1 = DUNIT1(this, "dunit1")
     val mbd18 = MBD18(this, "mbd18")
     val mbd64 = MBD64(this, "mbd64")
 
@@ -136,10 +141,11 @@ class Atom2758(
     val smb_pcu = SMB_PCU(this, "smb_pcu")
     val smb_20_0 = SMB_20(this, "smb_20_0", 0)
     val smb_20_1 = SMB_20(this, "smb_20_1", 1)  // fake
+    val ioapic = IOAPIC(this, "ioapic");
     val hpet = HPET(this, "hpet")
     val l_apic = L_APIC(this, "l_apic")
     val abort = ABORT(this, "abort")
-    val acpi = ACPI(this, "acpi")
+    val acpi = if (enableACPI) ACPI(this, "acpi") else null
     val spi = SPI(this, "spi")
     val pmc = PMC(this, "pmc")
     val gpio = GPIO(this, "gpio")
@@ -166,60 +172,45 @@ class Atom2758(
     val sata2 = SATA(this, "sata2", 2)
     val sata3 = SATA(this, "sata3", 3)
 
-    val pci_stubs_b1 = Array(32 * 8) { index ->
-        PCI_STUB(this, "pci_stub_b1_d${index / 8}_f${index % 8}", vendorId = 0xFFFF, deviceId = 0xFFFF)
-    }
+    val e1000 = E1000(
+        this,
+        "e1000",
+        mac = byteArrayOf(
+            0xB5.byte,
+            0x1D.byte,
+            0xA2.byte,
+            0xA4.byte,
+            0x47.byte,
+            0x8C.byte,
+        )
+    )
 
-    val pci_stub_d5_f0 = PCI_STUB(this, "pci_stub_d5_f0")
-    val pci_stub_d6_f0 = PCI_STUB(this, "pci_stub_d6_f0")
-    val pci_stub_d7_f0 = PCI_STUB(this, "pci_stub_d7_f0")
-    val pci_stub_d8_f0 = PCI_STUB(this, "pci_stub_d8_f0")
-    val pci_stub_d9_f0 = PCI_STUB(this, "pci_stub_d9_f0")
-    val pci_stub_d10_f0 = PCI_STUB(this, "pci_stub_d10_f0")
-    val pci_stub_d11_f0 = PCI_STUB(this, "pci_stub_d11_f0")
-    val pci_stub_d12_f0 = PCI_STUB(this, "pci_stub_d12_f0")
-    val pci_stub_d13_f0 = PCI_STUB(this, "pci_stub_d13_f0")
-    val pci_stub_d15_f0 = PCI_STUB(this, "pci_stub_d15_f0")
-    val pci_stub_d16_f0 = PCI_STUB(this, "pci_stub_d16_f0")
-    val pci_stub_d17_f0 = PCI_STUB(this, "pci_stub_d17_f0")
-    val pci_stub_d18_f0 = PCI_STUB(this, "pci_stub_d18_f0")
-    val pci_stub_d21_f0 = PCI_STUB(this, "pci_stub_d21_f0")
-    val pci_stub_d25_f0 = PCI_STUB(this, "pci_stub_d25_f0")
-    val pci_stub_d26_f0 = PCI_STUB(this, "pci_stub_d26_f0")
-    val pci_stub_d27_f0 = PCI_STUB(this, "pci_stub_d27_f0")
-    val pci_stub_d29_f0 = PCI_STUB(this, "pci_stub_d29_f0")
-    val pci_stub_d30_f0 = PCI_STUB(this, "pci_stub_d30_f0")
+    
 
-    val pci_stub_d28_f0 = PCI_STUB(this, "pci_stub_d28_f0")
-    val pci_stub_d28_f1 = PCI_STUB(this, "pci_stub_d28_f1")
-    val pci_stub_d28_f2 = PCI_STUB(this, "pci_stub_d28_f2")
-    val pci_stub_d28_f3 = PCI_STUB(this, "pci_stub_d28_f3")
-    val pci_stub_d28_f4 = PCI_STUB(this, "pci_stub_d28_f4")
-    val pci_stub_d28_f5 = PCI_STUB(this, "pci_stub_d28_f5")
-    val pci_stub_d28_f6 = PCI_STUB(this, "pci_stub_d28_f6")
-    val pci_stub_d28_f7 = PCI_STUB(this, "pci_stub_d28_f7")
-
-    val x86 = x86Core(this, "x86",
+    val x86 = x86Core(
+        this,
+        "x86",
         frequency = 2.GHz,
         Generation.Pentium,
         ipc = 1.0,
         virtualBusSize = virtualBusSize,
-        physicalBusSize = physicalBusSize)
+        physicalBusSize = physicalBusSize,
+    )
 
     override fun reset() {
         super.reset()
 
-        with (x86.config) {
+        with(x86.config) {
             cpuid(0x00u, CPUID0(10u, VENDOR.INTEL))
             cpuid(
                 0x01u,
                 CPUID1EAX(0u, 4u, ProcType.OEM, 6u, 13u, 0u),
-                CPUID1EBX(NotSupport, 8u, 0u, 0u),
+                CPUID1EBX(NotSupport, 8u, 0u, L_APIC.LAPIC_ID.uint),
                 CPUIDECX(pni, dtes64, monitor, ds_cpl, tm2, /*ssse3,*/ cx16, xtpr, pdcm, movbe),
                 CPUIDEDX(
                     fpu, vme, de, pse, tsc, EDXFeatures.msr, pae, mce, cx8,
                     apic, sep, mtrr, pge, mca, cmov, pat, pse36, clflush,
-                    dts, EDXFeatures.acpi, /*mmx,*/ fxsr, /*sse, sse2,*/ ss, ht, tm, pbe
+                    dts, EDXFeatures.acpi, /*mmx,*/ fxsr, sse, sse2, ss, ht, tm, pbe
                 ),
             )
 
@@ -242,16 +233,19 @@ class Atom2758(
             cpuid(0x8000_0004u, 0u, 0u, 0u, 0u)
             cpuid(0x8000_0005u, 0u, 0u, 0u, 0u)
             cpuid(0x8000_0006u, 0u, 0u, 0u, 0u)
-            cpuid(0x8000_0008u,
-                insert(physicalBusSize.log2(), 7..0)
-                    .insert(virtualBusSize.log2(), 15..8)
-                    .uint, 0u, 0u, 0u)
+            cpuid(
+                0x8000_0008u,
+                insert(physicalBusSize.log2(), 7..0).insert(virtualBusSize.log2(), 15..8).uint,
+                0u,
+                0u,
+                0u,
+            )
             cpuid(0x8000_0009u, 0u, 0u, 0u, 0u)
             cpuid(0x8000_000Au, 0u, 0u, 0u, 0u)
 
             cpuid(0x06u, 0u, 0u, 0u, 0u)
             cpuid(0x07u, 0u, 0u, 0u, 0u)
-            cpuid(0x0Au,0u, 0u, 0u, 0u)
+            cpuid(0x0Au, 0u, 0u, 0u, 0u)
             // https://www.ti.uni-bielefeld.de/html/teaching/WS1920/techinf1/64-ia-32-architectures-software-developers-manual.pdf
             cpuid(0x0Bu, 0x0000_0001u, 0x0000_0002u, 0x0001_0000u, 0x0000_0000u)
             cpuid(0x0Du, 0u, 0u, 0u, 0u)
@@ -264,10 +258,13 @@ class Atom2758(
             // 0x8000_0002u - 0x8000_0004u
             setModelName("Intel(R) Atom(TM) CPU D525   @ 1.80GHz")
             cpuid(0x8000_0007u, 0u, 0u, 0u, 0u)
-            cpuid(0x8000_0008u,
-                insert(48u, 15..8)
-                .insert(36u, 7..0),
-                0u, 0u, 0u)
+            cpuid(
+                0x8000_0008u,
+                insert(48u, 15..8).insert(36u, 7..0),
+                0u,
+                0u,
+                0u,
+            )
 //            cpuid(0x80000008u, 0x0000_2424u, 0u, 0u, 0u)
 
             msr(IA32_PLATFORM_ID, insert(1uL, 52..50))
@@ -374,9 +371,9 @@ class Atom2758(
 
         pci_host.ports.io.connect(buses.nb_io)
 
+        ioapic.ports.mem.connect(buses.nb_mem, 0xFEC0_0000u)
         hpet.ports.mem.connect(buses.nb_mem, 0xFED0_0000u)
         l_apic.ports.mem.connect(buses.nb_mem, 0xFEE0_0000u)
-        l_apic.ports.lio.connect(buses.nb_mem, 0xFEC0_0000u)
         abort.ports.mem.connect(buses.nb_mem, 0xFEB0_0000u)
 
         bridge.ports.rcrb.connect(buses.rcrb)
@@ -386,7 +383,7 @@ class Atom2758(
         bridge.ports.spi.connect(buses.spi)
         spi.ports.mem.connect(buses.spi)
 
-        buses.connect(bridge.ports.acpi, acpi.ports.io)
+        if (acpi != null) buses.connect(bridge.ports.acpi, acpi.ports.io)
         buses.connect(bridge.ports.pmc, pmc.ports.mem)
         buses.connect(bridge.ports.gpio, gpio.ports.io)
         buses.connect(bridge.ports.ioc, ioc.ports.io)
@@ -396,8 +393,11 @@ class Atom2758(
         buses.connect(bridge.ports.punit, punit.ports.mem)
 
         buses.connect(bridge.ports.usb20, usb20.mem)
-        buses.connect(bridge.ports.sata2, sata2.mem)
-        buses.connect(bridge.ports.sata3, sata3.mem)
+        if (enableSATA2) buses.connect(bridge.ports.sata2, sata2.mem)
+        if (enableSATA3) buses.connect(bridge.ports.sata3, sata3.mem)
+        buses.connect(bridge.ports.e1000, e1000.mem)
+
+        
 
         buses.connect(bridge.ports.smb_mem, smb_pcu.mem)
         buses.connect(bridge.ports.smb_io, smb_pcu.io)
@@ -405,19 +405,18 @@ class Atom2758(
         buses.connect(bridge.ports.smb20_0_mem, smb_20_0.mem)
         buses.connect(bridge.ports.smb20_1_mem, smb_20_1.mem)
 
-        // should be moved out to ASA
-//        mem_conv.ports.mem.connect(buses.nb_mem, 0xC00000u)
+        // should be moved out ASAP
+        mem_00?.ports?.mem?.connect(buses.nb_mem, 0x60000000u)
+        mem_04?.ports?.mem?.connect(buses.nb_mem, 0x64000000u)
+        mem_08?.ports?.mem?.connect(buses.nb_mem, 0x68000000u)
+        mem_0c?.ports?.mem?.connect(buses.nb_mem, 0x6C000000u)
 
-        mem_00.ports.mem.connect(buses.nb_mem, 0x60000000u)
-        mem_04.ports.mem.connect(buses.nb_mem, 0x64000000u)
-        mem_08.ports.mem.connect(buses.nb_mem, 0x68000000u)
-        mem_0c.ports.mem.connect(buses.nb_mem, 0x6C000000u)
-
-        cunit.msg.msg_connect(buses.msg)
+        cunit.msg.msg_connect(buses.msg, 0)
         bunit.ports.msg.msg_connect(buses.msg, 3)
         punit.ports.msg.msg_connect(buses.msg, 4)
-        mbd16.ports.msg.msg_connect(buses.msg, 16)
+        dunit0.ports.msg.msg_connect(buses.msg, 16)
         mbd18.ports.msg.msg_connect(buses.msg, 18)
+        dunit1.ports.msg.msg_connect(buses.msg, 19)
         mbd64.ports.msg.msg_connect(buses.msg, 64)
 
         bridge.ports.mapper.connect(buses.mapper)
@@ -425,8 +424,10 @@ class Atom2758(
         lpc.ports.mapper.connect(buses.mapper)
         smb_pcu.ports.mapper.connect(buses.mapper)
         usb20.ports.mapper.connect(buses.mapper)
-        sata2.ports.mapper.connect(buses.mapper)
-        sata3.ports.mapper.connect(buses.mapper)
+        if (enableSATA2) sata2.ports.mapper.connect(buses.mapper)
+        e1000.ports.mapper.connect(buses.mapper)
+        if (enableSATA3) sata3.ports.mapper.connect(buses.mapper)
+        
         smb_20_0.ports.mapper.connect(buses.mapper)
         smb_20_1.ports.mapper.connect(buses.mapper)
 
@@ -450,6 +451,8 @@ class Atom2758(
         pic.ports.irq.connect(buses.irq)
         pit.ports.irq.connect(buses.irq, 0u) // IRQ 0
         uart0.ports.irq.connect(buses.irq, 4u) // IRQ 4
+        l_apic.ports.irq.connect(buses.irq)
+        l_apic.ports.irqMaster.connect(buses.irq)
 
         bridge.ports.ecam.connect(buses.pci)
         pci_host.ports.pci.connect(buses.pci)
@@ -461,22 +464,7 @@ class Atom2758(
         pcie3.ports.pci.pci_connect(buses.pci, 0, 3, 0)
         pcie4.ports.pci.pci_connect(buses.pci, 0, 4, 0)
 
-        pci_stub_d5_f0.ports.pci.pci_connect(buses.pci, 0, 5, 0)
-        pci_stub_d6_f0.ports.pci.pci_connect(buses.pci, 0, 6, 0)
-        pci_stub_d7_f0.ports.pci.pci_connect(buses.pci, 0, 7, 0)
-        pci_stub_d8_f0.ports.pci.pci_connect(buses.pci, 0, 8, 0)
-        pci_stub_d9_f0.ports.pci.pci_connect(buses.pci, 0, 9, 0)
-        pci_stub_d10_f0.ports.pci.pci_connect(buses.pci, 0, 10, 0)
-        pci_stub_d11_f0.ports.pci.pci_connect(buses.pci, 0, 11, 0)
-        pci_stub_d12_f0.ports.pci.pci_connect(buses.pci, 0, 12, 0)
-        pci_stub_d13_f0.ports.pci.pci_connect(buses.pci, 0, 13, 0)
-
         ras.ports.pci.pci_connect(buses.pci, 0, 14, 0)
-
-        pci_stub_d15_f0.ports.pci.pci_connect(buses.pci, 0, 15, 0)
-        pci_stub_d16_f0.ports.pci.pci_connect(buses.pci, 0, 16, 0)
-        pci_stub_d17_f0.ports.pci.pci_connect(buses.pci, 0, 17, 0)
-        pci_stub_d18_f0.ports.pci.pci_connect(buses.pci, 0, 18, 0)
 
         smb_20_0.ports.pci.pci_connect(buses.pci, 0, 19, 0)
         smb_20_1.ports.pci.pci_connect(buses.pci, 0, 19, 1)  // fake
@@ -486,34 +474,41 @@ class Atom2758(
         gbe2.ports.pci.pci_connect(buses.pci, 0, 20, 2)
         gbe3.ports.pci.pci_connect(buses.pci, 0, 20, 3)
 
-        pci_stub_d21_f0.ports.pci.pci_connect(buses.pci, 0, 21, 0)
+        /**
+         * Intel® Atom™ Processor C2000 Product Family for Microserver
+         * Variable I/O Map, page 182
+         */
 
         usb20.ports.pci.pci_connect(buses.pci, 0, 22, 0)
 
-//        sata2.ports.pci.pci_connect(buses.pci, 0, 23, 0)
-//        sata3.ports.pci.pci_connect(buses.pci, 0, 24, 0)
+        if (enableSATA2) sata2.ports.pci.pci_connect(buses.pci, 0, 23, 0)
+        if (enableSATA3) sata3.ports.pci.pci_connect(buses.pci, 0, 24, 0)
+        e1000.ports.pci.pci_connect(buses.pci, 0, 25, 0)
+        
 
-        pci_stub_d25_f0.ports.pci.pci_connect(buses.pci, 0, 25, 0)
-        pci_stub_d26_f0.ports.pci.pci_connect(buses.pci, 0, 26, 0)
-        pci_stub_d27_f0.ports.pci.pci_connect(buses.pci, 0, 27, 0)
-
-        pci_stub_d28_f0.ports.pci.pci_connect(buses.pci, 0, 28, 0)
-        pci_stub_d28_f1.ports.pci.pci_connect(buses.pci, 0, 28, 1)
-        pci_stub_d28_f2.ports.pci.pci_connect(buses.pci, 0, 28, 2)
-        pci_stub_d28_f3.ports.pci.pci_connect(buses.pci, 0, 28, 3)
-        pci_stub_d28_f4.ports.pci.pci_connect(buses.pci, 0, 28, 4)
-        pci_stub_d28_f5.ports.pci.pci_connect(buses.pci, 0, 28, 5)
-        pci_stub_d28_f6.ports.pci.pci_connect(buses.pci, 0, 28, 6)
-        pci_stub_d28_f7.ports.pci.pci_connect(buses.pci, 0, 28, 7)
-
-        pci_stub_d29_f0.ports.pci.pci_connect(buses.pci, 0, 29, 0)
-        pci_stub_d30_f0.ports.pci.pci_connect(buses.pci, 0, 30, 0)
-
-        pci_stubs_b1.forEachIndexed { index, stub ->
-            stub.ports.pci.pci_connect(buses.pci, 1, index / 8, index % 8)
+        if (enableSATA2) {
+            sata2.irq.connect(buses.irq)
+            sata2.dmam.connect(buses.nb_mem)
         }
 
+        if (enableSATA3) {
+            sata3.irq.connect(buses.irq)
+            sata3.dmam.connect(buses.nb_mem)
+        }
+
+        e1000.irq.connect(buses.irq)
+        e1000.dmam.connect(buses.nb_mem)
+
         lpc.ports.pci.pci_connect(buses.pci, 0, 31, 0)
+
+        /**
+         * **Intel Atom Processor E3800 Product Family**
+         * 33.7  PCU SMBUS Memory Mapped I/O Registers, page 4466
+         *
+         * > <any register>: [MBRAL] + 0xXX
+         * > MBARL Type: PCI Configuration Register (Size: 32 bits)
+         * > MBARL Reference: [B:0, D:31, F:3] + 10h
+         */
         smb_pcu.ports.pci.pci_connect(buses.pci, 0, 31, 3)
     }
 

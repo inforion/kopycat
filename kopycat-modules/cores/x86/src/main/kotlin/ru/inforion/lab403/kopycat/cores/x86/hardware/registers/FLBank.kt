@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.hardware.registers
 
-import ru.inforion.lab403.common.extensions.clr
-import ru.inforion.lab403.common.extensions.inv
-import ru.inforion.lab403.common.extensions.ubitMask64
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
@@ -48,7 +46,17 @@ class FLBank(val core: x86Core) : ARegistersBankNG<x86Core>("Flags Register", 3,
         var zf by bitOf(6, track = core)
         var sf by bitOf(7, track = core)
         var tf by bitOf(8)
-        var ifq by bitOf(9)
+
+        /** Interrupt enable flag */
+        var ifq
+            get() = value[9].truth
+            set(value) {
+                if (value) {
+                    core.cop.intShadow = 2
+                }
+                this@EFlagsRegister.value = this@EFlagsRegister.value.insert(value.ulong, 9)
+            }
+
         var df by bitOf(10)
         var of by bitOf(11, track = core)
         var iopl by fieldOf(13..12)

@@ -42,7 +42,7 @@ class FldcwDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val rm = RMDC(s, prefs)
         val op0 = when (opcode) {
             0xD9 -> rm.m16
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Fldcw(core, s.data, prefs, op0)
     }

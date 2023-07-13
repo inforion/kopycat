@@ -52,10 +52,10 @@ class JccDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, AOperan
                 when (sopcode) {
                     0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
                     0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F -> s.near(prefs)
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return construct(core, s.data, prefs, op)
     }

@@ -27,20 +27,18 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.sse
 
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-
 
 class Movaps(
     core: x86Core,
     opcode: ByteArray,
     prefs: Prefixes,
     vararg operands: AOperand<x86Core>
-) : AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
+) : ASSEInstruction(core, opcode, prefs, *operands) {
 
-    override val mnem = "movaps"
+    override val mnem = if (prefs.operandOverride) "movapd" else "movaps"
 
-    override fun execute() {
+    override fun executeSSEInstruction() {
         val a2 = op2.extValue(core)
         op1.extValue(core, a2)
     }

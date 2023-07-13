@@ -49,10 +49,10 @@ class CmovccDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, AOpe
                 when (sopcode) {
                     0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47,
                     0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F -> arrayOf(rm.rpref, rm.mpref)
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return construct(core, s.data, prefs, ops[0], ops[1])
     }

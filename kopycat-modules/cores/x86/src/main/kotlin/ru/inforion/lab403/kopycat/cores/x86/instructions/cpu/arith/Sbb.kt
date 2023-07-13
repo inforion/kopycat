@@ -33,8 +33,6 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
 class Sbb(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>):
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
     override val mnem = "sbb"
@@ -52,7 +50,13 @@ class Sbb(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
         val res = a1 - a2 - core.cpu.flags.cf.uint
         val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
-        FlagProcessor.processAddSubCmpFlag(core, result, op1, op2, true)
+        FlagProcessor.processSbbFlag(
+            core,
+            result,
+            op1,
+            op2,
+            core.cpu.flags.cf,
+        )
         op1.value(core, result)
     }
 }

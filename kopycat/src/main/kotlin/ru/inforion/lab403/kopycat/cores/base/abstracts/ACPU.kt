@@ -130,7 +130,7 @@ abstract class ACPU<
 
     /**
      * {EN}
-     * Last exception of CPU. This exception may be processed by COP or may be not in either case it will not be null.
+     * Last CPU exception. This exception may be processed by COP or may be not in either case it will not be null.
      * Exception reset before each successful CPU step.
      * {EN}
      */

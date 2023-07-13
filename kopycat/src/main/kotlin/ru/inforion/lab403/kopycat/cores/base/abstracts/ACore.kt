@@ -64,6 +64,7 @@ import ru.inforion.lab403.kopycat.serializer.storeValues
  * ARM Cortex-M3	125 MIPS    100 MHz     1.25	2004
  * ARM Cortex-A8    2,000 MIPS  1.0 GHz     2.0     2005
  * MIPS32 24K	    604 MIPS    400 MHz     1.51	2006
+ * MIPS 64 20Kc     1,1370 MIPS 600 MHz     2.3     2007
  * {RU}
  **/
 @Suppress("INAPPLICABLE_JVM_NAME")
@@ -343,10 +344,10 @@ abstract class ACore<
      * {RU}
      *
      * {EN}
-     * Execute one instruction and process each coprocessor and peripheral device.
-     * Try to handle exception if possible.
+     * Executes one instruction and process each coprocessor and peripheral device.
+     * Tries to handle exception if possible.
      *
-     * @return [Status] - return execution status
+     * @return [Status] - step execution status
      * {EN}
      */
     fun step() = monitor {
@@ -392,7 +393,7 @@ abstract class ACore<
 
     /**
      * {EN}
-     * Last exception of CPU. This exception may be processed by COP or may be not in either case it will not be null.
+     * Last CPU exception. This exception may be processed by COP or may be not in either case it will not be null.
      * Exception reset before each successful CPU step.
      * {EN}
      */

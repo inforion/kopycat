@@ -30,7 +30,6 @@ import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.concurrent.TimeUnit
-import java.util.logging.Level
 import kotlin.system.measureNanoTime
 
 abstract class AConsole(name: String): Thread(name) {
@@ -48,13 +47,20 @@ abstract class AConsole(name: String): Thread(name) {
 
     private val qInit = LinkedBlockingQueue<Boolean>(1)
     private val qInput = LinkedBlockingQueue<Request>(1)
-    private val qOutput = LinkedBlockingQueue<Result>(1)
+    private val qOutput = LinkedBlockingQueue<Result>(2)
 
     fun reconfigure(): Boolean = onReconfigure()
 
     fun eval(expression: String): Result {
         qInput.put(Request(RequestType.EVAL, expression))
         return qOutput.take()
+    }
+
+    /**
+     * Чтобы использовать REPL внутри REPL-а
+     */
+    fun evalNoTake(expression: String) {
+        qInput.put(Request(RequestType.EVAL, expression))
     }
 
     fun execute(statement: String): Result {
@@ -99,21 +105,33 @@ abstract class AConsole(name: String): Thread(name) {
                     try {
                         when (request.type) {
                             RequestType.EVAL -> {
-                                log.fine { "Execute command line: ${request.data}" }
+                                log.fine { "Evaluate command line: ${request.data}" }
                                 val status = onEval(request.data)
-                                qOutput.put(Result(if(status) 0 else -1, null))
+                                if (!qOutput.isEmpty()) {
+                                    log.warning { "qOutput is not empty" }
+                                } else {
+                                    qOutput.put(Result(if (status) 0 else -1, null))
+                                }
                             }
                             RequestType.EXECUTE -> {
                                 log.fine { "Execute command line: ${request.data}" }
                                 val result = onExecute(request.data)
-                                qOutput.put(Result(0, result.toString()))
+                                if (!qOutput.isEmpty()) {
+                                    log.warning { "qOutput is not empty" }
+                                } else {
+                                    qOutput.put(Result(0, result.toString()))
+                                }
                             }
                         }
                     } catch (error: Exception) {
                         // TODO: Make configurable print stack trace
                         // log.severe { "Unexpected exception occurred during command execution..." }
                         // error.logStackTrace(log)
-                        qOutput.put(Result(-1, error.toString()))
+                        if (!qOutput.isEmpty()) {
+                            log.warning { "qOutput is not empty" }
+                        } else {
+                            qOutput.put(Result(-1, error.toString()))
+                        }
                     }
                 }
             }

@@ -26,52 +26,106 @@
 package ru.inforion.lab403.kopycat.interactive
 
 import org.jline.reader.LineReaderBuilder
+import org.jline.reader.UserInterruptException
 import org.jline.terminal.TerminalBuilder
+import ru.inforion.lab403.common.extensions.ifItNotNull
 import ru.inforion.lab403.common.extensions.sure
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.consoles.AConsole
-import java.util.logging.Level
+import java.io.File
+import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
+import kotlin.concurrent.withLock
 
 
-object REPL {
-    @Transient val log = logger(INFO)
-
-    private val repl = thread(false, name = "REPL") {
+class REPL private constructor(
+    private var console: AConsole,
+    private var initScript: File? = null
+) {
+    val repl = thread(false, name = "REPL") {
         console.sure { "Console wasn't set but REPL thread started!" }.run {
             val terminal = TerminalBuilder.terminal()
             val reader = LineReaderBuilder.builder()
-                    .terminal(terminal)
-                    .completer(completer)
-                    .build()
+                .terminal(terminal)
+                .completer(completer)
+                .build()
+
+            // TODO: if file exist
+            try {
+                initScript ifItNotNull {
+                    log.severe { "Run initial script: ${initScript?.absolutePath}" }
+                    silentEval(initScript?.readText() + "\n")
+                }
+            } catch (e: java.io.FileNotFoundException) {
+                log.severe { "${e.message}" }
+            }
 
             while (working) {
-                val line = reader.readLine("$name > ")
-                eval(line)
+                try {
+                    reader.readLine("$name > ")
+                } catch (e: UserInterruptException) {
+                    log.severe { "catch ctrl+c interrupt"}
+                    e.printStackTrace()
+                    null
+                } catch (e: Exception) {
+                    log.severe { "Something went wrong: ${e.message}"}
+                    null
+                }?.also { line -> eval(line) }
             }
             log.info { "Goodbye! See you..." }
         }
     }
 
-    private var console: AConsole? = null
-    private val lock = Object()
+    private val lock = ReentrantLock()
 
-    fun eval(line: String): AConsole.Result = synchronized(lock) {
-        val c = console ?: return AConsole.Result(-1, "Console wasn't set in REPL!")
+    fun eval(line: String): AConsole.Result = lock.also {
+        if (it.isLocked) {
+            log.warning { "Evaluation multi-thread lock is already locked, waiting!" }
+        }
+    }.withLock {
+        val c = instance?.console ?: return AConsole.Result(-1, "Console wasn't set in REPL!")
         return c.eval(line)
     }
 
-    // Constructor
-    operator fun invoke(console: AConsole): REPL {
-        if (repl.isAlive) {
-            log.warning { "REPL thread already started, can't change console! Console is ${this.console!!.name}!" }
-            return this
+    /**
+     * Нужен для многопоточного выполнения (чтобы использовать REPL внутри REPL-а)
+     */
+    fun silentEval(line: String): AConsole.Result {
+        if (lock.isLocked) {
+            throw IllegalStateException("Evaluation multi-thread lock is locked. Cannot do nested REPL evals")
+        } else {
+            lock.withLock {
+                val c = instance?.console ?: return AConsole.Result(-1, "Console wasn't set in REPL!")
+                c.evalNoTake(line)
+                return AConsole.Result(0, "Silent eval complete")
+            }
+        }
+    }
+
+    companion object {
+        @Transient
+        val log = logger(INFO)
+
+        private var instance: REPL? = null
+
+        fun getOrNull(): REPL? = instance
+
+        fun get(): REPL = instance ?: let {
+            throw IllegalStateException("REPL does not exist")
         }
 
-        this.console = console
-        repl.start()
+        fun getOrCreate(console: AConsole, script: File? = null): REPL = instance ?: let {
+            create(console, script)
+        }
 
-        return this
+        fun create(console: AConsole, script: File? = null): REPL = if (instance != null) {
+            throw IllegalStateException("REPL has been already created")
+        } else {
+            REPL(console, script).also {
+                instance = it
+                it.repl.start()
+            }
+        }
     }
 }

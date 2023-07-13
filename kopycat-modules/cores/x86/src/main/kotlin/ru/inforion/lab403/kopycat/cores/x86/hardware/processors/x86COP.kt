@@ -31,14 +31,15 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore.Stage
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.x86.enums.ExcCode
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
+import ru.inforion.lab403.kopycat.cores.x86.pageFault
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
@@ -78,6 +79,15 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
         val dpl: ULong
         val p: ULong
         val base: ULong
+    }
+
+    data class IVTEntryDescriptor(val data: ULong) : CallGateDescriptor {
+        override val base: ULong = data[15..0]
+        override val selector: ULong = data[31..16]
+        override val type: ULong = GateType.INT_GATE_16.id.ulong_z
+        override val s: ULong = 0uL // ?
+        override val dpl: ULong = 0uL // ?
+        override val p: ULong = 0uL // ?
     }
 
     data class CallGateDescriptor32(val data: ULong) : CallGateDescriptor {
@@ -122,7 +132,7 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
     data class HardwareError(val excCode: ExcCode, val value: ULong): IConstructorSerializable, IAutoSerializable
 
     /**
-     * Task Segment Selector register
+     * Task Segment Selector register - ?? Task Register? (ss for TSS) почему 0uL и нигде не меняется
      */
     var tssr = 0uL
 
@@ -148,8 +158,28 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
      */
     private var error: HardwareError? = null
 
-    private fun idt(vector: UInt): CallGateDescriptor {
-        return if (core.cpu.mode == x86CPU.Mode.R64) {
+    /**
+     *
+     * Single-instruction interrupt shadow
+     *
+     * STI (or any other interrupt flag change command) delays toggling interrupts on one command.
+     * This field is being used to delay interrupts on IRQ flag set to TRUE.
+     *
+     * The value means the number of commands to delay (include the interrupt change command itself).
+     * For Example:
+     * ```asm
+     * sti ; here the intShadow := 2
+     * ; intShadow = 1 (decreased by 1)
+     * sysexit
+     * ; intShadow = 0 (decreated by 1) and InterruptsEnabled == 1 now
+     * ```
+     *
+     * See https://www.felixcloutier.com/x86/sti
+     */
+    var intShadow: Int = 0
+
+    private fun idt(vector: UInt): CallGateDescriptor = if (core.cpu.cregs.cr0.pe) {
+        if (core.cpu.is64BitCompatibilityMode || core.cpu.mode == x86CPU.Mode.R64) {
             val offset = idtr.base + vector * 16u
             val dataLo = core.mmu.linearRead(offset, 8, true)
             val dataHi = core.mmu.linearRead(offset + 8u, 8, true)
@@ -159,12 +189,21 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
             val data = core.mmu.linearRead(offset, 8, true)
             CallGateDescriptor32(data)
         }
+    } else {
+        // IVT
+        val data = core.mmu.linearRead(vector.ulong_z * 4u, 4, true)
+        IVTEntryDescriptor(data)
     }
 
     private fun saveContextGateSamePrivilegeLevel(
         prefs: Prefixes, error: HardwareError?, dtyp: Datatype, eflags: ULong, cs: ULong, ip: ULong
     ) {
 //        val flagsSize = prefs.opsize //if (!prefs.is16BitOperandMode) DWORD else WORD
+        pageFault(core) {
+            (0 until 3).forEach { _ -> push(dtyp, prefs) }
+            if (error != null && error.excCode.hasError) push(dtyp, Prefixes(core))
+        }
+
         x86utils.push(core, eflags, dtyp, prefs)
         x86utils.push(core, cs, dtyp, prefs)
         x86utils.push(core, ip, dtyp, prefs)
@@ -175,6 +214,10 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
     }
 
     private fun saveOldStackToTaskStack(prefs: Prefixes, ss: ULong, sp: ULong) {
+        pageFault(core) {
+            (0 until 2).forEach { _ -> push(prefs.opsize, prefs) }
+        }
+
         x86utils.push(core, ss, prefs.opsize, prefs)
         x86utils.push(core, sp, prefs.opsize, prefs)
     }
@@ -196,8 +239,10 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
         if (exception is x86HardwareException) {
             error = HardwareError(exception.excCode as ExcCode, exception.errorCode)
             if (exception is x86HardwareException.PageFault) {
-                log.config { "[${core.pc.hex8}] Page fault for address 0x${exception.address.hex} code=0x${exception.errorCode.hex}" }
+                log.config { "[0x${core.pc.hex8}] Page fault for address 0x${exception.address.hex} code=0x${exception.errorCode.hex}" }
                 core.cpu.cregs.cr2.value = exception.address
+            } else if (exception is x86HardwareException.DeviceNotAvailable) {
+                log.config { "[0x${core.pc.hex8}] FPU device not available exception" }
             }
             return null
         }
@@ -208,13 +253,13 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
         val hwError = error
         error = null
 
-        val ie = core.cpu.flags.eflags.ifq
+        val ie = core.cpu.flags.eflags.ifq && intShadow == 0
         val interrupt = pending(ie)
         val vector = when {
         // Hardware error fault has the most high priority
             hwError != null -> {
                 //
-                // It decrement eip because interrupt must occur before the address
+                // It decrements eip because interrupt must occur before the address
                 // is incremented in reality, and we have after.
                 //
                 // If we decode instruction, execute it or already update clock
@@ -246,8 +291,9 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
         check (vector.uint <= idtr.limit) { "IDT vector > limit [$vector > ${idtr.limit}]" }
 
         val prefs = Prefixes(core).apply { rexW = true }
-        val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
-        val sp = core.cpu.regs.gpr(x86GPR.RSP, prefs.opsize)
+        val opsize = if (core.cpu.is64BitCompatibilityMode) QWORD else prefs.opsize
+        val ip = core.cpu.regs.gpr(x86GPR.RIP, opsize)
+        val sp = core.cpu.regs.gpr(x86GPR.RSP, opsize)
 
         val ss = core.cpu.sregs.ss
         val cs = core.cpu.sregs.cs
@@ -256,8 +302,8 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
         val cpl = cs.cpl
         val saved_eflags = eflags.value
         val saved_cs = cs.value
-        val saved_ip = ip.value like prefs.opsize
-        val saved_ss = ss.value like prefs.opsize
+        val saved_ip = ip.value
+        val saved_ss = ss.value
         val saved_sp = sp.value
 
         val idtEntry = idt(vector.uint)
@@ -299,10 +345,18 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
 
             GateType.INT_GATE_32_64,
             GateType.TRAP_GATE_32_64 -> {
+                // HACK: Trigger csl update
+                // This makes cpu.mode = R64 when jumping 32-bit ring 3 -> 64-bit ring 0
+                // Don't do csl = true: the kernel might be 32 bit as well; in that case csl must not be true
+                core.mmu.translate(ip.value, cs.id, 1, AccessAction.FETCH)
+
                 if (cpl != rpl) {
                     loadStackFromTaskDescriptor(rpl.uint, sp)
-                    saveOldStackToTaskStack(prefs, saved_ss, saved_sp)
                 }
+
+                // NOTE: prefs is probably DWORD here if jumping 32-bit ring 3 -> 64-bit ring 0
+                // NOTE: dig here in case something odd happens
+                saveOldStackToTaskStack(prefs, saved_ss, saved_sp)
 
                 saveContextGateSamePrivilegeLevel(prefs, hwError, prefs.opsize, saved_eflags, saved_cs, saved_ip)
 
@@ -313,6 +367,7 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
             }
         }
     }
+
 
     /* =============================== Overridden methods =============================== */
 
@@ -331,6 +386,12 @@ class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), I
 //        IRQ = loadValue(snapshot, "IRQ")
 //        INT = loadValue(snapshot, "INT")
 //    }
+
+    override fun stringify() = buildString {
+        appendLine("$name:")
+        appendLine("IDTR  : base = 0x${idtr.base.hex16}   limit = 0x${idtr.limit.hex16}")
+        appendLine("Task Register, TSS Segment Selector = 0x${tssr.hex16}")
+    }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
         return super<IAutoSerializable>.serialize(ctxt)

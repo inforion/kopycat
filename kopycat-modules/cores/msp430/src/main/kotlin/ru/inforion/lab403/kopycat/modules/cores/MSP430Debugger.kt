@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
+import ru.inforion.lab403.common.extensions.bigint
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -36,5 +37,5 @@ class MSP430Debugger(parent: Module, name: String) : Debugger(parent, name, BUS1
     private val msp430 = core as MSP430Core
 
     override fun registers() = List(msp430.cpu.regs.count()) { regRead(it) } +
-            List(msp430.cpu.flags.count()) { msp430.cpu.regs.r2StatusRegister[it] }
+            List(msp430.cpu.flags.count()) { msp430.cpu.regs.r2StatusRegister[it].bigint }
 }

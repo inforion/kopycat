@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.exceptions
 
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.extensions.ulong_z
@@ -42,7 +43,7 @@ abstract class x86HardwareException(excCode: ExcCode, where: ULong, val errorCod
     class Overflow(where: ULong) : x86HardwareException(ExcCode.Overflow, where)
     class BoundRangeExceeded(where: ULong) : x86HardwareException(ExcCode.BoundRangeExceeded, where)
     class InvalidOpcode(where: ULong) : x86HardwareException(ExcCode.InvalidOpcode, where)
-    class DeviceNotAvailable(where: ULong) : x86HardwareException(ExcCode.DeviceNotAvailable, where)
+    class DeviceNotAvailable(where: ULong) : x86HardwareException(ExcCode.DeviceNotAvailable, where) // #NM
     class DoubleFault(where: ULong, errorCode: ULong) : x86HardwareException(ExcCode.DoubleFault, where, errorCode)
     class CoprocessorSegmentOverrun(where: ULong) : x86HardwareException(ExcCode.CoprocessorSegmentOverrun, where)
     class InvalidTSS(where: ULong, errorCode: ULong) : x86HardwareException(ExcCode.InvalidTSS, where, errorCode)
@@ -50,12 +51,20 @@ abstract class x86HardwareException(excCode: ExcCode, where: ULong, val errorCod
     class StackSegmentFault(where: ULong, errorCode: ULong) : x86HardwareException(ExcCode.StackSegmentFault, where, errorCode)
     class GeneralProtectionFault(where: ULong, errorCode: ULong) : x86HardwareException(ExcCode.GeneralProtectionFault, where, errorCode)
     class PageFault(where: ULong, val address: ULong, I: UInt, R: UInt, U: UInt, W: UInt, P: UInt) :
-            x86HardwareException(ExcCode.PageFault, where,
-                    insert(I, 4)
-                    .insert(R, 3)
-                    .insert(U, 2)
-                    .insert(W, 1)
-                    .insert(P, 0).ulong_z)
+        x86HardwareException(
+            ExcCode.PageFault, where,
+            insert(I, 4)
+                .insert(R, 3)
+                .insert(U, 2)
+                .insert(W, 1)
+                .insert(P, 0).ulong_z
+        ) {
+        override fun toString() = buildString {
+            append(super.toString())
+            append(" ")
+            append("address=0x${address.hex}")
+        }
+    }
 
     class FpuException(where: ULong) : x86HardwareException(ExcCode.FpuException, where)
 }

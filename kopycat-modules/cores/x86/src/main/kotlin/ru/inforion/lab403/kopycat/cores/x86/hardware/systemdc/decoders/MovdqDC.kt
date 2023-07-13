@@ -26,12 +26,12 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.x86.enums.Regtype.*
 import ru.inforion.lab403.kopycat.cores.x86.enums.StringPrefix
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movd
 import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movdqa
 import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movdqu
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -42,16 +42,44 @@ class MovdqDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val opcode = s.readOpcode()
         val rm = RMDC(s, prefs)
 
-        val operands = when (opcode) {
-            0x6F -> arrayOf(rm.rxmm, rm.xmmpref)
-            0x7F -> arrayOf(rm.xmmpref, rm.rxmm)
-            else -> throw GeneralException("Incorrect opcode in decoder")
-        }
-
+        // 0F 6F может быть с префиксом, тогда будет два xmm
+        // если без, то mmx и
+        /**
+         * arrayOf(
+        rm.rmmx,
+        rm.mmxm64,
+        )
+         */
         return when {
-            prefs.string == StringPrefix.REPZ -> Movdqu(core, s.data, prefs, *operands)
-            prefs.operandOverride -> Movdqa(core, s.data, prefs, *operands)
-            else -> throw GeneralException("Not implemented")
+            // https://c9x.me/x86/html/file_module_x86_id_184.html
+            prefs.string == StringPrefix.REPZ -> {
+                val operands = when (opcode) {
+                    0x6F -> arrayOf(rm.rxmm, rm.xmmpref)
+                    0x7F -> arrayOf(rm.xmmpref, rm.rxmm)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
+                }
+                prefs.string = StringPrefix.NO
+                Movdqu(core, s.data, prefs, *operands)
+            }
+            // https://www.felixcloutier.com/x86/movdqa:vmovdqa32:vmovdqa64
+            prefs.operandOverride -> {
+                val operands = when (opcode) {
+                    0x6F -> arrayOf(rm.rxmm, rm.xmmpref)
+                    0x7F -> arrayOf(rm.xmmpref, rm.rxmm)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
+                }
+
+                Movdqa(core, s.data, prefs, *operands)
+            }
+            // https://www.felixcloutier.com/x86/movd:movq
+            else -> {
+                val operands = when (opcode) {
+                    0x6F -> arrayOf(rm.rmmx, rm.mmxm64)
+                    0x7F -> arrayOf(rm.mmxm64, rm.rmmx)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
+                }
+                Movd(core, s.data, prefs, true, *operands)
+            }
         }
     }
 }

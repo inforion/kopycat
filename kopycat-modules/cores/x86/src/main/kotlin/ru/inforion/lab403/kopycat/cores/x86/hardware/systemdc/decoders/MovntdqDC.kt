@@ -47,7 +47,7 @@ class MovntdqDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
 
         val operands = when (opcode) {
             0xE7 -> arrayOf(rm.xmmpref, rm.rxmm)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
 
         return Movntdq(core, s.data, prefs, *operands)

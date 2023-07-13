@@ -34,7 +34,7 @@ import ru.inforion.lab403.kopycat.modules.cores.arm1176jzs.ARM1176JZS
 import ru.inforion.lab403.kopycat.veos.UnixVEOS
 
 
-class ARMApplication constructor(
+open class ARMApplication constructor(
         parent: Module?,
         name: String,
         dir: String,

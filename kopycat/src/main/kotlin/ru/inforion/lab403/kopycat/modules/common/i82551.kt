@@ -37,7 +37,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.extensions.mapOffset
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.*
-import ru.inforion.lab403.kopycat.modules.common.pci.PciAbstract
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
 import java.util.logging.Level.WARNING
 
@@ -53,7 +52,6 @@ class i82551(parent: Module, name: String) : PciDevice(
     0x70,
     0x8086,
     0x0000_0000,
-    0x00,
     0,
     1,  // INTA# used
     0xFF,

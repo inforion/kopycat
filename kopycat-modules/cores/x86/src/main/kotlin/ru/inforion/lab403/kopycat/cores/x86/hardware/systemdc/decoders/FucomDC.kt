@@ -32,11 +32,9 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.Fucom
+import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.Fucomi
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-
-
-
 
 class FucomDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
@@ -44,15 +42,32 @@ class FucomDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val currByte = s.readByte()
         val op0 = x86FprRegister(0)
         return when (opcode) {
+            // https://www.felixcloutier.com/x86/fucom:fucomp:fucompp
             0xDA -> Fucom(core, s.data, prefs, 2, op0, x86FprRegister(1))
             0xDD -> {
                 val popCount = if (currByte[3] == 1uL) 1 else 0
                 val regIndex = currByte[2..0].int
-                when(regIndex){
-                    0 -> throw GeneralException("Incorrect opcode in decoder")
+                when (regIndex) {
+                    //0 -> throw GeneralException("Incorrect opcode in decoder $this")
                     else -> Fucom(core, s.data, prefs, popCount, op0, x86FprRegister(regIndex))
                 }
             }
+            // https://www.felixcloutier.com/x86/fcomi:fcomip:fucomi:fucomip
+            0xDB -> {
+                val regIndex = currByte[2..0].int
+                when (regIndex) {
+                    //0 -> throw GeneralException("Incorrect opcode in decoder $this")
+                    else -> Fucomi(core, s.data, prefs, 0, op0, x86FprRegister(regIndex))
+                }
+            }
+            0xDF -> {
+                val regIndex = currByte[2..0].int
+                when (regIndex) {
+                    //0 -> throw GeneralException("Incorrect opcode in decoder $this")
+                    else -> Fucomi(core, s.data, prefs, 1, op0, x86FprRegister(regIndex))
+                }
+            }
+
             else -> throw GeneralException("Incorrect opcode in decoder")
         }
     }

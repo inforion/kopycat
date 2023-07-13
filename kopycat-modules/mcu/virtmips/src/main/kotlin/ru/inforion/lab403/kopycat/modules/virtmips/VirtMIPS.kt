@@ -97,7 +97,8 @@ class VirtMIPS(
             name,
             baseAddress,
             memorySize,
-            Resource(binary).inputStream())
+            Resource(binary).openStream()
+    )
 
     inner class Buses : ModuleBuses(this) {
         val mem = Bus("mem", BUS32)

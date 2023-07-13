@@ -42,6 +42,7 @@ class SSRBank(val core: x86Core) : ARegistersBankNG<x86Core>("Segment Registers"
             }
     }
 
+    // Vol. 3A 3-7
     inner class CS : SSR("cs", 1, 0xFFFF000u) {
         var ti by bitOf(2)
         var cpl by fieldOf(1..0)

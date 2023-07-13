@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
 import java.util.logging.Level.CONFIG
@@ -66,9 +67,14 @@ class PCIe(parent: Module, name: String, deviceId: Int) : PciDevice(parent, name
 
     val PMCAP_PMC = PCI_CONF_FUNC_WR(0xA0, DWORD, "PMCAP_PMC", 0xC8030001u, level = CONFIG)
     val PMCS = PCI_CONF_FUNC_WR(0xA4, DWORD, "PMCS", 0x00000008u, level = CONFIG)
-    val REG_D8 = PCI_CONF_FUNC_WR(0xD8, DWORD, "REG_D8", 0u, CONFIG)
-    val REG_EA = PCI_CONF_FUNC_WR(0xEA, DWORD, "REG_EA", 0u, CONFIG)
+    val PBTXNCTL = PCI_CONF_FUNC_WR(0xD8, DWORD, "PBTXNCTL", 0u, CONFIG)
+    val PBPHYCTL = PCI_CONF_FUNC_WR(0xE0, DWORD, "PBPHYCTL", 0u, CONFIG)
+    val PLKCTL = PCI_CONF_FUNC_WR(0xEA, Datatype.WORD, "PLKCTL", 0u, CONFIG)
+    val LTRCSR = PCI_CONF_FUNC_WR(0xEC, DWORD, "LTRCSR", 0u, CONFIG)
     val MANID = PCI_CONF_FUNC_WR(0xF8, DWORD, "MANID", 0x00000F00u, CONFIG)
+
+    // Broadcom-specific
+    val BCM_PIPEMUX_CFG_OFFSET = PCI_CONF_FUNC_WR(0x10c, DWORD, "BCM_PIPEMUX_CFG_OFFSET", level = CONFIG)
 
     val MEM_800 = Memory(ports.pci, 0x200u, 0xC00u, "MEM_800", ACCESS.R_W)
 

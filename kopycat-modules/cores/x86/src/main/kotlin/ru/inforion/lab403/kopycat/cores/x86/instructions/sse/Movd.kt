@@ -25,22 +25,40 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.sse
 
+import ru.inforion.lab403.common.extensions.bigint
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
+class Movd(core: x86Core, opcode: ByteArray, prefs: Prefixes, val movq: Boolean, vararg operands: AOperand<x86Core>) :
+    ASSEInstruction(core, opcode, prefs, *operands) {
 
-class Movd(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>) :
-    AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
+    // Сходится с IDA, может не сойтись с radare если используется mmx регистр
+    // IDA: 48 0F 6E movq mm3, rax
+    // Radare:
+    // $ rz-asm -b64 -d '48 0F 6E D8'
+    // movd mm3, rax
+    // Отличие только в названии инструкции, по сути это movq
+    override val mnem = if (movq) "movq" else "movd"
 
-    override val mnem = "movd"
+    override fun executeSSEInstruction() {
+        val a2 = when (op2.dtyp) {
+            Datatype.XMMWORD -> {
+                val tmp = op2.extValue(core)
+                if (movq) tmp[63..0].ulong else tmp[31..0].ulong
+            }
+            else -> {
+                val tmp = op2.value(core)
+                if (movq) tmp else tmp[31..0]
+            }
+        }
 
-    override fun execute() {
-        val a2 = op2.value(core) like Datatype.DWORD
-        op1.value(core, a2)
+        when (op1.dtyp) {
+            Datatype.XMMWORD -> op1.extValue(core, a2.bigint)
+            else -> op1.value(core, a2)
+        }
     }
 }

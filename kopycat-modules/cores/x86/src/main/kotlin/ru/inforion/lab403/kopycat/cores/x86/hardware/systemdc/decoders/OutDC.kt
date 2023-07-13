@@ -42,7 +42,7 @@ class OutDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0xE7 -> arrayOf(s.imm8, xax(prefs.opsize))
             0xEE -> arrayOf(dx, al)
             0xEF -> arrayOf(dx, xax(prefs.opsize))
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Out(core, s.data, prefs, *ops)
     }

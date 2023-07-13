@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.arith
 
-import ru.inforion.lab403.common.extensions.bigint
-import ru.inforion.lab403.common.extensions.ulong
-import ru.inforion.lab403.common.extensions.ushr
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
@@ -41,47 +39,69 @@ class Imul(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
     override val mnem = "imul"
 
+    private fun twoThreeOperand(l: AOperand<x86Core>, r: AOperand<x86Core>) = if (l.dtyp == Datatype.QWORD)
+        (l.ssext(core).bigint * r.ssext(core).bigint) to Datatype.XMMWORD
+    else
+        (l.usext(core) * r.usext(core)).bigint to when (l.dtyp) {
+            Datatype.DWORD -> Datatype.QWORD
+            Datatype.WORD -> Datatype.DWORD
+            else -> Datatype.WORD
+        }
+
     override fun execute() {
         when (opcount) {
             1 -> {
-                when (op1.dtyp) {
+                val (result, extSize) = when (op1.dtyp) {
                     Datatype.BYTE -> {
                         core.cpu.regs.ax.value = core.cpu.regs.al.toOperand().usext(core) * op1.usext(core)
+                        core.cpu.regs.ax.value.bigint to Datatype.WORD
                     }
                     Datatype.WORD -> {
                         val result = core.cpu.regs.ax.toOperand().usext(core) * op1.usext(core)
                         core.cpu.regs.ax.value = result
                         core.cpu.regs.dx.value = result ushr 16
+                        result.bigint to Datatype.DWORD
                     }
                     Datatype.DWORD -> {
                         val result = core.cpu.regs.eax.toOperand().usext(core) * op1.usext(core)
                         core.cpu.regs.eax.value = result
                         core.cpu.regs.edx.value = result ushr 32
+                        result.bigint to Datatype.QWORD
                     }
                     Datatype.QWORD -> {
                         val result = core.cpu.regs.rax.toOperand().ssext(core).bigint * op1.ssext(core).bigint
                         core.cpu.regs.rax.value = result.ulong
                         core.cpu.regs.rdx.value = (result ushr 64).ulong
+                        result to Datatype.XMMWORD
                     }
                     else -> throw GeneralException("Incorrect datatype")
                 }
-                FlagProcessor.processOneOpImulFlag()
+                FlagProcessor.processImulFlag(
+                    core,
+                    result,
+                    op1,
+                    extSize,
+                )
             }
             2 -> {
-                val result = if (op1.dtyp == Datatype.QWORD)
-                    (op1.ssext(core).bigint * op2.ssext(core).bigint).ulong
-                else
-                    op1.usext(core) * op2.usext(core)
-                FlagProcessor.processTwoThreeOpImulFlag()
-                op1.value(core, result)
+                val (result, extSize) = twoThreeOperand(op1, op2)
+                FlagProcessor.processImulFlag(
+                    core,
+                    result,
+                    op1,
+                    extSize,
+                )
+                op1.value(core, result.ulong)
             }
             3 -> {
-                val result = if (op1.dtyp == Datatype.QWORD)
-                    (op2.ssext(core).bigint * op3.ssext(core).bigint).ulong
-                else
-                    op2.usext(core) * op3.usext(core)
-                FlagProcessor.processTwoThreeOpImulFlag()
-                op1.value(core, result)
+                val (result, extSize) = twoThreeOperand(op2, op3)
+                FlagProcessor.processImulFlag(
+                    core,
+                    result,
+                    op2,
+                    extSize,
+                )
+                op1.value(core, result.ulong)
             }
         }
     }

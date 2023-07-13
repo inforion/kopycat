@@ -43,7 +43,7 @@ class NegDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val op = when (opcode) {
             0xF6 -> rm.m8
             0xF7 -> rm.mpref
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Neg(core, s.data, prefs, op)
     }

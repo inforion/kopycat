@@ -25,20 +25,30 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
+class Fst(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operands: AOperand<x86Core>) :
+    AFPUInstruction(core, opcode, prefs, *operands) {
+    override val mnem = if (popCount == 0) "fst" else "fstp"
 
+    override fun executeFPUInstruction() {
+        val value = op2.extValue(core)
 
-class Fst(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operand: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operand) {
-    override val mnem = "fst"
+        op1.extValue(
+            core,
+            when (op1.dtyp) {
+                Datatype.DWORD -> value.longDouble(core.fpu.fwr.FPUControlWord).float.ieee754AsUnsigned().bigint
+                Datatype.QWORD -> value.longDouble(core.fpu.fwr.FPUControlWord).double.ieee754AsUnsigned().bigint
+                Datatype.FPU80 -> value
+                else -> throw GeneralException("Unknown type")
+            }
+        )
 
-    override fun execute() {
-        val value = op2.value(core)
-        op1.value(core, value)
         core.fpu.pop(popCount)
     }
 }

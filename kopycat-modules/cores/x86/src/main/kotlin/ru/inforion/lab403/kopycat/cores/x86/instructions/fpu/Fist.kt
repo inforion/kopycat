@@ -25,20 +25,25 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
+import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
+class Fist(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operands: AOperand<x86Core>) :
+    AFPUInstruction(core, opcode, prefs, *operands) {
+    override val mnem = "fist" + if (popCount != 0) "p" else ""
 
-
-class Fist(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operands: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
-    override val mnem = "fist"
-
-    override fun execute() {
-        val data = op2.value(core)
-        op1.value(core, data)
+    override fun executeFPUInstruction() {
+        val data = op2.extValue(core)
+        when (op1.dtyp) {
+            Datatype.WORD -> op1.value(core, data.longDouble(core.fpu.fwr.FPUControlWord).short.ulong_z)
+            Datatype.DWORD -> op1.value(core, data.longDouble(core.fpu.fwr.FPUControlWord).int.ulong_z)
+            Datatype.QWORD -> op1.value(core, data.longDouble(core.fpu.fwr.FPUControlWord).long.ulong)
+            else -> throw NotImplementedError("Invalid int type")
+        }
         core.fpu.pop(popCount)
     }
 }

@@ -26,30 +26,38 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.x86.enums.Regtype.*
 import ru.inforion.lab403.kopycat.cores.x86.enums.StringPrefix
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movdqu
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movddup
 import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movlpd
-import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Pxor
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-
 
 class MovlpdDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
         val opcode = s.readOpcode()
         val rm = RMDC(s, prefs)
 
-        require(prefs.operandOverride) { "Vectored variants aren't implemented" }
-
-        val operands = when (opcode) {
-            0x12 -> arrayOf(rm.rxmm, rm.m64)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+        return when (prefs.string) {
+            StringPrefix.NO -> {
+                val operands = when (opcode) {
+                    0x12 -> arrayOf(rm.rxmm, rm.m64)
+                    0x13 -> arrayOf(rm.m64, rm.rxmm)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
+                }
+                Movlpd(core, s.data, prefs, *operands)
+            }
+            StringPrefix.REPNZ -> {
+                val operands = when (opcode) {
+                    0x12 -> arrayOf(rm.rxmm, rm.xmmm64)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
+                }
+                prefs.string = StringPrefix.NO
+                Movddup(core, s.data, prefs, *operands)
+            }
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
-
-        return Movlpd(core, s.data, prefs, *operands)
     }
 }

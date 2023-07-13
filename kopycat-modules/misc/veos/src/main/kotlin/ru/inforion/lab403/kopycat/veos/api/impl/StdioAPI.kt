@@ -290,8 +290,13 @@ class StdioAPI(os: VEOS<*>) : API(os) {
     // TODO: freopen
     // http://www.cplusplus.com/reference/cstdio/setbuf/
     // TODO: setbuf
+    @APIFunc
+    fun setbuf(stream: FILE, buffer: CharPointer) {}
+
     // http://www.cplusplus.com/reference/cstdio/setvbuf/
     // TODO: setvbuf
+    @APIFunc
+    fun setvbuf(stream: FILE, buffer: CharPointer, mode: Int, size: UInt) {}
 
     // --- Formatted input/output ---
 
@@ -654,6 +659,9 @@ class StdioAPI(os: VEOS<*>) : API(os) {
         stream.seek(offset.ulong_z, whence)
         0
     }
+
+    @APIFunc
+    fun fseeko(stream: FILE, offset: LongLong, whence: Int) = fseeko64(stream, offset, whence)
 
     // Errno codes: EBADF, ...
     // REVIEW: check, which errno use

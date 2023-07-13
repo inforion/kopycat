@@ -49,7 +49,7 @@ class RMDC(val stream: x86OperandStream, val prefixes: Prefixes) : ADecodable(st
         0 -> when (rm) {
             4, 12 -> stream.sib(opsize, mod, prefixes)
             5 -> when (prefixes.core.cpu.mode) {
-                R64 -> x86Displacement(opsize, xip(QWORD), prefixes.core.cpu.sregs.cs.toOperand(), stream.imm32)
+                R64 -> x86Displacement(opsize, xip(QWORD), prefixes, stream.imm32)
                 R32 -> x86Displacement(opsize, none(prefixes.addrsize), prefixes, stream.imm32)
                 else -> error("Unknown behaviour in real-mode")  // if you are sure please copy line above to here
             }
@@ -139,7 +139,10 @@ class RMDC(val stream: x86OperandStream, val prefixes: Prefixes) : ADecodable(st
     val m16x64 get() = m(DFWORD)
     val mpref get() = m()
     val mmxpref: AOperand<x86Core> get() = m(MMXWORD, MMX)
+    val mmxm64 get() = m(QWORD, MMX)
     val xmmpref get() = m(XMMWORD, XMM)
+    val xmmm32 get() = m(DWORD, XMM)
+    val xmmm64 get() = m(QWORD, XMM)
     val mxpref get() = if (prefixes.opsize == QWORD) m16x64 else m16x32
 
     private fun r(opsize: Datatype = UNKNOWN, rtyp: Regtype = GPR): AOperand<x86Core> {

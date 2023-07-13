@@ -47,10 +47,10 @@ class MovzxDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 when (sopcode) {
                     0xB6 -> arrayOf(rm1.rpref, rm1.m8)
                     0xB7 -> arrayOf(rm1.rpref, rm1.m16)
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Movzx(core, s.data, prefs, *ops)
     }

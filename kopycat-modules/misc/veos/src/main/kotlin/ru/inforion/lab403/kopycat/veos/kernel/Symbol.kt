@@ -36,7 +36,7 @@ class Symbol constructor(
         var entity: Entity = Entity.Function
 ): IConstructorSerializable {
     enum class Type { Local, External }
-    enum class Entity { Function, Other }
+    enum class Entity { Function, NoType, Other }
 
     val isLocal get() = type == Type.Local
     val isExternal get() = type == Type.External

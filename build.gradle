@@ -4,7 +4,7 @@ plugins {
 }
 
 ext {
-    kotlin_extensions_version = "0.4.0"
+    kotlin_extensions_version = "0.4.3"
 }
 
 subprojects {
@@ -12,9 +12,23 @@ subprojects {
         beforeEvaluate {
             repositories {
                 mavenLocal()
-                mavenCentral()
-                jcenter()
-                maven { url "https://jitpack.io" }
+            
+                project.properties.getOrDefault("mavenInternalRepositoryUrl", "").tap { localUrl ->
+                    if (localUrl.empty) {
+                        project.logger.error("Using mavenCentral repository")
+                        mavenCentral()
+                    } else {
+                        project.logger.error("Using internal URL repository: ${localUrl}")
+                        maven {
+                            url localUrl
+            
+                            credentials {
+                                username = project.properties["mavenUsername"]
+                                password = project.properties["mavenPassword"]
+                            }
+                        }
+                    }
+                }
             }
         }
 

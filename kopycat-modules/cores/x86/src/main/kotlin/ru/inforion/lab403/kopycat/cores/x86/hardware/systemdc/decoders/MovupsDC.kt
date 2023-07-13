@@ -26,28 +26,60 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.x86.enums.Regtype.*
 import ru.inforion.lab403.kopycat.cores.x86.enums.StringPrefix
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movdqu
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movsd
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movss
 import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movups
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-
 
 class MovupsDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
         val opcode = s.readOpcode()
         val rm = RMDC(s, prefs)
 
-        val operands = when (opcode) {
-            0x10 -> arrayOf(rm.rxmm, rm.xmmpref)
-            0x11 -> arrayOf(rm.xmmpref, rm.rxmm)
-            else -> throw GeneralException("Incorrect opcode in decoder")
-        }
+        return when (prefs.string) {
+            StringPrefix.REPZ -> {
+                val operands = when (opcode) {
+                    // F3 0F 10 /r MOVSS xmm1, xmm2
+                    // F3 0F 10 /r MOVSS xmm1, m32
+                    0x10 -> arrayOf(rm.rxmm, rm.xmmm32)
+                    // F3 0F 11 /r MOVSS xmm2/m32, xmm1
+                    0x11 -> arrayOf(rm.xmmm32, rm.rxmm)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
+                }
 
-        return Movups(core, s.data, prefs, *operands)
+                prefs.string = StringPrefix.NO
+                Movss(core, s.data, prefs, *operands)
+            }
+            StringPrefix.REPNZ -> {
+                val operands = when (opcode) {
+                    // F2 0F 10 /r MOVSD xmm1, xmm2
+                    // F2 0F 10 /r MOVSD xmm1, m64
+                    0x10 -> arrayOf(rm.rxmm, rm.xmmm64)
+                    // F2 0F 11 /r MOVSD xmm1/m64, xmm2
+                    0x11 -> arrayOf(rm.xmmm64, rm.rxmm)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
+                }
+
+                prefs.string = StringPrefix.NO
+                Movsd(core, s.data, prefs, *operands)
+            }
+            StringPrefix.NO -> {
+                val operands = when (opcode) {
+                    // NP 0F 10 /r MOVUPS xmm1, xmm2/m128
+                    0x10 -> arrayOf(rm.rxmm, rm.xmmpref)
+                    // NP 0F 11 /r MOVUPS xmm2/m128, xmm1
+                    0x11 -> arrayOf(rm.xmmpref, rm.rxmm)
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
+                }
+
+                Movups(core, s.data, prefs, *operands)
+            }
+            else -> TODO("SSE mov* variant")
+        }
     }
 }

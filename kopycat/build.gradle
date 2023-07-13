@@ -13,7 +13,7 @@ import org.jetbrains.dokka.gradle.DokkaTask
 
 applicationName = "kopycat"
 archivesBaseName = "kopycat"
-version = '0.4.00'
+version = '0.5.00'
 group = 'ru.inforion.lab403'
 applicationDefaultJvmArgs = [
         "-server",
@@ -37,10 +37,12 @@ dependencies {
 
     // Embedded Kotlin console
     implementation group: 'org.jetbrains.kotlin', name: 'kotlin-script-util'
+    runtime group: 'org.jetbrains.kotlin', name: 'kotlin-script-runtime'
     runtime group: 'org.jetbrains.kotlin', name: 'kotlin-scripting-compiler-embeddable'
     runtime group: 'org.jetbrains.kotlin', name: 'kotlin-compiler-embeddable'
 
     implementation group: 'com.github.inforion.common', name: 'argparse', version: kotlin_extensions_version
+    implementation group: 'com.github.inforion.common', name: 'logging', version: kotlin_extensions_version
     implementation group: 'com.github.inforion.common', name: 'reflection', version: kotlin_extensions_version
     implementation group: 'com.github.inforion.common', name: 'scanner', version: kotlin_extensions_version
     implementation group: 'com.github.inforion.common', name: 'utils', version: kotlin_extensions_version
@@ -61,7 +63,7 @@ dependencies {
     implementation group: 'com.fazecast', name: 'jSerialComm', version: '2.6.2'
 
     // Module libraries and registry runtime-loader
-    implementation group: 'org.reflections', name: 'reflections', version: '0.9.11'
+    implementation group: 'org.reflections', name: 'reflections', version: '0.10.2'
 
     // Required to be here for VEOS idk why so, but if this line is put only in VEOS build.gradle Kopycat crashes in RT
     implementation group: 'gnu.getopt', name: 'java-getopt', version: '1.0.13'
@@ -77,6 +79,22 @@ dependencies {
 }
 
 // ---------------------------------------------------------------------------------------------------------------------
+
+task allJar(type: Jar) {
+    baseName = project.name + "-all"
+
+    // compile collects general dependancies
+    // compileClasspath collects production modules dependencies
+    // Reference: https://mkyong.com/gradle/gradle-create-a-jar-file-with-dependencies/
+
+    from {
+        (configurations.compileClasspath + configurations.runtimeClasspath).collect { itJar ->
+            itJar.isDirectory() ? itJar : zipTree(itJar).matching {
+                exclude "**/*.SF"
+            }
+        }
+    } with jar
+}
 
 logger.info("Setting application name = $applicationName")
 

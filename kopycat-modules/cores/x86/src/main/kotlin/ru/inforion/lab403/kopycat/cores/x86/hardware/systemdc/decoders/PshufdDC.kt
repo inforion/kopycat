@@ -26,17 +26,15 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.x86.enums.Regtype.*
 import ru.inforion.lab403.kopycat.cores.x86.enums.StringPrefix
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
 import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Movdqu
 import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Pshufd
-import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Pxor
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Pshuflw
+import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Pshufhw
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-
 
 class PshufdDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
@@ -45,9 +43,17 @@ class PshufdDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
 
         val operands = when (opcode) {
             0x70 -> arrayOf(rm.rxmm, rm.xmmpref, s.imm8)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
 
-        return Pshufd(core, s.data, prefs, *operands)
+        val insn = when (prefs.string) {
+            StringPrefix.NO -> Pshufd(core, s.data, prefs, *operands)
+            StringPrefix.REPNZ -> Pshuflw(core, s.data, prefs, *operands)
+            StringPrefix.REPZ -> Pshufhw(core, s.data, prefs, *operands)
+            else -> TODO("pshuf* variants")
+        }
+
+        prefs.string = StringPrefix.NO
+        return insn
     }
 }

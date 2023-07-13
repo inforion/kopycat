@@ -37,29 +37,28 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.Fst
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
 class FstDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
     override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
         val opcode = s.last
         val currByte = s.peekByte().int
         val column = currByte[5..3]
-        val popNumber = if (column == 3) 1 else 0
+        val popNumber = if (column == 3 || column == 7) 1 else 0
         val rm = RMDC(s, prefs)
         val op0 = when (opcode) {
             0xD9 -> rm.m32
-            0xDB -> TODO("m80real")
+            0xDB -> rm.m80
             0xDD -> {
-                when{
+                when {
                     currByte in 0xD0 until 0xE0 -> {
                         val subCode = currByte[2..0]
+                        s.readByte()
                         x86FprRegister(subCode)
                     }
                     column in 2..3 -> rm.m64
                     else -> throw GeneralException("Something goes wrong with FstDC")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         val op1 = x86FprRegister(0)
         return Fst(core, s.data, prefs, popNumber, op0, op1)

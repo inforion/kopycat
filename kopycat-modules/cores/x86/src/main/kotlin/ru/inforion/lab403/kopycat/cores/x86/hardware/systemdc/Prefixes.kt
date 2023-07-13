@@ -33,7 +33,7 @@ import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
-class Prefixes(
+data class Prefixes(
     val core: x86Core,
     var lock: Boolean = false,
     var string: StringPrefix = StringPrefix.NO,
@@ -53,7 +53,7 @@ class Prefixes(
         Mode.R64 -> when {
             isAddress -> if (override) DWORD else QWORD
             else -> when {
-                rexW && !override -> QWORD
+                rexW -> QWORD
                 override -> WORD
                 else -> DWORD
             }

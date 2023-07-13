@@ -114,8 +114,8 @@ abstract class APIC(parent: Module, name: String): Module(parent, name) {
             }
         }
 
-        override fun beforeRead(from: MasterPort, ea: ULong): Boolean  = true
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean  = true
+        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = table[ea.int] != null
+        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = table[ea.int] != null
 
         /**
          * {RU}

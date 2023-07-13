@@ -45,7 +45,7 @@ class IncDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47 -> gprr(opcode % 0x40, prefs.rexB, prefs.opsize)
             0xFE -> rm.m8
             0xFF -> rm.mpref
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Inc(core, s.data, prefs, op)
     }

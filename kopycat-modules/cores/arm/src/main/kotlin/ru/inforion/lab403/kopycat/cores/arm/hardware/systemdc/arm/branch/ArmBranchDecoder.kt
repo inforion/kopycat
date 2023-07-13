@@ -28,7 +28,6 @@ package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.branch
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.signextRenameMeAfter
-import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.branch.B
@@ -40,7 +39,7 @@ object ArmBranchDecoder {
             val imm24 = data[23..0]
             val imm26 = imm24 shl 2
             val imm32 = imm(imm26.signextRenameMeAfter( 25), true)
-            return B(core, data, Condition.UN, imm32)
+            return B(core, data, cond(data), imm32)
 //            TODO("WHEN CACHE FOR THUMB ENABLE THIS SHOULD BE FIXED!")
         }
     }

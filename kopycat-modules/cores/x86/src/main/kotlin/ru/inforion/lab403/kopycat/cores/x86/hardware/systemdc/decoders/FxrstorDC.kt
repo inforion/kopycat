@@ -56,7 +56,7 @@ class FxrstorDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                     else -> throw GeneralException("Incorrect sopcode = $sopcode")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Fxrstor(core, s.data, prefs, arg)
     }

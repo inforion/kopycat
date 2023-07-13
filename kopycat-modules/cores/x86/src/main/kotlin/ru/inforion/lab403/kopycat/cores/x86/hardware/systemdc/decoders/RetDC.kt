@@ -50,7 +50,7 @@ class RetDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0xC3 -> Ret(core, zero, s.data, prefs, isFar = false)
             0xCA -> Ret(core, s.imm16, s.data, prefs, isFar = true)
             0xCB -> Ret(core, zero, s.data, prefs, isFar = true)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return insn
     }

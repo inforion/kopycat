@@ -52,10 +52,10 @@ class MovsxDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 when (sopcode) {
                     0xBE -> arrayOf(rm.rpref, rm.m8)
                     0xBF -> arrayOf(rm.rpref, rm.m16)
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Movsx(core, s.data, prefs, *ops)
     }

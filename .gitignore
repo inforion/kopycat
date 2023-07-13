@@ -4,6 +4,7 @@ target
 build
 out
 temp
+venv*
 
 *.iml
 
@@ -12,7 +13,6 @@ temp
 \.idea/encodings\.xml
 \.idea/workspace\.xml
 \.idea/uiDesigner\.xml
-\.idea/modules\.xml
 \.idea/gradle\.xml
 
 \.idea/dictionaries

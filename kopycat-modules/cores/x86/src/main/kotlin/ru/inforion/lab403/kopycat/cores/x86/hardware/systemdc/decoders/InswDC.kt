@@ -41,7 +41,7 @@ class InswDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val reg = xdi(prefs.addrsize)
         val ops = when (opcode) {
             0x6D -> arrayOf(x86Displacement(Datatype.WORD, reg, ds), dx)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Insw(core, s.data, prefs, *ops)
     }

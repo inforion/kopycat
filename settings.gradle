@@ -30,6 +30,8 @@ include(":kopycat-modules:misc:examples")
 
 
 
+include(":kopycat-modules:misc:experimental")
+
 
 
 include(":common:proposal")

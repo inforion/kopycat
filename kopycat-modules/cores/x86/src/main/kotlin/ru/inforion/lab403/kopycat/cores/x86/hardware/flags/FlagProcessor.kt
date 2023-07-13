@@ -25,11 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.hardware.flags
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.ushr
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86Immediate
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import java.math.BigInteger
 
 object FlagProcessor {
 
@@ -84,9 +86,9 @@ object FlagProcessor {
     for all 1-bit shifts. For the SHR instruction, the OF flag is set to the most-significant bit of the
     original operand.
     */
-    fun getOFShift(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>,
+    fun getOFShift(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, shiftAmount: Int,
                    isLeft: Boolean, isSar: Boolean): Boolean =
-            if(op2.value(core) == 1uL)
+            if(shiftAmount == 1)
                 if(isSar)
                     false
                 else if(isLeft)
@@ -96,9 +98,46 @@ object FlagProcessor {
             else
                 false
 
-    fun processOneOpImulFlag() {}
-    fun processTwoThreeOpImulFlag() {}
+    private infix fun BigInteger.signext(n: Int) =
+        if ((this ushr n).int.truth)
+            (((BigInteger.ONE shl (128 - n)) - BigInteger.ONE) shl n) or this
+        else this[n..0]
+
+    private operator fun BigInteger.get(dt: Datatype) = get(dt.msb..dt.lsb)
+
+    fun processImulFlag(core: x86Core, result: BigInteger, op1: AOperand<x86Core>, extSize: Datatype) {
+        val sextEq = (result[op1.dtyp] signext op1.dtyp.msb)[extSize] == result[extSize]
+
+        core.cpu.flags.eflags.cf = !sextEq
+        core.cpu.flags.eflags.of = !sextEq
+
+        // undefined, but set in qemu
+        core.cpu.flags.eflags.pf = getPF(
+            core,
+            Variable<x86Core>(0uL, Datatype.BYTE).apply { value(core, result.ulong) },
+        )
+        core.cpu.flags.eflags.sf = result[op1.dtyp.msb].truth
+        core.cpu.flags.eflags.zf = result == BigInteger.ZERO
+        core.cpu.flags.eflags.af = false
+    }
+
     fun processCliFlag() {}
+
+    fun processSbbFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>, minusOne: Boolean) {
+        val a1 = op1.value(core)
+        val a2 = op2.value(core)
+
+        val sub1 = x86Immediate(op1.dtyp, a1 - a2)
+        val one = x86Immediate(op1.dtyp, minusOne.ulong)
+        val sub2 = Variable<x86Core>(0uL, op1.dtyp).apply { minus(core, sub1, one) }
+
+        core.cpu.flags.eflags.zf = result.isZero(core)
+        core.cpu.flags.eflags.sf = result.isNegative(core)
+        core.cpu.flags.eflags.cf = a1 < a2 || sub2.isCarry(core, sub1, one, true)
+        core.cpu.flags.eflags.of = result.isIntegerOverflow(core, op1, op2, true)
+        core.cpu.flags.eflags.pf = getPF(core, result)
+        core.cpu.flags.eflags.af = (a1 xor sub2.value(core) xor a2)[4].truth
+    }
 
     fun processAddSubCmpFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>, isSubtract: Boolean) {
         core.cpu.flags.eflags.zf = result.isZero(core)
@@ -109,8 +148,12 @@ object FlagProcessor {
         core.cpu.flags.eflags.af = getAF(core, result, op1, op2)
     }
 
-    fun processNegFlag(core: x86Core, result: Variable<x86Core>) {
+    fun processNegFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>) {
+        core.cpu.flags.eflags.sf = result.isNegative(core)
+        core.cpu.flags.eflags.zf = result.isZero(core)
         core.cpu.flags.eflags.cf = result.value(core) != 0uL
+        core.cpu.flags.eflags.pf = getPF(core, result)
+        core.cpu.flags.eflags.af = getAF(core, result, op1, op2)
     }
 
     fun processIncDecFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>, isSubtract: Boolean){
@@ -126,13 +169,14 @@ object FlagProcessor {
         if(op2.value(core) == 1uL) core.cpu.flags.eflags.of = getOFRotate(core, result, isLeft)
     }
 
-    fun processShiftFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>,
+    fun processShiftFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, shiftAmount: Int,
                          isLeft: Boolean, isSar: Boolean, cf: Boolean) {
         core.cpu.flags.eflags.cf = cf
         core.cpu.flags.eflags.pf = getPF(core, result)
         core.cpu.flags.eflags.zf = result.isZero(core)
         core.cpu.flags.eflags.sf = result.isNegative(core)
-        core.cpu.flags.eflags.of = getOFShift(core, result, op1, op2, isLeft, isSar)
+        core.cpu.flags.eflags.of = getOFShift(core, result, op1, shiftAmount, isLeft, isSar)
+        core.cpu.flags.eflags.af = false
     }
 
     fun processAndOrXorTestFlag(core: x86Core, result: Variable<x86Core>) {

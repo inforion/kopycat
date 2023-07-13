@@ -91,4 +91,16 @@ class Options : ApplicationOptions("kopycat", "virtualization platform") {
             "Set messages minimum logging level for specified loggers in format logger0=LEVEL,logger1=LEVEL\n" +
                     "Or for all loggers if no '=' was found in value just logger level, i.e. FINE\n" +
                     "Available levels: ${Levels.values().joinToString()}\n")
+
+    val loggingFile: String? by variable("-lf", "--log-file",
+            "Additional log file path. The logs will be duplicated into the console and the file\n")
+
+    val initScript: String? by variable("-is", "--init-script",
+        "Run initial script\n")
+
+    val scriptDir: String? by variable("-sd", "--script-dir",
+        "Runtime scripts directory path (default path for kc.runScript)")
+
+    val resourceDir: String? by variable("-rd", "--resource-dir",
+        "Resource directory path")
 }

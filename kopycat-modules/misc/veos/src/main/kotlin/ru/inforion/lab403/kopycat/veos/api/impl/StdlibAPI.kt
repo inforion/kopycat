@@ -35,11 +35,13 @@ import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.API
 import ru.inforion.lab403.kopycat.veos.api.annotations.APIFunc
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
+import ru.inforion.lab403.kopycat.veos.api.abstracts.APIVariable
+import ru.inforion.lab403.kopycat.veos.api.datatypes.LongLong
 import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
-import ru.inforion.lab403.kopycat.veos.api.pointers.BytePointer
-import ru.inforion.lab403.kopycat.veos.api.pointers.FunctionPointer
-import ru.inforion.lab403.kopycat.veos.api.pointers.VoidPointer
 import ru.inforion.lab403.kopycat.veos.api.datatypes.size_t
+import ru.inforion.lab403.kopycat.veos.api.misc.toStdCErrno
+import ru.inforion.lab403.kopycat.veos.api.pointers.*
+import ru.inforion.lab403.kopycat.veos.ports.posix.PosixError
 import ru.inforion.lab403.kopycat.veos.ports.posix.nullptr
 
 /**
@@ -53,7 +55,7 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
         [atoi] - Convert string to integer
         [atol] - Convert string to long integer
         TODO: atoll  - Convert string to long long integer
-        TODO: strtod - Convert string to double
+        [strtod] - Convert string to double
         TODO: strtof  - Convert string to float
         [strtol] - Convert string to long integer
         TODO: strtold  - Convert string to long double
@@ -120,6 +122,13 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
         @Transient val log = logger(CONFIG)
     }
 
+    // TODO: move to Errno
+    val errno = APIVariable.int(os, "errno")
+
+    override fun setErrno(error: Exception?) {
+        errno.allocated.value = error?.toStdCErrno(ra)?.id ?: PosixError.ESUCCESS.id
+    }
+
     // --- String conversion ---
     // http://www.cplusplus.com/reference/cstdlib/atof/
     // TODO: atof
@@ -141,8 +150,31 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
 
     // TODO: atoll
     // http://www.cplusplus.com/reference/cstdlib/atoll/
-    // TODO: strtod
-    // http://www.cplusplus.com/reference/cstdlib/atod/
+
+    // https://cplusplus.com/reference/cstdlib/strtod/
+    // TODO: not tested
+    @APIFunc
+    fun strtod(str: CharPointer, endptr: PointerPointer): Double = nothrow(0.0) {
+        log.config { "[0x${ra.hex8}] strtoul(str='$str' endptr=${endptr.address.hex8})" }
+
+        if (endptr.isNotNull) endptr.set(str.address)
+
+        val string = str.string.trim()
+        var i = 0
+
+        if (string.isEmpty()) throw NumberFormatException()
+        if (string[i] == '+' || string[i] == '-') i+=1
+        while (string.length > i && string[i].isDigit()) i+=1
+        if (string.length > i && string[i] == '.') {
+            i += 1
+            while (string.length > i && string[i].isDigit()) i+=1
+        }
+
+        if (endptr.isNotNull) endptr.set(str.address + i)
+        return string[0..i].double
+    }
+
+
     // TODO: strtof
     // http://www.cplusplus.com/reference/cstdlib/strtof/
 
@@ -156,7 +188,9 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
             val base = argv[2]
 
             val items = str.trim().splitBy(whitespaces)
-            val value = items[0].ulong(base.int)
+            val value = try {
+                items[0].ulong(base.int)
+            } catch (e: NumberFormatException) { 0uL }
 
             if (endptr != nullptr) {
                 val feedback = argv[0] + str.indexOf(items[0]) + items[0].length
@@ -338,6 +372,9 @@ class StdlibAPI(os: VEOS<*>) : API(os) {
                 val sortedItems = sortedAddress.map { os.abi.readBytes(it, size) }
                 (addresses zip sortedItems).forEach { (address, item) -> os.abi.writeBytes(address, item) }
             }
+
+    @APIFunc
+    fun toupper(char: Char) = char.uppercaseChar()
 
     // --- Integer arithmetics ---
     // TODO: abs

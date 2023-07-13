@@ -11,5 +11,10 @@ buildKopycatModule {
 }
 
 dependencies {
+    testImplementation files("libs/unicorn_7b8c63df.jar")
     implementation group: 'com.github.inforion.common', name: 'math', version: kotlin_extensions_version
+}
+
+tasks.withType(Test) {
+    systemProperty "java.library.path", "../../../libs/"
 }

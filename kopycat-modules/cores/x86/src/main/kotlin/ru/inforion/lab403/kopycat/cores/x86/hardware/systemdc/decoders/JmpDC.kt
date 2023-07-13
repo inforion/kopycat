@@ -70,10 +70,10 @@ class JmpDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                         val far_ss = core.inw(where + prefs.opsize.bytes.uint, ssr.reg)
                         Jmp(core, x86Far(address, far_ss), s.data, prefs, isRelative = false, isFar = true)
                     }
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
     }
 }

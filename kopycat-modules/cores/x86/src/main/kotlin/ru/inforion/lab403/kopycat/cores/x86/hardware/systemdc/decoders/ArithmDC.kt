@@ -55,7 +55,7 @@ class ArithmDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, Arra
             0x81 -> arrayOf(rm.mpref, s.imm(prefs))
             0x82 -> TODO()
             0x83 -> arrayOf(rm.mpref, x86Immediate(prefs.opsize, s.imm8.usext(core) mask prefs.opsize.bits))  // TODO! make it pretty
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return construct(core, s.data, prefs, ops)
     }

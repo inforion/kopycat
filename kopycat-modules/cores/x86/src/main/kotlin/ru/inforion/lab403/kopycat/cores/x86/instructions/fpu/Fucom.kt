@@ -25,22 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
+class Fucom(core: x86Core, opcode: ByteArray, prefs: Prefixes, private val popNumber: Int, vararg operands: AOperand<x86Core>) :
+    AFPUInstruction(core, opcode, prefs, *operands) {
+    override val mnem = "fucom" + when (popNumber) {
+        1 -> "p"
+        2 -> "pp"
+        else -> ""
+    }
 
-
-class Fucom(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popNumber: Int, vararg operand: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operand) {
-    override val mnem = "fucom"
-
-    override fun execute() {
-        val a1 = op1.value(core).long.ieee754()
-        val a2 = op2.value(core).long.ieee754()
+    override fun executeFPUInstruction() {
+        val a1 = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+        val a2 = op2.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
         when {
             a1 > a2 -> {
                 core.fpu.fwr.FPUStatusWord.c0 = false
@@ -56,7 +55,6 @@ class Fucom(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popNumber: In
                 core.fpu.fwr.FPUStatusWord.c0 = false
                 core.fpu.fwr.FPUStatusWord.c2 = false
                 core.fpu.fwr.FPUStatusWord.c3 = true
-
             }
         }
         core.fpu.pop(popNumber)

@@ -112,7 +112,7 @@ class ElfSymbol(
                 TODO("There should be call of decoder")
                 //decoder.checkSymbolType(infoType)
             }
-            else -> throw EBadSymbol("Unknown symbol type")
+            else -> log.severe { "Unknown symbol type for symbol $name" }
         }
 
         if (other.int_z != 0)

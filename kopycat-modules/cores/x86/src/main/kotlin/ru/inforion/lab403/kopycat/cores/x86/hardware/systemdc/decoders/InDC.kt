@@ -41,7 +41,7 @@ class InDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0xE5 -> arrayOf(xax(prefs.opsize), s.imm8)
             0xEC -> arrayOf(al, dx)
             0xED -> arrayOf(xax(prefs.opsize), dx)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return In(core, s.data, prefs, *ops)
     }

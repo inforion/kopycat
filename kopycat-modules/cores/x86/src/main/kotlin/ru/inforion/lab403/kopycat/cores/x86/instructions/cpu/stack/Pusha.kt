@@ -28,7 +28,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.stack
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
+import ru.inforion.lab403.kopycat.cores.x86.pageFault
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -38,6 +38,10 @@ class Pusha(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "pusha"
 
     override fun execute() {
+        pageFault(core) {
+            (0 until 8).forEach { _ -> push(prefs.opsize, prefs) }
+        }
+
         val eax = core.cpu.regs.gpr(x86GPR.RAX, prefs.opsize).value
         val ecx = core.cpu.regs.gpr(x86GPR.RCX, prefs.opsize).value
         val edx = core.cpu.regs.gpr(x86GPR.RDX, prefs.opsize).value

@@ -25,21 +25,16 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
-import ru.inforion.lab403.common.math.math
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
-class Fldl2t(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, operand) {
+class Fldl2t(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>) :
+    AFPUInstruction(core, opcode, prefs, operand) {
     override val mnem = "fldl2t"
 
-    override fun execute() {
-        (op1 as x86FprRegister).push(core, math.log2(10.0).ieee754AsUnsigned())
+    override fun executeFPUInstruction() {
+        (op1 as x86FprRegister).push(core, LongDouble.log2_10(core.fpu.fwr.FPUControlWord).ieee754AsUnsigned())
     }
 }

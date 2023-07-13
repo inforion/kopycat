@@ -43,6 +43,7 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
 import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
 import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType.*
+import ru.inforion.lab403.kopycat.interactive.REPL
 import ru.inforion.lab403.kopycat.interfaces.IDebugger
 import ru.inforion.lab403.kopycat.interfaces.ITracer
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
@@ -50,10 +51,16 @@ import ru.inforion.lab403.kopycat.serializer.Serializer
 import ru.inforion.lab403.kopycat.settings.snapshotFileExtension
 import java.io.Closeable
 import java.io.File
+import java.io.FileOutputStream
 import java.lang.reflect.InvocationTargetException
+import java.math.BigInteger
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
+import kotlin.io.path.Path
+import kotlin.io.path.div
 
 /**
  * {EN}
@@ -118,6 +125,18 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
             child.isAbsolute() -> child
             else -> "".toFile(child).absolutePath
         }
+
+        var resourceDir = getWorkingDir()
+            private set(value) {
+                log.info { "Change resources directory to '$value'" }
+                field = value
+            }
+
+        var scriptDir = getWorkingDir()
+            private set(value) {
+                log.info { "Change scripts directory to '$value'" }
+                field = value
+            }
     }
 
     class InitializeKopycatException(description: String) : Exception(description)
@@ -148,6 +167,14 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
 
     fun setSnapshotsDirectory(path: String?) {
         snapshotsDir = getWorkingDir(path)
+    }
+
+    fun setResourceDirectory(path: String?) {
+        resourceDir = getWorkingDir(path)
+    }
+
+    fun setScriptDirectory(path: String?) {
+        scriptDir = getWorkingDir(path)
     }
 
     fun open(top: Module, gdb: GDBServer?, traceable: Boolean) {
@@ -281,6 +308,14 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
 
     fun reset() = top.reset()
 
+    fun runToPC(pc: ULong): ULong {
+        return run { _, core -> core.pc != pc }
+    }
+
+    fun printTrace() {
+        core.info.printTrace()
+    }
+
     fun run(predicate: (step: ULong, core: AGenericCore) -> Boolean): ULong {
         val hook = hook(predicate)
         if (hook != null) {
@@ -342,6 +377,34 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
         serializer.serialize(file, comment)
 
         return name
+    }
+
+    private fun saveEveryInterval(time: Long, path: String? = null, comment: String? = null) {
+        log.info { "Autosnapshot of the target" }
+        halt()
+        save(path, comment)
+        start()
+    }
+
+    /**
+     * Make snapshot after every [delay] seconds
+     */
+    fun saveInTime(delay: Long, path: String? = null, comment: String? = null, unit: TimeUnit = TimeUnit.SECONDS) {
+        val executorService = Executors.newSingleThreadScheduledExecutor()
+        executorService.scheduleAtFixedRate(
+            { saveEveryInterval(delay, path, comment) },
+            0,
+            delay,
+            unit
+        )
+    }
+
+    fun runScript(filename: String) {
+        val file = (Path(scriptDir) / Path(filename)).toFile()
+        // TODO: check file existence
+
+        log.severe { "Run script: ${file.absolutePath}" }
+        REPL.get().silentEval(file.readText() + "\n")
     }
 
     fun restore() {
@@ -451,8 +514,9 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
 
     override fun exception() = core.exception()
 
-    override fun regRead(index: Int): ULong = core.reg(index)
-    override fun regWrite(index: Int, value: ULong): Unit = core.reg(index, value)
+    override fun regRead(index: Int): BigInteger = core.reg(index).bigint
+    fun regWrite(index: Int, value: ULong): Unit = core.reg(index, value)
+    override fun regWrite(index: Int, value: BigInteger): Unit = core.reg(index, value.ulong)
 
     /**
      * {RU}
@@ -461,9 +525,14 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
      * @param action действие выполняемое после остановки эмулятора
      * {RU}
      */
-    fun start(action: () -> Unit) = thread {
+    fun start(action: () -> Unit) = if (!isRunning) thread {
         debugger.cont()
         action()
+    } else {
+        log.warning {
+            "Already running( ´･･)ﾉ(._.`)"
+        }
+        null
     }
 
     /**
@@ -471,7 +540,12 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
      * Запустить без блокировки выполнения программы эмуляцию
      * {RU}
      */
-    fun start() = thread { debugger.cont() }
+    fun start() = if (!isRunning) thread {
+        debugger.cont()
+    } else {
+        log.severe { "Already running( ´･･)ﾉ(._.`)" }
+        null
+    }
 
     /**
      * {RU}
@@ -499,6 +573,23 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
         if ('w' in tmp) code = code or 0b010
         if ('x' in tmp) code = code or 0b100
         return bptSet(address, code)
+    }
+
+    fun memDump(address: ULong, length: Int, filename: String) {
+        val batchSize = 1 * 1024 * 1024
+        val batches = length / batchSize
+        val remain = length - batches * batchSize
+        FileOutputStream(filename, false).use {
+            for (i in 0 until batches) {
+                val iterAddr = address + i * batchSize
+                it.write(core.load(iterAddr, batchSize))
+            }
+
+            val iterAddr = address + batches * batchSize
+            if (remain != 0) {
+                it.write(core.load(iterAddr, remain))
+            }
+        }
     }
 
     /**

@@ -49,10 +49,10 @@ class NopDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 val rm = RMDC(s, prefs)
                 when (sopcode) {
                     0x1F -> arrayOf(rm.mpref)
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Nop(core, s.data, prefs, *ops)
     }

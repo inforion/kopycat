@@ -139,7 +139,7 @@ class ARMv6CPU(
         pc += insn.size.uint + offset
         val lrBefore = regs.lr.value
         try {
-            insn.execute()
+            if (ConditionPassed(insn.cond)) insn.execute()
 
             // check A7.3.3 about ITSTATE in ARMv7-M ref. manual
             if (InITBlock())

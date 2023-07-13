@@ -54,6 +54,7 @@ open class Memory<in T: AGenericCore>(
         access: Access,
         num: Int = WRONGI) :
         AOperand<T>(MEM, access, VOID, num, dtyp) {
+    override val hasEffectiveAddress = true
 
     override fun effectiveAddress(core: T): ULong = addr like atyp
 

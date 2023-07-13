@@ -25,19 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
+import ru.inforion.lab403.common.extensions.bigint
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
+import java.math.BigInteger
 
 
 class v850ESDebugger(parent: Module, name: String): Debugger(parent, name) {
     override fun ident() = "v850es"
 
-    override fun registers(): MutableList<ULong> {
+    override fun registers(): MutableList<BigInteger> {
         val core = core as v850ESCore
         val gprRegs = Array(core.cpu.regs.count()) { k -> regRead(k) }
-        val ctrlRegs = Array(core.cpu.cregs.count()) { k -> readCtrlRegister(core, k) }
-        val flags = Array(core.cpu.flags.count()) { k -> readFlags(core, k) }
+        val ctrlRegs = Array(core.cpu.cregs.count()) { k -> readCtrlRegister(core, k).bigint }
+        val flags = Array(core.cpu.flags.count()) { k -> readFlags(core, k).bigint }
         val result = gprRegs.toMutableList()
         result.addAll(ctrlRegs)
         result.addAll(flags)

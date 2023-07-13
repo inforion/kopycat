@@ -59,6 +59,8 @@ class ModuleLibraryRegistry constructor(
         private fun loadSystemLibraries(internalClassDirectory: String): Array<ModuleFactoryLibrary> {
             val packages = internalClassDirectory.scanSubtypesOf<Module>()
                     .filter {
+                        // PERF: maybe do filtering before scanning?
+
                         // we should not load in system loader any classes that not in .../main or kopycat-X.Y.AB.jar
                         it.name.startsWith("$internalClassDirectory.") && (
                                 it.location2 == systemJarOrClassPath ||
@@ -90,6 +92,9 @@ class ModuleLibraryRegistry constructor(
 
         private fun parseClasspathRegistry(dir: String) = dir.scanSubtypesOf<Module>()
                 .filter { cls ->
+                    // PERF: maybe do filtering before scanning?
+                    // PERF: Also, something like `find any` can be used
+                    // Foreach library search at least one `Module` inherited class => ok
                     cls.isModuleClasspath(dir).also { log.finest { "Found class: $cls -> module: $it" } }
                 }.map {
                     val name = getLibraryNameFromClasspath(it, dir)
@@ -117,9 +122,7 @@ class ModuleLibraryRegistry constructor(
          * @param line строка с реестрами заданными через запятую, например: path/to/registry1,path.to.registry2
          * {RU}
          */
-        private fun parseRegistriesLine(line: String) = line
-                .splitBy(settings.registriesSeparator)
-                .distinct()
+        private fun parseRegistriesLine(registries: Set<String>) = registries
                 .mapNotNull { where ->
                     when {
                         where.isDirectory() -> parseFilesystemRegistry(where)
@@ -152,7 +155,15 @@ class ModuleLibraryRegistry constructor(
         ): ModuleLibraryRegistry {
             // parse registries and libraries lines specified by user and append to it
             // build-in registry path to load only module that placed outside(!) main jar file
-            val registries = if (regCfgLine != null) "$regCfgLine,${settings.internalModulesClasspath}" else settings.internalModulesClasspath
+            val registriesLine = if (regCfgLine != null) {
+                "$regCfgLine,${settings.internalModulesClasspath}"
+            } else {
+                settings.internalModulesClasspath
+            }
+
+            val registries = registriesLine
+                .splitBy(settings.registriesSeparator)
+                .toSet()
 
             val specifiedRegistriesPaths = parseRegistriesLine(registries)
             val specifiedLibrariesPaths = if (libCfgLine != null) parseLibrariesLine(libCfgLine) else emptyMap()
@@ -165,7 +176,12 @@ class ModuleLibraryRegistry constructor(
             // load libraries outside main jar
             val externalLibraries = loadUserLibraries(paths)
             // load internal system libraries
-            val systemLibraries = if (system != null) loadSystemLibraries(system) else emptyArray()
+
+            val systemLibraries = if (system != null && system !in registries) {
+                loadSystemLibraries(system)
+            } else {
+                emptyArray()
+            }
 
             val libraries = externalLibraries + systemLibraries
             return ModuleLibraryRegistry(regCfgLine, libCfgLine, *libraries).load()
@@ -211,8 +227,14 @@ class ModuleLibraryRegistry constructor(
      * {EN}Load module with [name] from specified json in [stream] and parameters [parameters]{EN}
      */
     fun json(parent: Module?, stream: InputStream, name: String, vararg parameters: Any?) =
-            JsonModuleFactoryBuilder.JsonModule(null, this, parent, name,
-                stream.removeJsonComments().fromJson(), *parameters)
+        JsonModuleFactoryBuilder.JsonModule(
+            null,
+            this,
+            parent,
+            name,
+            stream.removeJsonComments().fromJson(),
+            *parameters
+        )
 
     /**
      * {EN}Load module with [name] from specified json with path [path] and parameters [parameters]{EN}

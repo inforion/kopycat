@@ -38,16 +38,20 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.enums.ArgType
 import ru.inforion.lab403.kopycat.veos.VEOS
-import ru.inforion.lab403.kopycat.veos.api.abstracts.*
+import ru.inforion.lab403.kopycat.veos.api.abstracts.API
+import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
+import ru.inforion.lab403.kopycat.veos.api.abstracts.APIVariable
 import ru.inforion.lab403.kopycat.veos.api.annotations.APIFunc
 import ru.inforion.lab403.kopycat.veos.api.datatypes.LongLong
 import ru.inforion.lab403.kopycat.veos.api.datatypes.mode_t
 import ru.inforion.lab403.kopycat.veos.api.datatypes.size_t
 import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
-import ru.inforion.lab403.kopycat.veos.api.misc.*
+import ru.inforion.lab403.kopycat.veos.api.misc.toStdCErrno
 import ru.inforion.lab403.kopycat.veos.api.pointers.*
-import ru.inforion.lab403.kopycat.veos.exceptions.io.*
-import ru.inforion.lab403.kopycat.veos.filesystems.*
+import ru.inforion.lab403.kopycat.veos.exceptions.InvalidArgument
+import ru.inforion.lab403.kopycat.veos.exceptions.io.IONoSuchFileOrDirectory
+import ru.inforion.lab403.kopycat.veos.filesystems.AccessFlags
+import ru.inforion.lab403.kopycat.veos.filesystems.impl.FileSystem
 import ru.inforion.lab403.kopycat.veos.kernel.System
 import ru.inforion.lab403.kopycat.veos.ports.obstack._obstack_chunk
 import ru.inforion.lab403.kopycat.veos.ports.obstack.obstack
@@ -69,6 +73,10 @@ class PosixAPI(os: VEOS<*>) : API(os) {
 
     companion object {
         @Transient val log = logger(FINE)
+    }
+
+    init {
+        type(ArgType.Pointer) { _, it -> StructPointer(os.sys, it) }
     }
 
     override fun setErrno(error: Exception?) {
@@ -345,6 +353,23 @@ class PosixAPI(os: VEOS<*>) : API(os) {
             val result = nothrow(-1) { os.ioSystem.write(fd, data); data.size }
             return retval(result.ulong_z)
         }
+    }
+
+    // https://man7.org/linux/man-pages/man2/lseek.2.html
+    @APIFunc
+    fun lseek(fd: Int, offset: Int, whence: Int) = nothrow(-1) {
+        log.fine { "[0x${ra.hex8}] lseek(fd=${fd} offset=0x${offset.hex8} whence=0x${whence.hex8})" }
+        val seek = find<FileSystem.Seek> { it.id == whence } ?: throw InvalidArgument()
+        sys.filesystem.seek(fd, offset.ulong_z, seek)
+        sys.filesystem.tell(fd).int
+    }
+
+    @APIFunc
+    fun lseek64(fd: Int, offset: LongLong, whence: Int) = nothrow(-1) {
+        log.fine { "[0x${ra.hex8}] lseek64(fd=${fd} offset=0x${offset.ulong.hex} whence=0x${whence.hex8})" }
+        val seek = find<FileSystem.Seek> { it.id == whence } ?: throw InvalidArgument()
+        sys.filesystem.seek(fd, offset.ulong, seek)
+        sys.filesystem.tell(fd).int
     }
 
     // SVr4, 4.3BSD, POSIX.1-2001.
@@ -1132,6 +1157,9 @@ class PosixAPI(os: VEOS<*>) : API(os) {
         return 0
     }
 
+    @APIFunc
+    fun __getrusage_time64(who: Int, usage: rusage) = getrusage(who, usage)
+
     // REVIEW: #include <sys/stat.h>
     // SVr4, 4.3BSD, POSIX.1-2001
     // https://linux.die.net/man/2/umask
@@ -1602,5 +1630,55 @@ class PosixAPI(os: VEOS<*>) : API(os) {
     @APIFunc
     fun freecon(con: CharPointer) {
         con.free()
+    }
+
+
+    // TODO: Add aligment
+    // https://man7.org/linux/man-pages/man3/posix_memalign.3.html
+    @APIFunc
+    fun posix_memalign(memptr: PointerPointer, aligment: size_t, size: size_t): Int {
+        StdlibAPI.log.finest { "[0x${ra.hex8}] malloc(size=$size)" }
+        val address = sys.allocate(size.int)
+        return if (address != -1uL) {
+            memptr.set(address)
+            0
+        } else 1
+    }
+
+    // https://man7.org/linux/man-pages/man2/gettimeofday.2.html
+    @APIFunc
+    fun gettimeofday(tvptr: StructPointer, tzptr: StructPointer): Int {
+        if (tvptr.isNotNull) {
+            val tv = timeval.from_millis(sys.time)
+            tvptr.setBytes(0, tv.asBytes)
+        }
+        if (tzptr.isNotNull) {
+            val tz = timezone(sys.timezone.rawOffset / 1000 / 60)
+            tzptr.setBytes(0, tz.asBytes)
+        }
+        return 0
+    }
+
+    @APIFunc
+    fun gettimeofday_time64(tvptr: StructPointer, tzptr: StructPointer): Int {
+        if (tvptr.isNotNull) {
+            val tv = timeval64.from_millis(sys.time)
+            tvptr.setBytes(0, tv.asBytes)
+        }
+        if (tzptr.isNotNull) {
+            val tz = timezone(sys.timezone.rawOffset / 1000 / 60)
+            tzptr.setBytes(0, tz.asBytes)
+        }
+        return 0
+    }
+
+    @APIFunc
+    fun __gettimeofday_time64(tv: StructPointer, tz: StructPointer) = gettimeofday_time64(tv, tz)
+
+    @APIFunc
+    fun signal(signum: Int) {
+        // TODO: Realize sending signal
+        log.config { "Send signal ${signum}" }
+        return
     }
 }

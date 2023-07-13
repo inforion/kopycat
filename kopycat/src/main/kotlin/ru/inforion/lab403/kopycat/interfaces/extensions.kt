@@ -90,7 +90,7 @@ inline fun IReadable.inq(ea: ULong, ss: Int = 0): ULong = read(Datatype.QWORD, e
 
 
 @JvmName("ine")
-inline fun IReadable.ine(ea: ULong, size: Int, ss: Int = 0) = BigInteger(load(ea, size, ss).reversedArray())  // in extended
+inline fun IReadable.ine(ea: ULong, size: Int, ss: Int = 0) = BigInteger(1, load(ea, size, ss).reversedArray())  // in extended
 
 /**
  * {RU}Метод используется для упрощения доступа на запись.{RU}

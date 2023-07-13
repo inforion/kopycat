@@ -25,12 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.branch
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.pageFault
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -62,6 +61,10 @@ class Call(
                 val cs = core.cpu.sregs.cs
                 val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
 
+                pageFault(core) {
+                    (0 until 2).forEach { _ -> push(prefs.opsize, prefs) }
+                }
+
                 x86utils.push(core, cs.value, prefs.opsize, prefs)
                 x86utils.push(core, ip.value, prefs.opsize, prefs)
 
@@ -90,6 +93,10 @@ class Call(
 //                    TypeTaskStateSegment -> TODO()
 //                    else -> TODO()
 //                }
+
+                pageFault(core) {
+                    (0 until 2).forEach { _ -> push(prefs.opsize, prefs) }
+                }
 
                 val ip = core.cpu.regs.gpr(x86GPR.RIP, prefs.opsize)
                 x86utils.push(core, core.cpu.sregs.cs.value, prefs.opsize, prefs)

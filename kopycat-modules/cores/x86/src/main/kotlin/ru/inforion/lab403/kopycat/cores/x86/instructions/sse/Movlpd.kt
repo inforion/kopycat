@@ -25,22 +25,27 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.sse
 
-import ru.inforion.lab403.common.proposal.insert
+import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
 class Movlpd(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>) :
-    AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
+    ASSEInstruction(core, opcode, prefs, *operands) {
 
     override val mnem = "movlpd"
 
-    override fun execute() {
-        val dst = op1.extValue(core)
-        val src = op2.value(core)
-        op1.extValue(core, dst.insert(src, Datatype.QWORD.msb..Datatype.QWORD.lsb))
+    override fun executeSSEInstruction() {
+        if (op1.dtyp == Datatype.XMMWORD) {
+            // 66 0F 12 /r MOVLPD xmm1, m64
+            val dst = op1.extValue(core)
+            val src = op2.value(core)
+            op1.extValue(core, dst.insert(src, Datatype.QWORD.msb..Datatype.QWORD.lsb))
+        } else {
+            // 66 0F 13/r MOVLPD m64, xmm1
+            op1.value(core, op2.extValue(core).ulong)
+        }
     }
 }

@@ -44,11 +44,12 @@ class MBD64(parent: Module, name: String) : Module(parent, name) {
         when (ss) {
             6, 0x10 -> MESSAGE_BUS_READ_OPERATION
             7, 0x11 -> MESSAGE_BUS_WRITE_OPERATION
-            else -> error("Unknown opcode: 0x${ss.hex}")
+            else -> error("Unknown MBD64 opcode: 0x${ss.hex}")
         }
     }
 
     private val REG_11C = object : Register(ports.msg, 0x11Cu, WORD, "REG_11C", level = CONFIG) {
         override fun read(ea: ULong, ss: Int, size: Int): ULong = 0x1000u
     }
+    private val REG_28 = Register(ports.msg, 0x28u, WORD, "REG_28", level = CONFIG);
 }

@@ -43,7 +43,7 @@ class FsaveRstorDC(core: x86Core, val construct: (x86Core, ByteArray, Prefixes, 
         val rm = RMDC(s, prefs)
         val op = when (opcode) {
             0xDD -> rm.m80
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return construct(core, s.data, prefs, op)
     }

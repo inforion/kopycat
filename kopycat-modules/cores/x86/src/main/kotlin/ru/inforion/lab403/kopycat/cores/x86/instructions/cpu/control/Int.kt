@@ -32,13 +32,25 @@ import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
+class Int(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>) :
+    AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
 
-class Int(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>): AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
     override val mnem = "int"
+
+    private fun setInterrupt(interruptId: ULong) {
+        core.cop.INT = true
+        core.cop.IRQ = interruptId.int
+    }
 
     override fun execute() {
         val interruptId = op1.value(core)
-        core.cop.INT = true
-        core.cop.IRQ = interruptId.int
+
+        val preHook = core.intHooks[interruptId]?.also { data ->
+            data.callback(core, interruptId, data)
+        }
+
+        if (preHook?.skipInstrExecution != true) {
+            setInterrupt(interruptId)
+        }
     }
 }

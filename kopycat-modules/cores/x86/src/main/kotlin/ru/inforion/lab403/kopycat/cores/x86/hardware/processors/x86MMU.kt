@@ -53,12 +53,13 @@ class x86MMU(core: x86Core, name: String) : AddressTranslator(core, name), IAuto
         @DontAutoSerialize
         val INVALID_GDT_ENTRY = SegmentDescriptor32(-1uL)
         const val NXE = 11 // Long Mode Enable
+        private val SSR_NULL_CHECK = setOf(SSR.CS.id, SSR.SS.id)
     }
 
     val x86 = core
 
     // Shadow registers/hidden part of segment registers
-    // "3.4.3 Segment Registers" of Volume 3
+    // "3.4.3 Segment Registers" of Volume 3A, page 3-8
     var cs: SegmentDescriptor32 = INVALID_GDT_ENTRY
     var ss: SegmentDescriptor32 = INVALID_GDT_ENTRY
 
@@ -281,13 +282,86 @@ US RW P - Description
         }
     }
 
-//    private val pagingCache = dictionary<ULong, Pair<PageDirectoryEntry4Kb, PageTableEntry4Kb>>(0x1000)
+    private inner class TLBCache {
+        /** Calculates starting address of PT page (4 KiB) */
+        // fun pageBasePt(vAddr: ULong) = vAddr ushr 12
 
-//    fun invalidatePagingCache() = pagingCache.clear()
-//    fun invalidatePageTranslation(page: ULong) = pagingCache.remove(page)
+        /** Calculates starting address of PD page (2 MiB) */
+        fun pageBasePd(vAddr: ULong) = vAddr ushr 21
 
-    fun invalidatePagingCache() = Unit
-    fun invalidatePageTranslation(page: ULong) = Unit
+        /**
+         * @param tableAddr Corresponding table entry physical address
+         * @param g Is global?
+         */
+        private inner class TLBCacheEntry(val tableAddr: ULong, val g: Boolean)
+
+        // private val ptCache = HashMap<ULong, TLBCacheEntry>()
+        private val pdCache = HashMap<ULong, TLBCacheEntry>()
+
+        /** Invalidates cache */
+        fun clear() {
+            // ptCache.clear()
+            pdCache.clear()
+        }
+
+        /** Invalidates non-global pages */
+        fun clearNonGlobal() {
+            // ptCache.removeIf { !it.value.g }
+            pdCache.removeIf { !it.value.g }
+        }
+
+        /**
+         * Removes cache entry for page containing [vAddr]
+         * @param vAddr some virtual address
+         */
+        fun remove(vAddr: ULong) {
+            // ptCache.remove(pageBasePt(vAddr))
+            pdCache.remove(pageBasePd(vAddr))
+        }
+
+        /**
+         * Adds cache entry for page containing [vAddr]
+         * @param vAddr some virtual address
+         * @param pt PT entry address
+         * @param g Is global?
+         */
+        // fun addPt(vAddr: ULong, pt: ULong, g: Boolean) {
+            // ptCache[pageBasePt(vAddr)] = TLBCacheEntry(pt, g)
+        // }
+
+        /**
+         * Adds cache entry for page containing [vAddr]
+         * @param vAddr some virtual address
+         * @param pd PT entry address
+         * @param g Is global?
+         */
+        fun addPd(vAddr: ULong, pd: ULong, g: Boolean) {
+            pdCache[pageBasePd(vAddr)] = TLBCacheEntry(pd, g)
+        }
+
+        /**
+         * Tries to find cached table address for page containing [vAddr]
+         * @param vAddr some virtual address
+         */
+        fun find(vAddr: ULong) = /*ptCache[pageBasePt(vAddr)]?.let {
+            PTEntry(physicalRead(it.tableAddr, 8))
+        } ?: */ pdCache[pageBasePd(vAddr)]?.let {
+            PDEntry(physicalRead(it.tableAddr, 8))
+        }
+    }
+
+    @DontAutoSerialize
+    private val tlb = TLBCache()
+
+    fun invalidatePagingCache() = if (x86.cpu.cregs.cr4.pge) {
+        // G, or 'Global' tells the processor not to invalidate the TLB entry corresponding to the page upon a
+        // MOV to CR3 instruction. Bit 7 (PGE) in CR4 must be set to enable global pages.
+        tlb.clearNonGlobal()
+    } else {
+        tlb.clear()
+    }
+
+    fun invalidatePageTranslation(addr: ULong) = tlb.remove(addr)
 
     inner class PageAddress4Kb(val data: ULong) {
         val directory get() = data[31..22]
@@ -306,7 +380,7 @@ US RW P - Description
 
             val I = (LorS == FETCH).uint // just for page-fault exceptions
             val W = (LorS == STORE).uint
-            val U = (x86.cpu.sregs.cs.cpl == 3uL && !privilege).uint // current access rights (3 - user-mode)
+            val U = (x86.isRing3 && !privilege).uint // current access rights (3 - user-mode)
 
 //            val cached = pagingCache[lPage]
 //            if (cached != null) {
@@ -354,8 +428,8 @@ US RW P - Description
     private fun descriptorByOffset(base: ULong, offset: ULong, makeDirty: Boolean): SegmentDescriptor32 {
         val linear = base + offset
         var data = linearRead(linear, 8, true)
-        if (makeDirty) {
-            data = data or 0x10000000000uL
+        if (makeDirty && data[40].untruth) {
+            data = data set 40
             linearWrite(linear, 8, data, true)
         }
         val result = SegmentDescriptor32(data)
@@ -386,9 +460,9 @@ US RW P - Description
         return descriptorByOffset64(gdtr.base, ss and 0xFFFF_FFF8u, true)
     }
 
-    fun readSegmentDescriptor32(ss: ULong): SegmentDescriptor32 {
+    fun readSegmentDescriptor32(ss: ULong, ssrId: Int = SSR.ES.id): SegmentDescriptor32 {
         val isR64 = x86.cpu.mode == x86CPU.Mode.R64
-        if (!isR64 && ss == 0uL) throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
+        if (!isR64 && ss == 0uL && ssrId in SSR_NULL_CHECK) throw x86HardwareException.GeneralProtectionFault(core.pc, ss)
 
         // The General Protection Fault sets an error code, which is the segment selector index
         // when the exception is segment related. Otherwise, 0.
@@ -401,7 +475,7 @@ US RW P - Description
         return descriptorByOffset(base, ss and 0xFFFF_FFF8u, true)
     }
     private fun reloadDescriptor(ssr: ARegistersBankNG<x86Core>.Register): SegmentDescriptor32 {
-        val desc = readSegmentDescriptor32(ssr.value)
+        val desc = readSegmentDescriptor32(ssr.value, ssr.id)
         cache[ssr.id] = desc
         when (ssr.id) {
             SSR.FS.id ->
@@ -512,7 +586,12 @@ US RW P - Description
 //                    PTEntry(physicalRead(ptAddressEnd, 8)).translate(vAddrEnd, 1, I, W, U)
                 }
 
-                PTEntry(physicalRead(ptAddress, 8)).translate(vAddr, size, I, W, U)
+                val pte = PTEntry(physicalRead(ptAddress, 8))
+                val addr = pte.translate(vAddr, size, I, W, U)
+                // if (!pte.pcd) {
+                    // tlb.addPt(vAddr, ptAddress, pte.g)
+                // }
+                addr
             }
         }
     }
@@ -539,7 +618,12 @@ US RW P - Description
 //                PDEntry(physicalRead(pdeAddressEnd, 8)).translate(vAddrEnd, 1, I, W, U)
             }
 
-            return PDEntry(physicalRead(pdeAddress, 8)).translate(vAddr, size, I, W, U)
+            val pde = PDEntry(physicalRead(pdeAddress, 8))
+            val addr = pde.translate(vAddr, size, I, W, U)
+            if (!pde.pcd) {
+                tlb.addPd(vAddr, pdeAddress, pde.g)
+            }
+            return addr
         }
     }
 
@@ -568,10 +652,15 @@ US RW P - Description
 
     private inline fun toPML4Address(vAddr: ULong) = x86.cpu.cregs.cr3.PML4Address or (vAddr[47..39] shl 3)
 
-    private fun x64Translate(vAddr: ULong, size: Int, LorS: AccessAction, privilege: Boolean): ULong {
+    fun x64Translate(vAddr: ULong, size: Int, LorS: AccessAction, privilege: Boolean): ULong {
         val I = (LorS == FETCH).uint // just for page-fault exceptions
         val W = (LorS == STORE).uint
-        val U = (x86.cpu.sregs.cs.cpl == 3uL && !privilege).uint // current access rights (3 - user-mode)
+        val U = (x86.isRing3 && !privilege).uint // current access rights (3 - user-mode)
+
+        val entry = tlb.find(vAddr)
+        if (entry != null) {
+            return entry.translate(vAddr, size, I, W, U)
+        }
 
         val pml4Address = toPML4Address(vAddr)
 
@@ -586,7 +675,7 @@ US RW P - Description
         return PML4Entry(physicalRead(pml4Address, 8)).translate(vAddr, size, I, W, U)
     }
 
-    private fun x86Translate(vAddr: ULong, size: Int, LorS: AccessAction, privilege: Boolean): ULong {
+    fun x86Translate(vAddr: ULong, size: Int, LorS: AccessAction, privilege: Boolean): ULong {
         val start = PageAddress4Kb(vAddr)
 
         val result = start.translate(LorS, privilege)
@@ -672,6 +761,24 @@ US RW P - Description
 //        cache.deserialize<SegmentDescriptor, String>(ctxt, snapshot["cache"]) { SegmentDescriptor(it.ulongByHex) }
 //        protectedModeEnabled.deserialize<Boolean, Any>(ctxt, snapshot["protectedModeEnabled"]) { it as Boolean }
 //    }
+
+    override fun stringify() = buildString {
+        appendLine("$name:")
+        appendLine("LDTR = 0x${ldtr.hex16}")
+        appendLine("GDTR  : base = 0x${gdtr.base.hex16}   limit = 0x${gdtr.limit.hex4}")
+        appendLine("Hidden: CS   = 0x${cs.data.hex16}   SS    = 0x${ss.data.hex16}")
+    }
+
+    fun stringifyTranslateAll(pc: ULong) = buildString {
+        appendLine("PC[0x${pc.hex16}] Translation")
+        SSR.values()
+            .mapNotNull { ssr ->
+                runCatching { translate(pc, ssr.id, 1, AccessAction.FETCH) }.getOrNull()?.let { ssr to it }
+            }
+            .forEach {
+                appendLine("    ${it.first.name}: 0x${it.second.hex16}")
+            }
+    }
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
         return super<IAutoSerializable>.serialize(ctxt)

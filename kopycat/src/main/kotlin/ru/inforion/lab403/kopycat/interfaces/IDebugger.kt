@@ -29,6 +29,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
+import java.math.BigInteger
 
 
 @Suppress("INAPPLICABLE_JVM_NAME")
@@ -127,7 +128,7 @@ interface IDebugger {
     /**
      * {RU}Метод возвращает список значений всех регистров (в формате IDA Pro){RU}
      */
-    fun registers(): List<ULong>
+    fun registers(): List<BigInteger>
 
     /**
      * {RU}
@@ -139,7 +140,7 @@ interface IDebugger {
      * {RU}
      */
     @JvmName("regRead")
-    fun regRead(index: Int): ULong
+    fun regRead(index: Int): BigInteger
 
     /**
      * {RU}
@@ -150,7 +151,7 @@ interface IDebugger {
      * {RU}
      */
     @JvmName("regWrite")
-    fun regWrite(index: Int, value: ULong)
+    fun regWrite(index: Int, value: BigInteger)
 
     /**
      * {RU}

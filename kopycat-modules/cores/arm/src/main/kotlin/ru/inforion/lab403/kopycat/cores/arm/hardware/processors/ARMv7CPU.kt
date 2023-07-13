@@ -117,7 +117,7 @@ class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
         pc += offset + insn.size
 
         try {
-            insn.execute()
+            if (ConditionPassed(insn.cond)) insn.execute()
 
             if (InITBlock()) // check A7.3.3 about ITSTATE in ARMv7-M ref. manual
                 ITAdvance()

@@ -25,18 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.uint
-import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.extensions.bigint
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import java.math.BigInteger
 
 class x86MMXRegister(reg: Int) : ARegister<x86Core>(reg, Access.ANY, Datatype.MMXWORD) {
+    override fun value(core: x86Core) = core.fpu.mmx(reg)
 
-    override fun value(core: x86Core) = core.fpu.getMMX(reg)
+    override fun value(core: x86Core, data: ULong) = core.fpu.mmx(reg, data)
 
-    override fun value(core: x86Core, data: ULong) = core.fpu.setMMX(reg, data)
+    override fun extValue(core: x86Core) = core.fpu.mmx(reg).bigint
+
+    override fun extValue(core: x86Core, data: BigInteger) = core.fpu.mmx(reg, data.ulong)
 
     override fun toString() = "mmx${reg}"
 }

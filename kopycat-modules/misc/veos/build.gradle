@@ -11,6 +11,8 @@ dependencies {
 
     implementation group: 'com.github.inforion.common', name: 'utils', version: kotlin_extensions_version
 
+    implementation group: 'com.github.inforion.common', name: 'kryo', version: kotlin_extensions_version
+
     implementation group: 'gnu.getopt', name: 'java-getopt', version: '1.0.13'
 
     testImplementation group: 'com.github.inforion.common', name: 'swarm', version: kotlin_extensions_version

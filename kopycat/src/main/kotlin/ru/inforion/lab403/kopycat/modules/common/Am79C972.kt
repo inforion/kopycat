@@ -29,7 +29,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.modules.PCI_IO_AREA
 import ru.inforion.lab403.kopycat.modules.PCI_MEM_AREA
-import ru.inforion.lab403.kopycat.modules.common.pci.PciAbstract
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
 
 @Suppress("unused", "PropertyName", "ClassName")
@@ -44,7 +43,6 @@ class Am79C972(parent: Module, name: String) : PciDevice(
     0x0000,
     0x0000,
     0,
-    0x40,
     0,
     1,
     0x06,

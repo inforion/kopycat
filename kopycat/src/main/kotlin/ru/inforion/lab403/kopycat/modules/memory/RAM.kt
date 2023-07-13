@@ -32,8 +32,11 @@ import ru.inforion.lab403.kopycat.library.types.Resource
 import java.io.File
 import java.io.InputStream
 
+/**
+ * Random access memory
+ */
 class RAM(parent: Module, name: String, size: Int, vararg items: Pair<Any, Int>) :
-        AMemory(parent, name, size, ACCESS.R_W, *items) {
+        AMemory(parent, name, size, ACCESS.R_W, false, *items) {
 
     @Suppress("RemoveRedundantSpreadOperator")
     constructor(parent: Module, name: String, size: Int) :
@@ -49,5 +52,5 @@ class RAM(parent: Module, name: String, size: Int, vararg items: Pair<Any, Int>)
             this(parent, name, size, gzipInputStreamIfPossible(data.path))
 
     constructor(parent: Module, name: String, size: Int, data: Resource) :
-            this(parent, name, size, data.inputStream())
+            this(parent, name, size, data.openStream())
 }

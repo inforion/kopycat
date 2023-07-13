@@ -38,11 +38,10 @@ import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.atom2758.PIT8254.READBACK_TYPE.*
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.loadValue
-import java.util.logging.Level.CONFIG
 import java.util.logging.Level.FINE
 
 @Suppress("MemberVisibilityCanBePrivate", "PropertyName")
-class PIT8254(parent: Module, name: String) : Module(parent, name) {
+class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(parent, name) {
     companion object {
         @Transient val log = logger(FINE)
 
@@ -58,6 +57,8 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
     }
 
     override val ports = Ports()
+
+    var irqEnabled: Boolean = true
 
     // 1.1892 MHz - frequency of one tick (triggering every 840 ns)
     val internalClockFrequency = 1_189_200.Hz
@@ -94,7 +95,7 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
         var output // real output value
             get() = outputValue
             set(value) {
-                if (id == 0 && value && !outputValue) // positive edge
+                if (id == 0 && value && !outputValue && irqEnabled) // positive edge
                     ports.irq.request(id)
                 outputValue = value
             }
@@ -124,7 +125,11 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
                     no = 0
                 }
             }
-            COUNT = LATCHED
+            COUNT = LATCHED / divider
+            if (LATCHED != 0uL && COUNT == 0uL) {
+                // Если значение какое-то было, но его довели до нуля
+                COUNT = LATCHED
+            }
             // Timer enabled for emulator core if at least one LATCHED value configured
             timer.enabled = PIT_CNT_STA.any { it.LATCHED != 0uL }
             log.write(FINE)
@@ -186,13 +191,14 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             super.deserialize(ctxt, snapshot)
             LATCHED = loadValue(snapshot, "LATCHED") { 0u }
+            // При загрузке старого снапшота поделить на divider
             COUNT = loadValue(snapshot, "COUNT") { 0u }
             CTR_RW_LATCH = loadValue(snapshot, "CTR_RW_LATCH") { 0u }
             no = loadValue(snapshot, "no") { 0 }
             READBACK = loadEnum(snapshot, "READBACK", Status)
             READBACK_LATCHED = loadValue(snapshot, "READBACK_LATCHED") { 0u }
             mode = loadValue(snapshot, "mode") { 0 }
-            outputValue = loadValue(snapshot, "outputValue") { false }
+            outputValue = loadValue(snapshot, "output") { false }
         }
     }
 
@@ -310,71 +316,75 @@ class PIT8254(parent: Module, name: String) : Module(parent, name) {
 
     private val NSC = NSC_CLASS()
 
+    fun trigger() {
+        PIT_CNT_STA.filter { it.LATCHED != 0uL }.forEach {
+            when (it.mode) {
+                // MODE 0: INTERRUPT ON TERMINAL COUNT
+                // Gate = pause
+                0 -> {
+                    it.COUNT -= 1u
+                    if (it.COUNT == 0uL)
+                        it.output = true
+                }
+                // MODE 1: HARDWARE RETRIGGERABLE ONE-SHOT
+                // Gate = reload
+                1 -> {
+                    it.COUNT -= 1u
+                    if (it.COUNT == 0uL)
+                        it.output = true
+                }
+                // MODE 2: RATE GENERATOR
+                2 -> {
+                    if (it.COUNT == 1uL) {
+                        it.output = true
+                        it.COUNT = it.LATCHED / divider
+                    } else
+                        it.COUNT -= 1u
+
+                    if (it.COUNT == 1uL)
+                        it.output = false
+                }
+                // MODE 3: SQUARE WAVE MODE
+                3 -> {
+                    if (it.COUNT <= 1uL)
+                        it.COUNT = it.LATCHED / divider
+                    else
+                        it.COUNT -= 2u
+
+                    if (it.COUNT <= 1uL)
+                        it.output = !it.output
+                }
+                // MODE 4: SOFTWARE TRIGGERED MODE
+                // Gate = pause
+                4 -> {
+                    if (it.COUNT == 0uL)
+                        it.output = true
+
+                    it.COUNT -= 1u
+
+                    if (it.COUNT == 0uL)
+                        it.output = false
+                }
+                // MODE 5: HARDWARE TRIGGERED STROBE (RETRIGGERABLE)
+                // Gate = reload
+                5 -> {
+                    if (it.COUNT == 0uL)
+                        it.output = true
+
+                    it.COUNT -= 1u
+
+                    if (it.COUNT == 0uL)
+                        it.output = false
+                }
+            }
+        }
+    }
+
     private val timer = object : SystemClock.PeriodicalTimer("PIT Counter") {
 
         override fun trigger() {
             super.trigger()
-            PIT_CNT_STA.filter { it.LATCHED != 0uL }.forEach {
-                when (it.mode) {
-                    // MODE 0: INTERRUPT ON TERMINAL COUNT
-                    // Gate = pause
-                    0 -> {
-                        it.COUNT -= 1u
-                        if (it.COUNT == 0uL)
-                            it.output = true
-                    }
-                    // MODE 1: HARDWARE RETRIGGERABLE ONE-SHOT
-                    // Gate = reload
-                    1 -> {
-                        it.COUNT -= 1u
-                        if (it.COUNT == 0uL)
-                            it.output = true
-                    }
-                    // MODE 2: RATE GENERATOR
-                    2 -> {
-                        if (it.COUNT == 1uL) {
-                            it.output = true
-                            it.COUNT = it.LATCHED
-                        } else
-                            it.COUNT -= 1u
-
-                        if (it.COUNT == 1uL)
-                            it.output = false
-                    }
-                    // MODE 3: SQUARE WAVE MODE
-                    3 -> {
-                        if (it.COUNT <= 1uL)
-                            it.COUNT = it.LATCHED
-                        else
-                            it.COUNT -= 2u
-
-                        if (it.COUNT <= 1uL)
-                            it.output = !it.output
-                    }
-                    // MODE 4: SOFTWARE TRIGGERED MODE
-                    // Gate = pause
-                    4 -> {
-                        if (it.COUNT == 0uL)
-                            it.output = true
-
-                        it.COUNT -= 1u
-
-                        if (it.COUNT == 0uL)
-                            it.output = false
-                    }
-                    // MODE 5: HARDWARE TRIGGERED STROBE (RETRIGGERABLE)
-                    // Gate = reload
-                    5 -> {
-                        if (it.COUNT == 0uL)
-                            it.output = true
-
-                        it.COUNT -= 1u
-
-                        if (it.COUNT == 0uL)
-                            it.output = false
-                    }
-                }
-            }
+            this@PIT8254.trigger()
         }
     }
 

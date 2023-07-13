@@ -30,7 +30,6 @@ import ru.inforion.lab403.common.extensions.find
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
-import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.UN
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.ExceptionDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.branch.ArmBranchDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.branch.ArmBranchWithLinkDecoder
@@ -93,6 +92,7 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.STMur
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unconditional.CPS
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unconditional.PLD
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unpacking.*
+import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special.MSR as MSRApplication
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.MSR as MSRSystem
@@ -599,12 +599,14 @@ class ARMDecoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
                     "not 1111, 10x, x" to branchBranchWithLinkBlockDataTransfer,
                     "not 1111, 11x, x" to coprocessorInstructions,
                     "    1111, xxx, x" to unconditional))
+    private val pass = NOP(cpu, 0u, Condition.AL, 4)
 
-    private val pass = NOP(cpu, 0u, UN, 4)
+    private fun conditionPassed(opcode: ULong) = core.cpu.ConditionPassed(cond(opcode))
 
-    override fun decode(data: ULong): AARMInstruction {
-        val cbits = data[31..28].int
-        val cond = find { it.opcode == cbits } ?: Condition.AL
-        return if (core.cpu.ConditionPassed(cond)) iset.lookup(data, core.cpu.pc).decode(data) else pass
+    override fun decode(data: ULong) = try {
+        iset.lookup(data, core.cpu.pc).decode(data)
+    } catch (e: DecoderException) {
+        if (!conditionPassed(data)) pass else throw e
     }
+
 }

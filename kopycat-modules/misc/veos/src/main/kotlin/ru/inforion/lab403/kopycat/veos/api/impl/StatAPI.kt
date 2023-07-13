@@ -217,4 +217,13 @@ class StatAPI constructor(os: VEOS<*>) : API(os) {
         require(ver == 3) { "Unknown version of __fxstat64: $ver" }
         return fstat64(fd, buf)
     }
+
+    @APIFunc
+    fun __stat_time64(path: CharPointer, buf: StructPointer) = stat(path, buf)
+
+    @APIFunc
+    fun __fstat_time64(fd: Int, buf: StructPointer) = fstat(fd, buf)
+
+    @APIFunc
+    fun __lstat_time64(path: CharPointer, buf: StructPointer) = lstat(path, buf)
 }

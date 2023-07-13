@@ -49,7 +49,7 @@ class PmovmskbDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 prefs.operandOverride = false // Reset override - r32 or r64 only
                 arrayOf(rm.rpref, rm.xmmpref)
             } else arrayOf(rm.rpref, rm.mmxpref)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
 
         return Pmovmskb(core, s.data, prefs, *operands)

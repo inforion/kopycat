@@ -248,7 +248,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
      */
     private data class BusCachedArea(val area: Module.Area, val portOffset: ULong): Serializable {
         val startAddress = area.start + portOffset
-        val endAddress = area.end + portOffset
+        val endAddress = area.endInclusively + portOffset
 
         override fun toString(): String = "${startAddress.hex8}..${endAddress.hex8} -> $area"
     }

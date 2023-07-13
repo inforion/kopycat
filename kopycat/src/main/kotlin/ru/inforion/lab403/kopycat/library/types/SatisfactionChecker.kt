@@ -90,6 +90,10 @@ internal class SatisfactionChecker constructor(val factory: IModuleFactory, val 
     fun parse() = runCatching {
         log.finer { "Parsing constructor with args: (${factory.getPrintableParams()})" }
         ordered = parseParametersAsMap(factory, parameters.associateBy { it.name })
+    }.onFailure { exception ->
+        log.info {
+            "Parsing (${factory.getPrintableParams()}) thrown an exception: ${exception.message}"
+        }
     }.isSuccess
 
     fun getPrintableError(): String {

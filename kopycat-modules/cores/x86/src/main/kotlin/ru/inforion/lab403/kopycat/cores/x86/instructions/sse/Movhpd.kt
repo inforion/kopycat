@@ -25,20 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.sse
 
-import ru.inforion.lab403.common.proposal.insert
+import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
 class Movhpd(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>) :
-    AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
+    ASSEInstruction(core, opcode, prefs, *operands) {
 
     override val mnem = "movhpd"
 
-    override fun execute() {
+    override fun executeSSEInstruction() {
         val dst = op1.extValue(core)
         val src = op2.value(core)
         val offset = Datatype.QWORD.bits

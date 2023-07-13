@@ -29,25 +29,21 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
-class Cwde(core: x86Core, opcode: ByteArray, prefs: Prefixes):
-        AX86Instruction(core, Type.VOID, opcode, prefs) {
-    override val mnem = "cwde"
+class Cwde(core: x86Core, opcode: ByteArray, prefs: Prefixes) :
+    AX86Instruction(core, Type.VOID, opcode, prefs) {
+    override val mnem = when {
+        prefs.is16BitOperandMode -> "cbw"
+        prefs.rexW -> "cdqe"
+        else -> "cwde"
+    }
 
     override fun execute() {
-        val dst = when {
-            prefs.is16BitOperandMode -> core.cpu.regs.ax
-            prefs.rexW -> core.cpu.regs.rax
-            else -> core.cpu.regs.eax
-        }.toOperand()
+        val (dst, src) = when {
+            prefs.is16BitOperandMode -> core.cpu.regs.ax to core.cpu.regs.al
+            prefs.rexW -> core.cpu.regs.rax to core.cpu.regs.eax
+            else -> core.cpu.regs.eax to core.cpu.regs.ax
+        }
 
-        val src = when {
-            prefs.is16BitOperandMode -> core.cpu.regs.al
-            prefs.rexW -> core.cpu.regs.eax
-            else -> core.cpu.regs.ax
-        }.toOperand()
-
-        dst.value(core, src.usext(core))
+        dst.toOperand().value(core, src.toOperand().usext(core))
     }
 }

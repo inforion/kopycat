@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.mask
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor
@@ -50,11 +51,13 @@ class Shl(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
 
     override fun execute() {
         val a1 = op1.value(core)
-        val a2 = (op2.value(core) mask 6).int
+        val a2 = (op2.value(core) mask if (core.is64bit && prefs.rexW) 6 else 5).int
         val res = a1 shl a2
         val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
-        FlagProcessor.processShiftFlag(core, result, op1, op2, true, false, a1[op1.dtyp.bits - a2] == 1uL)
+        if (a2.truth) {
+            FlagProcessor.processShiftFlag(core, result, op1, a2, true, false, a1[op1.dtyp.bits - a2] == 1uL)
+        }
         op1.value(core, result)
     }
 }

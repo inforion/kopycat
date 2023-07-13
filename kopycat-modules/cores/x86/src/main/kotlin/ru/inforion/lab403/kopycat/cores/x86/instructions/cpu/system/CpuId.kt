@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.system
 
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.common.extensions.ulong_z
@@ -40,7 +41,7 @@ class CpuId(core: x86Core, opcode: ByteArray, prefs: Prefixes):
 
     override fun execute() = with (core.cpu.regs) {
         val index = eax.value.uint
-        log.warning { "Reading CPUID index = 0x${index.hex8}" }
+        log.warning { "[0x${core.pc.hex}] Reading CPUID index = 0x${index.hex8}" }
         if (index == 0x69696969u) {
             eax.value = 0x8000_000Du
             ebx.value = 0x8000_000Du

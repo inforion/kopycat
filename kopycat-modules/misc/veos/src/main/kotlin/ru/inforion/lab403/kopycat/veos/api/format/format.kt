@@ -28,7 +28,6 @@ package ru.inforion.lab403.kopycat.veos.api.format
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.optional.*
 import ru.inforion.lab403.kopycat.veos.VEOS
-import ru.inforion.lab403.kopycat.veos.api.misc.*
 
 
 inline val ctrlVT get() = 0xB.char
@@ -495,6 +494,10 @@ fun number(buf: ICharArrayPointer, inNum: Long, spec: PrintfSpec) {
     }
 }
 
+fun pointer(buf: ICharArrayPointer, ptr: ULong) {
+    buf.write(ptr.hex)
+}
+
 
 /**
  * vsnprintf - Format a string and place it in a buffer
@@ -576,14 +579,9 @@ fun vsprintfMain(os: VEOS<*>, buf: ICharArrayPointer, fmtString: String, args: I
             }
 
             FormatType.PTR -> {
-                TODO("Not implemented")
-                //            str = pointer(
-                //                fmt, str, end, va_arg(args, void *),
-                //                spec
-                //            );
-                //            while (isalnum(*fmt))
-                //                fmt++;
-                //            break;
+                val p = vaArg()
+                pointer(str, p)
+
             }
 
             FormatType.PERCENT_CHAR -> {

@@ -50,7 +50,7 @@ class ImmediateTest: ATest() {
     @Test fun test1_2() {
         value = 0xFEED_BEEFu
         actual = immediate(value).usext
-        expected = 0xFEED_BEEFu
+        expected = 0xFFFF_FFFF_FEED_BEEFu
         assert(error(value, expected, actual, "usext"), expected, actual)
     }
 

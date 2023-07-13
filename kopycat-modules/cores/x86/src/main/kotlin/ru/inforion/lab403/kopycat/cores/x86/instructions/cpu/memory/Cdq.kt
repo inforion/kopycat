@@ -25,32 +25,28 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory
 
-import ru.inforion.lab403.common.extensions.ushr
-import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
+import ru.inforion.lab403.common.extensions.ULONG_MAX
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
-class Cdq(core: x86Core, opcode: ByteArray, prefs: Prefixes):
-        AX86Instruction(core, Type.VOID, opcode, prefs) {
-    override val mnem = "cdq"
+class Cdq(core: x86Core, opcode: ByteArray, prefs: Prefixes) :
+    AX86Instruction(core, Type.VOID, opcode, prefs) {
+    override val mnem = when {
+        prefs.is16BitOperandMode -> "cwd"
+        prefs.rexW -> "cqo"
+        else -> "cdq"
+    }
 
     override fun execute() {
-        val operand1 = when {
-            prefs.is16BitOperandMode -> core.cpu.regs.ax
-            prefs.rexW -> core.cpu.regs.rax
-            else -> core.cpu.regs.eax
-        }.toOperand()
+        val (value, operand2) = when {
+            prefs.is16BitOperandMode -> core.cpu.regs.ax.value[15].truth to core.cpu.regs.dx
+            prefs.rexW -> core.cpu.regs.rax.value[63].truth to core.cpu.regs.rdx
+            else -> core.cpu.regs.eax.value[31].truth to core.cpu.regs.edx
+        }
 
-        val operand2 = when {
-            prefs.is16BitOperandMode -> core.cpu.regs.dx
-            prefs.rexW -> core.cpu.regs.rdx
-            else -> core.cpu.regs.edx
-        }.toOperand()
-
-        val sext = operand1.usext(core)
-        operand2.value(core, sext ushr operand1.dtyp.bits)
+        operand2.value = if (value) ULONG_MAX else 0uL
     }
 }

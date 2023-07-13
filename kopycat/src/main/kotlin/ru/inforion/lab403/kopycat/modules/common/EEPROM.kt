@@ -49,7 +49,7 @@ class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(
     }
 
     constructor(parent: Module, name: String, resource: Resource) :
-            this(parent, name, resource.inputStream())
+            this(parent, name, resource.openStream())
 
     constructor(parent: Module, name: String, file: File) :
             this(parent, name, gzipInputStreamIfPossible(file.path))

@@ -37,8 +37,8 @@ class Invlpg(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands:
         AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
     override val mnem = "invlpg"
     override fun execute() {
-        val page = op1.effectiveAddress(core)
-        log.severe { "[${core.pc.hex}] Your TLB cache for 0x${page.hex8} invalidate!" }
-        core.mmu.invalidatePageTranslation(page)
+        val addr = op1.effectiveAddress(core)
+        log.severe { "[${core.pc.hex}] Your TLB cache for 0x${addr.hex8} invalidate!" }
+        core.mmu.invalidatePageTranslation(addr)
     }
 }

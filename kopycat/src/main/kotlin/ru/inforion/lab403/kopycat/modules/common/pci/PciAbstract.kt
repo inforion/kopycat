@@ -65,12 +65,12 @@ abstract class PciAbstract constructor(
 
     final override val ports = Ports()
 
-    protected lateinit var myAddress: PciAddress
+    protected lateinit var myAddress: PciConfigAddress
 
     override fun onPortConnected(port: APort, bus: Bus, offset: ULong) {
         if (port != ports.pci) return
 
-        val address = PciAddress.fromOffset(offset)
+        val address = PciConfigAddress.fromOffset(offset)
 
         if (::myAddress.isInitialized) {
             require(myAddress.bus == address.bus) { "PCI target $this has different bus=${address.bus}" }
@@ -184,7 +184,7 @@ abstract class PciAbstract constructor(
          * Convert this offset (reg) to full PCI device address for this target
          */
         private fun ULong.toPCIDeviceAddress() =
-            PciAddress.fromBusFuncDeviceReg(myAddress.bdf.insert(this, PCI_BDF_REG_RANGE))
+            PciConfigAddress.fromBusFuncDeviceReg(myAddress.bdf.insert(this, PCI_BDF_REG_RANGE))
 
         override fun stringify() = "${address.toPCIDeviceAddress()} $name data=0x${data.hex8}"
     }
@@ -207,13 +207,30 @@ abstract class PciAbstract constructor(
         }
     }
 
+    internal val capabilities = mutableListOf<PciCapability>()
+
     inner class COMMAND_STATUS_CLASS : PCI_CONF_FUNC_WR(0x04, DWORD, "COMMAND_STATUS", level = SEVERE) {
 
         var STATUS by field(31..16)
         var COMMAND by field(15..0)
 
-        var MEM_SPACE by bit(1)
-        var IO_SPACE by bit(0)
+        /** Capabilities List */
+        var CL by bit(20)
+
+        /** Interrupt Status */
+        var IS by bit(19)
+
+        /** Interrupt Disable. Does not affect MSI. */
+        var ID by bit(10)
+
+        /** Bus Master Enable, rw */
+        var BME by bit(2)
+
+        /** Controls access to the memory space, rw */
+        var MSE by bit(1)
+
+        /** Controls access to the I/O space, rw */
+        var IOSE by bit(0)
 
         private fun areaBars(area: Int) = bars.filter { it.area == area }
 
@@ -230,10 +247,15 @@ abstract class PciAbstract constructor(
             return newValue
         }
 
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            CL = capabilities.isNotEmpty().int
+            return super.read(ea, ss, size)
+        }
+
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            memSpaceEnabled = remap(memSpaceEnabled, MEM_SPACE.truth, PCI_MEM_AREA)
-            ioSpaceEnabled = remap(ioSpaceEnabled, IO_SPACE.truth, PCI_IO_AREA)
+            memSpaceEnabled = remap(memSpaceEnabled, MSE.truth, PCI_MEM_AREA)
+            ioSpaceEnabled = remap(ioSpaceEnabled, IOSE.truth, PCI_IO_AREA)
         }
     }
 
@@ -254,6 +276,8 @@ abstract class PciAbstract constructor(
     val PARAMETERS_0C = object : PCI_CONF_FUNC_WR(0x0C, DWORD, "PARAMETERS_0C") {
         var BIST by field(31..24)
         var HEADER_TYPE by field(23..16)
+        var LATENCY_TIMER by field(15..8)
+        var CACHE_LINE by field(7..0)
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
             HEADER_TYPE = headerType.ulong_z

@@ -29,6 +29,7 @@ import io.javalin.Javalin
 import io.javalin.core.plugin.Plugin
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.extensions.div
+import ru.inforion.lab403.common.extensions.hex16
 import ru.inforion.lab403.common.extensions.hexlify
 import ru.inforion.lab403.common.extensions.unhexlify
 import ru.inforion.lab403.common.javalin.applyRoutes
@@ -44,6 +45,7 @@ import ru.inforion.lab403.kopycat.library.builders.text.ConnectionConfig
 import ru.inforion.lab403.kopycat.library.builders.text.PortConfig
 import ru.inforion.lab403.kopycat.library.builders.text.create
 import ru.inforion.lab403.kopycat.serializer.Serializer
+import java.math.BigInteger
 
 class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList<Module>): Plugin {
     companion object {
@@ -53,7 +55,7 @@ class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList
     internal data class MemoryLoadInfo(val address: ULong, val size: Int, val ss: Int)
     internal data class MemoryStoreInfo(val address: ULong, val data: String, val ss: Int)
     internal data class RegisterReadInfo(val index: Int)
-    internal data class RegisterWriteInfo(val index: Int, val value: ULong)
+    internal data class RegisterWriteInfo(val index: Int, val value: BigInteger)
     internal data class PcWriteInfo(val value: ULong)
     internal data class OpenInfo(val top: String, val gdbPort: Int?, val gdbBinaryProto: Boolean, val traceable: Boolean)
 
@@ -251,6 +253,11 @@ class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList
         getAny("$name/isRunning") {
             log.finer { "isRunning()" }
             kopycat.isRunning
+        }
+
+        getAny("$name/pc") {
+            log.finer { "pcRead()" }
+            kopycat.pcRead().hex16
         }
 
         getAny("$name/isTopModulePresented") {

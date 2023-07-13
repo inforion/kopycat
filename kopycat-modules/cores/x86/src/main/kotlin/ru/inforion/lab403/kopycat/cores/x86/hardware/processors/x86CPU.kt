@@ -65,6 +65,9 @@ class x86CPU(val x86: x86Core, name: String, busSize: ULong = BUS32):
         else -> Mode.R16
     }
 
+    /** Long mode: compatibility submode AKA IA-32e */
+    val is64BitCompatibilityMode get() = mode != Mode.R64 && x86.config.efer[LME].truth && x86.cpu.cregs.cr0.pg
+
     override fun reg(index: Int): ULong = regs[index].value
     override fun reg(index: Int, value: ULong) = run { regs[index].value = value }
     override fun count() = regs.count()
@@ -105,6 +108,11 @@ class x86CPU(val x86: x86Core, name: String, busSize: ULong = BUS32):
         regs.rip.value += insn.size.uint
 //        log.info { insn }
         insn.execute()
+
+        if (x86.cop.intShadow != 0) {
+            x86.cop.intShadow -= 1
+        }
+
         return 1  // TODO: get from insn.execute()
     }
 

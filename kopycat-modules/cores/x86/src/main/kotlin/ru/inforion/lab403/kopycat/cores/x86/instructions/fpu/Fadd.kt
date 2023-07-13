@@ -25,26 +25,40 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
-import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.short
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
+class Fadd(
+    core: x86Core,
+    opcode: ByteArray,
+    prefs: Prefixes,
+    val popCount: Int,
+    val int: Boolean,
+    vararg operands: AOperand<x86Core>
+) : AFPUInstruction(core, opcode, prefs, *operands) {
+    override val mnem = "f" + (if (int) "i" else "") + "add" + if (popCount != 0) "p" else ""
 
-
-
-class Fadd(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operands: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
-    override val mnem = "fadd"
-
-    override fun execute() {
-        val a1 = op1.value(core).long.ieee754()
-        val a2 = op2.value(core).long.ieee754()
+    override fun executeFPUInstruction() {
+        val a1 = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+        val a2 = if (!int) {
+            if (op2 is x86FprRegister) {
+                op2.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+            } else {
+                op2.longDouble(core, core.fpu.fwr.FPUControlWord)
+            }
+        } else {
+            when (op2.dtyp) {
+                Datatype.WORD -> op2.value(core).short.longDouble(core.fpu.fwr.FPUControlWord)
+                else -> op2.value(core).int.longDouble(core.fpu.fwr.FPUControlWord)
+            }
+        }
         val res = a1 + a2
-        op1.value(core, res.ieee754AsUnsigned())
+        op1.extValue(core, res.ieee754AsUnsigned())
         core.fpu.pop(popCount)
     }
 }

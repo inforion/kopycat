@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.STORE
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
@@ -50,6 +51,6 @@ class sc(core: MipsCore,
             throw MemoryAccessError(core.pc, address, STORE, "ADES")
         if (core.cpu.llbit == 1)
             memword = vrt
-        vrt = core.cpu.llbit.toULong()
+        vrt = core.cpu.llbit.ulong_z
     }
 }

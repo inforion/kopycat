@@ -53,7 +53,7 @@ class FistDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                     popCount = 1
                     rm.m32
                 }
-                else -> throw GeneralException("Incorrect opcode in decoder")
+                else -> throw GeneralException("Incorrect opcode in decoder $this")
             }
             0xDF -> when(column){
                 2 -> rm.m16
@@ -65,9 +65,9 @@ class FistDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                     popCount = 1
                     rm.m64
                 }
-                else -> throw GeneralException("Incorrect opcode in decoder")
+                else -> throw GeneralException("Incorrect opcode in decoder $this")
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         val op1 = x86FprRegister(0)
         return Fist(core, s.data, prefs, popCount, op0, op1)

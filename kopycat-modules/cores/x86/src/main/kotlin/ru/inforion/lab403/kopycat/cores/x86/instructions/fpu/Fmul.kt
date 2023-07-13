@@ -25,31 +25,39 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
-import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import kotlin.math.absoluteValue
 
+class Fmul(
+    core: x86Core,
+    opcode: ByteArray,
+    prefs: Prefixes,
+    val popCount: Int,
+    val int: Boolean,
+    vararg operands: AOperand<x86Core>
+) : AFPUInstruction(core, opcode, prefs, *operands) {
+    override val mnem = "f" + (if (int) "i" else "") + "mul" + if (popCount != 0) "p" else ""
 
-
-class Fmul(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operands: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
-    override val mnem = "fmul"
-
-    override fun execute() {
-        val a1 = op1.value(core).long.ieee754()
-        val a2 = op2.value(core).long.ieee754()
-        if((a1 == 0.0 && a2.absoluteValue == Double.MAX_VALUE) || (a2 == 0.0 && a1.absoluteValue == Double.MAX_VALUE)) {
-            throw x86HardwareException.FpuException(core.pc)
+    override fun executeFPUInstruction() {
+        val a1 = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+        val a2 = if (!int) {
+            if (op2 is x86FprRegister) {
+                op2.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+            } else {
+                op2.longDouble(core, core.fpu.fwr.FPUControlWord)
+            }
+        } else {
+            when (op2.dtyp) {
+                Datatype.WORD -> op2.value(core).short.longDouble(core.fpu.fwr.FPUControlWord)
+                else -> op2.value(core).int.longDouble(core.fpu.fwr.FPUControlWord)
+            }
         }
         val res = a1 * a2
-        op1.value(core, res.ieee754AsUnsigned())
+        op1.extValue(core, res.ieee754AsUnsigned())
         core.fpu.pop(popCount)
     }
 }

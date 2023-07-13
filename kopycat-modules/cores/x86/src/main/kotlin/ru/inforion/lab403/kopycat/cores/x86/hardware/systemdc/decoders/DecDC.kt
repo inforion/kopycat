@@ -45,7 +45,7 @@ class DecDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
             0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F -> gprr(opcode % 0x48, prefs.rexB, prefs.opsize)
             0xFE -> rm.m8
             0xFF -> rm.mpref
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Dec(core, s.data, prefs, ops)
     }

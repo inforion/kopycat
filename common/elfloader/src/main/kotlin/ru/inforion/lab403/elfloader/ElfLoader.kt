@@ -123,6 +123,12 @@ class ElfLoader(
 
             return Pair(first, second)
         }
+
+        fun intersects(region: ElfRegion) =
+            addressRange.first in region.addressRange || addressRange.last in region.addressRange
+
+        fun contains(region: ElfRegion) =
+            region.addressRange.first in addressRange  && region.addressRange.last in addressRange
     }
 
     data class ElfRelocation(
@@ -516,38 +522,15 @@ class ElfLoader(
             }
         }
 
-//            log.warning { ">> before `area in iterable` <<" }
 
-        rebased.forEach { area ->
-            val first = area.addressRange
-            val intersect = rebased.find {
-                if (area != it) {
-                    val second = it.addressRange
-                    if (first.first in second || first.last in second) {
-                        if (first.first !in second && second.last !in first || second.first !in first && first.last !in second)
-                            throw EBadIntersect("Area ${area.name} [${first.hex8}] has bad intersection with ${it.name} [${second.hex8}]")
-                        else
-                            first.first in second && first.last in second
-                    } else false
-                } else false
-            }
-
-            if (intersect != null) {
-                val (first, second) = intersect.divide(area)
-                log.warning { "Area ${area.name} [${area.addressRange.hex8}] has been divided by ${intersect.name} [${intersect.addressRange.hex8}]" }
-
-                rebased.remove(intersect)
-
-                if (first != null) {
-                    log.warning { "First is ${first.name} [${first.addressRange.hex8}]" }
-                    rebased.add(first)
-                }
-
-                if (second != null) {
-                    log.warning { "Second is ${second.name} [${second.addressRange.hex8}]" }
-                    rebased.add(second)
-                }
-            }
+        // TODO: Is it correct in all cases? I think not, but it's have fixed my case.
+        val intersections = rebased.mapNotNull { region ->
+            rebased.find { it != region && it.contains(region) }
+                ?.let { it to region }
+        }
+        for ((area, intersection) in intersections) {
+            log.warning { "Area ${intersection.name} removed because it contains in ${area.name}" }
+            rebased.remove(intersection)
         }
 
 //        log.warning { ">> before `rebased.sortBy { it.vaddr }` <<" }

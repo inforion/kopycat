@@ -150,6 +150,8 @@ abstract class ARegistersBankNG<T: AGenericCore>(
         }
     }
 
+    public fun Register.hex() = "%0${dtype.bits / 4}X".format(value.long)
+
     override fun reset() {
         super.reset()
         forEach { it.reset() }
@@ -228,16 +230,16 @@ abstract class ARegistersBankNG<T: AGenericCore>(
 
                 if (reg != null) {
                     name = "[$id] ${reg.name}"
-                    value = "0x${reg.value.hex8}"
+                    value = "0x${reg.hex()}"
                 } else {
                     name = "[$id] UNK"
                     value = "UNDEF"
                 }
 
                 val nm = name.stretch(15)
-                val vl = value.stretch(10)
+                val vl = value.stretch(18)
 
-                append("$nm = $vl".stretch(30))
+                append("$nm = $vl".stretch(15 + 18 + 5))
             }
         }
     }

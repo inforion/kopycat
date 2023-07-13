@@ -26,26 +26,34 @@
 package ru.inforion.lab403.kopycat.gdbstub.messages.basic
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.proposal.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.gdbstub.parser.Context
 import ru.inforion.lab403.kopycat.gdbstub.parser.Packet
 import ru.inforion.lab403.kopycat.gdbstub.messages.AbstractMessage
 import ru.inforion.lab403.kopycat.gdbstub.sendOkResponse
+import java.math.BigInteger
 
-internal class RegisterWriteMessage(val index: Int, val value: ULong) : AbstractMessage() {
+internal class RegisterWriteMessage(val index: Int, val value: BigInteger) : AbstractMessage() {
     companion object {
         fun parse(packet: Packet): RegisterWriteMessage {
             val params = packet.body.split('=')
 
             val reg = params[0].intByHex
-            val value = params[1].ulongByHex
+            val value = params[1].bigintByHex
 
             return RegisterWriteMessage(reg, value)
         }
     }
 
     override fun Context.process() {
-        val swapped = if (debugger.regSize(index) == QWORD) value.swap64() else value.swap32()
+        val swapped = when (debugger.regSize(index)) {
+            XMMWORD -> value.swap128()
+            FPU80 -> value.swap80()
+            QWORD -> value.swap64()
+            DWORD -> value.swap32()
+            else -> throw NotImplementedError("Unknown register data type")
+        }
         debugger.regWrite(index, swapped)
         socket.sendOkResponse()
     }

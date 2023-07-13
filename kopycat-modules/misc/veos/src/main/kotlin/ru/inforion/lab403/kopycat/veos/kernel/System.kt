@@ -37,6 +37,7 @@ import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.veos.VEOS
 import ru.inforion.lab403.kopycat.veos.api.abstracts.APIFunction
 import ru.inforion.lab403.kopycat.veos.api.interfaces.APIResult
+import java.util.*
 
 
 class System(val os: VEOS<*>): IAutoSerializable {
@@ -83,6 +84,8 @@ class System(val os: VEOS<*>): IAutoSerializable {
 
     // TODO: add datetime and force PosixAPI to use it
     val time get() = currentTimeMillis
+
+    val timezone get() = TimeZone.getDefault()
 
     // Allocations
     private val currentAllocator get() = os.currentProcess.allocator
@@ -300,7 +303,7 @@ class System(val os: VEOS<*>): IAutoSerializable {
     fun registerSymbols(newSymbols: Map<String, Symbol>) {
         val filtered = newSymbols.filter {
             val sym = currentSymbols[it.key]
-            sym == null || (sym.isExternal && it.value.isLocal && it.value.address != 0uL) // TODO: is it possible: Local & 0
+            sym == null || (sym.isExternal && it.value.isLocal && it.value.address != 0uL && it.value.entity != Symbol.Entity.NoType) // TODO: is it possible: Local & 0
         }
         currentSymbols += filtered
         os.setHandlers(filtered.values)

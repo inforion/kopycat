@@ -26,20 +26,31 @@
 package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
+import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
+import ru.inforion.lab403.kopycat.cores.base.abstracts.APIC
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
+import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import java.util.logging.Level.CONFIG
 
-class L_APIC(parent: Module, name: String) : Module(parent, name) {
+class L_APIC(parent: Module, name: String) : APIC(parent, name) {
+    companion object {
+        const val LAPIC_ID: ULong = 0uL
+        const val LAPIC_VER: ULong = 0x10u
+    }
+
     inner class Ports : ModulePorts(this) {
         val mem = Slave("mem", 0x10_0000)
-        val lio = Slave("lio", 0x100)  // local i/o
+        val irq = Slave("irq", 255)
+        val irqMaster = Master("irqMaster", 255)
     }
 
     override val ports = Ports()
@@ -62,10 +73,8 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
 
     //  FEE0_0000 - FEEF_FFFF
     // vol 3
-    val ID = Register(ports.mem, 0x20u, DWORD, "APIC_ID", 0x8000000u, level = CONFIG) // ID: 8
-    val LVR = Register(ports.mem, 0x30u, DWORD, "APIC_LVR", 32u, level = CONFIG)      // Version: 32
-//    private val APIC_ID = Register(ports.mem, 0x020u, DWORD, "APIC_ID", 0x4655434Bu, level = CONFIG)
-//    private val APIC_VER = Register(ports.mem, 0x030u, DWORD, "APIC_VER", 0x494E544Cu, level = CONFIG)
+    val ID = Register(ports.mem, 0x20u, DWORD, "APIC_ID", LAPIC_ID, level = CONFIG)
+    val LVR = Register(ports.mem, 0x30u, DWORD, "APIC_LVR", LAPIC_VER, level = CONFIG)
 
     private val TPR = object : Register(ports.mem, 0x80u, DWORD, "Task-Priority Register") {
         var cls by field(7..4)
@@ -76,6 +85,7 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
             log.warning { "${this.name}: Task-priority class: ${cls.hex2}, task-priority sub-class: ${subCls.hex2}" }
         }
     }
+
     private val PPR = Register(ports.mem, 0x0A0u, DWORD, "PPR", level = CONFIG)
     private val EOI = Register(ports.mem, 0x0B0u, DWORD, "EOI", level = CONFIG)
 
@@ -88,7 +98,7 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    private val DFR = object : Register(ports.mem, 0xE0u, DWORD, " Destination Format Register", default = 0xFFFF_FFFFu) {
+    private val DFR = object : Register(ports.mem, 0xE0u, DWORD, "Destination Format Register", default = 0xFFFF_FFFFu) {
         var model by field(31..28)
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
@@ -102,7 +112,7 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    val SPIV = object : Register(ports.mem, 0xF0u, DWORD, "APIC_SPIV") {
+    val SPIV = object : Register(ports.mem, 0xF0u, DWORD, "APIC_SPIV", default = 0xFFu) {
         var EOIBroadcastSuppression by bit(12)
         var focusProcessorChecking by bit(9)
         var enabled by bit(8)
@@ -163,19 +173,23 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
     private val ICR3 = Register(ports.mem, 0x30Cu, DWORD, "ICR3", level = CONFIG)
     private val ICR4 = Register(ports.mem, 0x310u, DWORD, "ICR4", level = CONFIG)
 
-    val LVTT = object : Register(ports.mem, 0x320u, DWORD, "APIC_LVTT", default = 0x0001_0000u) {
-        var mode by bit(17) // Periodical = 1, one-shot = 0
-        var mask by bit(16) // Forbidden = 1, allowed = 0
+    inner class LVTTClass : Register(ports.mem, 0x320u, DWORD, "APIC_LVTT", default = 0x0001_0000u) {
+        var mode by field(18..17) // Periodical = 1, one-shot = 0, deadline = 10
+        var mask by bit(16) // 0: not masked, 1: masked
         var deliveryStat by bit(12) // Delivery status (RO)
         var vector by field(7..0)
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value clr 12)
             timerMode = TimerMode.values().find { it.value == mode } ?: throw GeneralException("Unknown mode: $mode")
-            masked = mask.truth
-            log.warning { "${this.name} override: mode=$mode, mask=$mask, delivery_status=$deliveryStat, vector=${vector.hex2}" }
+            if (timerMode == TimerMode.TSCDeadline) {
+                TODO("TSC-Deadline is unimplemented")
+            }
+            log.warning { "${this.name} override: mode=$timerMode, mask=$mask, delivery_status=$deliveryStat, vector=${vector.hex2}" }
         }
     }
+
+    val LVTT = LVTTClass()
 
     private val LVT_SEN = Register(ports.mem, 0x330u, DWORD, "LVT_SEN", level = CONFIG)
 //    private val LVT_PER = Register(ports.mem, 0x340u, DWORD, "LVT_PER", level = CONFIG)
@@ -208,17 +222,16 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    enum class TimerMode(val value: Int) {
-        OneShot(0b00),
-        Periodic(0b01),
-        TSCDeadline(0b10)
+    enum class TimerMode(val value: ULong) {
+        OneShot(0b00u),
+        Periodic(0b01u),
+        TSCDeadline(0b10u),
     }
 
     private var timerMode = TimerMode.OneShot
     private var initial: ULong = 0u
     private var count: ULong = 0u
     private var divider: ULong = 2u
-    private var masked = true
 
     override fun reset() {
         super.reset()
@@ -227,7 +240,6 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
         initial = 0u
         count = 0u
         divider = 2u
-        masked = true
     }
 
     // Initial Count Register
@@ -241,7 +253,7 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
     }
 
     // Current Count Register
-    private val CCR = object : Register(ports.mem, 0x390u, DWORD, "CCR", level = CONFIG) {
+    private val CCR = object : Register(ports.mem, 0x390u, DWORD, "CCR", level = CONFIG, writable = false) {
         override fun read(ea: ULong, ss: Int, size: Int) = count
     }
 
@@ -266,19 +278,20 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    private val IOAPIC_IDX = Register(ports.lio, 0x00u, DWORD, "IOAPIC_IDX", level = CONFIG)
-    private val IOAPIC_WDW = Register(ports.lio, 0x10u, DWORD, "IOAPIC_WDW", level = CONFIG)
-    private val IOAPIC_EOI = Register(ports.lio, 0x40u, DWORD, "IOAPIC_EOI", level = CONFIG)
+    // TODO: проверить длину
+    private var area = Memory(ports.mem, 0x1000u, 0x1200uL, "area", ACCESS.R_W)
 
-    private val timer = object : SystemClock.PeriodicalTimer("PIT Counter") {
+    private val timer = object : SystemClock.PeriodicalTimer("APIC Counter") {
         override fun trigger() {
+            super.trigger()
             if (triggered >= divider) {
                 --count
                 triggered = 0u
             }
             if (count == 0uL) {
-                if (!masked)
-                    TODO("Interrupts aren't implemented yet")
+                if (LVTT.mask.untruth) {
+                    ports.irqMaster.request(LVTT.vector.int)
+                }
 
                 when (timerMode) {
                     TimerMode.OneShot -> enabled = false
@@ -301,5 +314,39 @@ class L_APIC(parent: Module, name: String) : Module(parent, name) {
         return true
     }
 
+    inner class Interrupt(irq: Int, val postfix: String) : AInterrupt(irq, postfix), IAutoSerializable {
+        override val cop get() = core.cop
 
+        override fun hashCode(): Int = 31 * super.hashCode() + postfix.hashCode()
+
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is Interrupt) return false
+            if (!super.equals(other)) return false
+
+            if (postfix != other.postfix) return false
+
+            return true
+        }
+
+        override val vector: Int
+            get() = irq
+
+        override val priority: Int get() = irq + 1
+
+        override val masked: Boolean
+            get() = false // TODO: this
+
+        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+            return super<IAutoSerializable>.serialize(ctxt)
+        }
+
+        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+            super<IAutoSerializable>.deserialize(ctxt, snapshot)
+        }
+    }
+
+    private val IRQ = Interrupts(ports.irq, "APIC_IRQ",
+        *(16..255).map { Interrupt(it, "APIC_IRQ${it}") }.toTypedArray(),
+    )
 }

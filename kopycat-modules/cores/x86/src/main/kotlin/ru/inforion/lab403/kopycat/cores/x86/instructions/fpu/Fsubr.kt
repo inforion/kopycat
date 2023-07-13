@@ -25,26 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
-import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
-class Fsubr(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operands: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
-    override val mnem = "fsub"
-
-    override fun execute() {
-        val a1 = op1.value(core).long.ieee754()
-        val a2 = op2.value(core).long.ieee754()
-        val res = a2 - a1
-        op1.value(core, res.ieee754AsUnsigned())
-        core.fpu.pop(popCount)
-    }
+class Fsubr(
+    core: x86Core,
+    opcode: ByteArray,
+    prefs: Prefixes,
+    val popCount: Int,
+    val int: Boolean,
+    vararg operands: AOperand<x86Core>
+) : AFPUInstruction(core, opcode, prefs, *operands) {
+    override val mnem = "f" + (if (int) "i" else "") + "subr" + if (popCount != 0) "p" else ""
+    override fun executeFPUInstruction() = Fsub.commonExecute(op1, op2, core, int, popCount, r = true)
 }

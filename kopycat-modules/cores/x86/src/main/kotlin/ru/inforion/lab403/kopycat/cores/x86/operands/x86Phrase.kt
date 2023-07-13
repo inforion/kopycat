@@ -31,7 +31,6 @@ import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.APhrase
 import ru.inforion.lab403.kopycat.cores.base.operands.Immediate
 import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
-import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.interfaces.*
@@ -48,6 +47,7 @@ class x86Phrase private constructor(
     val scale: Int = 1,
     access: Access = Access.ANY
 ) : APhrase<x86Core>(dtyp, base, index, displ, access) {
+    override val hasEffectiveAddress = true
 
     constructor(
         dtyp: Datatype,

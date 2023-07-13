@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.gdbstub.messages.basic
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.gdbstub.parser.Context
 import ru.inforion.lab403.kopycat.gdbstub.messages.AbstractMessage
 import ru.inforion.lab403.kopycat.gdbstub.sendMessageResponse
@@ -36,7 +36,13 @@ internal object AllRegistersReadMessage : AbstractMessage() {
         val values = debugger.registers()
         val sizes = debugger.sizes()
         val response = (values zip sizes).joinToString(separator = "") { (v, s) ->
-            if (s == Datatype.QWORD) v.swap64().long.lhex16 else v.swap32().long.lhex8
+            when (s) {
+                XMMWORD -> v.swap128().lhex32
+                FPU80 -> v.swap80().lhex20
+                QWORD -> v.ulong.swap64().long.lhex16
+                DWORD -> v.ulong.swap32().long.lhex8
+                else -> throw NotImplementedError("Unknown register data type")
+            }
         }
         socket.sendMessageResponse(response)
     }

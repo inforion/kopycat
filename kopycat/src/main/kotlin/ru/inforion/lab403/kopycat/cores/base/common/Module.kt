@@ -39,14 +39,13 @@ import ru.inforion.lab403.kopycat.cores.base.enums.*
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryDeserializeSizeMismatchException
 import ru.inforion.lab403.kopycat.cores.base.extensions.*
 import ru.inforion.lab403.kopycat.interfaces.*
-import ru.inforion.lab403.kopycat.serializer.deserialize
-import ru.inforion.lab403.kopycat.serializer.loadHex
-import ru.inforion.lab403.kopycat.serializer.loadValue
-import ru.inforion.lab403.kopycat.serializer.storeValues
+import ru.inforion.lab403.kopycat.serializer.*
 import ru.inforion.lab403.kopycat.settings
 import java.io.InputStream
+import java.nio.BufferOverflowException
 import java.nio.ByteOrder
 import java.util.*
 import java.util.logging.Level
@@ -91,7 +90,7 @@ import kotlin.collections.HashSet
  * @property isDebuggerPresent Flag [debugger] contains in this component
  * @property isTracerPresent Flag [tracer] contains in this component
  * @property core component [core] of emulator system
- * @property debugger component [debugger] of emulator sysem
+ * @property debugger component [debugger] of emulator system
  * @property tracer component [tracer] of emulator system
  * @property variables module variables
  * @property buses all buses of current module
@@ -320,7 +319,7 @@ open class Module(
      *
      * @property port Порт, связанный с адресным пространством
      * @property start Начальный адрес пространства
-     * @property end Конечный адрес пространства
+     * @property endInclusively Конечный адрес пространства
      * @property name Произвольное имя объекта адресного пространства
      * @property access Тип доступа
      * @property verbose Флаг "Подробности"
@@ -334,7 +333,7 @@ open class Module(
      *
      * @property port port connected to the address space
      * @property start address space start address
-     * @property end address space end address
+     * @property endInclusively address space end address
      * @property name area address space
      * @property access access type
      * @property verbose verbose flag
@@ -345,14 +344,14 @@ open class Module(
     abstract inner class Area constructor(
         val port: SlavePort,
         val start: ULong,
-        val end: ULong,
+        val endInclusively: ULong,
         final override val name: String,
         val access: ACCESS = ACCESS.R_W,
         private val verbose: Boolean = false
     ) : IFetchReadWrite, ICoreUnit {
         val module = this@Module
 
-        val size = end - start + 1u
+        val size = endInclusively - start + 1u
 
         constructor(port: SlavePort, name: String, access: ACCESS = ACCESS.R_W, verbose: Boolean = false) :
                 this(port, 0u, port.size - 1u, name, access, verbose)
@@ -378,7 +377,7 @@ open class Module(
             port.remove(this)
         }
 
-        fun range() = ULongRange(start, end)
+        fun range() = ULongRange(start, endInclusively)
 
         /**
          * {RU}
@@ -400,7 +399,7 @@ open class Module(
         override fun serialize(ctxt: GenericSerializer) = storeValues(
             "name" to name,
             "start" to start.hex8,
-            "end" to end.hex8,
+            "end" to endInclusively.hex8,
             "access" to access
         )
 
@@ -425,10 +424,13 @@ open class Module(
         }
 
         private fun beforeFetchOrRead(from: MasterPort, ea: ULong): Boolean {
-            if (verbose) log.warning { "$name: [${core.cpu.pc.hex8}]  READ[$access] -> Read access to verbose area [${ea.hex8}]" }
+            if (verbose) log.config { "$name: [0x${core.cpu.pc.hex8}]  READ[$access] -> Read access to verbose area [${ea.hex8}]" }
             when (access.read) {
                 GRANT -> return true
-                BREAK -> if (isDebuggerPresent) debugger.isRunning = false
+                BREAK -> {
+                    if (isDebuggerPresent) debugger.isRunning = false
+                    return true
+                }
                 ERROR -> throw MemoryAccessError(core.pc, ea, LOAD, message = "[$access] The area $name can't be read")
             }
             return false
@@ -458,10 +460,13 @@ open class Module(
          * {EN}
          */
         override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean {
-            if (verbose) log.warning { "$name: [${core.cpu.pc.hex8}] WRITE[$access] -> Write access to verbose area [${ea.hex8}]" }
+            if (verbose) log.config { "$name: [0x${core.cpu.pc.hex8}] WRITE[$access] -> Write access to verbose area [${ea.hex8}]" }
             when (access.write) {
                 GRANT -> return true
-                BREAK -> if (isDebuggerPresent) debugger.isRunning = false
+                BREAK -> {
+                    if (isDebuggerPresent) debugger.isRunning = false
+                    return true
+                }
                 ERROR -> throw MemoryAccessError(
                     core.pc,
                     ea,
@@ -477,7 +482,7 @@ open class Module(
          * Проверка доступности операции чтения
          * Примечание: этот метод должен быть вызван перед выполнением чтения из адресного пространства
          *
-         * @param from Порт который инициировал чтение
+         * @param from Порт, который инициировал чтение
          * @param ea Адрес для проверки
          * @return Доступность операции записи (true/false)
          * {RU}
@@ -496,18 +501,18 @@ open class Module(
         override fun fetch(ea: ULong, ss: Int, size: Int): ULong =
             throw IllegalAccessException("Area isn't fetchable by default!")
 
-        override fun toString(): String = "$port->$name[${start.hex8}..${end.hex8}]"
+        override fun toString(): String = "$port->$name[${start.hex8}..${endInclusively.hex8}]"
 
-        fun contains(ea: ULong) = ea in start..end
+        fun contains(ea: ULong) = ea in start..endInclusively
 
         private inline fun errorIf(condition: Boolean, message: () -> String) {
             if (condition) throw AreaDefinitionError(message())
         }
 
         init {
-            errorIf(start > end) { "$this -> area start > Area end: [${start.hex8} > ${end.hex8}]" }
+            errorIf(start > endInclusively) { "$this -> area start > Area end: [${start.hex8} > ${endInclusively.hex8}]" }
             errorIf(start >= port.size) { "$this -> area start >= port size [${start.hex8} >= ${port.size.hex8}]" }
-            errorIf(end >= port.size) { "$this -> area end >= port size [${end.hex8} >= ${port.size.hex8}]" }
+            errorIf(endInclusively >= port.size) { "$this -> area end >= port size [${endInclusively.hex8} >= ${port.size.hex8}]" }
 
             @Suppress("LeakingThis")
             port.add(this)
@@ -528,7 +533,7 @@ open class Module(
      * Имеет порт и границы, но не содержит данных.
      * @property port Порт, связанный с адресным пространством
      * @property start Начальный адрес пространства
-     * @property end Конечный адрес пространства
+     * @property endInclusively Конечный адрес пространства (включительно)
      * @property name Произвольное имя объекта адресного пространства
      * @property access Тип доступа
      * @property verbose Флаг "Подробности"
@@ -540,7 +545,7 @@ open class Module(
      *
      * @property port port connected to the address space
      * @property start address space start address
-     * @property end address space end address
+     * @property endInclusively address space end address (inclusively in range)
      * @property name area address space
      * @property access access type
      * @property verbose verbose flag
@@ -549,14 +554,17 @@ open class Module(
     open inner class Void(
         port: SlavePort,
         start: ULong,
-        end: ULong,
+        endInclusively: ULong,
         name: String,
         access: ACCESS = ACCESS.R_W,
         verbose: Boolean = false
-    ) : Area(port, start, end, name, access, verbose) {
+    ) : Area(port, start, endInclusively, name, access, verbose) {
         override fun fetch(ea: ULong, ss: Int, size: Int): ULong = 0u
         override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = Unit
+
+        override fun load(ea: ULong, size: Int, ss: Int, onError: HardwareErrorHandler?): ByteArray = ByteArray(size)
+        override fun store(ea: ULong, data: ByteArray, ss: Int, onError: HardwareErrorHandler?) = Unit
     }
 
     /**
@@ -566,7 +574,7 @@ open class Module(
      *
      * @property port Порт, связанный с адресным пространством
      * @property start Начальный адрес пространства
-     * @property end Конечный адрес пространства
+     * @property endInclusively Конечный адрес пространства (включительно)
      * @property name Произвольное имя объекта адресного пространства
      * @property access Тип доступа (по умолчанию, ACCESS.I_I)
      * @property verbose Флаг "Подробности" (по умолчанию, false)
@@ -586,7 +594,7 @@ open class Module(
      *
      * @property port port connected to the address space
      * @property start address space start address
-     * @property end address space end address
+     * @property endInclusively address space end address (inclusively in range)
      * @property name area address space
      * @property access access type (ACCESS.I_I by default)
      * @property verbose verbose flag (false by default)
@@ -603,15 +611,15 @@ open class Module(
     inner class Memory(
         port: SlavePort,
         start: ULong,
-        end: ULong,
+        endInclusively: ULong,
         name: String,
         access: ACCESS,
         verbose: Boolean = false,
         endian: ByteOrder = ByteOrder.LITTLE_ENDIAN
-    ) : Area(port, start, end, name, access, verbose) {
+    ) : Area(port, start, endInclusively, name, access, verbose) {
         override fun stringify(): String = dump(16, 1, '#', '-')
 
-        private val content = runCatching { byteBuffer(size.int, settings.directedMemory, endian) }
+        private var content = runCatching { byteBuffer(size.int, settings.directedMemory, endian) }
             .onFailure { "Can't allocate $size bytes for memory buffer" }
             .getOrThrow()
 
@@ -899,8 +907,18 @@ open class Module(
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             if (!ctxt.doRestore) {
-                if (!ctxt.loadBinary(snapshot, snapshotName, content))
-                    log.warning { "Can't load $snapshotName -> perhaps snapshot has old version!" }
+                try {
+                    if (!ctxt.loadBinary(snapshot, snapshotName, content))
+                        log.warning { "Can't load $snapshotName -> perhaps snapshot has old version!" }
+                } catch (e: MemoryDeserializeSizeMismatchException) {
+                    log.warning { "[${this@Module.name}] ByteBuffer limit is smaller, than in the snapshot, " +
+                            "oldLimit=0x${e.actualSize.hex} snapshotLimit=0x${e.snapshotSize.hex}" }
+
+                    // Pass BufferOverflow exception
+                    content = byteBuffer(e.snapshotSize, settings.directedMemory, endian)
+                    if (!ctxt.loadBinary(snapshot, snapshotName, content))
+                        log.warning { "Can't load $snapshotName -> perhaps snapshot has old version!" }
+                }
             } else if (access == ACCESS.R_W && dirtyPages.isNotEmpty()) {
                 ctxt.restoreBinary(snapshot, snapshotName, content, dirtyPages, pageSize.int)
                 dirtyPages.clear()
@@ -994,7 +1012,7 @@ open class Module(
             regions.fill(null)
 
             val prt = outputs[default] ?: error("Can't map init region because no output port with number = $default")
-            val interval = map.init(default, 0u, end)
+            val interval = map.init(default, 0u, endInclusively)
             val translator = PhonyTranslator()
             regions[default] = Region(initialOrd, prt, interval, MAPPING_RIGHTS_RWE, translator)
         }
@@ -1087,7 +1105,7 @@ open class Module(
 
     /**
      * {RU}
-     * Аппаратный регистр для описание периферийных устройств и модулей.
+     * Аппаратный регистр для описания периферийных устройств и модулей.
      *
      * Регистр представляет собой область памяти, описываемую адресом и типом данных.
      *
@@ -1379,7 +1397,7 @@ open class Module(
 
         fun readInternal(ea: ULong, ss: Int, size: Int): ULong {
             require(ea + size.uint <= address + datatype.bytes.uint) {
-                "$name read out of range ea=${ea.hex8} size=$size address=${address.hex8} size=${datatype.bytes}"
+                "$name read out of range ea=${ea.hex8} size=$size address=${address.hex8} datasize=${datatype.bytes}"
             }
             return data[range(ea, size)]
         }

@@ -26,6 +26,7 @@
 package ru.inforion.lab403.examples
 
 import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.extensions.unhexlify
 import ru.inforion.lab403.kopycat.auxiliary.NANDPart
 import ru.inforion.lab403.kopycat.cores.arm.hardware.processors.AARMCPU
@@ -81,8 +82,8 @@ object virtarm {
         top.debugger.step()
 
         // read CPU register using debugger API
-        var r0 = top.debugger.regRead(0)
-        var r15 = top.debugger.regRead(15)
+        var r0 = top.debugger.regRead(0).ulong
+        var r15 = top.debugger.regRead(15).ulong
         println("using debugger API: r0 = 0x${r0.hex8} r15 = 0x${r15.hex8}")
 
         // read CPU register using core API

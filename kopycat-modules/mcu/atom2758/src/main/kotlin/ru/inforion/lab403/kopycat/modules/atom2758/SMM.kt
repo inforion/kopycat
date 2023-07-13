@@ -43,7 +43,7 @@ class SMM(parent: Module, name: String) : Module(parent, name) {
     private val REG_B2 = object : Register(ports.io, 0xB2u, BYTE, "REG_B2") {
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             super.write(ea, ss, size, value)
-            log.severe { "SMM-IO handler requested with value=0x${value.hex}" }
+            log.severe { "[0x${core.pc.hex}] SMM-IO handler requested with value=0x${value.hex}" }
         }
     }
 }

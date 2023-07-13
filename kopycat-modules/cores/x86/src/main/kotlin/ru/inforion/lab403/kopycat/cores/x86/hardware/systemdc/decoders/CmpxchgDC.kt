@@ -44,7 +44,7 @@ class CmpxchgDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val ops = when (opcode) {
             0xB0 -> arrayOf(rm.m8, rm.r8)
             0xB1 -> arrayOf(rm.mpref, rm.rpref)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Cmpxchg(core, s.data, prefs, *ops)
     }

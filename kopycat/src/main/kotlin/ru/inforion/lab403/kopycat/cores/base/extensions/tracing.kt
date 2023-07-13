@@ -37,12 +37,26 @@ const val TRACER_EVENT_STOP = 3
 const val TRACER_EVENT_WORKING = 4
 const val TRACER_BUS_SIZE = 5
 
-// Don't change order of status because ComponentTracer look
-//   for minimal status in method processing. So if any tracer want:
+// Don't change statuses order.
+// ComponentTracer look for minimal status in method processing.
+// So if any tracer want:
 //   - to skip instruction - it will be skipped
 //   - to stop execution - execution will be stopped
+
+/**
+ * Execution will be stopped
+ */
 const val TRACER_STATUS_STOP = 0uL
+
+/**
+ * The instruction will be skipped.
+ * No PC change, no instruction execution
+ */
 const val TRACER_STATUS_SKIP = 1uL
+
+/**
+ * Execute current instruction
+ */
 const val TRACER_STATUS_SUCCESS = 2uL
 
 const val TRACER_REGISTER_EA: ULong = 0uL

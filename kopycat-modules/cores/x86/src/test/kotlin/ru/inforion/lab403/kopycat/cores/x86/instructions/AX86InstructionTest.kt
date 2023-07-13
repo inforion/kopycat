@@ -80,7 +80,10 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         prc.waitFor(10, TimeUnit.SECONDS)
         val error = prc.errorStream.bufferedReader().readLine()
         assertNull(error, "Decoding error!")
-        return resTemp.readBytes()
+        val bytes = resTemp.readBytes()
+        temp.delete()
+        resTemp.delete()
+        return bytes
     }
 
     fun assertAssembly(expected: String) {
@@ -93,8 +96,8 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
             Assert.assertEquals("${x86.cpu.insn} -> " +
                     "$type $num error: 0x${expected.hex} != 0x${actual.hex}", expected, actual)
 
-    private fun assertFlag(num: Int, expected: Boolean, actual: Boolean, type: String = "Flag") =
-            Assert.assertEquals("${x86.cpu.insn} -> $type $num error: $expected != $actual", expected, actual)
+    private fun assertFlag(name: String, expected: Boolean, actual: Boolean, type: String = "Flag") =
+            Assert.assertEquals("${x86.cpu.insn} -> $type $name error: $expected != $actual", expected, actual)
 
     fun assertGPRRegisters(eax: ULong = 0u, ecx: ULong = 0u, edx: ULong = 0u, ebx: ULong = 0u,
                            esp: ULong = 0u, ebp: ULong = 0u, esi: ULong = 0u, edi: ULong = 0u) {
@@ -121,6 +124,20 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         x86.cpu.regs.eip.value = eip
     }
 
+    fun gprRegisters64(rax: ULong = 0u, rcx: ULong = 0u, rdx: ULong = 0u, rbx: ULong = 0u, rsp: ULong = 0u,
+                     rbp: ULong = 0u, rsi: ULong = 0u, rdi: ULong = 0u) {
+        x86.cpu.regs.apply {
+            this.rax.value = rax
+            this.rcx.value = rcx
+            this.rdx.value = rdx
+            this.rbx.value = rbx
+            this.rsp.value = rsp
+            this.rbp.value = rbp
+            this.rsi.value = rsi
+            this.rdi.value = rdi
+        }
+    }
+
     fun mmuRegisters(gdtrBase: ULong = 0u, gdtrLimit: ULong = 0u, ldtr: ULong = 0u) {
         x86.mmu.gdtr.base  = gdtrBase
         x86.mmu.gdtr.limit = gdtrLimit
@@ -135,7 +152,7 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
     fun assertCopRegisters(idtrBase: ULong = 0u, idtrLimit: ULong = 0u, int: Boolean = false, irq: ULong = 0u) {
         assertRegister(0, idtrBase,  x86.cop.idtr.base,  "Cop")
         assertRegister(1, idtrLimit, x86.cop.idtr.limit, "Cop")
-        assertFlag(2, int, x86.cop.INT, "Cop")
+        assertFlag("cop", int, x86.cop.INT, "Cop")
         assertRegister(3, irq, x86.cop.IRQ.ulong_s, "Cop")
     }
 
@@ -167,25 +184,25 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         x86.cpu.sregs.ss.value = 8u
     }
 
-    fun assertFlagRegisters(ac: Boolean = false, rf: Boolean = false, vm: Boolean = false, vif: Boolean = false,
-                            vip: Boolean = false, id: Boolean = false, cf: Boolean = false, pf: Boolean = false,
-                            af: Boolean = false, zf: Boolean = false, sf: Boolean = false, tf: Boolean = false,
-                            ifq: Boolean = false, df: Boolean = false, of: Boolean = false) {
-        assertFlag(0, ac, x86.cpu.flags.ac)
-        assertFlag(1, rf, x86.cpu.flags.rf)
-        assertFlag(2, vm, x86.cpu.flags.vm)
-        assertFlag(3, vif, x86.cpu.flags.vif)
-        assertFlag(4, vip, x86.cpu.flags.vip)
-        assertFlag(5, id, x86.cpu.flags.idq)
-        assertFlag(6, cf, x86.cpu.flags.cf)
-        assertFlag(7, pf, x86.cpu.flags.pf)
-        assertFlag(8, af, x86.cpu.flags.af)
-        assertFlag(9, zf, x86.cpu.flags.zf)
-        assertFlag(10, sf, x86.cpu.flags.sf)
-        assertFlag(11, tf, x86.cpu.flags.tf)
-        assertFlag(12, ifq, x86.cpu.flags.ifq)
-        assertFlag(13, df, x86.cpu.flags.df)
-        assertFlag(14, of, x86.cpu.flags.of)
+    fun assertFlagRegisters(ac: Boolean? = null, rf: Boolean? = null, vm: Boolean? = null, vif: Boolean? = null,
+                            vip: Boolean? = null, id: Boolean? = null, cf: Boolean? = null, pf: Boolean? = null,
+                            af: Boolean? = null, zf: Boolean? = null, sf: Boolean? = null, tf: Boolean? = null,
+                            ifq: Boolean? = null, df: Boolean? = null, of: Boolean? = null) {
+        ac?.let { assertFlag("ac", it, x86.cpu.flags.ac) }
+        rf?.let { assertFlag("rf", it, x86.cpu.flags.rf) }
+        vm?.let { assertFlag("vm", it, x86.cpu.flags.vm) }
+        vif?.let { assertFlag("vif", it, x86.cpu.flags.vif) }
+        vip?.let { assertFlag("vip", it, x86.cpu.flags.vip) }
+        id?.let { assertFlag("idq", it, x86.cpu.flags.idq) }
+        cf?.let { assertFlag("cf", it, x86.cpu.flags.cf) }
+        pf?.let { assertFlag("pf", it, x86.cpu.flags.pf) }
+        af?.let { assertFlag("af", it, x86.cpu.flags.af) }
+        zf?.let { assertFlag("zf", it, x86.cpu.flags.zf) }
+        sf?.let { assertFlag("sf", it, x86.cpu.flags.sf) }
+        tf?.let { assertFlag("tf", it, x86.cpu.flags.tf) }
+        ifq?.let { assertFlag("ifq", it, x86.cpu.flags.ifq) }
+        df?.let { assertFlag("df", it, x86.cpu.flags.df) }
+        of?.let { assertFlag("of", it, x86.cpu.flags.of) }
     }
 
     fun flagRegisters(ac: Boolean = false, rf: Boolean = false, vm: Boolean = false, vif: Boolean = false,
@@ -231,7 +248,7 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         assert(expected.length % 2 == 0)
         val size = expected.length / 2
         val actual = load(address, size)
-        Assert.assertEquals("Memory 0x${address.hex8} error: $expected != $actual", expected, actual)
+        Assert.assertEquals("Memory 0x${address.hex8} error: $expected != $actual", expected.uppercase(), actual)
     }
 
     fun assertMemory(address: ULong, expected: ULong, dtyp: Datatype, io: Boolean = false) {

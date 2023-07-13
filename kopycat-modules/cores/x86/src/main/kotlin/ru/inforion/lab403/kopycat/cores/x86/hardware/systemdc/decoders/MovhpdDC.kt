@@ -44,13 +44,14 @@ class MovhpdDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
         val opcode = s.readOpcode()
         val rm = RMDC(s, prefs)
 
-        require(prefs.operandOverride) { "Vectored variants aren't implemented" }
+        // 0x66 - used for movhpd
+        // movhps if no operandOverride prefix
 
+        // require(prefs.operandOverride) { "Vectored variants aren't implemented" }
         val operands = when (opcode) {
             0x16 -> arrayOf(rm.rxmm, rm.m64)
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
-
-        return Movhpd(core, s.data, prefs, *operands)
+        return Movhpd(core, s.data, prefs, *operands) // реализации одинаковые с movhps
     }
 }

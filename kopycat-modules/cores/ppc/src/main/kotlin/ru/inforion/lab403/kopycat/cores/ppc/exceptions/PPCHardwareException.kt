@@ -65,7 +65,7 @@ abstract class PPCHardwareException(
         eIrq.EmbeddedPerfMonitor -> PPCRegister_e500v2.OEAext.IVOR35
         //eIrq.ProcessorDoorbell.irq -> PPCRegister_e500v2.OEAext.IVOR36
         //eIrq.ProcessorCritDoorbell.irq -> PPCRegister_e500v2.OEAext.IVOR37
-        else -> throw GeneralException("Wrong interrupt irq ${excCode.irq}")
+        else -> throw GeneralException("Wrong interrupt irq ${(excCode as eIrq).irq}")
     }.value(core) and 0xFFFF_FFF0u // Clear lower 4 bit
 
     override fun toString() = "$prefix[${where.hex8}] $what"

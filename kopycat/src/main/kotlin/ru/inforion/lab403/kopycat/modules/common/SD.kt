@@ -43,8 +43,6 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
-import java.util.logging.Level
-
 
 
 class SD(parent: Module,
@@ -63,7 +61,7 @@ class SD(parent: Module,
         content.readBufferData(memory)
     }
     constructor(parent: Module, name: String, cid: String, csd: String, capacity: Int, page: Int, content: Resource) :
-            this(parent, name, cid, csd, capacity, page, content.inputStream())
+            this(parent, name, cid, csd, capacity, page, content.openStream())
 
     constructor(parent: Module, name: String, cid: String, csd: String, capacity: Int, page: Int, content: File) :
             this(parent, name, cid, csd, capacity, page, content.inputStream())

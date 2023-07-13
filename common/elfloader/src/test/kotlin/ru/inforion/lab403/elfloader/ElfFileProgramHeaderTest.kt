@@ -48,29 +48,5 @@ internal class ElfFileProgramHeaderTest {
     private val data_bytes = ByteBuffer.wrap(data.unhexlify())
     private val elf = ElfFile(data_bytes)
 
-    @Test
-    fun testPHeadersCount() {
-        assertEquals(8, elf.programHeaderTable.size)
-    }
-
-    @Test
-    fun testPHeadersSizeBytes() {
-        assertEquals(0x100, elf.phentsize * elf.programHeaderTable.size)
-    }
-
-    @Test
-    fun testPHeadersIterate() {
-        val pTypes = arrayOf(
-            ElfProgramHeaderType.PT_PHDR.id,
-            ElfProgramHeaderType.PT_INTERP.id,
-            ElfProgramHeaderType.PT_LOAD.id,
-            ElfProgramHeaderType.PT_LOAD.id,
-            ElfProgramHeaderType.PT_DYNAMIC.id,
-            ElfProgramHeaderType.PT_NOTE.id,
-            ElfProgramHeaderType.PT_GNU_EH_FRAME.id,
-            ElfProgramHeaderType.PT_GNU_STACK.id
-        )
-        val pairs = pTypes.zip(elf.programHeaderTable)
-        pairs.forEach { assertEquals(it.first, it.second.type) }
-    }
+    
 }

@@ -47,14 +47,14 @@ open class PciDevice constructor(
 
     subsystemId: Int = 0,
     subsystemVendorId: Int = 0,
-    expRomBase: Int = 0,
+    expRomBase: Int? = null,
 
-    capPtr: Int = 0,
     interruptLine: Int = 0,
     interruptPin: Int = 0,
     minGrant: Int = 0xFF,
     maxLatency: Int = 0xFF
-) : PciAbstract(parent, name, vendorId, deviceId, revisionId, classCode, 0x00, bist) {
+) : PciAbstract(parent, name, vendorId, deviceId, revisionId,
+    classCode, 0x00, bist) {
 
     val CARDBUS_PTR = PCI_CONF_FUNC_WR(0x28, DWORD, "CARDBUS_PTR")
 
@@ -69,9 +69,19 @@ open class PciDevice constructor(
         }
     }
 
-    val EXP_ROM_BASE = PCI_CONF_FUNC_WR(0x30, DWORD, "EXP_ROM_BASE", expRomBase.ulong_z)
+    val EXP_ROM_BASE = object : PCI_CONF_FUNC_WR(0x30, DWORD, "EXP_ROM_BASE", expRomBase?.ulong_z ?: 0uL) {
+        override fun read(ea: ULong, ss: Int, size: Int) = if (expRomBase != null)
+            super.read(ea, ss, size)
+        else
+            0uL
+    }
 
-    val CAP_PTR = PCI_CONF_FUNC_WR(0x34, DWORD, "CAP_PTR", capPtr.ulong_z)
+    val CAP_PTR = object : PCI_CONF_FUNC_WR(0x34, DWORD, "CAP_PTR") {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            data = capabilities.minOfOrNull { it.base } ?: 0uL
+            return super.read(ea, ss, size)
+        }
+    }
 
     val RESERVED_38 = PCI_CONF_FUNC_WR(0x38, DWORD, "RESERVED_38")
 

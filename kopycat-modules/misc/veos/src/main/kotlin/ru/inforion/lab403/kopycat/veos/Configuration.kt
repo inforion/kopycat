@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos
 
+import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 
 
@@ -55,6 +56,7 @@ class Configuration : IAutoSerializable {
     var systemDataStart: ULong = 4u    // Reserve address 0 for nullptr
     var systemDataEnd: ULong = 0x1000u
 
+    @DontAutoSerialize
     var rootDirectory: String = "./"
 
     // rootDirectory-relative path

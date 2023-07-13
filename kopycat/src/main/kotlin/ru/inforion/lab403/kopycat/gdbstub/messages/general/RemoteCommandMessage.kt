@@ -33,7 +33,7 @@ import ru.inforion.lab403.kopycat.interactive.REPL
 
 internal class RemoteCommandMessage(val command: String) : GeneralRequestMessage() {
     override fun Context.process() {
-        val result = REPL.eval(command)
+        val result = REPL.get().eval(command)
         log.info { "Remote command executed[${result.status}]: $command" }
         if (result.status == 0) {
             if (result.message != null) {

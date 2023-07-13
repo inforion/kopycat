@@ -65,6 +65,7 @@ import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberFunctions
 import kotlin.reflect.jvm.javaMethod
 import kotlin.reflect.jvm.kotlinFunction
+import com.esotericsoftware.kryo.serializers.FieldSerializer
 
 
 abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializable {
@@ -98,7 +99,11 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
     @DontAutoSerialize
     protected val apiRetTypes = mutableListOf<APIRetType<out Any>>()
 
-    class SerializableMethod(private var method: Method) : Serializable {
+    class SerializableMethod(
+        @FieldSerializer.Optional("reflect")
+        private var method: Method
+    ) : Serializable {
+
         companion object {
             fun KFunction<*>.toSerializableMethod() = SerializableMethod(javaMethod!!)
         }
@@ -339,6 +344,8 @@ abstract class API(val os: VEOS<*>) : IAutoSerializable, IConstructorSerializabl
         ret<FunctionPointer> { APIResult.Value(it.address) }
         ret<VoidPointer> { APIResult.Value(it.address) }
         ret<PointerPointer> { APIResult.Value(it.address) }
+        ret<Double> { APIResult.Value(it.toRawBits().ulong, ArgType.LongLong) }
+        ret<Float> { APIResult.Value(it.toRawBits().ulong_s) }
 
         ret<APIResult> { it }
     }

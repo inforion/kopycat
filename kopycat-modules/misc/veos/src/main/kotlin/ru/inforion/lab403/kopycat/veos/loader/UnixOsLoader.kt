@@ -157,6 +157,7 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
     fun ElfSymbol.toSymbol(base: ULong = 0uL): Symbol {
         val entity = when (infoType and 0xf) {
             ElfSymbolTableType.STT_FUNC.id -> Symbol.Entity.Function
+            ElfSymbolTableType.STT_NOTYPE.id -> Symbol.Entity.NoType
             else -> Symbol.Entity.Other
         }
         return Symbol(name, value + base, ind, entity = entity)
@@ -178,14 +179,14 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
         val mapDynamicSymbols = ArrayList<Symbol>()
         // For resolving undefined references
         if (undefinedSymbols != null) {
-            val extern = regions.first { it.name == "extern" }
             mapDynamicSymbols += dynamicSymbols!!.map { it.toSymbol(base) }
 
-            undefinedSymbols.forEachIndexed { i, it ->
-                mapDynamicSymbols[it.ind].address = extern.vaddr + i * 4 + base
-                mapDynamicSymbols[it.ind].type = Symbol.Type.External
+            regions.find { it.name == "extern" }?.also { extern ->
+                undefinedSymbols.forEachIndexed { i, it ->
+                    mapDynamicSymbols[it.ind].address = extern.vaddr + i * 4 + base
+                    mapDynamicSymbols[it.ind].type = Symbol.Type.External
+                }
             }
-
         }
         val symbolsToRegister = mapSymbols.associateBy { it.name } + mapDynamicSymbols.associateBy { it.name }
         os.sys.registerSymbols(symbolsToRegister)
@@ -275,8 +276,11 @@ class UnixOsLoader(val os: VEOS<*>) : ALoader(os) {
         val freeRange = os.currentMemory.freeRangeBySize(size)
         check(freeRange != null) { "Can't allocate memory for loading $libName" }
 
-        log.config { "'$libName' will be rebased to ${freeRange.first.hex8}..${(freeRange.first + size).hex8}" }
-        val base = freeRange.first
+        val startAddr = requireNotNull(regions.map { it.vaddr }.minOrNull())
+        val base = if (startAddr > freeRange.first) 0uL else freeRange.first
+
+        log.config { "'$libName' will be rebased to ${base.hex8}..${(base + size).hex8}" }
+
 
         regions.forEach {
             os.currentMemory.allocate("$libName:${it.name}", it.vaddr + base, it.size, it.access.asAccess, it.data)

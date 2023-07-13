@@ -57,7 +57,7 @@ class CTRLBank(val core: x86Core) : ARegistersBankNG<x86Core>("Control Registers
         override var value: ULong
             get() = super.value
             set(value) {
-                AOperand.log.fine { "[${core.pc.hex}] CR3 register changed to ${value.hex} -> paging cache invalidated!" }
+                AOperand.log.fine { "[0x${core.pc.hex}] CR3 register changed to ${value.hex} -> paging cache invalidated!" }
                 super.value = value
                 core.mmu.invalidatePagingCache()
             }

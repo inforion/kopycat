@@ -25,13 +25,23 @@
  */
 package ru.inforion.lab403.kopycat.modules.atom2758
 
+import ru.inforion.lab403.common.extensions.ULONG_MAX
+import ru.inforion.lab403.common.extensions.hex16
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.base.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessPciError
+import ru.inforion.lab403.kopycat.cores.base.extensions.BRIDGE_IO_BUS_INDEX
+import ru.inforion.lab403.kopycat.cores.base.extensions.BRIDGE_MEM_BUS_INDEX
+import ru.inforion.lab403.kopycat.cores.base.extensions.PCI_ECAM_BUS_INDEX
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.modules.*
+import ru.inforion.lab403.kopycat.modules.atom2758.e1000.E1000
+import ru.inforion.lab403.kopycat.modules.atom2758.sata.SATA
+import ru.inforion.lab403.kopycat.modules.common.pci.PciAddress
 
 class BRIDGE(
     parent: Module,
@@ -75,7 +85,40 @@ class BRIDGE(
         val sata2 = Master("sata2", SATA.BUS_SIZE)
         val sata3 = Master("sata3", SATA.BUS_SIZE)
 
-        val ecam = Master("ecam", PCI_ECAM_BUS_SIZE)
+        val e1000 = Master("e1000", E1000.BUS_MEM_SIZE)
+
+        
+
+        inner class Ecam() : Master("ecam", PCI_ECAM_BUS_SIZE) {
+            override fun fetch(ea: ULong, ss: Int, size: Int): ULong = try {
+                super.fetch(ea, ss, size)
+            } catch (e: MemoryAccessError) {
+                throw MemoryAccessPciError(
+                    ULONG_MAX, ea, AccessAction.FETCH, "Nothing connected at $ss:${ea.hex16} port $this: ",
+                    PciAddress.fromBusFuncDeviceReg(ea)
+                )
+            }
+
+            override fun read(ea: ULong, ss: Int, size: Int): ULong = try {
+                super.read(ea, ss, size)
+            } catch (e: MemoryAccessError) {
+                throw MemoryAccessPciError(
+                    ULONG_MAX, ea, AccessAction.LOAD, "Nothing connected at $ss:${ea.hex16} port $this: ",
+                    PciAddress.fromBusFuncDeviceReg(ea)
+                )
+            }
+
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong): Unit = try {
+                super.write(ea, ss, size, value)
+            } catch (e: MemoryAccessError) {
+                throw MemoryAccessPciError(
+                    ULONG_MAX, ea, AccessAction.STORE, "Nothing connected at $ss:${ea.hex16} port $this: ",
+                    PciAddress.fromBusFuncDeviceReg(ea)
+                )
+            }
+        }
+
+        val ecam = Ecam()
     }
 
     @DontAutoSerialize
@@ -106,6 +149,9 @@ class BRIDGE(
 
         SATA.BUS_MEM_INDEX_2 to ports.sata2,
         SATA.BUS_MEM_INDEX_3 to ports.sata3,
+
+        E1000.BUS_MEM_INDEX to ports.e1000,
+        
 
         PCI_ECAM_BUS_INDEX to ports.ecam
     )

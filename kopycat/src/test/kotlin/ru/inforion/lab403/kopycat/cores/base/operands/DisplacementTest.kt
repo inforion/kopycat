@@ -43,7 +43,7 @@ class DisplacementTest: ATest() {
     @Test fun test1_2() {
         address = 0x1000u
         value = 0xBEEFu
-        expected = 0xFFFF_BEEFuL
+        expected = 0xBEEFuL
         store(address, value, WORD)
         regs(r0 = address)
         actual = displacement(register(0), immediate(0u), WORD).value(testCore)

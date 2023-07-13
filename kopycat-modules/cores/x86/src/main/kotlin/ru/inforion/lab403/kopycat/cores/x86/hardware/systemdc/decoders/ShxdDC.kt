@@ -45,7 +45,7 @@ class ShxdDC(dev: x86Core, val construct: (x86Core, ByteArray, Prefixes, Array<A
         val ops = when (opcode mask 3) {
             4 -> arrayOf(rm.mpref, rm.rpref, s.imm8)  // 0xA4 0xAC
             5 -> arrayOf(rm.mpref, rm.rpref, cl)      // 0xA5 0xAD
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return construct(core, s.data, prefs, ops)
     }

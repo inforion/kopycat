@@ -50,15 +50,16 @@ class FldDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 when {
                     currByte in 0xC0..0xC7 -> {
                         val subCode = currByte[2..0]
+                        s.readByte()
                         x86FprRegister(subCode) // FLD ST(i)
                     }
                     column == 0 -> rm.m32
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            0xDB -> TODO("m80real")
+            0xDB -> rm.m80
             0xDD -> rm.m64
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         val op0 = x86FprRegister(-1)
         return Fld(core, s.data, prefs, op0, op1)

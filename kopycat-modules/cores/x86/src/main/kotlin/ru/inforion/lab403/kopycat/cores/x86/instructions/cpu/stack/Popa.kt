@@ -29,6 +29,7 @@ import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.pageFault
 import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -38,6 +39,12 @@ class Popa(core: x86Core, opcode: ByteArray, prefs: Prefixes):
     override val mnem = "popa"
 
     override fun execute() {
+        pageFault(core) {
+            (0 until 3).forEach { _ -> pop(prefs.opsize, prefs) }
+            core.cpu.regs.gpr(x86GPR.RSP, prefs.opsize).value += prefs.opsize.bytes.ulong_z
+            (0 until 4).forEach { _ -> pop(prefs.opsize, prefs) }
+        }
+
         val edi = x86utils.pop(core, prefs.opsize, prefs)
         val esi = x86utils.pop(core, prefs.opsize, prefs)
         val ebp = x86utils.pop(core, prefs.opsize, prefs)

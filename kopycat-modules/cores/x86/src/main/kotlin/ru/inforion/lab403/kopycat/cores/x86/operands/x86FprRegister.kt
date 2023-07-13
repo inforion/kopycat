@@ -25,20 +25,23 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.operands
 
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.ARegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import java.math.BigInteger
 
-class x86FprRegister(reg: Int) : ARegister<x86Core>(reg, Access.ANY) {
+class x86FprRegister(reg: Int) : ARegister<x86Core>(reg, Access.ANY, dtyp = Datatype.FPU80) {
+    @Deprecated("Use extValue instead", ReplaceWith("extValue"))
+    override fun value(core: x86Core): ULong = throw RuntimeException("Use extValue instead")
 
-    override fun value(core: x86Core): ULong = core.fpu[reg]
+    @Deprecated("Use extValue instead", ReplaceWith("extValue"))
+    override fun value(core: x86Core, data: ULong) = throw RuntimeException("Use extValue instead")
 
-    override fun value(core: x86Core, data: ULong) {
-        core.fpu[reg] = data
-    }
+    override fun extValue(core: x86Core) = core.fpu.st(reg)
 
-    fun push(core: x86Core, data: ULong){
-        core.fpu.push(data)
-    }
+    override fun extValue(core: x86Core, data: BigInteger) = core.fpu.st(reg, data)
+
+    fun push(core: x86Core, data: BigInteger) = core.fpu.push(data)
 
     override fun toString() = "fpr[${reg}]"
 }

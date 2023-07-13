@@ -42,23 +42,83 @@ const val BREAK = 3
 const val ERROR = 4
 
 enum class ACCESS(val read: Int, val write: Int) {
-    R_W(GRANT, GRANT),    // READ         / WRITE
-    R_I(GRANT, IGNORE),   // READ         / WRITE IGNORED
-    R_B(GRANT, BREAK),    // READ         / WRITE BREAK
-    R_E(GRANT, ERROR),    // READ         / WRITE ERROR
+    /**
+     * READ         / WRITE
+     */
+    R_W(GRANT, GRANT),
 
-    I_W(IGNORE, GRANT),   // READ IGNORED / WRITE
-    I_I(IGNORE, IGNORE),  // READ IGNORED / WRITE IGNORED
-    I_B(IGNORE, BREAK),   // READ IGNORED / WRITE BREAK
-    I_E(IGNORE, ERROR),   // READ IGNORED / WRITE ERROR
+    /**
+     * READ         / WRITE IGNORED
+     */
+    R_I(GRANT, IGNORE),
 
-    B_W(BREAK, GRANT),    // READ BREAK   / WRITE
-    B_I(BREAK, IGNORE),   // READ BREAK   / WRITE IGNORED
-    B_B(BREAK, BREAK),    // READ BREAK   / WRITE BREAK
-    B_E(BREAK, ERROR),    // READ BREAK   / WRITE ERROR
+    /**
+     * READ         / WRITE BREAK
+     */
+    R_B(GRANT, BREAK),
 
-    E_W(ERROR, GRANT),    // READ ERROR   / WRITE
-    E_I(ERROR, IGNORE),   // READ ERROR   / WRITE IGNORED
-    E_B(ERROR, BREAK),    // READ ERROR   / WRITE BREAK
-    E_E(ERROR, ERROR),    // READ ERROR   / WRITE ERROR
+    /**
+     * READ         / WRITE ERROR
+     */
+    R_E(GRANT, ERROR),
+
+    /**
+     * READ IGNORED / WRITE
+     */
+    I_W(IGNORE, GRANT),
+
+    /**
+     * READ IGNORED / WRITE IGNORED
+     */
+    I_I(IGNORE, IGNORE),
+
+    /**
+     * READ IGNORED / WRITE BREAK
+     */
+    I_B(IGNORE, BREAK),
+
+    /**
+     * READ IGNORED / WRITE ERROR
+     */
+    I_E(IGNORE, ERROR),
+
+    /**
+     * READ BREAK   / WRITE
+     */
+    B_W(BREAK, GRANT),
+
+    /**
+     * READ BREAK   / WRITE IGNORED
+     */
+    B_I(BREAK, IGNORE),
+
+    /**
+     * READ BREAK   / WRITE BREAK
+     */
+    B_B(BREAK, BREAK),
+
+    /**
+     * READ BREAK   / WRITE ERROR
+     */
+    B_E(BREAK, ERROR),
+
+    /**
+     * READ ERROR   / WRITE
+     */
+    E_W(ERROR, GRANT),
+
+    /**
+     * READ ERROR   / WRITE IGNORED
+     */
+    E_I(ERROR, IGNORE),
+
+    /**
+     * READ ERROR   / WRITE BREAK
+     */
+    E_B(ERROR, BREAK),
+
+    /**
+     * READ ERROR   / WRITE ERROR
+     */
+    E_E(ERROR, ERROR),
 }

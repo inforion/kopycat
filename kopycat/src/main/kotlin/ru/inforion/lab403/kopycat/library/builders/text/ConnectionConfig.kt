@@ -30,7 +30,7 @@ import ru.inforion.lab403.kopycat.cores.base.Bus
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.exceptions.ConnectionError
 
-typealias ConnectionConfig = ArrayList<String>
+typealias ConnectionConfig = List<String>
 
 fun ConnectionConfig.create(module: Module) {
     val conn1 = moduleTextParser.getConnector(this[0], module)

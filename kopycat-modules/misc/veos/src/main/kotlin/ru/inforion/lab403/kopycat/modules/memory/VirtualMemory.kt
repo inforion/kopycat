@@ -112,13 +112,13 @@ class VirtualMemory constructor(
         val freeRange = mutableListOf(start until (size - start))
 
         areas.forEach {
-            val cutRange = freeRange.find { free -> it.start in free && it.end in free }
+            val cutRange = freeRange.find { free -> it.start in free && it.endInclusively in free }
             checkNotNull(cutRange) { "It seems like some areas got intersection" }
             freeRange.remove(cutRange)
             if (cutRange.first != it.start)
                 freeRange.add(cutRange.first until it.start)
-            if (cutRange.last != it.end)
-                freeRange.add((it.end + 1u)..cutRange.last)
+            if (cutRange.last != it.endInclusively)
+                freeRange.add((it.endInclusively + 1u)..cutRange.last)
         }
         return freeRange
     }
@@ -235,8 +235,8 @@ class VirtualMemory constructor(
     }
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        val areasMap = snapshot["areas"] as ArrayList<Map<String, MutableMap<String, Any>>>
         if (!ctxt.doRestore) {
-            val areasMap = snapshot["areas"] as ArrayList<Map<String, MutableMap<String, Any>>>
             areasMap.forEach {
                 check(it.size == 1) { "Bad logic" }
                 val data = it.values.first()
@@ -251,6 +251,14 @@ class VirtualMemory constructor(
                 }
             }
         }
+        else {
+            val names = areasMap.map { it.values.first()["name"] }.toSet()
+            // We have to get rid of extra areas to make deserialization
+            reconnect {
+                areas.filter { it.name !in names }.forEach { it.remove() }
+            }
+        }
+
         super<Module>.deserialize(ctxt, snapshot)
     }
 

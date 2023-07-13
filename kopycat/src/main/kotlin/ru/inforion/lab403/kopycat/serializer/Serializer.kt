@@ -32,6 +32,7 @@ import ru.inforion.lab403.common.json.fromJson
 import ru.inforion.lab403.common.json.toJson
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.optional.Optional
+import ru.inforion.lab403.common.optional.opt
 import ru.inforion.lab403.common.reflection.*
 import ru.inforion.lab403.common.utils.DynamicClassLoader
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
@@ -146,9 +147,10 @@ class Serializer<T : ISerializable> constructor(
     var doRestore: Boolean = false
         private set
 
-    // java by default generate date format that can be only read on non-windows system.... have fun
+    // java by default generates date in format that cannot be read on Windows... have fun
     private var zipOut: ZipOutputStream? = null
-    private var zipFile: ZipFile? = null
+    // keeping path because otherwise snapshot file is held by an open stream
+    private var zipFilePath: String? = null
     private var cache = dictionary<String, Array<ByteArray?>>()
     private var json: String? = null
     private var snapshot: Map<String, Any>? = null
@@ -249,7 +251,7 @@ class Serializer<T : ISerializable> constructor(
             snapshot = json!!.fromJson()
 
             // Set ZIP-file to made restore possible of binary files
-            zipFile = ZipFile(file)
+            zipFilePath = file.absolutePath
         }
         log.fine { "Target ${target.classname()} was saved for $time" }
         return true
@@ -260,8 +262,8 @@ class Serializer<T : ISerializable> constructor(
 
         val (_, time) = measureTimedValue {
             deserializedObjects.clear()
-            zipFile = ZipFile(file)
-            val zip = zipFile!! // can't be merge with prev.
+            zipFilePath = file.absolutePath
+            val zip = ZipFile(zipFilePath!!) // can't be merged with prev.
             json = zip.readJsonEntry(stateJsonPath)
             snapshot = json!!.fromJson()
             doRestore = false
@@ -279,8 +281,8 @@ class Serializer<T : ISerializable> constructor(
         val (_, time) = measureTimedValue {
             deserializedObjects.clear()
             if (json == null || snapshot == null) {
-                requireNotNull(zipFile) { "Restore failed. No last deserialized state." }.also { zip ->
-                    json = zip.readJsonEntry(stateJsonPath)
+                requireNotNull(zipFilePath) { "Restore failed. No last deserialized state." }.also { zipPath ->
+                    json = ZipFile(zipPath).readJsonEntry(stateJsonPath)
                     snapshot = json!!.fromJson()
                 }
             }
@@ -288,20 +290,20 @@ class Serializer<T : ISerializable> constructor(
             target.deserialize(this, snapshot!!)
             processWaitingObjects()
         }
-        log.fine { "Target ${target.classname()} was restored for $time" }
+        log.fine { "Target ${target.classname()} was restored from last saved state for $time" }
 
         return this
     }
 
-    fun isBinaryExists(name: String) = zipFile!!.isFileExists(name)
+    fun isBinaryExists(name: String) = ZipFile(zipFilePath!!).isFileExists(name)
 
     fun storeBinary(name: String, output: ByteBuffer): Map<String, Any?> {
         zipOut!!.writeBinaryEntry(name, output)
         return storeByteBuffer(output, false)
     }
 
-    fun loadBinary(snapshot: Map<String, Any?>, name: String, output: ByteBuffer): Boolean = zipFile!!.let {
-        if (it.readBinaryEntry(name, output)) {
+    fun loadBinary(snapshot: Map<String, Any?>, name: String, output: ByteBuffer): Boolean = zipFilePath!!.let {
+        if (ZipFile(it).readBinaryEntry(name, output)) {
             loadByteBuffer(snapshot, name, output, false)
             return true
         }
@@ -314,7 +316,8 @@ class Serializer<T : ISerializable> constructor(
         output: ByteBuffer,
         dirtyPages: Set<UInt>,
         pageSize: Int
-    ) = zipFile!!.let { zip ->
+    ) = zipFilePath!!.let { zipPath ->
+        val zip = ZipFile(zipPath)
         val entry = zip.getEntry(name)
         zip.getInputStream(entry).use { stream ->
             var pos = 0L
@@ -404,6 +407,10 @@ class Serializer<T : ISerializable> constructor(
                 is ULong -> value.ieee754()
                 else -> throw IllegalArgumentException("value should be a Long or Int")
             }
+            java.lang.Byte::class.java -> {
+                check(value is Int) { "value should be a Int" }
+                value.byte
+            }
             Byte::class.java -> {
                 check(value is Int) { "value should be a Int" }
                 value.byte
@@ -441,6 +448,7 @@ class Serializer<T : ISerializable> constructor(
                 else -> throw IllegalArgumentException("value should be a Long or Int")
             }
             ULong::class.java -> when (value) {
+                is ULong -> value
                 is Int -> value.ulong_s
                 is Long -> value.ulong
                 else -> throw IllegalArgumentException("value should be a Long or Int")
@@ -464,8 +472,7 @@ class Serializer<T : ISerializable> constructor(
                     .toByteArray()
             }
             Optional::class.java -> {
-                val data = deserializeItem(value as Map<String, Any>, "Optional")!!
-                Optional(data)
+                deserializeItem(value as Map<String, Any>, "Optional").opt
             }
             ArrayList::class.java -> {
                 check(value is Iterable<*>)
@@ -641,21 +648,17 @@ class Serializer<T : ISerializable> constructor(
     }
 
     // TODO: ReentrantLock?
-    private fun <R, T> serializeSpecialProperty(receiver: R, item: KProperty1<R, T>): Any {
-        val value = item.getWithAccess(receiver)
-        // This case for object with container type or types that should not be nullable
-        // so was decided to throw exception, but if you find some crappy cases with nullable
-        // container you could change it
-        require(value != null) { "Object should not be null for property ${item.name} in $receiver" }
-        return when (value) {
+    private fun <R, T> serializeSpecialProperty(receiver: R, item: KProperty1<R, T>): Any? =
+        when (val value = item.getWithAccess(receiver)) {
+            null -> null
             is Array<*> -> serializeArray(value)
             is UIntArray -> serializeUIntArray(value)
             is Iterable<*> -> serializeIterable(value)
             is MutableMap<*, *> -> serializeMutableMap(value)
             is ReentrantLock -> serializeReentrantLock(value)
+            is LongArray -> { }
             else -> throw IllegalArgumentException("Can't serialize property ${item.name} of type ${item.returnType}")
         }
-    }
 
     private fun <R, T> deserializeSpecialProperty(snapshot: Any, receiver: R, item: KProperty1<R, T>) {
         val value = item.getWithAccess(receiver)
@@ -674,6 +677,7 @@ class Serializer<T : ISerializable> constructor(
                 is MutableCollection<*> -> deserializeMutableCollection(value, snapshot)
                 is MutableMap<*, *> -> deserializeMutableMap(value, snapshot)
                 is ReentrantLock -> deserializeReentrantLock(value, snapshot)
+                is LongArray -> { }
                 else -> throw IllegalArgumentException("Can't deserialize property ${item.name} of type ${item.returnType}")
             }
         } catch (ex: CantSerializeException) {
@@ -703,7 +707,10 @@ class Serializer<T : ISerializable> constructor(
         val isNull = item.getWithAccess(receiver) == null
         when {
             item.isSubtypeOfCached(ISerializable::class) && !isNull -> {
-                (item.getWithAccess(receiver) as ISerializable?)?.deserialize(this, snapshot as Map<String, Any>)
+                (item.getWithAccess(receiver) as ISerializable?)?.deserialize(this, (snapshot ?: let {
+                    log.warning { "Snapshot for property '${item.name}' of '$receiver' is null" }
+                    mapOf<String, Any>()
+                }) as Map<String, Any>)
             }
             item.isPrimitive(variableAllowed) -> {
                 val value = deserializePrimitiveProperty(snapshot, item) as T

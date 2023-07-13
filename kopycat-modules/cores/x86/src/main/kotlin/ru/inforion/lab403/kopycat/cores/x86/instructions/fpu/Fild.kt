@@ -25,24 +25,27 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.double
-import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
-import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-
-
-class Fild(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operand: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operand) {
+class Fild(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>) :
+    AFPUInstruction(core, opcode, prefs, *operands) {
     override val mnem = "fild"
 
-    override fun execute() {
-        val value = op2.value(core).double.ieee754AsUnsigned()
-        (op1 as x86FprRegister).push(core, value)
+    override fun executeFPUInstruction() {
+        val a2 = op2.value(core)
+        (op1 as x86FprRegister).push(
+            core,
+            when (op2.dtyp) {
+                Datatype.WORD -> a2.short.longDouble(core.fpu.fwr.FPUControlWord)
+                Datatype.DWORD -> a2.int.longDouble(core.fpu.fwr.FPUControlWord)
+                Datatype.QWORD -> a2.long.longDouble(core.fpu.fwr.FPUControlWord)
+                else -> TODO("Incorrect type")
+            }.ieee754AsUnsigned()
+        )
     }
 }

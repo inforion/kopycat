@@ -65,7 +65,7 @@ class NAND constructor(
     constructor(parent: Module, name: String, id: String, blockCount: Int, colLen: Int, rowLen: Int, pageSize: Int, spareSize: Int, pagesInBlock: Int, bank1: InputStream, bank2: InputStream?) :
             this(parent, name, id, blockCount, colLen, rowLen, pageSize, spareSize, pagesInBlock) { load(bank1, bank2) }
     constructor(parent: Module, name: String, id: String, blockCount: Int, colLen: Int, rowLen: Int, pageSize: Int, spareSize: Int, pagesInBlock: Int, bank1: Resource, bank2: Resource?) :
-            this(parent, name, id, blockCount, colLen, rowLen, pageSize, spareSize, pagesInBlock, bank1.inputStream(), bank2?.inputStream())
+            this(parent, name, id, blockCount, colLen, rowLen, pageSize, spareSize, pagesInBlock, bank1.openStream(), bank2?.openStream())
     constructor(parent: Module, name: String, id: String, blockCount: Int, colLen: Int, rowLen: Int, pageSize: Int, spareSize: Int, pagesInBlock: Int, bank1: File, bank2: File?) :
             this(parent, name, id, blockCount, colLen, rowLen, pageSize, spareSize, pagesInBlock, bank1.inputStream(), bank2?.inputStream())
     constructor(parent: Module, name: String, id: String, blockCount: Int, colLen: Int, rowLen: Int, pageSize: Int, spareSize: Int, pagesInBlock: Int, bank1: String, bank2: String?) :

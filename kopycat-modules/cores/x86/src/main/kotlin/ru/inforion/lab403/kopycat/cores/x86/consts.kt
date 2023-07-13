@@ -43,6 +43,7 @@ const val IA32_PERF_STATUS: ULong = 0x198u
 
 const val MSR_TURBO_RATIO_LIMIT: ULong = 0x1ADu
 const val IA32_MCG_CAP: ULong = 0x179u
+const val IA32_MCG_STATUS: ULong = 0x17Au
 const val MSR_POWER_CTL: ULong = 0x1FCu
 const val IA32_ENERGY_PERF_BIAS: ULong = 0x1B0u
 const val IA32_CLOCK_MODULATION: ULong = 0x19Au
@@ -96,3 +97,14 @@ const val MSR_CPU_TURBO_WKLD_CFG2: ULong = 0x672u
 const val MSR_CPU_THERM_CFG1: ULong = 0x673u
 const val MSR_CPU_THERM_CFG2: ULong = 0x674u
 const val MSR_CPU_THERM_SENS_CFG: ULong = 0x675u
+
+const val MSR_IA32_SYSENTER_CS: ULong = 0x174u
+const val MSR_IA32_SYSENTER_EIP: ULong = 0x176u
+const val MSR_IA32_SYSENTER_ESP: ULong = 0x175u
+
+// arch/x86/include/asm/msr-index.h
+const val MSR_MISC_FEATURES_ENABLES: ULong = 0x140u
+const val MSR_SMI_COUNT: ULong = 0x34u
+const val MSR_CORE_C1_RES: ULong = 0x660u
+const val MSR_PKG_C7_RESIDENCY: ULong = 0x3fau
+const val MSR_CORE_C6_RESIDENCY: ULong = 0x3fdu

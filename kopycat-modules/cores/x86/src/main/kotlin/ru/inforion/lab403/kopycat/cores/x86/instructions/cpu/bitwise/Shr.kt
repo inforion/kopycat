@@ -25,14 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.mask
-import ru.inforion.lab403.common.extensions.ushr
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
 import ru.inforion.lab403.kopycat.cores.x86.hardware.flags.FlagProcessor
-import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -51,12 +47,13 @@ class Shr(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
 
     override fun execute() {
         val a1 = op1.value(core)
-        val bits = if (core.is64bit) 6 else 5
-        val a2 = (op2.value(core) mask bits).int
+        val a2 = (op2.value(core) mask if (core.is64bit && prefs.rexW) 6 else 5).int
         val res = a1 ushr a2
         val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
-        FlagProcessor.processShiftFlag(core, result, op1, op2, false, false, a1[a2 - 1] == 1uL)
+        if (a2.truth) {
+            FlagProcessor.processShiftFlag(core, result, op1, a2, false, false, a1[a2 - 1] == 1uL)
+        }
         op1.value(core, result)
     }
 }

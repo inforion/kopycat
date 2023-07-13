@@ -61,10 +61,10 @@ class MovDbgDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 when (sopcode) {
                     0x21 -> arrayOf(gprr(rid, prefs.rexB, datatype), dreg(dbgid))
                     0x23 -> arrayOf(dreg(dbgid), gprr(rid, prefs.rexB, datatype))
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Mov(core, s.data, prefs, *ops)
     }

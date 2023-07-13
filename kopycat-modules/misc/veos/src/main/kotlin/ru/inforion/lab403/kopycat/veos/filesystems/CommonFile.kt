@@ -31,26 +31,30 @@ import ru.inforion.lab403.kopycat.veos.exceptions.io.IOFileExists
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONoSuchFileOrDirectory
 import ru.inforion.lab403.kopycat.veos.exceptions.io.IONotFoundError
 import ru.inforion.lab403.kopycat.veos.filesystems.attributes.veosAttributes
+import ru.inforion.lab403.kopycat.veos.filesystems.impl.FileSystem
 import ru.inforion.lab403.kopycat.veos.filesystems.interfaces.IRandomAccessFile
 import java.io.File
 import java.io.RandomAccessFile
 
 
-class CommonFile(val path: String, private val flags: AccessFlags) : IRandomAccessFile {
+class CommonFile(val fs: FileSystem, val path: String, private val flags: AccessFlags) : IRandomAccessFile {
 
     private var desc = -1
 
     private var shares = 1
 
+    @DontAutoSerialize
+    private val absolutePath = fs.concatPath(path).absolutePath
+
     init {
         when {
-            File(path).exists() -> if (flags.create && flags.exclusive) throw IOFileExists(path)
-            !flags.create -> throw IONoSuchFileOrDirectory(path)
+            File(absolutePath).exists() -> if (flags.create && flags.exclusive) throw IOFileExists(absolutePath)
+            !flags.create -> throw IONoSuchFileOrDirectory(absolutePath)
         }
     }
 
     @DontAutoSerialize
-    private val file = RandomAccessFile(path, "rw").apply {
+    private val file = RandomAccessFile(absolutePath, "rw").apply {
         if (flags.truncate) setLength(0)
         if (flags.append && !flags.readable) seek(length())
     }
@@ -93,5 +97,5 @@ class CommonFile(val path: String, private val flags: AccessFlags) : IRandomAcce
         }
     }
 
-    override fun attributes() = path.toFile().veosAttributes()
+    override fun attributes() = absolutePath.toFile().veosAttributes()
 }

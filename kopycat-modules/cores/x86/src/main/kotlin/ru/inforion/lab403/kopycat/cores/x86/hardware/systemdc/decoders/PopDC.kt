@@ -58,10 +58,10 @@ class PopDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 when (sopcode) {
                     0xA1 -> fs
                     0xA9 -> gs
-                    else -> throw GeneralException("Incorrect opcode in decoder")
+                    else -> throw GeneralException("Incorrect opcode in decoder $this")
                 }
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Pop(core, s.data, prefs, op)
     }

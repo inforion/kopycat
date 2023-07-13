@@ -25,26 +25,51 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
-import ru.inforion.lab403.common.extensions.ieee754
-import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
-import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
+import ru.inforion.lab403.kopycat.cores.x86.operands.x86FprRegister
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
+class Fsub(
+    core: x86Core,
+    opcode: ByteArray,
+    prefs: Prefixes,
+    val popCount: Int,
+    val int: Boolean,
+    vararg operands: AOperand<x86Core>
+) : AFPUInstruction(core, opcode, prefs, *operands) {
+    override val mnem = "f" + (if (int) "i" else "") + "sub" + if (popCount != 0) "p" else ""
 
+    companion object {
+        fun commonExecute(
+            op1: AOperand<x86Core>,
+            op2: AOperand<x86Core>,
+            core: x86Core,
+            int: Boolean,
+            popCount: Int,
+            r: Boolean = false,
+        ) {
+            val a1 = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+            val a2 = if (!int) {
+                if (op2 is x86FprRegister) {
+                    op2.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+                } else {
+                    op2.longDouble(core, core.fpu.fwr.FPUControlWord)
+                }
+            } else {
+                when (op2.dtyp) {
+                    Datatype.WORD -> op2.value(core).short.longDouble(core.fpu.fwr.FPUControlWord)
+                    else -> op2.value(core).int.longDouble(core.fpu.fwr.FPUControlWord)
+                }
+            }
 
-class Fsub(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, vararg operands: AOperand<x86Core>):
-        AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
-    override val mnem = "fsub"
-
-    override fun execute() {
-        val a1 = op1.value(core).long.ieee754()
-        val a2 = op2.value(core).long.ieee754()
-        val res = a1 - a2
-        op1.value(core, res.ieee754AsUnsigned())
-        core.fpu.pop(popCount)
+            val res = if (r) a2 - a1 else a1 - a2
+            op1.extValue(core, res.ieee754AsUnsigned())
+            core.fpu.pop(popCount)
+        }
     }
+
+    override fun executeFPUInstruction() = commonExecute(op1, op2, core, int, popCount)
 }

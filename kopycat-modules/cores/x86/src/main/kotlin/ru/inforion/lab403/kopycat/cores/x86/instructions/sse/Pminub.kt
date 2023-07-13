@@ -26,28 +26,24 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.sse
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.proposal.get
-import ru.inforion.lab403.common.proposal.insert
+import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import java.math.BigInteger
-
 
 class Pminub(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AOperand<x86Core>) :
-    AX86Instruction(core, Type.VOID, opcode, prefs, *operands) {
+    ASSEInstruction(core, opcode, prefs, *operands) {
 
     override val mnem = "pminub"
 
-    override fun execute() {
+    override fun executeSSEInstruction() {
         val dest = op1.extValue(core)
         val src = op2.extValue(core)
 
         var result = dest // BigInteger is immutable
         (0 until op1.dtyp.bytes).forEach {
-            val lsb = it*8
-            val msb = (it + 1)*8 - 1
+            val lsb = it * 8
+            val msb = (it + 1) * 8 - 1
             val range = msb..lsb
             if (dest[range] >= src[range])
                 result = result.insert(src[range], range)

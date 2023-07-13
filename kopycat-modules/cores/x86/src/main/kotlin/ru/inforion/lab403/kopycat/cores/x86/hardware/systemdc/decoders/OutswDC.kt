@@ -45,7 +45,7 @@ class OutswDC(dev: x86Core) : ADecoder<AX86Instruction>(dev) {
                 val src = x86Displacement(Datatype.WORD, reg, ds)
                 arrayOf(dst, src)
             }
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode in decoder $this")
         }
         return Outsw(core, s.data, prefs, *ops)
     }
