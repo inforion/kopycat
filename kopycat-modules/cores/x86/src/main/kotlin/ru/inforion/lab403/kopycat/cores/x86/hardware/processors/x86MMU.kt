@@ -282,7 +282,7 @@ US RW P - Description
         }
     }
 
-    private inner class TLBCache {
+    inner class TLBCache {
         /** Calculates starting address of PT page (4 KiB) */
         // fun pageBasePt(vAddr: ULong) = vAddr ushr 12
 
@@ -293,10 +293,10 @@ US RW P - Description
          * @param tableAddr Corresponding table entry physical address
          * @param g Is global?
          */
-        private inner class TLBCacheEntry(val tableAddr: ULong, val g: Boolean)
+        inner class TLBCacheEntry(val tableAddr: ULong, val g: Boolean)
 
         // private val ptCache = HashMap<ULong, TLBCacheEntry>()
-        private val pdCache = HashMap<ULong, TLBCacheEntry>()
+        val pdCache = HashMap<ULong, TLBCacheEntry>()
 
         /** Invalidates cache */
         fun clear() {
@@ -351,9 +351,9 @@ US RW P - Description
     }
 
     @DontAutoSerialize
-    private val tlb = TLBCache()
+    val tlb = TLBCache()
 
-    fun invalidatePagingCache() = if (x86.cpu.cregs.cr4.pge) {
+    fun invalidatePagingCache(full: Boolean = false) = if (x86.cpu.cregs.cr4.pge && !full) {
         // G, or 'Global' tells the processor not to invalidate the TLB entry corresponding to the page upon a
         // MOV to CR3 instruction. Bit 7 (PGE) in CR4 must be set to enable global pages.
         tlb.clearNonGlobal()
@@ -743,7 +743,7 @@ US RW P - Description
     override fun reset(){
         invalidateGdtCache()
         invalidateProtectedMode()
-        invalidatePagingCache()
+        invalidatePagingCache(true)
     }
 
 //    override fun serialize(ctxt: GenericSerializer) = storeValues(
@@ -786,5 +786,6 @@ US RW P - Description
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super<IAutoSerializable>.deserialize(ctxt, snapshot)
+        invalidatePagingCache(true)
     }
 }

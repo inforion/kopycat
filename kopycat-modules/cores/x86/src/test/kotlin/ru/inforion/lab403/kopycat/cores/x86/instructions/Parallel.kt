@@ -34,6 +34,9 @@ import unicorn.Unicorn
 import java.math.BigInteger
 
 internal class Parallel(val test: AX86InstructionTest, private val unicorn: UnicornEmu) {
+    /**
+     * Synchronizes Unicorn registers with the test environment
+     */
     fun sync() {
         unicorn.gpr(Unicorn.UC_X86_REG_RAX, test.x86.cpu.regs.rax.value)
         unicorn.gpr(Unicorn.UC_X86_REG_RBX, test.x86.cpu.regs.rbx.value)

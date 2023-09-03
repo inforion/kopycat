@@ -29,7 +29,6 @@ import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.proposal.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.x86.config.Generation
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
@@ -139,18 +138,21 @@ class X86InstructionsTest64: AX86InstructionTest() {
         execute { assemble("bsf rbx, rax") }
         assertAssembly("bsf rbx, rax")
         flags(cf = false, of = false, sf = false, af = false, pf = false) // those flags are undefined
+        assert()
 
         flagRegisters()
         sync()
         execute { assemble("tzcnt rbx, rax") }
         assertAssembly("tzcnt rbx, rax")
         flags(of = false, sf = false, pf = false, af = false)
+        assert()
 
         flagRegisters()
         sync()
         execute { assemble("bsr rbx, rax") }
         assertAssembly("bsr rbx, rax")
         flags(cf = false, of = false, sf = false, af = false, pf = false)
+        assert()
 
         flagRegisters()
         sync()
@@ -416,6 +418,8 @@ class X86InstructionsTest64: AX86InstructionTest() {
         execute { assemble("movaps [0x1234], xmm1") }
         assertAssembly("movaps xmmword[+0x1234], xmm1")
         assert()
+        assertMem(0x1234uL, Datatype.XMMWORD)
+
         execute { assemble("movaps xmm2, [0x1234]") }
         assertAssembly("movaps xmm2, xmmword[+0x1234]")
         assert()
@@ -443,6 +447,8 @@ class X86InstructionsTest64: AX86InstructionTest() {
         execute { assemble("movapd [0x1234], xmm1") }
         assertAssembly("movapd xmmword[+0x1234], xmm1")
         assert()
+        assertMem(0x1234uL, Datatype.XMMWORD)
+
         execute { assemble("movapd xmm2, [0x1234]") }
         assertAssembly("movapd xmm2, xmmword[+0x1234]")
         assert()
@@ -1016,6 +1022,7 @@ class X86InstructionsTest64: AX86InstructionTest() {
         execute { assemble("cvtss2sd xmm1, dword [+0x1234]") }
         assertAssembly("cvtss2sd xmm1, dword[+0x1234]")
     }
+
     @Test fun cvtpd2ps() = GenericParallelTest(
         arrayOf(
             GenericParallelTest.XMM(1, "0807060504030201bebafecaefbeadde"),
@@ -1115,20 +1122,20 @@ class X86InstructionsTest64: AX86InstructionTest() {
                 1,
                 BigInteger("17161514131211100000000000000000", 16) or it.bigint
             )
-        }
+        },
+        arrayOf(GenericParallelTest.XMM(1, 0xbff0000000000000uL.bigint)).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("cvttsd2si rax, xmm1") }
         assertAssembly("cvttsd2si rax, xmm1")
     }
 
     @Test fun cvttssCvttsd2siR32() = GenericParallelTest(
-        arrayOf(
-            GenericParallelTest.XMM(1, BigInteger("cf000000", 16)),
-            GenericParallelTest.XMM(1, BigInteger("4f000000", 16)),
-        ).asIterable(),
+        arrayOf(GenericParallelTest.XMM(1, BigInteger("cf000000", 16))).asIterable(),
+        arrayOf(GenericParallelTest.XMM(1, BigInteger("bf800000", 16))).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("cvttss2si eax, xmm1") }
         assertAssembly("cvttss2si eax, xmm1")
+        assert()
 
         execute { assemble("cvttsd2si eax, xmm1") }
         assertAssembly("cvttsd2si eax, xmm1")
@@ -1542,7 +1549,18 @@ class X86InstructionsTest64: AX86InstructionTest() {
     @Test fun neg() = GenericParallelTest(
         arrayOf(GenericParallelTest.Reg(x86GPR.RAX, 0x10000uL)).asIterable(),
         arrayOf(GenericParallelTest.Reg(x86GPR.RAX, 0x01uL)).asIterable(),
+        arrayOf(GenericParallelTest.Reg(x86GPR.RAX, 0xFFFFFFFFFFFFFFFFuL)).asIterable(),
     ).test(this, unicorn) {
+        execute { assemble("neg rax") }
+        assertAssembly("neg rax")
+    }
+
+    @Test fun negAllFlags() = GenericParallelTest(
+        arrayOf(GenericParallelTest.Reg(x86GPR.RAX, 0x10000uL)).asIterable(),
+        arrayOf(GenericParallelTest.Reg(x86GPR.RAX, 0x01uL)).asIterable(),
+        arrayOf(GenericParallelTest.Reg(x86GPR.RAX, 0xFFFFFFFFFFFFFFFFuL)).asIterable(),
+    ).test(this, unicorn) {
+        flags(cf = true, pf = true, af = true, zf = true, sf = true, df = true, of = true)
         execute { assemble("neg rax") }
         assertAssembly("neg rax")
     }
@@ -2602,5 +2620,169 @@ class X86InstructionsTest64: AX86InstructionTest() {
     ).test(this, unicorn) {
         execute { assemble("fchs ") }
         assertAssembly("fchs fpr[0]")
+    }
+
+    /**
+     * Not testing zf change! (mmu not synced in unicorn)
+     */
+    @Test fun verw() = parallel(this, unicorn) {
+        sync()
+
+        store(0x0FF8uL, "cafebabecafebabe")
+//        execute { "0F002DFF0F00".unhexlify() }
+
+        // offset by instruction length
+        execute { assemble("verw word [rel $+0x0FFF]") }
+        assertAssembly("verw word [rip+0x0FF8]")
+
+        execute { assemble("verw word [rax]") }
+        assertAssembly("verw word [rax]")
+    }
+
+    @Test fun verr() = parallel(this, unicorn) {
+        sync()
+
+        store(0x0FF8uL, "cafebabecafebabe")
+
+        execute { assemble("verr word [rel $+0x0FFF]") }
+        assertAssembly("verr word [rip+0x0FF8]")
+
+        execute { assemble("verr word [rax]") }
+        assertAssembly("verr word [rax]")
+    }
+
+    @Test fun fxam() = parallel(this, unicorn) {
+        sync()
+        // put 0 to st0
+        execute { assemble("fldz") }
+        assertAssembly("fldz fpr[0]")
+        assert()
+
+        execute { assemble("fxam") }
+        assertAssembly("fxam fpr[0]")
+        assert()
+
+        // put 1 to st0
+        execute { assemble("fld1") }
+        assertAssembly("fld1 fpr[0]")
+        assert()
+
+        execute { assemble("fxam") }
+        assertAssembly("fxam fpr[0]")
+        assert()
+    }
+
+    @Test fun psllxPsrax() = parallel(this, unicorn) {
+        fun assertDecode(insn: String, args: String, argskc: String? = null) {
+            execute { assemble("$insn $args") }
+            assertAssembly("$insn ${argskc ?: args}")
+        }
+
+        for (insn in arrayOf("psllw" to 16, "pslld" to 32, "psllq" to 64, "psraw" to 16, "psrad" to 32)) {
+            val edgeCases = arrayOf(0, insn.second - 1, insn.second, insn.second + 1)
+
+            for (regno1 in arrayOf(0, 7, 15)) {
+                for (regno2 in arrayOf(0, 7, 15)) {
+                    for (shift in edgeCases) {
+                        if (regno1 < 8 && regno2 < 8) {
+                            x86.fpu.mmx(regno1, 0xDEAD_BEEF_CAFE_BABEuL)
+                            x86.fpu.mmx(regno2, shift.ulong_z)
+                            sync()
+                            // psllx mm, mm
+                            // psrax mm, mm
+                            assertDecode(insn.first, "mm$regno1, mm$regno2", "mmx$regno1, mmx$regno2")
+                            assert()
+                        }
+
+                        x86.sse.xmm[regno1] = "DEADBEEFCAFEBABE0102030405060708".bigintByHex
+                        x86.sse.xmm[regno2] = shift.bigint
+                        sync()
+                        // psllx xmm, xmm
+                        // psrax xmm, xmm
+                        assertDecode(insn.first, "xmm$regno1, xmm$regno2")
+                        assert()
+                    }
+                }
+
+                for (shift in edgeCases) {
+                    if (regno1 < 8) {
+                        x86.fpu.mmx(regno1, 0xDEAD_BEEF_CAFE_BABEuL)
+                        store(0x1234uL, shift.pack(8))
+                        sync()
+                        // psllx mm, m64
+                        // psrax mm, m64
+                        assertDecode(insn.first, "mm$regno1, [0x1234]", "mmx$regno1, mmxword[+0x1234]")
+                        assert()
+                    }
+
+                    x86.sse.xmm[regno1] = "DEADBEEFCAFEBABE0102030405060708".bigintByHex
+                    store(0x1234uL, shift.pack(8) /* should be 16, but oh well */)
+                    sync()
+                    // psllx xmm, m128
+                    // psrax xmm, m128
+                    assertDecode(insn.first, "xmm$regno1, [0x1234]", "xmm$regno1, xmmword[+0x1234]")
+                    assert()
+                }
+
+                for (shift in edgeCases) {
+                    if (regno1 < 8) {
+                        x86.fpu.mmx(regno1, 0xDEAD_BEEF_CAFE_BABEuL)
+                        sync()
+                        // psllx mm, imm8
+                        // psrax mm, imm8
+                        assertDecode(insn.first, "mm$regno1, $shift", "mmx$regno1, 0x${shift.hex2}")
+                        assert()
+                    }
+
+                    x86.sse.xmm[regno1] = "DEADBEEFCAFEBABE0102030405060708".bigintByHex
+                    sync()
+                    // psllx xmm, imm8
+                    // psrax xmm, imm8
+                    assertDecode(insn.first, "xmm$regno1, $shift", "xmm$regno1, 0x${shift.hex2}")
+                    assert()
+                }
+            }
+        }
+    }
+
+    @Test fun rolCFTest() = GenericParallelTest(
+        arrayOf(
+            0x6FuL,
+            0xFF_FF_FF_FFuL,
+            0xFF_FF_FF_FDuL,
+            0xFF_FF_FF_F9uL,
+            0x7F_FF_FF_FFuL,
+            0x3F_FF_FF_FFuL,
+        ).flatMap {
+            arrayOf(
+                arrayOf(
+                    GenericParallelTest.Reg(x86GPR.RAX, it),
+                    GenericParallelTest.Reg(x86GPR.RBX, it),
+                    GenericParallelTest.Reg(x86GPR.RCX, 0uL),
+                ),
+                arrayOf(
+                    GenericParallelTest.Reg(x86GPR.RAX, it),
+                    GenericParallelTest.Reg(x86GPR.RBX, it),
+                    GenericParallelTest.Reg(x86GPR.RCX, 1uL),
+                ),
+            ).asIterable()
+        }.map { it.asIterable() },
+    ).test(this, unicorn) {
+        execute { assemble("rol eax, cl") }
+        assertAssembly("rol eax, cl")
+        assert()
+        execute { assemble("ror ebx, cl") }
+        assertAssembly("ror ebx, cl")
+    }
+
+    @Test fun rolXbitsEdgeCase() = GenericParallelTest(
+        arrayOf(
+            GenericParallelTest.Reg(x86GPR.RSI, 0xFFFFFFFFFFFFFFFEuL),
+            GenericParallelTest.Reg(x86GPR.RCX, 0x0000000000000001uL),
+        ).asIterable()
+    ).test(this, unicorn) {
+        execute { assemble("rol rsi, cl") }
+        assertAssembly("rol rsi, cl")
+        assert()
     }
 }

@@ -38,7 +38,7 @@ import java.nio.ByteOrder
 /**
  * bzImage boot preparation class.
  *
- * Related [kernel documentation](https://docs.kernel.org/x86/boot.html#the-real-mode-kernel-header).
+ * Related [kernel documentation](https://www.kernel.org/doc/html/latest/arch/x86/boot.html#the-real-mode-kernel-header).
  * @throws bzImageAncientProtocolException when boot protocol version is less than 2.04 (Linux 2.6.14)
  */
 class bzImage(private val bytes: ByteArray) : IMemoryRef, IReadWrite {
@@ -150,7 +150,7 @@ class bzImage(private val bytes: ByteArray) : IMemoryRef, IReadWrite {
         // For boot protocol prior to 2.04, the upper two bytes of the syssize field are
         // unusable, which means the size of a bzImage kernel cannot be determined.
         if (bootVersion < 0x0204uL) {
-            throw bzImageAncientProtocolException()
+            throw bzImageAncientProtocolException(bootVersion)
         }
     }
 

@@ -44,7 +44,10 @@ import ru.inforion.lab403.kopycat.modules.atom2758.e1000.sources.NullSource
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
 import ru.inforion.lab403.kopycat.modules.common.pci.PciMSICapability
 import ru.inforion.lab403.kopycat.serializer.loadValue
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.locks.ReentrantLock
 import java.util.logging.Level
+import kotlin.concurrent.withLock
 import kotlin.math.min
 
 /**
@@ -258,12 +261,18 @@ class E1000(
     private var itrIntrPending = false
 
     // TODO: сохранять в снапшоте?
-    private val packetRxBacklog: MutableList<Pair<List<Byte>, Dissection>> = mutableListOf()
+    private val packetRxBacklogMtx = ReentrantLock()
+    private val packetRxBacklog = CopyOnWriteArrayList<Pair<List<Byte>, Dissection>>()
 
     private val rxTmr = object : SystemClock.PeriodicalTimer("rxTmr") {
         override fun trigger() {
-            if (packetRxBacklog.isNotEmpty()) {
-                val (packet, dissection) = packetRxBacklog.removeFirst()
+            packetRxBacklogMtx.withLock {
+                if (packetRxBacklog.isNotEmpty()) {
+                    packetRxBacklog.removeFirst()
+                } else {
+                    null
+                }
+            }?.also { (packet, dissection) ->
                 rxPacket(packet, dissection)
             }
         }
@@ -772,11 +781,13 @@ class E1000(
     }
 
     internal fun receive(buf: ArrayList<Byte>, dissection: Dissection) {
-        packetRxBacklog.add(buf to dissection)
+        packetRxBacklogMtx.withLock {
+            packetRxBacklog.add(buf to dissection)
+        }
     }
 
     internal val receiveBacklogFull: Boolean
-        get() = packetRxBacklog.size > 3
+        get() = packetRxBacklogMtx.withLock { packetRxBacklog.size > 3 }
 
     private fun rxPacket(buf: List<Byte>, dissection: Dissection) {
         if (STATUS.LU.untruth || RCTL.EN.untruth || COMMAND_STATUS.BME.untruth) {
@@ -931,10 +942,30 @@ class E1000(
 
         // end of packet
         if ((lower and E1000_TXD_CMD_EOP).truth) {
-            // Нам просто нужно несколько полей
-            // Нет необходимости разбирать весь пакет
-            CarelessEthernet.dissect(txr.packetCache)?.let { ethernet ->
-                updateTxStatistics(txr, ethernet)
+            Dissection.dissect(txr.packetCache)?.let { dis ->
+                updateTxStatistics(txr, dis.l2)
+
+                // FIXME: очень макаронно, по-хорошему переписать Dissection'ы на Sealed Class'ы
+                // И как-то с изменяемыми пакетами поиграться
+                dis.udp?.also {
+                    txr.packetCache[dis.l2.headerSize() + dis.ip!!.headerSize() + 6] = 0.byte;
+                    txr.packetCache[dis.l2.headerSize() + dis.ip!!.headerSize() + 7] = 0.byte;
+                    dis.ip4?.makeL4Checksum(dis.ip4.buffer.asSequence())?.also { sum ->
+                        log.finest { "[0x${core.pc.hex}] Set udp checksum 0x${sum.hex}" }
+                        txr.packetCache[dis.l2.headerSize() + dis.ip.headerSize() + 6] = (sum ushr 8).byte;
+                        txr.packetCache[dis.l2.headerSize() + dis.ip.headerSize() + 7] = sum.byte;
+                    }
+                }
+                dis.tcp?.also {
+                    txr.packetCache[dis.l2.headerSize() + dis.ip!!.headerSize() + 16] = 0;
+                    txr.packetCache[dis.l2.headerSize() + dis.ip!!.headerSize() + 17] = 0;
+                    dis.ip4?.makeL4Checksum(dis.ip4.buffer.asSequence())?.also { sum ->
+                        log.finest { "[0x${core.pc.hex}] Set tcp checksum 0x${sum.hex}" }
+                        txr.packetCache[dis.l2.headerSize() + dis.ip!!.headerSize() + 16] = (sum ushr 8).byte;
+                        txr.packetCache[dis.l2.headerSize() + dis.ip!!.headerSize() + 17] = sum.byte;
+                    }
+                }
+
                 packetSource.send(txr.packetCache)
             }
             txr.packetCache.clear()
@@ -1849,6 +1880,15 @@ class E1000(
     /** SW Semaphore */
     @Suppress("unused")
     private val SWSM = object : Register(mem, 0x5B50u, DWORD, "SWSM", default = 1uL, level = REG_LOG_LEVEL) {
+        override fun read(ea: ULong, ss: Int, size: Int): ULong {
+            data = data or 1uL
+            return super.read(ea, ss, size)
+        }
+    }
+
+    /** FW Semaphore */
+    @Suppress("unused")
+    private val FWSM = object : Register(mem, 0x5B54u, DWORD, "FWSM", default = 1uL, level = REG_LOG_LEVEL) {
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
             data = data or 1uL
             return super.read(ea, ss, size)

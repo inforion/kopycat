@@ -25,7 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.experimental.linux.biosless
 
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 
 /** Thrown in [bzImage]'s constructor when boot protocol version is too old */
-class bzImageAncientProtocolException : GeneralException("Boot protocol < 2.04")
+class bzImageAncientProtocolException(bootVersion: ULong) : GeneralException("Boot protocol (${bootVersion.hex}) < 2.04")

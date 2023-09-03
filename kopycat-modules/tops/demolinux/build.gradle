@@ -1,0 +1,12 @@
+plugins {
+    id 'ru.inforion.lab403.gradle.kopycat'
+    id 'maven-publish'
+}
+
+group 'ru.inforion.lab403.kopycat'
+version '0.1'
+
+buildKopycatModule {
+    library = "tops"
+    require += ["cores:x86", "mcu:atom2758", "misc:experimental"]
+}

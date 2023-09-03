@@ -25,9 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions
 
+import ru.inforion.lab403.common.extensions.bigintByHex
 import ru.inforion.lab403.common.extensions.ulongByHex
 import ru.inforion.lab403.common.extensions.unhexlify
-import ru.inforion.lab403.common.proposal.bigintByHex
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.LongDouble

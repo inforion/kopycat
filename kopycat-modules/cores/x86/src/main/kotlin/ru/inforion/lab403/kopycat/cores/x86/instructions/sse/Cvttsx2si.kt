@@ -61,7 +61,7 @@ class Cvttsx2si(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operan
                 // cvttsd2si
                 val f = kotlin.math.truncate(a2.ieee754())
                 Triple(
-                    f.ulong,
+                    f.long.ulong, // Double.ulong discards sign
                     f.isInfinite() || f.isNaN(),
                     op1.dtyp == Datatype.DWORD && (f <= INT_MIN || f >= INT_MAX) ||
                             op1.dtyp == Datatype.QWORD && (f <= LONG_MIN || f >= LONG_MAX),
@@ -71,7 +71,7 @@ class Cvttsx2si(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operan
                 // cvttss2si
                 val f = kotlin.math.truncate(a2[31..0].uint.ieee754())
                 Triple(
-                    f.ulong,
+                    f.long.ulong, // Float.ulong discards sign
                     f.isInfinite() || f.isNaN(),
                     op1.dtyp == Datatype.DWORD && (f <= INT_MIN || f >= INT_MAX) ||
                             op1.dtyp == Datatype.QWORD && (f <= LONG_MIN || f >= LONG_MAX),

@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.bitwise
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.base.operands.Variable
@@ -57,7 +58,7 @@ class Rol(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
         }
         val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
-        FlagProcessor.processRotateFlag(core, result, op2, true, res[0] == 1uL)
+        FlagProcessor.processRotateFlag(core, result, op2, true, if (a2 > 0) res[0].truth else null)
         op1.value(core, result)
     }
 }

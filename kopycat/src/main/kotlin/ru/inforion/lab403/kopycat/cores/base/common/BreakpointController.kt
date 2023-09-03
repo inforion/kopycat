@@ -52,6 +52,8 @@ class BreakpointController: Serializable {
 
     private val store = Dictionary<ULong, Breakpoint>(0x1000)
 
+    operator fun iterator() = store.iterator()
+
     /**
      * {RU}
      * Добавление новой точки останова

@@ -62,7 +62,7 @@ class Configuration(val core: x86Core) : IAutoSerializable {
     fun cpuid(id: UInt, value: CPUID, ecx: UInt = 0u) {
         val realId = if (id == ECX_DEPEND) ECX_OFFSET + ecx else id
         if (realId in cpuid)
-            log.warning { "CPUID[0x${id.hex8}] will be rewritten with $value" }
+            log.warning { "CPUID[0x${id.hex8}] ECX=0x${ecx.hex} will be rewritten with $value" }
         cpuid[realId] = value
     }
     fun cpuid(id: UInt, eax: UInt, ebx: UInt, ecx: UInt, edx: UInt) = cpuid(id, CPUID(eax, ebx, ecx, edx))

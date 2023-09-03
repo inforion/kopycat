@@ -113,8 +113,8 @@ internal class BusCache(private val myBus: Bus): Serializable {
          */
         private fun copyAreas(dst: BusCache, src: BusCache) {
             if (src != dst) {
-                val copingAreas = src.cachedAreas.filter { it !in dst.cachedAreas }
-                dst.cachedAreas.addAll(copingAreas)
+                val copyingAreas = src.cachedAreas.filter { it !in dst.cachedAreas }
+                dst.cachedAreas.addAll(copyingAreas)
             }
         }
 
@@ -137,16 +137,16 @@ internal class BusCache(private val myBus: Bus): Serializable {
             if (src != dst) {
                 src.cachedRegs.forEach { (ea, srcRegs) ->
                     val dstRegs = dst.cachedRegs.getOrPut(ea) { ArrayList() }
-                    val copingRegs = srcRegs.filter { it !in dstRegs }
-                    dstRegs.addAll(copingRegs)
+                    val copyingRegs = srcRegs.filter { it !in dstRegs }
+                    dstRegs.addAll(copyingRegs)
                 }
             }
         }
 
         private fun copyTranslators(dst: BusCache, src: BusCache) {
             if (src != dst) {
-                val copingTranslators = src.myBus.translators.filter { it !in dst.myBus.translators }
-                dst.myBus.translators.addAll(copingTranslators)
+                val copyingTranslators = src.myBus.translators.filter { it !in dst.myBus.translators }
+                dst.myBus.translators.addAll(copyingTranslators)
             }
         }
 

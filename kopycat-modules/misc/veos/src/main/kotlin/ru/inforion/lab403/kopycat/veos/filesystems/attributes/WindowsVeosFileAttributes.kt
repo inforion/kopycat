@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems.attributes
 
-import ru.inforion.lab403.common.proposal.getAclFileAttributeView
-import ru.inforion.lab403.common.proposal.readDosAttribute
+import ru.inforion.lab403.common.extensions.getAclFileAttributeView
+import ru.inforion.lab403.common.extensions.readDosAttribute
 import java.nio.file.FileSystems
 import java.nio.file.Path
 import java.nio.file.attribute.*

@@ -27,7 +27,7 @@ package ru.inforion.lab403.kopycat.modules.atom2758.e1000.protocols
 
 import ru.inforion.lab403.common.extensions.*
 
-internal class IPv4(buffer: List<Byte>) : IP() {
+internal class IPv4(val buffer: List<Byte>) : IP() {
     companion object {
         private val MORE_FRAGMENTS_FLAG = 1u.ubyte
     }
@@ -70,7 +70,7 @@ internal class IPv4(buffer: List<Byte>) : IP() {
 
     override val l4Checksum = makeL4Checksum(buffer.asSequence())
 
-    private fun makeL4Checksum(bufferSeq: Sequence<Byte>): UShort {
+    fun makeL4Checksum(bufferSeq: Sequence<Byte>): UShort {
         val nextLayerSize = if (nextLayer is Udp) {
             nextLayer.length.ushort
         } else {

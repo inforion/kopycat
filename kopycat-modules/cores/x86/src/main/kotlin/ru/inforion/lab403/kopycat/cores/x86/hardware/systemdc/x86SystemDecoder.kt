@@ -29,7 +29,6 @@ package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.base.common.CachedMemoryStream
 import ru.inforion.lab403.kopycat.cores.base.common.CachedMemoryStreamByteArray
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessType.INSTRUCTION
 import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
@@ -177,7 +176,6 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val cwdeDc = SimpleDC(core, ::Cwde)
     private val cdqDc = SimpleDC(core, ::Cdq)
     private val psrlwDc = PsrlwDC(core)
-    private val psllwDc = PsllwDC(core)
 
     private val lodsDc = LodsDC(core)
     private val stosDc = StosDC(core)
@@ -244,6 +242,8 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val smswDc = MswDc(core, ::Smsw)
     private val lmswDc = MswDc(core, ::Lmsw)
     private val invlpgDc = InvlpgDC(core)
+    private val verrDc = VerrDC(core)
+    private val verwDc = VerwDC(core)
 
     private val ltrDc = LtrDC(core)
     private val strDc = StrDC(core)
@@ -436,12 +436,13 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val wrfsbaseDc = notImplementedDecoder("wrfsbaseDc")
     private val wrgsbaseDc = notImplementedDecoder("wrgsbaseDc")
     private val psrlqDc = PsrlqDC(core)
-    private val psllqDc = PsllqDC(core)
+    private val psllxDc = PsllxDC(core)
     private val psrldDc = PsrldDC(core)
-    private val psradDc = PsradDC(core)
+    private val psraxDc = PsraxDC(core)
 
     private val emmsDC = EmmsDC(core)
     private val fxchDC = FxchDC(core)
+    private val fxamDC = FxamDC(core)
 
     private val group_10 = notImplementedDecoder("group_10")
 
@@ -589,7 +590,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
             /////    0           1           2           3           4           5           6           7           8           9           A           B           C           D           E           F
             /*C*/ fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      null,       fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,
             /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
-            /*E*/ fchsDc,     fabsDc,     null,       null,       null,       null,       null,       null,       fld1Dc,     fldl2tDc,   fldl2eDc,   fldpiDc,    fldlg2Dc,   fldln2Dc,   fldzDc,     null,
+            /*E*/ fchsDc,     fabsDc,     null,       null,       null,       fxamDC,       null,       null,       fld1Dc,     fldl2tDc,   fldl2eDc,   fldpiDc,    fldlg2Dc,   fldln2Dc,   fldzDc,     null,
             /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       fsqrtDc,       null,       frndintDc,  fscaleDc,   null,       null
     )
 
@@ -661,7 +662,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val group_6 = byte2RMDC_Memory(
             /////   0           1           2           3           4           5           6           7
-            /*0*/  sldtDc,     strDc,      lldtDc,      ltrDc,      null,       null,        null,       null
+            /*0*/  sldtDc,     strDc,      lldtDc,      ltrDc,      verrDc,     verwDc,     null,       null
     )
 
     private val group_11_mem = byte1RMDC_Memory(
@@ -681,12 +682,12 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val group_12 = byte2RMDC_Memory(
         /////    0              1               2               3               4           5           6           7
-        /*0*/    null,          null,          psrlwDc,         null,           null,       null,       psllwDc,       null
+        /*0*/    null,          null,          psrlwDc,         null,           psraxDc,    null,       psllxDc,    null
     )
 
     private val group_13 = byte2RMDC_Memory(
         ///// 0        1        2        3        4        5        6           7
-        /*0*/ null,    null,    psrldDc, null,    psradDc, null,    psllqDc,    null,
+        /*0*/ null,    null,    psrldDc, null,    psraxDc, null,    psllxDc,    null,
     )
 
     private val group_14_mem = byte2RMDC_Memory(
@@ -699,7 +700,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
         /*C*/  null,    null,    null,    null,    null,    null,    null,    null,    null,   null,   null,   null,   null,   null,   null,   null,
         /*D*/  psrlqDc, psrlqDc, psrlqDc, psrlqDc, psrlqDc, psrlqDc, psrlqDc, psrlqDc, psrldqDc, psrldqDc, psrldqDc, psrldqDc, psrldqDc, psrldqDc, psrldqDc, psrldqDc,
         /*E*/  null,    null,    null,    null,    null,    null,    null,    null,    null,   null,   null,   null,   null,   null,   null,   null,
-        /*F*/  psllqDc, psllqDc, psllqDc, psllqDc, psllqDc, psllqDc, psllqDc, psllqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc,
+        /*F*/  psllxDc, psllxDc, psllxDc, psllxDc, psllxDc, psllxDc, psllxDc, psllxDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc, pslldqDc,
     )
 
     private val group_14 = byte2RMDC(group_14_mem,  group_14_11b)
@@ -772,8 +773,8 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
             /*B*/ cmpxchgDc,  cmpxchgDc,  lssDc,      btrDc,      lfsDc,      lgsDc,      movzx,      movzx,      null,       group_10,   group_8,    btcDc,      bsfDc,      bsrDc,      movsx,      movsx,
             /*C*/ xaddDc,     xaddDc,     cmpsxDc,    movnti,     pinsrwDc,   null,       shufpsDc,   group_9,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,    bswapDc,
             /*D*/ null,       null,       null,       psrlqDc,    paddqDc,    null,       movdDc,     pmovmskbDc, psubusxDc,  psubusxDc,  pminubDc,   pandDc,     null,       null,       pmaxubDc,   pandnDc,
-            /*E*/ null,       null,       null,       null,       null,       null,       null,       movntdqDc,  null,       null,       null,       porDc,      null,       null,       null,       pxorDc,
-            /*F*/ null,       null,       null,       psllqDc,    pmuludqDc,  null,       null,       null,       psubDc,     psubDc,     psubDc,     psubDc,     paddqDc,    paddqDc,    paddqDc,    null
+            /*E*/ null,       psraxDc,    psraxDc,    null,       null,       null,       null,       movntdqDc,  null,       null,       null,       porDc,      null,       null,       null,       pxorDc,
+            /*F*/ null,       psllxDc,    psllxDc,    psllxDc,    pmuludqDc,  null,       null,       null,       psubDc,     psubDc,     psubDc,     psubDc,     paddqDc,    paddqDc,    paddqDc,    null
     )
 
     // For groups definition see table A-6 "Opcode Extensions for One- and Two-byte Opcodes by Group Number", vol. 2

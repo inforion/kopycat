@@ -47,6 +47,16 @@ class Call(
 
     override fun execute() {
         if (!isFar) {
+            if (isRelative && prefs.addressOverride) {
+                // FIX:  Addr-override ??? IDK what the hell
+                // WARN: See maybe `https://github.com/BinaryAnalysisPlatform/bap/pull/922`
+                // TODO: Or google CALL64pcrel32
+                // WTF:  Maybe I should read an intel book
+                // UPD: see SystemV ABI linker optimization. Thats just a nop.
+
+                prefs.addressOverride = false;
+            }
+
             val ip = core.cpu.regs.gpr(x86GPR.RIP, op1.dtyp).toOperand()
             // order for 'offset' is important when call [esp + 0x48], see KC-752
             val offset = if (isRelative) ip.value(core) + op1.usext(core) else op1.value(core)

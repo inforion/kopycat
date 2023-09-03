@@ -30,12 +30,19 @@ import ru.inforion.lab403.common.extensions.hex2
 import ru.inforion.lab403.common.extensions.hex4
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 /** Handles interrupts used by kernel "setup code" */
 class SetupCodeInterrupts(core: x86Core, private val e820map: Array<E820>) {
+    companion object {
+        @Transient val log = logger(FINE)
+    }
+
     init {
         core.intHooks.put(InterruptHookData(0x10uL, skipInstrExecution = true, ::int10))
+        core.intHooks.put(InterruptHookData(0x13uL, skipInstrExecution = true, ::int13))
         core.intHooks.put(InterruptHookData(0x15uL, skipInstrExecution = true, ::int15))
         core.intHooks.put(InterruptHookData(0x16uL, skipInstrExecution = true, ::int16))
     }
@@ -59,6 +66,7 @@ class SetupCodeInterrupts(core: x86Core, private val e820map: Array<E820>) {
                 ax.value = 0x5003uL
                 bx.value = 0uL
             }
+
             0x12uL -> core.cpu.regs.al.value = 0x12uL // Video subsystem configuration; Just return expected value
             0x4fuL -> Unit // VESA-related; Ignore
             else -> TODO("Unexpected AH in int 0x10: ${ah.hex2}")
@@ -108,5 +116,14 @@ class SetupCodeInterrupts(core: x86Core, private val e820map: Array<E820>) {
             0x02uL -> core.cpu.regs.al.value = 0uL // Read Keyboard Flags
             0x03uL -> Unit // Keyboard repeat rate; Ignore
             else -> TODO("Unexpected AH in int 0x16: ${ah.hex2}")
+        }
+
+    @Suppress("UNUSED_PARAMETER")
+    private fun int13(core: x86Core, irq: ULong, data: InterruptHookData): Unit =
+        when (val ah = core.cpu.regs.ah.value) {
+            0x41uL -> core.cpu.flags.cf = true // Test Whether Extensions Are Available
+            else -> {
+                log.severe { "Unexpected AH in int 0x13: ${ah.hex2}, skipping" }
+            }
         }
 }

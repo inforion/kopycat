@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.x86
 
 const val IA32_PLATFORM_ID: ULong = 0x17u
 const val IA32_APIC_BASE: ULong = 0x1Bu
+const val IA32_FEATURE_CONTROL: ULong = 0x3Au
 const val IA32_BIOS_SIGN_ID: ULong = 0x8Bu
 const val IA32_MTRRCAP: ULong = 0xFEu
 const val MSR_BBL_CR_CTL3: ULong = 0x11Eu
@@ -108,3 +109,10 @@ const val MSR_SMI_COUNT: ULong = 0x34u
 const val MSR_CORE_C1_RES: ULong = 0x660u
 const val MSR_PKG_C7_RESIDENCY: ULong = 0x3fau
 const val MSR_CORE_C6_RESIDENCY: ULong = 0x3fdu
+
+const val MSR_IA32_MCU_OPT_CTRL: ULong = 0x123u
+const val MSR_IA32_SPEC_CTRL: ULong = 0x48u
+const val MSR_IA32_TSX_CTRL: ULong = 0x122u
+const val MSR_TSX_FORCE_ABORT: ULong = 0x10Fu
+const val MSR_AMD64_LS_CFG: ULong = 0xc0011020u
+const val  MSR_AMD64_DE_CFG:ULong=  0xc0011029u

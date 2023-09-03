@@ -37,3 +37,5 @@ include(":kopycat-modules:misc:experimental")
 include(":common:proposal")
 include(":common:elfloader")
 include(":common:elfloader2")
+
+include (":kopycat-modules:tops:demolinux")

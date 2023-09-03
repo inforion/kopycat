@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems.attributes
 
-import ru.inforion.lab403.common.proposal.readPosixAttribute
+import ru.inforion.lab403.common.extensions.readPosixAttribute
 import java.nio.file.Path
 import java.nio.file.attribute.*
 

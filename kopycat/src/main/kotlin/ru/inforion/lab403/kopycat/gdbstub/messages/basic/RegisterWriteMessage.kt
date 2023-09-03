@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.gdbstub.messages.basic
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.proposal.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.gdbstub.parser.Context
 import ru.inforion.lab403.kopycat.gdbstub.parser.Packet

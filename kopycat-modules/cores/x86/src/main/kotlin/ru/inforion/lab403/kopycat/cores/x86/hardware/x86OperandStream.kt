@@ -25,10 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.hardware
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
@@ -44,7 +41,7 @@ class x86OperandStream(core: x86Core, stream: IMemoryStream): ADecodable(core), 
     fun mem16(prefixes: Prefixes) = x86Memory(Datatype.WORD, read(prefixes.addrsize), prefixes)
 
     private fun readImm(dtype: Datatype) = if (dtype == Datatype.QWORD)
-        read(Datatype.DWORD).signextRenameMeAfter(31)
+        read(Datatype.DWORD) signext 31
     else
         read(dtype)
 

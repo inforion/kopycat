@@ -32,7 +32,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.interfaces.ITracer
 
 class ComponentTracer<R: AGenericCore> constructor(parent: Module, name: String): ATracer<R>(parent, name) {
-    private val tracers = mutableListOf<ITracer<R>>()
+    val tracers = mutableListOf<ITracer<R>>()
 
     fun addTracer(vararg newTracers: ITracer<R>) =
             tracers.addAll(newTracers).also { working = tracers.isNotEmpty() }

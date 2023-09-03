@@ -55,7 +55,7 @@ class Ror(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: AO
         }
         val result = Variable<x86Core>(0u, op1.dtyp)
         result.value(core, res)
-        FlagProcessor.processRotateFlag(core, result, op2, false, res[op1.dtyp.msb] == 1uL)
+        FlagProcessor.processRotateFlag(core, result, op2, false, if (a2 > 0) res[op1.dtyp.msb].truth else null)
         op1.value(core, res)
     }
 }

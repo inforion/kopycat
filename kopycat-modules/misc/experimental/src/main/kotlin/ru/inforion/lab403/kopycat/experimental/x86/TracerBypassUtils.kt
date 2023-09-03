@@ -33,9 +33,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SKIP
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
-import ru.inforion.lab403.kopycat.experimental.tracer.TracerUtils
 import ru.inforion.lab403.kopycat.experimental.x86.funUtils.x86funUtils
-import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import java.util.logging.Level
 
 class TracerBypassUtils(val funUtils: x86funUtils) {
@@ -91,6 +89,8 @@ class TracerBypassUtils(val funUtils: x86funUtils) {
         core.cpu.regs.gpr(x86GPR.RSP, data.stackSize).value += data.stackSize.bytes
         // set pc
         core.cpu.regs.gpr(x86GPR.RIP, data.stackSize).value = returnPtr
+
+        funUtils.abi.setResult(data.returnValue)
 
         // Skip current instruction
         return TRACER_STATUS_SKIP

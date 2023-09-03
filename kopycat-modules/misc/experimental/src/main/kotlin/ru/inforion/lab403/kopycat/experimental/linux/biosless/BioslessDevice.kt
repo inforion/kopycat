@@ -71,7 +71,7 @@ abstract class BioslessDevice(parent: Module?, name: String) : Module(parent, na
 
     protected fun buildMemoryLayout() = bzImage(bzImage).let { kernel ->
         val ramdiskSize = ramdisk?.size?.ulong_z ?: initramfsSize
-        val ramdiskRamSize = (ramdiskSize + cmdline.length + 1u) ceil (0x1000uL) * 0x1000uL
+        val ramdiskRamSize = ((ramdiskSize + cmdline.length + 1u) ceil (0x1000uL)) * 0x1000uL
 
         val (low, high) = kernel.prepareBoot(
             0xde00uL, // taken from SeaBIOS

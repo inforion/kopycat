@@ -41,7 +41,7 @@ class CpuId(core: x86Core, opcode: ByteArray, prefs: Prefixes):
 
     override fun execute() = with (core.cpu.regs) {
         val index = eax.value.uint
-        log.warning { "[0x${core.pc.hex}] Reading CPUID index = 0x${index.hex8}" }
+        log.warning { "[0x${core.pc.hex}] ECX=0x${ecx.value.hex} Reading CPUID index = 0x${index.hex8}" }
         if (index == 0x69696969u) {
             eax.value = 0x8000_000Du
             ebx.value = 0x8000_000Du
@@ -49,7 +49,11 @@ class CpuId(core: x86Core, opcode: ByteArray, prefs: Prefixes):
             edx.value = 0x8000_000Du
         } else {
             // see Table 3-8. Information Returned by CPUID Instruction of Vol2-abcd (page 293)
-            val cpuid = core.config.cpuid(index, ecx.value.uint) ?: throw GeneralException("CPUID index = ${index.hex8} not configured")
+            val cpuid = core.config.cpuid(index, ecx.value.uint)
+                ?: throw GeneralException(
+                    "CPUID index=0x${index.hex8} " +
+                            "ECX=0x${ecx.value.hex} not configured"
+                )
             eax.value = cpuid.eax.ulong_z
             ebx.value = cpuid.ebx.ulong_z
             ecx.value = cpuid.ecx.ulong_z

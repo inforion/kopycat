@@ -154,6 +154,7 @@ object FlagProcessor {
         core.cpu.flags.eflags.cf = result.value(core) != 0uL
         core.cpu.flags.eflags.pf = getPF(core, result)
         core.cpu.flags.eflags.af = getAF(core, result, op1, op2)
+        core.cpu.flags.eflags.of = result.isIntegerOverflow(core, op1, op2, true)
     }
 
     fun processIncDecFlag(core: x86Core, result: Variable<x86Core>, op1: AOperand<x86Core>, op2: AOperand<x86Core>, isSubtract: Boolean){
@@ -164,8 +165,10 @@ object FlagProcessor {
         core.cpu.flags.eflags.af = getAF(core, result, op1, op2)
     }
 
-    fun processRotateFlag(core: x86Core, result: Variable<x86Core>, op2: AOperand<x86Core>, isLeft: Boolean, cf: Boolean) {
-        core.cpu.flags.eflags.cf = cf
+    fun processRotateFlag(core: x86Core, result: Variable<x86Core>, op2: AOperand<x86Core>, isLeft: Boolean, cf: Boolean?) {
+        if (cf != null) {
+            core.cpu.flags.eflags.cf = cf
+        }
         if(op2.value(core) == 1uL) core.cpu.flags.eflags.of = getOFRotate(core, result, isLeft)
     }
 

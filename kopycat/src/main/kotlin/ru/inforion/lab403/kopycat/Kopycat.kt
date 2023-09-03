@@ -575,19 +575,19 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
         return bptSet(address, code)
     }
 
-    fun memDump(address: ULong, length: Int, filename: String) {
+    fun memDump(address: ULong, length: Int, filename: String, ss: Int = 0) {
         val batchSize = 1 * 1024 * 1024
         val batches = length / batchSize
         val remain = length - batches * batchSize
         FileOutputStream(filename, false).use {
             for (i in 0 until batches) {
                 val iterAddr = address + i * batchSize
-                it.write(core.load(iterAddr, batchSize))
+                it.write(core.load(iterAddr, batchSize, ss))
             }
 
             val iterAddr = address + batches * batchSize
             if (remain != 0) {
-                it.write(core.load(iterAddr, remain))
+                it.write(core.load(iterAddr, remain, ss))
             }
         }
     }

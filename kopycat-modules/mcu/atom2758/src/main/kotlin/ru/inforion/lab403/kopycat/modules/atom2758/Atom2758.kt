@@ -176,12 +176,12 @@ class Atom2758(
         this,
         "e1000",
         mac = byteArrayOf(
-            0xB5.byte,
-            0x1D.byte,
-            0xA2.byte,
-            0xA4.byte,
-            0x47.byte,
-            0x8C.byte,
+            0xE4.byte,
+            0x40.byte,
+            0x41.byte,
+            0xE2.byte,
+            0xED.byte,
+            0xFE.byte,
         )
     )
 
@@ -226,6 +226,7 @@ class Atom2758(
             cpuid(0x08u, 0u, 0u, 0u, 0u)
             cpuid(0x09u, 0u, 0u, 0u, 0u)
             cpuid(0x0Au, 0u, 0u, 0u, 0u)
+            cpuid(0x21u, 0u, 0u, 0u, 0u)
 
             cpuid(0x8000_0001u, 0u, 0u, 0u, 0u)
             cpuid(0x8000_0002u, 0u, 0u, 0u, 0u)
@@ -269,6 +270,7 @@ class Atom2758(
 
             msr(IA32_PLATFORM_ID, insert(1uL, 52..50))
             msr(IA32_APIC_BASE, 0xFEE0_0000u)
+            msr(IA32_FEATURE_CONTROL, 0u)
             msr(IA32_BIOS_SIGN_ID, 0u)
             msr(MSR_BBL_CR_CTL3, 0u)
             msr(MSR_FSB_FREQ, 800_000_000u)

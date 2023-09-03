@@ -88,7 +88,7 @@ open class DokkaMultilangTask : DefaultTask() {
             logger.debug("Creating directory '${dir.path}'")
             dir.mkdirs()
         }
-        logger.debug("Coping '${it.file.path}' -> '${output.path}'")
+        logger.debug("Copying '${it.file.path}' -> '${output.path}'")
         Files.copy(it.file.toPath(), output.toPath())
         output
     }
@@ -113,7 +113,7 @@ open class DokkaMultilangTask : DefaultTask() {
     private fun configureLanguageFiles(sources: List<Source>, languages: List<Language>, selected: Language) {
         val generatedTemporaryDir = prepareGeneratedDirectory(selected.marker)
 
-        logger.lifecycle("Coping files into temporary directory '${generatedTemporaryDir.path}'")
+        logger.lifecycle("Copying files into temporary directory '${generatedTemporaryDir.path}'")
         val result = copyFiles(sources, generatedTemporaryDir)
 
         logger.lifecycle("Fixing comments for language: '${selected.name}'")

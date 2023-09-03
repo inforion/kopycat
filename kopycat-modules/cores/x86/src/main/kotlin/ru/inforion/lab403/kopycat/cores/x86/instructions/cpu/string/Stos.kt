@@ -25,11 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.string
 
-import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 
@@ -46,9 +45,9 @@ class Stos(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
 
         var pos = dst.reg.value(core)
         if (!core.cpu.flags.df)
-            pos += dst.dtyp.bytes.uint
+            pos += dst.dtyp.bytes.ulong_z
         else
-            pos -= dst.dtyp.bytes.uint
+            pos -= dst.dtyp.bytes.ulong_z
 
         dst.reg.value(core, pos)
     }

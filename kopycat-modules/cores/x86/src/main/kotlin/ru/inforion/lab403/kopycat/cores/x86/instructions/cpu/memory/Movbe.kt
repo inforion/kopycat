@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.memory
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
@@ -42,23 +41,9 @@ class Movbe(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: 
         op1.value(
             core,
             when (op1.dtyp) {
-                WORD -> 0uL
-                    .insert(src[15..8], 7..0)
-                    .insert(src[7..0], 15..8)
-                DWORD -> 0uL
-                    .insert(src[31..24], 7..0)
-                    .insert(src[23..16], 15..8)
-                    .insert(src[15..8], 23..16)
-                    .insert(src[7..0], 31..23)
-                QWORD -> 0uL
-                    .insert(src[63..56], 7..0)
-                    .insert(src[55..48], 15..8)
-                    .insert(src[47..40], 23..16)
-                    .insert(src[39..32], 31..24)
-                    .insert(src[31..24], 39..32)
-                    .insert(src[23..16], 47..40)
-                    .insert(src[15..8], 55..48)
-                    .insert(src[7..0], 63..56)
+                WORD -> src.swap16()
+                DWORD -> src.swap32()
+                QWORD -> src.swap64()
                 else -> TODO("movbe: don't know what to do with ${op1.dtyp} operand")
             }
         )

@@ -23,33 +23,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
+package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.gdt
 
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
-import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.RMDC
-import ru.inforion.lab403.kopycat.cores.x86.hardware.x86OperandStream
 import ru.inforion.lab403.kopycat.cores.x86.instructions.AX86Instruction
-import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Psllw
-import ru.inforion.lab403.kopycat.cores.x86.instructions.sse.Psrlw
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Immediate
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-class PsllwDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
-    override fun decode(s: x86OperandStream, prefs: Prefixes): AX86Instruction {
 
-        val opcode = s.readOpcode()
-        val rm = RMDC(s, prefs)
+class Verr(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<x86Core>) :
+    AX86Instruction(core, Type.VOID, opcode, prefs, operand) {
+    override val mnem = "verr"
 
-        val operands = when (opcode) {
-            0x71 -> arrayOf(
-                if (prefs.operandOverride) rm.xmmpref else rm.mmxpref,
-                x86Immediate(Datatype.BYTE, s.readByte()),
-            )
-            else -> throw GeneralException("Incorrect opcode in decoder $this")
-        }
-
-        return Psllw(core, s.data, prefs, *operands)
+    override fun execute() {
+        core.cpu.flags.zf = core.cpu.ports.mem.access(op1.value(core), LorS = AccessAction.LOAD)
     }
 }

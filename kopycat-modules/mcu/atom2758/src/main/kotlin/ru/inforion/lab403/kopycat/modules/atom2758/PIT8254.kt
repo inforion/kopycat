@@ -286,21 +286,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
         }
     }
 
-    private val UNK_REG = object : Register(ports.io, 0x004Eu, BYTE, "UNKNOWNREGISTER") {
-        override fun read(ea: ULong, ss: Int, size: Int): ULong = TODO("$name: Read from ${address.hex2}")
 
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            log.severe { "$name: Write to ${address.hex2} = ${value.hex8}" }
-        }
-    }
-
-    private val UNK_REG2 = object : Register(ports.io, 0x004Fu, BYTE, "UNKNOWNREGISTER2") {
-        override fun read(ea: ULong, ss: Int, size: Int): ULong = TODO("$name: Read from ${address.hex2}")
-
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            log.severe { "$name: Write to ${address.hex2} = ${value.hex8}" }
-        }
-    }
 
     inner class NSC_CLASS : Register(ports.io, 0x61u, BYTE, "NSC", 0x20u, level = FINE) {
         var T2S by bit(5)

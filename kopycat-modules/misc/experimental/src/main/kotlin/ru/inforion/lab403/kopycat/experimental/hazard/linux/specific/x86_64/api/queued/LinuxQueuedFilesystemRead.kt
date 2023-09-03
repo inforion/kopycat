@@ -49,7 +49,6 @@ class LinuxQueuedFilesystemRead<T>(
     val threadInfoBlock: () -> LinuxThreadInfo?
 ) where T : LinuxVfsRWCapturableApi, T : LinuxFilpCapturableApi {
     val stream = File(destinationPath).outputStream()
-
     val availablePc = setOf(raw.PTR_FILP_CLOSE, raw.PTR_FILP_OPEN, raw.PTR_VFS_WRITE, raw.PTR_VFS_READ)
 
     fun start() {
@@ -133,6 +132,7 @@ class LinuxQueuedFilesystemRead<T>(
                             val readSize = abi.getResult()
                             val newIterator = x86.inq(vfsWrite.pointer.address)
                             val data = x86.load(vfsWrite.alloca.address, vfsWrite.alloca.size.int)
+
                             stream.write(data.sliceArray(0 until readSize.int))
 
                             vfsWrite.destroy()
@@ -179,6 +179,7 @@ class LinuxQueuedFilesystemRead<T>(
                         override fun destroy() {
                             filpClose.destroy()
                             threadInfo.saveAddrLimit()
+                            stream.close()
                         }
                     }
                 },
