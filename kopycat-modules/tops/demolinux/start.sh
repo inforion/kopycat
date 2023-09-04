@@ -3,17 +3,12 @@
 SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
 KC_DIR=$( realpath "$SCRIPT_DIR/../../../" )
 
+KC_BUILD_LIBS="$KC_DIR/kopycat/build/libs"
+
 echo "SCRIPT_DIR: $SCRIPT_DIR"
 echo "KC_DIR:     $KC_DIR"
 
 cd "$KC_DIR"
-
-./gradlew allJar
-./gradlew kopycat-modules:tops:demolinux:buildKopycatModule
-
-KC_BUILD_LIBS="$KC_DIR/kopycat/build/libs"
-
-wget https://repo1.maven.org/maven2/org/jetbrains/kotlin/kotlin-script-util/1.7.21/kotlin-script-util-1.7.21.jar -O "$KC_BUILD_LIBS"/kotlin-script-util.jar
 
 java \
   -server \
@@ -25,7 +20,7 @@ java \
   -XX:SurvivorRatio=6 \
   -XX:-UseGCOverheadLimit \
   `# KC JARs` \
-  -classpath "$KC_BUILD_LIBS"/kopycat-all-0.6.00.jar:"$KC_BUILD_LIBS"/kotlin-script-util.jar \
+  -classpath "$KC_BUILD_LIBS"/kopycat-all-0.6.01.jar:"$KC_BUILD_LIBS"/kotlin-script-util.jar \
   `# KC Entrypoint` \
   ru.inforion.lab403.kopycat.KopycatStarter \
   `# KC Arguments` \

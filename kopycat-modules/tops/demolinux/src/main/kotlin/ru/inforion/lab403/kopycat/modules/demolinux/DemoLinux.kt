@@ -218,6 +218,54 @@ class DemoLinux(
 
         atom2758.pit.divider = 20uL
 
+        ioPorts.ports.io.connect(buses.io)
+
+        atom2758.sata2.connect(
+            DiskInfo(
+                "Kopycat",
+                "1337",
+                "Kopycat SATA 2",
+                zerodisk.size.ulong_z,
+            ),
+            zerodisk.ports.mem,
+        )
+        atom2758.sata3.connect(
+            DiskInfo(
+                "Kopycat",
+                "1337",
+                "Kopycat SATA 3",
+                disk?.size ?: zerodisk.size.ulong_z,
+            ),
+            disk?.ports?.mem ?: zerodisk.ports.mem,
+        )
+
+        buses.connect(trc.ports.trace, dbg.ports.trace)
+        trc.addTracer(queueTracer)
+
+        memoryLayout.forEach {
+            it.second.connect(buses.mem, it.first)
+        }
+
+        trc.addTracer(demoLinuxTracer)
+        log.info { "[DEMO TOP] Loading bzImage: $bzImageName" }
+        log.info { "[DEMO TOP] Loading initRd : $initRdName" }
+
+        packetSourceData?.let { data ->
+            Module.log.info { "Using EthernetOverTcpSource with host='${data}' as atom2758.e1000.packetSource" }
+
+            val source = EthernetOverTcpSource(data.host, data.port)
+            Module.log.info { "Stopping existing atom2758.e1000.packetSource" }
+            atom2758.e1000.packetSource.stop(atom2758.e1000)
+
+            source.start(atom2758.e1000)
+            atom2758.e1000.packetSource = source
+            Module.log.info { "Changed atom2758.e1000.packetSource successfully" }
+        }
+    }
+
+    override fun reset() {
+        super.reset()
+
         // Used by Linux
         atom2758.x86.config.apply {
             msr(MSR_SMI_COUNT, 0u)
@@ -304,50 +352,6 @@ class DemoLinux(
             for (i in 1u..0xFFu) {
                 cpuid(0x40000000u + i * 0x100u, CPUID(0u, 0u, 0u, 0u))
             }
-        }
-
-        ioPorts.ports.io.connect(buses.io)
-
-        atom2758.sata2.connect(
-            DiskInfo(
-                "Kopycat",
-                "1337",
-                "Kopycat SATA 2",
-                zerodisk.size.ulong_z,
-            ),
-            zerodisk.ports.mem,
-        )
-        atom2758.sata3.connect(
-            DiskInfo(
-                "Kopycat",
-                "1337",
-                "Kopycat SATA 3",
-                disk?.size ?: zerodisk.size.ulong_z,
-            ),
-            disk?.ports?.mem ?: zerodisk.ports.mem,
-        )
-
-        buses.connect(trc.ports.trace, dbg.ports.trace)
-        trc.addTracer(queueTracer)
-
-        memoryLayout.forEach {
-            it.second.connect(buses.mem, it.first)
-        }
-
-        trc.addTracer(demoLinuxTracer)
-        log.info { "[DEMO TOP] Loading bzImage: $bzImageName" }
-        log.info { "[DEMO TOP] Loading initRd : $initRdName" }
-
-        packetSourceData?.let { data ->
-            Module.log.info { "Using EthernetOverTcpSource with host='${data}' as atom2758.e1000.packetSource" }
-
-            val source = EthernetOverTcpSource(data.host, data.port)
-            Module.log.info { "Stopping existing atom2758.e1000.packetSource" }
-            atom2758.e1000.packetSource.stop(atom2758.e1000)
-
-            source.start(atom2758.e1000)
-            atom2758.e1000.packetSource = source
-            Module.log.info { "Changed atom2758.e1000.packetSource successfully" }
         }
     }
 }
