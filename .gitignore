@@ -36,6 +36,7 @@ plugins/kcdbg/cmake-build-osx-c166/
 plugins/kcdbg/cmake-build-osx-v850es/
 
 production/
+resources/
 
 !gradle/wrapper/gradle-wrapper.jar
 

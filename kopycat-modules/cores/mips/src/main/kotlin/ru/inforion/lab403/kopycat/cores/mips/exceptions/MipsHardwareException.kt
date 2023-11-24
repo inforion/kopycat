@@ -33,16 +33,17 @@ import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
+import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.MipsCPU
 
 /**
- *
- * excCode - MIPS exception code
+ * @param excCode - MIPS exception code
  * vAddr - is common field and may be not used
  */
 open class MipsHardwareException(
     excCode: ExcCode,
     where: ULong,
-    val vAddr: ULong = -1uL
+    val vAddr: ULong = -1uL,
+    val cpuMode: MipsCPU.Mode = MipsCPU.Mode.R32
 ): HardwareException(excCode, where) {
 
     companion object {
@@ -57,7 +58,8 @@ open class MipsHardwareException(
         }
     }
 
-    inline val vpn2 get() = vAddr[31..13]
+    // if MipsCPU.Mode.R32 then VPN2 left border is always 31
+    inline fun vpn2(segbits: Int = 31) = if (cpuMode == MipsCPU.Mode.R32) vAddr[31..13] else vAddr[segbits - 1..13]
 
     override fun toString(): String = "$prefix[${where.hex8}]: $excCode VA = ${vAddr.hex8}"
 

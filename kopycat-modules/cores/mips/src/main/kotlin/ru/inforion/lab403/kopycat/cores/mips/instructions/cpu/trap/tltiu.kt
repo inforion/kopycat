@@ -52,7 +52,11 @@ class tltiu(core: MipsCore,
 
     override fun execute() {
         // Compare as unsigned integers
-        if (vrs < imm.usext.uint) throw MipsHardwareException.TR(core.pc)
+        if (core.is32bit) {
+            if (vrs.uint < imm.usext.uint) throw MipsHardwareException.TR(core.pc)
+        } else {
+            if (vrs < imm.usext) throw MipsHardwareException.TR(core.pc)
+        }
     }
 
 }

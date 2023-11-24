@@ -45,8 +45,12 @@ class sw(core: MipsCore,
     override val mnem = "sw"
 
     override fun execute() {
+//        val vAddr = address
+//        val bytesel = (vAddr[2..0] xor core.cpu.bigEndianCPU.ulong_z shl 2).int
+//        val datadoubleword = vrt[63 - 8 * bytesel..0] shl (8 * bytesel)
+
         if (address[1..0] != 0uL)
             throw MemoryAccessError(core.pc, address, STORE, "ADES")
-        memword = vrt
+        memword = if (core.is32bit) vrt else (memword[63..32] shl 32) or vrt[31..0]
     }
 }

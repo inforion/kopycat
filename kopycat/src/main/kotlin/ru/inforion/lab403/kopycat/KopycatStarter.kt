@@ -145,7 +145,14 @@ object KopycatStarter {
             exitProcess(0)
         }
 
-        val gdb = opts.gdbPort ifItNotNull { port -> GDBServer(port, opts.gdbPacketSize, opts.gdbBinaryProto) }
+        val gdb = opts.gdbPort ifItNotNull { port ->
+            GDBServer(
+                port,
+                opts.gdbHost ?: "0.0.0.0",
+                opts.gdbPacketSize,
+                opts.gdbBinaryProto
+            )
+        }
 
         val name = opts.name
         val library = opts.library

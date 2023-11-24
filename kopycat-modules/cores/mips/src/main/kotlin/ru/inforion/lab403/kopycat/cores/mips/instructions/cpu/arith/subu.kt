@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -40,6 +42,6 @@ class subu(
     override val mnem = "subu"
 
     override fun execute() {
-        vrd = vrs - vrt
+        vrd = if (core.is64bit) (vrs[31..0] - vrt[31..0])[31..0].signext(31) else vrs - vrt
     }
 }

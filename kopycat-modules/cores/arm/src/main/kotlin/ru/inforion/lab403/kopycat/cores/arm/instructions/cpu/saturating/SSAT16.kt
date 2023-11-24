@@ -48,8 +48,8 @@ class SSAT16(cpu: AARMCore,
     override fun execute() {
         val (result1, sat1) = SignedSatQ(SInt(rn.bits(core, 15..0), 32).int, saturateTo.value.int)
         val (result2, sat2) = SignedSatQ(SInt(rn.bits(core, 31..16), 32).int, saturateTo.value.int)
-        rd.bits(core, 15..0, result1.ulong_z.signextRenameMeAfter( 15))
-        rd.bits(core, 31..16, result2.ulong_z.signextRenameMeAfter(15))
-        if(sat1 || sat2) FlagProcessor.processSatFlag(core)
+        rd.bits(core, 15..0, result1.ulong_z.signext( 15))
+        rd.bits(core, 31..16, result2.ulong_z.signext(15))
+        if (sat1 || sat2) FlagProcessor.processSatFlag(core)
     }
 }

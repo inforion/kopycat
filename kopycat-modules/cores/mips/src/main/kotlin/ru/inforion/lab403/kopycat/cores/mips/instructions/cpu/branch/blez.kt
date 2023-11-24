@@ -26,6 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
 
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.extensions.long_s
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -36,19 +38,23 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * BLEZ rs, offset
  */
 class blez(
-        core: MipsCore,
-        data: ULong,
-        rs: MipsRegister,
-        off: MipsNear) : RsOffsetInsn(core, data, Type.COND_JUMP, rs, off) {
+    core: MipsCore,
+    data: ULong,
+    rs: MipsRegister,
+    off: MipsNear
+) : RsOffsetInsn(core, data, Type.COND_JUMP, rs, off) {
 
     override val mnem = "blez"
 
     override fun execute() {
         core.cpu.branchCntrl.validate()
-        if (vrs.int <= 0) {
+        val vrsTemp = if (core.is32bit) vrs.int.long_s else vrs.long
+
+        if (vrsTemp <= 0) {
             core.cpu.branchCntrl.schedule(address)
         } else {
             core.cpu.branchCntrl.nop()
         }
+
     }
 }

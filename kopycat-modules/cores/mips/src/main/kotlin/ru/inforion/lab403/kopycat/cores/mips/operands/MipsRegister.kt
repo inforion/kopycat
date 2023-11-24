@@ -31,6 +31,5 @@ import ru.inforion.lab403.kopycat.cores.base.operands.ARegisterNG
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 typealias MipsRegister = ARegisterNG<MipsCore>
-
 inline fun MipsRegister.isReturnAddress(core: MipsCore) = desc == core.cpu.regs.ra
 inline fun MipsRegister.isStackPointer(core: MipsCore) = desc == core.cpu.regs.sp

@@ -175,7 +175,7 @@ abstract class AOperand<in T: AGenericCore>(
      *   Register(1).usext(core) = 0x7654_3210uL
      * {EN}
      */
-    inline fun usext(core: T): ULong = value(core).signextRenameMeAfter(dtyp.msb)
+    inline fun usext(core: T): ULong = value(core) signext dtyp.msb
 
     /**
      * {EN}
@@ -189,7 +189,7 @@ abstract class AOperand<in T: AGenericCore>(
      *   Register(1).ssext(core) = 0x7654_3210L
      * {EN}
      */
-    inline fun ssext(core: T): Long = value(core).signextRenameMeAfter(dtyp.msb).long
+    inline fun ssext(core: T): Long = value(core).signext(dtyp.msb).long
 
     /**
      * {RU}@return дополненное нулями значение т.е. отсекает все биты старше MSB datatype бита{RU}

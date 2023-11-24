@@ -28,7 +28,6 @@ package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.unpacking
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.arm.ROR
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -49,6 +48,6 @@ class SXTAH(cpu: AARMCore,
 
     override fun execute() {
         val rotated = ROR(rm.value(core), 32, rotate.value(core).int)
-        rd.value(core, rn.value(core) + rotated[15..0].signextRenameMeAfter(15))
+        rd.value(core, rn.value(core) + rotated[15..0].signext(15))
     }
 }

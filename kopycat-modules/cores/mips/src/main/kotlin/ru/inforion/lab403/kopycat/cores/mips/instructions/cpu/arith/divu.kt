@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -40,7 +42,12 @@ class divu(
     override val mnem = "divu"
 
     override fun execute() {
-        lo = vrs / vrt
-        hi = vrs % vrt
+        if (core.is32bit) {
+            lo = vrs / vrt
+            hi = vrs % vrt
+        } else {
+            lo = vrs[31..0] / vrt[31..0].signext(31)
+            hi = vrs[31..0] % vrt[31..0].signext(31)
+        }
     }
 }

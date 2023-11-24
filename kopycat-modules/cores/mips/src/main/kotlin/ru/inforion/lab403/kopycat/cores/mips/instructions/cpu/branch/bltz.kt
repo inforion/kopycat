@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
 
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -45,10 +46,10 @@ class bltz(
 
     override fun execute() {
         core.cpu.branchCntrl.validate()
-        if (vrs.int < 0) {
-            core.cpu.branchCntrl.schedule(address)
+        if (core.is32bit) {
+            if (vrs.int < 0) core.cpu.branchCntrl.schedule(address) else core.cpu.branchCntrl.nop()
         } else {
-            core.cpu.branchCntrl.nop()
+            if (vrs.long < 0L) core.cpu.branchCntrl.schedule(address) else core.cpu.branchCntrl.nop()
         }
     }
 }

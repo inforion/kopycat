@@ -23,7 +23,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.gradle.buildConfig
+package ru.inforion.lab403.gradle.buildConfigDeprecated
 
 //import ru.inforion.lab403.common.logging
 import ru.inforion.lab403.gradle.common.className

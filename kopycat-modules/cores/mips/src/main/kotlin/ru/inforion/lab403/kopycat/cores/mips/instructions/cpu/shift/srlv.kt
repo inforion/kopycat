@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtRsInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -46,6 +47,6 @@ class srlv(core: MipsCore,
 
     override fun execute() {
         val s = vrs[4..0].int
-        vrd = vrt ushr s
+        vrd = (vrt[31..0] ushr s).signext(31)
     }
 }

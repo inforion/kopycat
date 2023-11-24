@@ -55,6 +55,31 @@ abstract class AARMCPU(
         //includes the Virtualization Extensions
         val haveVirtExt: Boolean = false
 ) : ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>(arm, name) {
+    inner class Ports : ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>.Ports() {
+        override val mem = object : Master("armmem", busSize) {
+            private fun ULong.maybeSwap(size: Int) = if (arm.cpu.BigEndian()) {
+                when (size) {
+                    1 -> this
+                    2 -> this.swap16()
+                    4 -> this.swap32()
+                    8 -> this.swap64()
+                    else -> TODO("Byte swap of size $size")
+                }
+            } else {
+                this
+            }
+
+            // Swapping data only (setend be): not overriding fetch
+            override fun read(ea: ULong, ss: Int, size: Int) =
+                super.read(ea, ss, size).maybeSwap(size)
+
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
+                super.write(ea, ss, size, value.maybeSwap(size))
+        }
+    }
+
+    override val ports: ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>.Ports = Ports()
+
     // TODO: index <-> reg is ambiguous
     override fun reg(index: Int): ULong = regs.read(index)
     override fun reg(index: Int, value: ULong) = regs.write(index, value)
@@ -154,8 +179,7 @@ abstract class AARMCPU(
     open fun CurrentMode() = Mode.Thread
 
     open fun SelectInstrSet(target: InstructionSet) {
-        if (target != InstructionSet.CURRENT)
-            status.ISETSTATE = target.code.ulong_z
+        status.ISETSTATE = target.code.ulong_z
     }
 
     open fun StackPointerSelect() = StackPointer.Main
@@ -634,6 +658,72 @@ abstract class AARMCPU(
                 TODO("IMPLEMENTATION_DEFINED")
             } else
                 BranchTo(ExcVectorBase() + vect_offset, true)
+        }
+    }
+
+    // See B1.9.12
+    fun TakePhysicalFIQException() {
+        // Determine return information. SPSR is to be the current CPSR, and LR is to be the
+        // current PC minus 0 for Thumb or 4 for ARM, to change the PC offsets of 4 or 8
+        // respectively from the address of the current instruction into the required address
+        // of the instruction boundary at which the interrupt occurred plus 4. For this
+        // purpose, the PC and CPSR are considered to have already moved on to their values
+        // for the instruction following that boundary.
+        val new_lr_value = (if (sregs.cpsr.t) pc else pc - 4u) + 4u + 4u
+        val new_spsr_value = sregs.cpsr.value
+        val vect_offset = 28u
+
+        // Determine whether FIQs are routed to Monitor mode.
+        val route_to_monitor = haveSecurityExt && ser.scr.fiq
+
+        // Determine whether route FIQ to Hyp mode.
+        val route_to_hyp = (haveVirtExt && haveSecurityExt && !ser.scr.fiq && ver.hcr.fmo && !IsSecure())
+                || sregs.cpsr.m == 0b11010uL
+
+        if (route_to_monitor) {
+            // Ensure Secure state if initially in Monitor ('10110') mode. This affects
+            // the Banked versions of various registers accessed later in the code.
+
+            // if CPSR.M == '10110' then SCR.NS = '0';
+            // EnterMonitorMode(new_spsr_value, new_lr_value, vect_offset);
+            TODO("route_to_monitor")
+        } else if (route_to_hyp) {
+            // HSR = bits(32) UNKNOWN;
+            // preferred_exceptn_return = new_lr_value - 4;
+            // EnterHypMode(new_spsr_value, preferred_exceptn_return, vect_offset);
+            TODO("route_to_hyp")
+        } else {
+            // Handle in FIQ mode. Ensure Secure state if initially in Monitor mode. This
+            // affects the Banked versions of various registers accessed later in the code.
+            if (sregs.cpsr.m == 0b10110uL) ser.scr.ns = false
+            sregs.cpsr.m = 0b10001u // FIQ mode
+
+            // Write return information to registers, and make further CPSR changes:
+            // IRQs disabled, other interrupts disabled if appropriate, IT state reset,
+            // instruction set and endianness set to SCTLR-configured values.
+            sregs.spsr.value = new_spsr_value
+            regs.lr.value = new_lr_value
+            sregs.cpsr.i = true
+
+            if (!haveSecurityExt || haveVirtExt || !ser.scr.ns || ser.scr.fw) {
+                sregs.cpsr.f = true
+            }
+            if (!haveSecurityExt || haveVirtExt || !ser.scr.ns || ser.scr.aw) {
+                sregs.cpsr.a = true
+            }
+
+            sregs.cpsr.ITSTATE = 0b00000000u
+            sregs.cpsr.j = false
+            sregs.cpsr.t = vmsa.sctlr.te // TE=0: ARM, TE=1: Thumb
+            sregs.cpsr.ENDIANSTATE = vmsa.sctlr.ee // EE=0: little-endian, EE=1: big-endian
+
+            // Branch to correct FIQ vector.
+            if (vmsa.sctlr.ve) {
+                // IMPLEMENTATION_DEFINED branch to an FIQ vector;
+                TODO("IMPLEMENTATION_DEFINED")
+            } else {
+                BranchTo(ExcVectorBase() + vect_offset, true)
+            }
         }
     }
 

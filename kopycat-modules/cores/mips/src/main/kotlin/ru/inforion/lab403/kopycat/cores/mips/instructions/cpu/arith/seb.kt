@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -48,6 +47,6 @@ class seb(
     override val mnem = "seb"
 
     override fun execute() {
-        vrd = vrt[7..0].signextRenameMeAfter(7)
+        vrd = vrt[7..0].signext(7)
     }
 }

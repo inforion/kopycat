@@ -32,6 +32,7 @@ import ru.inforion.lab403.common.logging.SEVERE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.bit
+import ru.inforion.lab403.kopycat.cores.base.common.Component
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
@@ -42,8 +43,23 @@ import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.logging.Level
 
-// Based on https://linux-sunxi.org/images/d/d2/Dw_apb_uart_db.pdf
-class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(parent, name) {
+/**
+ * Реализация микросхемы NS16550.
+ *
+ * [Документация на одну из реализаций UART](https://linux-sunxi.org/images/d/d2/Dw_apb_uart_db.pdf) на базе [NS16550].
+ * @param parent родительский компонент (необязательный параметр)
+ * @param name произвольное имя объекта модуля
+ * @param regDtype размер регистра
+ * @param timerPeriod период таймера для замедления байтов хост->эмулируемая система
+ * @param timerUnit единица измерения [timerPeriod]
+ */
+class NS16550(
+    parent: Component?,
+    name: String,
+    private val regDtype: Datatype,
+    private val timerPeriod: Long = 1_000,
+    private val timerUnit: Time = Time.ns,
+) : Module(parent, name) {
     companion object {
         @Transient private val log = logger(SEVERE)
     }
@@ -58,7 +74,7 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
     override val ports = Ports()
 
     /**
-     * Таймер для троттлинга байтов хост->эмулируемая система.
+     * Таймер для замедления байтов хост->эмулируемая система.
      * Без него эмулируемая система не успевает обрабатывать входящий поток.
      *
      * Пример симптома: `ttyS0: 3 input overrun(s)`.
@@ -98,7 +114,7 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
     private fun checkIrq() {
         val iir = when {
             IER_DLH.ier[2].truth && (LSR.data and 0x1EuL).truth -> 0x06uL
-            IER_DLH.ier[0].truth && timeoutIntr -> 0x0CuL
+            IER_DLH.ier[0].truth && timeoutIntr && FCR_IIR.fcr[0].truth -> 0x0CuL
             IER_DLH.ier[0].truth && LSR.DR.truth && FCR_IIR.fcr[0].untruth -> 0x04uL
             IER_DLH.ier[1].truth && thrIntr -> {
                 // MSR.data = MSR.data or 0b1011uL
@@ -142,6 +158,10 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
                 log.info { "Read from RBR: ${ret.hex2}" }
 
                 if (FCR_IIR.fcr[0].truth) {
+                    // if (FCR_IIR.fcr[7..6].truth) {
+                        // TODO("RCVR Trigger")
+                    // }
+
                     if (bytesIn.isEmpty()) {
                         LSR.DR = 0
                         LSR.BI = 0
@@ -166,16 +186,24 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
                 // Driven by THR
                 log.info { "Write to THR: ${value.hex2}" }
 
-                if (value.char == '\n') {
-                    writeData('\r')
+                // if (FCR_IIR.fcr[0].truth && FCR_IIR.fcr[5..4].truth) {
+                    // TODO("TX Empty Trigger")
+                // }
+
+                if (MCR.data[4].truth) {
+                    // Loopback mode
+                    RBR_THR_DLL.bytesIn.add(value.char)
+                } else {
+                    if (value.char == '\n') {
+                        writeData('\r')
+                    }
+                    writeData(value.char)
                 }
 
                 thrIntr = true
                 LSR.THRE = 1
                 LSR.TEMT = 1
                 checkIrq()
-
-                writeData(value.char)
             }
         }
 
@@ -464,7 +492,7 @@ class NS16550(parent: Module, name: String, val regDtype: Datatype) : Module(par
 
     override fun initialize(): Boolean {
         super.initialize()
-        core.clock.connect(t2mTimer, 1_000, Time.ns, true)
+        core.clock.connect(t2mTimer, timerPeriod, timerUnit, true)
         return true
     }
 }

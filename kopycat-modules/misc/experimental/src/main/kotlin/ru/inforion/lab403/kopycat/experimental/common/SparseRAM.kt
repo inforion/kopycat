@@ -25,14 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.experimental.common
 
-import ru.inforion.lab403.common.extensions.hex16
-import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
+import kotlin.math.min
 
 class SparseRAM(
     parent: Module,
@@ -112,4 +112,16 @@ class SparseRAM(
     override fun serialize(ctxt: GenericSerializer) = holder.serialize(ctxt)
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) = holder.deserialize(ctxt, snapshot)
+
+    fun put(addr: ULong, data: ByteArray) {
+        var curAddr = addr
+        var curDataOfft = 0
+        while (curAddr < addr + data.size.ulong_z) {
+            val mem = holder.getOrPut(curAddr)
+            val size = min((mem.start + mem.size - curAddr).int, data.size - curDataOfft)
+            mem.store(curAddr, data.sliceArray(curDataOfft until curDataOfft + size))
+            curAddr += size
+            curDataOfft += size
+        }
+    }
 }

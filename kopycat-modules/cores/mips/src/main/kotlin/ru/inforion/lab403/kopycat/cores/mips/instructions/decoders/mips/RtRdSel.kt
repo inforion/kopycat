@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.decoders.mips
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.xbits
 import ru.inforion.lab403.kopycat.cores.mips.enums.Designation
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ProcType
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
@@ -51,7 +50,7 @@ class RtRdSel(
         val rt = data[20..16].int
         val rd = data[15..11].int
         // Get 10 bit for selector for common case of MFC0, MFC1, etc.
-        val sel = data[10..0].int
+        val sel = data[2..0].int
         return construct(core, data, gpr(rt), any(type, rtyp, rd, sel))
     }
 }

@@ -37,7 +37,6 @@ abstract class AARMCore(parent: Module, name: String, frequency: Long, val versi
         ACore<AARMCore, AARMCPU, AARMCOP>(parent, name, frequency, ipc) {
 
     enum class InstructionSet(val code: Int) {
-        CURRENT(-1),
         ARM(0b00),
         THUMB(0b01),
         JAZELLE(0b10),

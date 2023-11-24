@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
+import ru.inforion.lab403.common.extensions.signext
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
@@ -46,7 +47,18 @@ class lw(core: MipsCore,
 
     override fun execute() {
         if (address[1..0] != 0uL)
-            throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
-        vrt = memword
+            throw MemoryAccessError(core.pc, address, AccessAction.LOAD, "ADEL")
+        vrt = if (core.is32bit) memword else memword.signext(31)
     }
+//        if (address[1..0] != 0uL)
+//            throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
+//        vrt = if (core.is32bit) {
+//            memword
+//        } else {
+//            val vAddr = address
+//            val byte = (vAddr[2..0] xor core.cpu.bigEndianCPU.bext(2)).int
+//            val memdoubleword = memword[31 + 8 * byte..8 * byte]
+//            memdoubleword.signext(31 + 8 * byte)
+//        }
+//    }
 }

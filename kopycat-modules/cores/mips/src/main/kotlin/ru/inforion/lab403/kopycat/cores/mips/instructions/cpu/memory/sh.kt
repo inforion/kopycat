@@ -40,13 +40,18 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class sh(core: MipsCore,
          data: ULong,
          rt: MipsRegister,
-         off: MipsDisplacement) : RtOffsetInsn(core, data, Type.VOID, rt, off) {
+         off: MipsDisplacement
+) : RtOffsetInsn(core, data, Type.VOID, rt, off) {
 
     override val mnem = "sh"
 
     override fun execute() {
         if (address[0] != 0uL)
             throw MemoryAccessError(core.pc, address, STORE, "ADES")
-        memword = vrt[15..0]
+        memword = if (core.is32bit) {
+            (memword[31..16] shl 16) or vrt[15..0]
+        } else {
+            (memword[63..16] shl 16) or vrt[15..0]
+        }
     }
 }

@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.ushr
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtSaInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -46,6 +48,6 @@ class srl(core: MipsCore,
     override val mnem = "srl"
 
     override fun execute() {
-        vrd = vrt ushr vsa
+        vrd = if (core.is32bit) vrt ushr vsa else (vrt[31..0] ushr vsa).signext(31)
     }
 }

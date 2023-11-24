@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.hardware.registers
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
@@ -40,5 +42,19 @@ class FCRBank : ARegistersBankNG<MipsCore>("FPU Control Registers", 32, 32) {
 
     val fexr = Register("fexr", 26)
     val fenr = Register("fenr", 28)
-    val fcsr = Register("fcsr", 31)
+
+    inner class FCSR : Register("fcsr", 31) {
+        override var value: ULong
+            get() = super.value
+
+            set(value) {
+                super.value = super.value
+                    // 22-21. If these bits are not implemented, they must be ignored on write and read as zero.
+                    .insert(value[31..23], 31..23)
+                    //  20-18 reserved
+                    .insert(value[17..0], 17..0)
+            }
+    }
+
+    val fcsr = FCSR()
 }

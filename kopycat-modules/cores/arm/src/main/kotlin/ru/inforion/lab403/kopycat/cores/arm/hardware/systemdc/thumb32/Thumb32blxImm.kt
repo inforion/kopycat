@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.thumb32
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Undefined
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpredictable
@@ -55,7 +54,7 @@ object Thumb32blxImm {
             val imm10 = data[25..16]
             val imm11 = data[10..0]
             val imm25 = (S shl 24) + (I1 shl 23) + (I2 shl 22) + (imm10 shl 12) + (imm11 shl 1)
-            val imm32 = Immediate<AARMCore>(imm25.signextRenameMeAfter(24))
+            val imm32 = Immediate<AARMCore>(imm25 signext 24)
             val targetInstrSet = core.cpu.CurrentInstrSet()
             if(core.cpu.InITBlock() && !core.cpu.LastInITBlock()) throw Unpredictable
             return constructor(core, data, Condition.AL, imm32, targetInstrSet, 4)

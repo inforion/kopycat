@@ -54,6 +54,8 @@ class Options : ApplicationOptions("kopycat", "virtualization platform") {
         "Set the top module traceable if it is not",
         false)
 
+    val gdbHost: String? by variable("-gh", "--gdb-host",
+            "GDB server host (0.0.0.0, if not specified)")
     val gdbPort: Int? by variable("-g", "--gdb-port",
             "GDB server port (if not specified then not started)")
     val restPort: Int? by variable("-r", "--rest",

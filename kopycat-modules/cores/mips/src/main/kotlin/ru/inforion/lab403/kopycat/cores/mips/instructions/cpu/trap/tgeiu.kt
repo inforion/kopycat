@@ -56,7 +56,11 @@ class tgeiu(core: MipsCore,
     override fun execute() {
         // Compare as unsigned integers
         // TODO: Refactor legacy operand class usage
-        if (vrs >= imm.usext.uint) throw MipsHardwareException.TR(core.pc)
+        if (core.is32bit) {
+            if (vrs.uint >= imm.usext.uint) throw MipsHardwareException.TR(core.pc)
+        } else {
+            if (vrs >= imm.usext) throw MipsHardwareException.TR(core.pc)
+        }
     }
 
 }

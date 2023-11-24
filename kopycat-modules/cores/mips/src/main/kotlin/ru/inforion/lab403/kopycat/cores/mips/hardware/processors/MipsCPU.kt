@@ -47,6 +47,18 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
     companion object {
         const val INVALID_DELAY_JUMP_ADDRESS = ULONG_MAX
     }
+    enum class Mode { R32, R64 }
+
+    val mode: Mode get() = when {
+        // p 260 PRA
+        mips.Config0Preset[14] == 1uL -> Mode.R64
+        else -> Mode.R32
+    }
+
+    val BIT_DEPTH = when (mode) {
+        Mode.R32 -> Datatype.DWORD
+        Mode.R64 -> Datatype.QWORD
+    }
 
     inner class BranchController: ICoreUnit {
         override val name: String = "Branch Controller"
@@ -87,7 +99,7 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
         }
 
         fun schedule(ea: ULong, delay: Int = 1, changeIsa: InstructionSet = NONE) {
-            delayedJumpAddress = if (ea == INVALID_DELAY_JUMP_ADDRESS) ea else ea like Datatype.DWORD
+            delayedJumpAddress = if (ea == INVALID_DELAY_JUMP_ADDRESS) ea else ea like BIT_DEPTH
             delayedJumpInsnRemain = delay
             hasDelayedJump = true
             hasChangeIsa = changeIsa
@@ -135,27 +147,27 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
     override fun count() = regs.count
     override fun flags(): ULong = 0u
 
-    val bigEndianCPU = 0
+    var bigEndianCPU = 0
 
     val mips32decoder = Mips32SystemDecoder(mips)
     val mips16decoder = Mips16SystemDecoder(mips)
     val branchCntrl = BranchController()
 
-    val regs = GPRBank()
+    val regs = GPRBank(this)
 
-    val hwrs = HWRBank(mips)
+    val hwrs = HWRBank(mips)        // COP2
 
-    val sgprs = Array(mips.countOfShadowGPR) { GPRBank() }
+    val sgprs = Array(mips.countOfShadowGPR) { GPRBank(this) }
 
     var hi: ULong = 0u
-        get() = field mask 32
+        get() = if (this.mode == Mode.R32) field mask 32 else field mask 64
         set(value) {
-            field = value mask 32
+            field = if (this.mode == Mode.R32) value mask 32 else value mask 64
         }
     var lo: ULong = 0u
-        get() = field mask 32
+        get() = if (this.mode == Mode.R32) field mask 32 else field mask 64
         set(value) {
-            field = value mask 32
+            field = if (this.mode == Mode.R32) value mask 32 else value mask 64
         }
 
     var status: ULong = 0u
@@ -172,7 +184,10 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
         hi = 0u
         lo = 0u
         status = 0u
-        pc = 0xBFC00000u
+        pc = when (mode) {
+            Mode.R32 -> 0xBFC00000u
+            Mode.R64 -> 0xFFFF_FFFF_BFC0_0000uL
+        }
     }
 
     private fun fetch(pc: ULong): ULong = core.fetch(pc, 0 ,4)
@@ -196,7 +211,7 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
     override fun stringify() = buildString {
         appendLine("MIPS CPU:")
         appendLine(branchCntrl.stringify())
-        appendLine("pc = 0x${pc.hex8} status = 0x${status.hex8} hi:lo = 0x${hi.hex8}:${lo.hex8}")
+        appendLine("pc = 0x${pc.hex8} status = 0x${status.hex16} hi:lo = 0x${hi.hex8}:${lo.hex16}")
         append(regs.stringify())
     }
 

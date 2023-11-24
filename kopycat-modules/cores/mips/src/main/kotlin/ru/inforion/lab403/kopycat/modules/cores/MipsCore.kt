@@ -25,12 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.hex16
+import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.mips.MIPSABI
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.*
+import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mips64.COP064
 import ru.inforion.lab403.kopycat.modules.BUS32
 
 /**
@@ -39,11 +45,12 @@ import ru.inforion.lab403.kopycat.modules.BUS32
  * @param PABITS ширина физической адресной шины
  * @param ArchitectureRevision ревизия архитектуры MIPS
  * @param countOfShadowGPR количество теневых наборов регистров MIPS
+ * @param IntCtlPreset начальное значение регистра С0 IntClt
+ * @param PRId processor identification and revision
  * @param Config0Preset начальное значение регистра Config0
  * @param Config1Preset начальное значение регистра Config1
  * @param Config2Preset начальное значение регистра Config2
  * @param Config3Preset начальное значение регистра Config3
- * @param IntCtlPreset  начальное значение регистра IntCtl
  * @param syncSupported инструкция sync не будет вызывать исключение процессора
  * @param EIC_option1 опция обработки прерываний 1 (см. MIPS)
  * @param EIC_option2 опция обработки прерываний 2 (см. MIPS)
@@ -55,30 +62,36 @@ import ru.inforion.lab403.kopycat.modules.BUS32
  * @param countCompareSupported внутренний таймер архитектуры MIPS построенный на регистрах Count/Compare
  *                              если данный таймер не используется, то рекомендуется отключить его для
  *                              повышения быстродействия.
+ *                              * @param PABITS ширина физической адресной шины (размер физического адресного пр-ва 2^PABITS)
+ * @param SEGBITS регулирует величину виртуального адреса. Реальное количество бит, реализованных для каждого
+ *                        64-битного сегмента.
+ *                        Например, реализовано 40 бит вирт.адреса -> реальный размер сегмента 2^SEGBITS = 2^40 байт.
  */
 class MipsCore constructor(
-        parent: Module,
-        name: String,
-        frequency: Long,
-        ipc: Double,
-        val multiplier: Long,
-        val PRId: ULong,
-        val PABITS: Int,
-        val ArchitectureRevision: Int = 1,
-        val countOfShadowGPR: Int = 0,
-        val Config0Preset: ULong = 0u,
-        val Config1Preset: ULong = 0u,
-        val Config2Preset: ULong = 0u,
-        val Config3Preset: ULong = 0u,
-        val IntCtlPreset: ULong = 0u,
-        val countRateFactor: Int = 2,
-        val syncSupported: Boolean = false,
-        val countCompareSupported: Boolean = false,
-        val EIC_option1: Boolean = false,
-        val EIC_option2: Boolean = false,
-        val EIC_option3: Boolean = false,
-        val dspExtension: Boolean = false,
-        val useMMU: Boolean = true
+    parent: Module,
+    name: String,
+    frequency: Long,
+    ipc: Double,
+    val multiplier: Long,
+    val PRId: ULong,
+    val PABITS: Int,
+    val SEGBITS: Int? = null,
+    val ArchitectureRevision: Int = 1,
+    val countOfShadowGPR: Int = 0,
+    val Config0Preset: ULong = 0u,
+    val Config1Preset: ULong = 0u,
+    val Config2Preset: ULong = 0u,
+    val Config3Preset: ULong = 0u,
+    val IntCtlPreset: ULong = 0u,
+    val countRateFactor: Int = 2,
+    val syncSupported: Boolean = false,
+    val countCompareSupported: Boolean = false,
+    val EIC_option1: Boolean = false,
+    val EIC_option2: Boolean = false,
+    val EIC_option3: Boolean = false,
+    val dspExtension: Boolean = false,
+    val useMMU: Boolean = true,
+    val fpuDtype: Datatype = Datatype.DWORD,
 ) : ACore<MipsCore, MipsCPU, ACOP0>(parent, name, frequency * multiplier, ipc) {
 
     /**
@@ -87,19 +100,27 @@ class MipsCore constructor(
     constructor(parent: Module, name: String, frequency: Long, ipc: Double, PRId: ULong, PABITS: Int) :
             this(parent, name, frequency, ipc, 1, PRId, PABITS)
 
-    private val VASIZE = BUS32  // always 32 bit
-    private val PASIZE = 1uL shl PABITS
-
     override val cpu = MipsCPU(this, "cpu")
 
-    override val fpu = MipsFPU(this, "fpu")
+    val is32bit get() = cpu.mode == MipsCPU.Mode.R32
+    val is64bit get() = cpu.mode == MipsCPU.Mode.R64
 
-    override val cop: ACOP0 = when (ArchitectureRevision) {
-        1 -> COP0v1(this, "cop")
-        else -> COP0v2(this, "cop")
+    val PASIZE = 1uL shl PABITS // if (is32bit) 1uL shl PABITS else 0xFFFFFFFFFFFFFFFFuL
+    // always 32 bit if mips32
+    val VASIZE = if (is32bit) BUS32 else 0xFFFFFFFFFFFFFFFFuL
+
+    override val fpu = MipsFPU(this, "fpu", dtype=fpuDtype)
+
+    override val mmu = when (Config1Preset) {
+        0uL -> MipsMMU(this, "mmu", PASIZE)
+        else -> MipsMMU(this, "mmu", PASIZE, Config1Preset[30..25].int + 1)     // p. 263 PRA
     }
 
-    override val mmu = MipsMMU(this, "mmu", PASIZE)
+    override val cop: ACOP0 = when {
+        ArchitectureRevision == 1 && is32bit -> COP0v1(this, "cop")
+        ArchitectureRevision != 1 && is32bit -> COP0v2(this, "cop")
+        else -> COP064(this, "cop")
+    }
 
     override fun abi() = MIPSABI(this, false)
 
@@ -123,10 +144,20 @@ class MipsCore constructor(
 
             mmu.ports.outp.connect(buses.physical)
             ports.mem.connect(buses.physical)
-        }
-        else {
+        } else {
             cpu.ports.mem.connect(buses.virtual)
             ports.mem.connect(buses.virtual)
         }
+    }
+    override fun stringify() = buildString {
+        if (useMMU) {
+            val mmuAddress = mmu.translate(cpu.pc, 0, 4, AccessAction.FETCH)
+            appendLine(
+                "PC [0x${cpu.pc.hex16}] --|MMU|--> " +
+                        "[0x${mmuAddress.hex16}]"
+            )
+        }
+
+        appendLine(super.stringify())
     }
 }

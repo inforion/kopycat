@@ -24,9 +24,18 @@
  *
  */
 package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces
+import ru.inforion.lab403.kopycat.experimental.common.capturable.CapturableNoBody
 
 
 interface LinuxSysFilesystemApi {
     fun sysChmod(filename: String, chmod: Int): ULong
     fun sysUnlink(filename: String): ULong
+}
+
+interface LinuxSysFilesystemCapturableApi {
+    val PTR_SYS_CHMOD: ULong
+    val PTR_SYS_UNLINK: ULong
+
+    fun sysChmodCapturable(filename: String, chmod: Int): CapturableNoBody
+    fun sysUnlinkCapturable(filename: String): CapturableNoBody
 }

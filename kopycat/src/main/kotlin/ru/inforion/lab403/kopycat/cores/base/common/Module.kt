@@ -45,12 +45,9 @@ import ru.inforion.lab403.kopycat.interfaces.*
 import ru.inforion.lab403.kopycat.serializer.*
 import ru.inforion.lab403.kopycat.settings
 import java.io.InputStream
-import java.nio.BufferOverflowException
 import java.nio.ByteOrder
 import java.util.*
 import java.util.logging.Level
-import kotlin.collections.ArrayList
-import kotlin.collections.HashSet
 
 /**
  * {RU}
@@ -656,6 +653,8 @@ open class Module(
         // isReadable check when bus select an area
         private inline fun fetchOrRead(ea: ULong, ss: Int, size: Int, access: AccessAction) = with (content) {
             val index = indexOf(ea)
+            require(index + size <= content.limit()) { "Index out of bound: index=$index, " +
+                    "size=${size.hex}, content limit=${content.limit().hex}, port: ${this@Memory.port}" }
             when (size) {
                 QWORD.bytes -> getLong(index).ulong
                 BYTES7.bytes -> getLong(index).ulong like BYTES7
@@ -723,6 +722,8 @@ open class Module(
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             // isWritable check when bus select a area
             val index = indexOf(ea)
+            require (index + size <= content.limit()) { "Index out of bound: index=$index, " +
+                    "size=${size.hex}, content limit=${content.limit().hex}, port: ${this@Memory.port}" }
             dirtyPages.add(index.uint and pageMask)
             with(content) {
                 when (size) {

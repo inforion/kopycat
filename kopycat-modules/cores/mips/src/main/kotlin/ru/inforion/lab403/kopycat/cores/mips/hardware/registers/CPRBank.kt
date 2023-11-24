@@ -29,10 +29,12 @@ package ru.inforion.lab403.kopycat.cores.mips.hardware.registers
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
-        "Coprocessor General Purpose Registers", 32 * 8, 32, 8) {
+        "Coprocessor General Purpose Registers", 32 * 8, core.cpu.BIT_DEPTH.bits, 8) { // or just 64
 
     companion object {
         /**
@@ -51,8 +53,13 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
 
     operator fun get(id: Int, sel: Int) = get(index(id, sel))
 
-    open inner class COP0Register(name: String, id: Int, val sel: Int = 0, default: ULong = 0u) :
-            Register(name, index(id, sel), default)
+    open inner class COP0Register(
+        name: String,
+        id: Int,
+        val sel: Int = 0,
+        default: ULong = 0u,
+        dtype: Datatype = DWORD
+    ) : Register(name, index(id, sel), default, dtype)
 
     open inner class ReadOnly(name: String, id: Int, sel: Int, default: ULong = 0u) :
             COP0Register(name, id, sel, default) {
@@ -61,7 +68,15 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
             set(value) {
                 log.warning { "[${core.cpu.pc.hex8}] Store data to $this = ${value.hex8} -> ignored" }
             }
+
+        fun hardwarePreset(initValue: ULong) {
+            super.value = initValue
+            log.warning { "[${this.value}] Hardware preset data to RO reg $this = ${value.hex16}" }
+        }
     }
+
+
+    // TODO: refactor and test
 
     val Index = COP0Register("Index", 0)
 
@@ -81,29 +96,47 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
 
     val Random = RANDOM()
 
-    val EntryLo0 = COP0Register("EntryLo0", 2)
-    val EntryLo1 = COP0Register("EntryLo1", 3)
+    val EntryLo0 = COP0Register("EntryLo0", 2, dtype = core.cpu.BIT_DEPTH)
+    val EntryLo1 = COP0Register("EntryLo1", 3, dtype = core.cpu.BIT_DEPTH)
 
-    inner class CONTEXT : COP0Register("Context", 4, 0) {
-        var PTEBase by fieldOf(31..23)
+    inner class CONTEXT : COP0Register("Context", 4, 0, dtype = core.cpu.BIT_DEPTH) {
+        private val borderPTEBase = if (core.is64bit) 63 else 23
+        var PTEBase by fieldOf(borderPTEBase..23)
         var BadVPN2 by fieldOf(22..4)
     }
 
     val Context = CONTEXT()
 
-    val UserLocal = COP0Register("UserLocal", 4, 2)
-    val PageMask = COP0Register("PageMask", 5)
+    val UserLocal = COP0Register("UserLocal", 4, 2, dtype = core.cpu.BIT_DEPTH)
+
+    val PageMask = COP0Register("PageMask", 5) // WARNING: Big Pages feature NOT implemented
     val Wired = COP0Register("Wired", 6)
     val HWREna = COP0Register("HWREna", 7)
-    val BadVAddr = COP0Register("BadVAddr", 8)
+
+    val BadVAddr = COP0Register("BadVAddr", 8, dtype = core.cpu.BIT_DEPTH)
     val Count = COP0Register("Count", 9)
 
-    inner class ENTRY_HI : COP0Register("EntryHi", 10) {
-        var VPN2 by fieldOf(31..13)
+    inner class ENTRY_HI : COP0Register("EntryHi", 10, dtype = core.cpu.BIT_DEPTH) {
+        private val borderVPN2 = if (core.is64bit) core.SEGBITS!! else 31
+
+        var VPN2 by fieldOf(borderVPN2 .. 13)
         var VPN2X by fieldOf(12..11)
         var EHINV by bitOf(10)
         var ASIDX by fieldOf(9..8)
         var ASID by fieldOf(7..0)
+        override var value: ULong
+            get() = super.value
+            set(value) {
+                when  {
+                    core.is32bit -> super.value = value
+                    else -> {
+                        super.value = super.value
+                            .insert(value[63..62], 63..62)
+                            // bits 61..40 = Fill -> reserved
+                            .insert(value[borderVPN2..0], borderVPN2..0)
+                    }
+                }
+            }
     }
 
     val EntryHi = ENTRY_HI()
@@ -120,6 +153,7 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
 
     val Compare = COMPARE()
 
+    // TODO: Status FPU register (FR) must depend on fpuDtype or vise versa
     inner class STATUS : COP0Register("Status", 12, 0) {
         var IE by bitOf(0)
         var EXL by bitOf(1)
@@ -224,7 +258,7 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
 
     val Cause = CAUSE()
 
-    val EPC = COP0Register("EPC", 14)
+    val EPC = COP0Register("EPC", 14, dtype = core.cpu.BIT_DEPTH)
 
     val PRId = COP0Register("PRId", 15, 0, core.PRId)
 
@@ -260,6 +294,11 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
                         .insert(value[27..25], 27..25)
                         .insert(value[2..0], 2..0)
             }
+
+        fun hardwarePreset(initValue: ULong) {
+            super.value = initValue
+            log.warning { "[${this.value}] Store data to $this = ${value.hex16}" }
+        }
     }
 
     val Config0 = CONFIG0()
@@ -275,29 +314,67 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
 
     val Config3 = CONFIG3()
 
-//    val Config4 = ReadOnly("Config4", 16, 4)
+    val Config4 = ReadOnly("Config4", 16, 4)
 //    val Config5 = ReadOnly("Config5", 16, 5)
 //    val Config6 = ReadOnly("Config6", 16, 6)
 
-    val Config7 = ReadOnly("Config7", 16, 7)
+    val Config7 = ReadOnly("Config7", 16, 7)        // wtf
 
-    val LLAddr = COP0Register("LLAddr", 17)
+    val LLAddr = COP0Register("LLAddr", 17, 0, dtype = core.cpu.BIT_DEPTH)
 
-    val WatchLo0 = COP0Register("WatchLo0", 18, 0)
-    val WatchHi0 = COP0Register("WatchHi0", 19, 0)
-    val WatchLo1 = COP0Register("WatchLo1", 18, 1)
+    inner class WATCHLO0: COP0Register("WatchLo0", 18, 0, dtype = core.cpu.BIT_DEPTH) {
+        override var value: ULong
+            get() = super.value
+            set(value) {
+                // we can't use these field inside register, because it will lead to recursion
+                super.value = super.value
+                    // WARNING! Implementation-dependent. p 307 PRA
+                    // 2-0 bits just ignored for this register
+                    .insert(value[63..3], 63..3)
+
+            }
+    }
+
+    val WatchLo0 = WATCHLO0()
+
+    inner class WATCHHI0: COP0Register("WatchHi0", 19, 0) {
+        // TODO: set by proc i/r/w bits if address in watch_hi/watch_lo was accessed
+        // TODO: hardware preset
+        override var value: ULong
+            get() = super.value
+            set(value) {
+                super.value = super.value
+                    // M=[31] -- if other pair of watch regs is implemented
+                    // .insert(value[31], 31)
+                    .insert(value[30], 30)
+                    // 25:25 depends on config4
+                    .insert(value[23..16], 23..16)
+                    .insert(value[11..3], 11..3)
+                if (value[2] == 1uL) super.value.insert(0, 2)
+                if (value[1] == 1uL) super.value.insert(0, 1)
+                if (value[0] == 1uL) super.value.insert(0, 0)
+            }
+        fun hardwarePreset(initValue: ULong) {
+            super.value = initValue
+            log.warning { "[${this.value}] Hardware preset data to WatchHi0 reg $this = ${value.hex16}" }
+        }
+    }
+
+    val WatchHi0 = WATCHHI0()
+
+    val WatchLo1 = COP0Register("WatchLo1", 18, 1, dtype = core.cpu.BIT_DEPTH)
     val WatchHi1 = COP0Register("WatchHi1", 19, 1)
-    val WatchLo2 = COP0Register("WatchLo2", 18, 2)
+    val WatchLo2 = COP0Register("WatchLo2", 18, 2, dtype = core.cpu.BIT_DEPTH)
     val WatchHi2 = COP0Register("WatchHi2", 19, 2)
-    val WatchLo3 = COP0Register("WatchLo3", 18, 3)
+    val WatchLo3 = COP0Register("WatchLo3", 18, 3, dtype = core.cpu.BIT_DEPTH)
     val WatchHi3 = COP0Register("WatchHi3", 19, 3)
 
-    val XContext = COP0Register("XContext", 20)  // I6500 Multiprocessing System Programmer’s Guide
+    val XContext = COP0Register("XContext", 20, dtype = core.cpu.BIT_DEPTH)  // I6500 Multiprocessing System Programmer’s Guide
 
-    val Debug = COP0Register("Debug", 23)
+    val Debug = COP0Register("Debug", 23)           // TLDR, see EJTAG Specification
 
-    val DEPC0 = COP0Register("DEPC0", 24, 0)
-    val DEPC6 = COP0Register("DEPC6", 24, 6)
+    val DEPC0 = COP0Register("DEPC0", 24, 0, dtype = core.cpu.BIT_DEPTH)    // EJTAG Specification
+    val DEPC6 = COP0Register("DEPC6", 24, 6, dtype = core.cpu.BIT_DEPTH)
 
     val PerfCnt = COP0Register("PerfCnt", 25)
     val ErrCtl = COP0Register("ErrCtl", 26)
@@ -307,13 +384,13 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
     val CacheErr2 = COP0Register("CacheErr2", 27, 2)
     val CacheErr3 = COP0Register("CacheErr3", 27, 3)
 
-    val TagLo0 = COP0Register("TagLo0", 28, 0)
+    val TagLo0 = COP0Register("TagLo0", 28, 0, dtype = core.cpu.BIT_DEPTH)
     val TagHi0 = COP0Register("TagHi0", 29, 0)
 
-    val TagLo2 = COP0Register("TagLo2", 28, 2)
+    val TagLo2 = COP0Register("TagLo2", 28, 2, dtype = core.cpu.BIT_DEPTH)
     val TagHi2 = COP0Register("TagHi2", 29, 2)
 
-    val TagLo4 = COP0Register("TagLo4", 28, 4)
+    val TagLo4 = COP0Register("TagLo4", 28, 4, dtype = core.cpu.BIT_DEPTH)
     val TagHi4 = COP0Register("TagHi4", 29, 4)
 
     val DataLo1 = COP0Register("DataLo1", 28, 1)
@@ -322,7 +399,7 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
     val DataLo3 = COP0Register("DataLo3", 28, 3)
     val DataHi3 = COP0Register("DataHi3", 29, 3)
 
-    val ErrorEPC = COP0Register("ErrorEPC", 30)
+    val ErrorEPC = COP0Register("ErrorEPC", 30, dtype = core.cpu.BIT_DEPTH)
 
     val DESAVE = COP0Register("DESAVE", 31)
 }

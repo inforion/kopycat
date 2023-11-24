@@ -64,7 +64,7 @@ class LinuxQueuedFilesystemWrite<T>(
         queued.functionsQueue.push(
             x86funQueuedUtilsData(
                 isReadyToCall = {
-                    threadInfoBlock() != null && x86.pc in availablePc
+                    x86.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -121,7 +121,7 @@ class LinuxQueuedFilesystemWrite<T>(
         queued.functionsQueue.push(
             x86funQueuedUtilsData(
                 isReadyToCall = {
-                    threadInfoBlock() != null && x86.pc in availablePc
+                    x86.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -142,6 +142,13 @@ class LinuxQueuedFilesystemWrite<T>(
                         }
 
                         override fun destroy() {
+                            when (val result = abi.getResult().toLinuxReturn()) {
+                                is LinuxReturn.Success -> {}
+                                else -> {
+                                    println("ERROR: vfs_write <${destinationPath}> Error = 0x${result.rawValue.hex}")
+                                }
+                            }
+
                             val newIterator = x86.inq(vfsWrite.pointer.address)
 
                             vfsWrite.destroy()
@@ -168,7 +175,7 @@ class LinuxQueuedFilesystemWrite<T>(
         queued.functionsQueue.push(
             x86funQueuedUtilsData(
                 isReadyToCall = {
-                    threadInfoBlock() != null && x86.pc in availablePc
+                    x86.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {

@@ -51,7 +51,7 @@ class swr(core: MipsCore,
 
         val vAddr = address
 
-        val alignAddr = vAddr and 0xFFFFFFFCu
+        val alignAddr = vAddr and 0xFFFFFFFF_FFFFFFFCu
         val byte = (vAddr[1..0] xor core.cpu.bigEndianCPU.bext(2)).int
 
         val memword = core.inl(alignAddr)

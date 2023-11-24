@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.bitwise
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsRtPosSizeInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -48,11 +49,12 @@ class ins(
     override val mnem = "ins"
 
     override fun execute() {
-        vrs = if (lsb <= msb) {
-            val high = vrs[31..msb + 1]
-            val inserted = vrt[msb - lsb..0]
-            val low = vrs[lsb - 1..0]
-            high.shl(msb + 1) or inserted.shl(lsb) or low
+        vrt = if (lsb <= msb) {
+            val high = vrt[31..msb + 1]
+            val inserted = vrs[msb - lsb..0]
+            val low = vrt[lsb - 1..0]
+            val res = high.shl(msb + 1) or inserted.shl(lsb) or low
+            if (core.is32bit) res else res.signext(31)
         } else 0u
     }
 

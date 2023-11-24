@@ -58,7 +58,7 @@ class LDMer(cpu: AARMCore,
         else if (core.cpu.CurrentModeIsUserOrSystem() || core.cpu.CurrentInstrSet() == AARMCore.InstructionSet.THUMB_EE)
             throw ARMHardwareException.Unpredictable
         else {
-            val length = 4u * registers.count.uint
+            val length = 4u * registers.count.uint + 4u
             var address = if (increment) rn.value(core) else rn.value(core) - length
             if (wordhigher) address += 4u
 

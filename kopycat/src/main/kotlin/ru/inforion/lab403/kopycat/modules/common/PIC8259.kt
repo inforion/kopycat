@@ -23,21 +23,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.modules.atom2758
+package ru.inforion.lab403.kopycat.modules.common
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.truth
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.base.*
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
+import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.cores.base.abstracts.APIC
+import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
-import ru.inforion.lab403.kopycat.modules.*
-
+import ru.inforion.lab403.kopycat.modules.BUS16
 
 @Suppress("unused", "MemberVisibilityCanBePrivate", "PropertyName")
 class PIC8259(parent: Module, name: String) : APIC(parent, name) {
@@ -56,9 +61,9 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
 
     override val ports = Ports()
 
-    private val FPUERRCLR = Register(ports.io, 0x00F0u, DWORD, "FPUERRCLR")
-    private val ECLR0 = Register(ports.io, 0x04D0u, BYTE, "ECLR0")
-    private val ECLR1 = Register(ports.io, 0x04D1u, BYTE, "ECLR1")
+    private val FPUERRCLR = Register(ports.io, 0x00F0u, Datatype.DWORD, "FPUERRCLR")
+    private val ECLR0 = Register(ports.io, 0x04D0u, Datatype.BYTE, "ECLR0")
+    private val ECLR1 = Register(ports.io, 0x04D1u, Datatype.BYTE, "ECLR1")
 
     enum class CR_LOW_READ_STATE { IR, ISR, NONE }
     enum class CR_HIGH_WRITE_STATE { MSK, ICW2, ICW3, ICW4 }
@@ -98,7 +103,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             return pins[num].inService
         }
 
-        private val IR = object : Register(ports.io, offset, BYTE, "IR", writable = false) {
+        private val IR = object : Register(ports.io, offset, Datatype.BYTE, "IR", writable = false) {
             override fun beforeRead(from: MasterPort, ea: ULong) = portLowReadState == CR_LOW_READ_STATE.IR
 
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
@@ -108,7 +113,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val ISR = object : Register(ports.io, offset, BYTE, "ISR", writable = false) {
+        private val ISR = object : Register(ports.io, offset, Datatype.BYTE, "ISR", writable = false) {
             override fun beforeRead(from: MasterPort, ea: ULong) = portLowReadState == CR_LOW_READ_STATE.ISR
 
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
@@ -118,7 +123,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val INTMSK = object : Register(ports.io, offset + 1u, BYTE, "INTMSK") {
+        private val INTMSK = object : Register(ports.io, offset + 1u, Datatype.BYTE, "INTMSK") {
             override fun beforeRead(from: MasterPort, ea: ULong) = portHighWriteState == CR_HIGH_WRITE_STATE.MSK
             override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = portHighWriteState == CR_HIGH_WRITE_STATE.MSK
 
@@ -139,7 +144,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val ICW1 = object : Register(ports.io, offset, BYTE, "ICW1", readable = false) {
+        private val ICW1 = object : Register(ports.io, offset, Datatype.BYTE, "ICW1", readable = false) {
             val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
             val LTIM by bit(3)
             var ADI by bit(2)
@@ -158,7 +163,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
         }
 
 
-        private val ICW2 = object : Register(ports.io, offset + 1u, BYTE, "ICW2", readable = false) {
+        private val ICW2 = object : Register(ports.io, offset + 1u, Datatype.BYTE, "ICW2", readable = false) {
             val T7T3 by field(7..3)
             var A10A8 by field(2..0)
 
@@ -179,7 +184,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val ICW3 = object : Register(ports.io, offset + 1u, BYTE, "ICW3", readable = false) {
+        private val ICW3 = object : Register(ports.io, offset + 1u, Datatype.BYTE, "ICW3", readable = false) {
             var S7 by bit(7)
             var S6 by bit(6)
             var S5 by bit(5)
@@ -205,7 +210,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val ICW4 = object : Register(ports.io, offset + 1u, BYTE, "ICW4", readable = false) {
+        private val ICW4 = object : Register(ports.io, offset + 1u, Datatype.BYTE, "ICW4", readable = false) {
             val SFNM by bit(4)
             val BUF_MS by field(3..2)
             val AEOI by bit(1)
@@ -223,7 +228,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val OCW2 = object : Register(ports.io, offset, BYTE, "OCW2", readable = false) {
+        private val OCW2 = object : Register(ports.io, offset, Datatype.BYTE, "OCW2", readable = false) {
             val R_SL_EOI by field(7..5)
             val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
             val IS_OCW3 by bit(IS_OCW3_BIT)
@@ -240,7 +245,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             }
         }
 
-        private val OCW3 = object : Register(ports.io, offset, BYTE, "OCW3", readable = false) {
+        private val OCW3 = object : Register(ports.io, offset, Datatype.BYTE, "OCW3", readable = false) {
             val ESMM_SMM by field(6..5)
             val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
             val IS_OCW3 by bit(IS_OCW3_BIT)

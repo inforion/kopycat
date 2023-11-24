@@ -29,6 +29,7 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.mips.enums.Designation
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ProcType
+import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.CPRBank
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -48,7 +49,7 @@ abstract class ADecoder(val core: MipsCore): ITableEntry {
         return core.cpu.regs[realId].toOperand()
     }
 
-    protected fun cpr(id: Int, sel: Int) = core.cop.regs[id].toOperand()
+    protected fun cpr(id: Int, sel: Int) = core.cop.regs[CPRBank.index(id, sel)].toOperand()
 
     protected fun fpr(id: Int) = core.fpu.regs[id].toOperand()
     protected fun fcr(id: Int) = core.fpu.cntrls[id].toOperand()

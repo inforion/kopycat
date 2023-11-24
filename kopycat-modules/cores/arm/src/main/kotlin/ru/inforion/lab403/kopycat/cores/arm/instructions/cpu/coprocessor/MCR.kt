@@ -49,4 +49,6 @@ class MCR(cpu: AARMCore,
         else
             core.cop.Coproc_SendOneWord(opcode_1, opcode_2, crn, crm, cp_num, rd.value(core))
     }
+
+    override fun toString(): String = "$mnem p$cp_num, $opcode_1, $rd, c$crn, c$crm, $opcode_2"
 }

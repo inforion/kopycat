@@ -25,7 +25,7 @@
  */
 @file:Suppress("PropertyName")
 
-package ru.inforion.lab403.kopycat.modules.atom2758
+package ru.inforion.lab403.kopycat.modules.common
 
 import org.joda.time.DateTime
 import ru.inforion.lab403.common.extensions.*
@@ -37,7 +37,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.BUS16
-import java.util.logging.Level
 import kotlin.reflect.KProperty
 
 /**
@@ -60,7 +59,7 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
             val byte = when (val index = CMOSIDX.int) {
-                0 -> RTCCURSEC
+                0 -> RTCCURSEC;
                 1 -> {
                     log.warning { "[0x${core.pc.hex}] RTC[${this@RTC.name}] RTCALMSEC not implemented!" }
                     0u
@@ -164,7 +163,7 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
     private var RTCCTLD by ControlRegister('D')
     private val RTCCMOS = ByteArray(114)
 
-    private val secondsTimer = object : SystemClock.PeriodicalTimer("RTC Timer") {
+    val secondsTimer = object : SystemClock.PeriodicalTimer("RTC Timer") {
         override fun trigger() {
             super.trigger()
             date = date.plusSeconds(1)

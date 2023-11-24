@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.move
 
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRdSelInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -43,6 +44,6 @@ class cfc1(
     override val mnem = "cfc1"
 
     override fun execute() {
-        vrt = vrd
+        vrt = if (core.is32bit) vrd else vrd.signext(31)
     }
 }

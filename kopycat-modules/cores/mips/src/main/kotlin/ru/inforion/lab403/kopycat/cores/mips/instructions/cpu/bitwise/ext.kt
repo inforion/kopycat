@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.bitwise
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsRtPosSizeInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -48,7 +49,11 @@ class ext(
     override val mnem = "ext"
 
     override fun execute() {
-        vrs = if (lsb + msb <= 31) vrt[(lsb + msb)..lsb] else 0u
+        vrt = if (core.is32bit) {
+            if (lsb + msb <= 31) vrs[(lsb + msb)..lsb] else 0u
+        } else {
+            if (lsb + msb <= 31) (vrs[(lsb + msb)..lsb]).signext(31) else 0u
+        }
     }
 
 }

@@ -20,7 +20,7 @@ java \
   -XX:SurvivorRatio=6 \
   -XX:-UseGCOverheadLimit \
   `# KC JARs` \
-  -classpath "$KC_BUILD_LIBS"/kopycat-all-0.6.01.jar:"$KC_BUILD_LIBS"/kotlin-script-util.jar \
+  -classpath "$KC_BUILD_LIBS"/kopycat-all-0.7.00.jar:"$KC_BUILD_LIBS"/kotlin-script-util.jar \
   `# KC Entrypoint` \
   ru.inforion.lab403.kopycat.KopycatStarter \
   `# KC Arguments` \

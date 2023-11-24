@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRsImmInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -47,6 +49,10 @@ class addiu(
     override val mnem = "addiu"
 
     override fun execute() {
-        vrt = vrs + imm.usext.uint
+        vrt = if (core.is64bit) {
+            (vrs + imm.usext.uint)[31 .. 0].signext(31)
+        } else {
+            vrs + imm.usext.uint
+        }
     }
 }

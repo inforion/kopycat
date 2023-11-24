@@ -26,53 +26,66 @@
 package ru.inforion.lab403.kopycat.cores.mips.hardware.registers
 
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
+import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.MipsCPU
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 
-class GPRBank : ARegistersBankNG<MipsCore>("CPU General Purpose Registers", 32, 32) {
+class GPRBank(cpu: MipsCPU) : ARegistersBankNG<MipsCore>("CPU General Purpose Registers", 32, cpu.BIT_DEPTH.bits) {
 
-    val zero = object : Register( "\$zero", 0) {
+    val zero = object : Register( "\$zero", 0 , dtype = cpu.BIT_DEPTH) {
         override var value: ULong
             get() = 0u
             set(value) = Unit
     }
 
-    val at = Register("\$at", 1)
+    val at = Register("\$at", 1, dtype = cpu.BIT_DEPTH)
 
-    val v0 = Register("\$v0", 2)
-    val v1 = Register("\$v1", 3)
+    val v0 = Register("\$v0", 2, dtype = cpu.BIT_DEPTH)
+    val v1 = Register("\$v1", 3, dtype = cpu.BIT_DEPTH)
 
-    val a0 = Register("\$a0", 4)
-    val a1 = Register("\$a1", 5)
-    val a2 = Register("\$a2", 6)
-    val a3 = Register("\$a3", 7)
+    val a0 = Register("\$a0", 4, dtype = cpu.BIT_DEPTH)
+    val a1 = Register("\$a1", 5, dtype = cpu.BIT_DEPTH)
+    val a2 = Register("\$a2", 6, dtype = cpu.BIT_DEPTH)
+    val a3 = Register("\$a3", 7, dtype = cpu.BIT_DEPTH)
 
-    val t0 = Register("\$t0", 8)
-    val t1 = Register("\$t1", 9)
-    val t2 = Register("\$t2", 10)
-    val t3 = Register("\$t3", 11)
-    val t4 = Register("\$t4", 12)
-    val t5 = Register("\$t5", 13)
-    val t6 = Register("\$t6", 14)
-    val t7 = Register("\$t7", 15)
+//    // TODO: ugly fix
+//    val t0 = Register(if (cpu.mode == R32) "\$t0" else "\$a4", 8,  dtype = cpu.BIT_DEPTH)
+//    val t1 = Register(if (cpu.mode == R32) "\$t1" else "\$a5", 9,  dtype = cpu.BIT_DEPTH)
+//    val t2 = Register(if (cpu.mode == R32) "\$t2" else "\$a6", 10, dtype = cpu.BIT_DEPTH)
+//    val t3 = Register(if (cpu.mode == R32) "\$t3" else "\$a7", 11, dtype = cpu.BIT_DEPTH)
+//    val t4 = Register(if (cpu.mode == R32) "\$t4" else "\$t0", 12, dtype = cpu.BIT_DEPTH)
+//    val t5 = Register(if (cpu.mode == R32) "\$t5" else "\$t1", 13, dtype = cpu.BIT_DEPTH)
+//    val t6 = Register(if (cpu.mode == R32) "\$t6" else "\$t2", 14, dtype = cpu.BIT_DEPTH)
+//    val t7 = Register(if (cpu.mode == R32) "\$t7" else "\$t3", 15, dtype = cpu.BIT_DEPTH)
 
-    val s0 = Register("\$s0", 16)
-    val s1 = Register("\$s1", 17)
-    val s2 = Register("\$s2", 18)
-    val s3 = Register("\$s3", 19)
-    val s4 = Register("\$s4", 20)
-    val s5 = Register("\$s5", 21)
-    val s6 = Register("\$s6", 22)
-    val s7 = Register("\$s7", 23)
+    // TODO: ugly fix
+    val t0 = Register("\$t0", 8,  dtype = cpu.BIT_DEPTH)
+    val t1 = Register("\$t1", 9,  dtype = cpu.BIT_DEPTH)
+    val t2 = Register("\$t2", 10, dtype = cpu.BIT_DEPTH)
+    val t3 = Register("\$t3", 11, dtype = cpu.BIT_DEPTH)
+    val t4 = Register("\$t4", 12, dtype = cpu.BIT_DEPTH)
+    val t5 = Register("\$t5", 13, dtype = cpu.BIT_DEPTH)
+    val t6 = Register("\$t6", 14, dtype = cpu.BIT_DEPTH)
+    val t7 = Register("\$t7", 15, dtype = cpu.BIT_DEPTH)
 
-    val t8 = Register("\$t8", 24)
-    val t9 = Register("\$t9", 25)
 
-    val k0 = Register("\$k0", 26)
-    val k1 = Register("\$k1", 27)
+    val s0 = Register("\$s0", 16, dtype = cpu.BIT_DEPTH)
+    val s1 = Register("\$s1", 17, dtype = cpu.BIT_DEPTH)
+    val s2 = Register("\$s2", 18, dtype = cpu.BIT_DEPTH)
+    val s3 = Register("\$s3", 19, dtype = cpu.BIT_DEPTH)
+    val s4 = Register("\$s4", 20, dtype = cpu.BIT_DEPTH)
+    val s5 = Register("\$s5", 21, dtype = cpu.BIT_DEPTH)
+    val s6 = Register("\$s6", 22, dtype = cpu.BIT_DEPTH)
+    val s7 = Register("\$s7", 23, dtype = cpu.BIT_DEPTH)
 
-    val gp = Register("\$gp", 28)
-    val sp = Register("\$sp", 29)
-    val fp = Register("\$fp", 30)
-    val ra = Register("\$ra", 31)
+    val t8 = Register("\$t8", 24, dtype = cpu.BIT_DEPTH)
+    val t9 = Register("\$t9", 25, dtype = cpu.BIT_DEPTH)
+
+    val k0 = Register("\$k0", 26, dtype = cpu.BIT_DEPTH)
+    val k1 = Register("\$k1", 27, dtype = cpu.BIT_DEPTH)
+
+    val gp = Register("\$gp", 28, dtype = cpu.BIT_DEPTH)
+    val sp = Register("\$sp", 29, dtype = cpu.BIT_DEPTH)
+    val fp = Register("\$fp", 30, dtype = cpu.BIT_DEPTH)
+    val ra = Register("\$ra", 31, dtype = cpu.BIT_DEPTH)
 }

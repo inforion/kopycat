@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.trap
 
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsImmInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -51,7 +52,11 @@ class tgei(core: MipsCore,
     override fun execute() {
         // Compare as signed integers
         // TODO: Refactor legacy operand class usage
-        if (vrs.int >= imm.ssext.int) throw MipsHardwareException.TR(core.pc)
+        if (core.is32bit) {
+            if (vrs.int >= imm.ssext.int) throw MipsHardwareException.TR(core.pc)
+        } else {
+            if (vrs.long >= imm.ssext) throw MipsHardwareException.TR(core.pc)
+        }
     }
 
 }

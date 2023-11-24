@@ -44,7 +44,7 @@ object ThumbCondBranchDecoder {
         override fun decode(data: ULong): AARMInstruction {
             // to make cache accessible
             val cond = find { it.opcode == data[11..8].int } ?: Condition.AL
-            val imm32 = Immediate<AARMCore>((data[7..0] shl 1).signextRenameMeAfter( 8))
+            val imm32 = Immediate<AARMCore>((data[7..0] shl 1) signext 8)
             return constructor(core, data, cond, imm32, 2)
 
 //            val cond = find<Condition> { it.opcode == data[11..8].asInt } ?: Condition.AL
@@ -65,8 +65,8 @@ object ThumbCondBranchDecoder {
                      imm32: Immediate<AARMCore>,
                      size: Int) -> AARMInstruction) : ADecoder<AARMInstruction>(cpu) {
         override fun decode(data: ULong): AARMInstruction {
-            val imm32 = Immediate<AARMCore>((data[10..0] shl 1).signextRenameMeAfter( 11))
-            if(core.cpu.InITBlock() && !core.cpu.LastInITBlock()) throw Unpredictable
+            val imm32 = Immediate<AARMCore>((data[10..0] shl 1) signext 11)
+            if (core.cpu.InITBlock() && !core.cpu.LastInITBlock()) throw Unpredictable
             return constructor(core, data, Condition.AL, imm32, 2)
         }
     }

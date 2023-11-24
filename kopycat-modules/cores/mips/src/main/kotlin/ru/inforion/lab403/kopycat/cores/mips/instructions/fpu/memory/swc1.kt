@@ -49,6 +49,6 @@ class swc1(
     override fun execute() {
         if (address[1..0] != 0uL)
             throw MemoryAccessError(core.pc, address, STORE, "ADES")
-        memword = vct
+        memword = vrt
     }
 }

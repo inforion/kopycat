@@ -42,6 +42,7 @@ class mtc0(core: MipsCore,
     override val mnem = "mtc0"
 
     override fun execute() {
+        // TODO: fix for mips64 (EntryLo -> the RI/XI fields are moved to 31:30 of the vrd. MIPS32 backward compatibility)
         vrd = vrt
     }
 }

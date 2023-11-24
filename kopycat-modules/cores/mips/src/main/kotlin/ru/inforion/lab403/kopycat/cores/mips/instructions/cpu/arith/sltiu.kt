@@ -47,6 +47,6 @@ class sltiu(
     override val mnem = "sltiu"
 
     override fun execute() {
-        vrt = (vrs < imm.usext.uint).ulong
+        vrt = if (core.is32bit) (vrs < imm.usext.uint).ulong else (vrs < imm.usext).ulong
     }
 }

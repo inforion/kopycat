@@ -44,7 +44,9 @@ import ru.inforion.lab403.kopycat.serializer.storeValues
 
 abstract class ARegistersBankNG<T: AGenericCore>(
         final override val name: String,
+        @Deprecated("What is the reason to use count instead of #register.size?")
         val count: Int,
+        @Deprecated("What is the reason to use bits instead of #register.dtype.bits?")
         val bits: Int,
         val registersInRow: Int = 4 // for stringify configuration
 ): Iterable<ARegistersBankNG<T>.Register>, ICoreUnit {

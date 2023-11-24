@@ -5,6 +5,7 @@ plugins {
 
 ext {
     kotlin_extensions_version = "0.4.6"
+    kotlin_version = "1.7.21"
 }
 
 subprojects {
@@ -12,7 +13,7 @@ subprojects {
         beforeEvaluate {
             repositories {
                 mavenLocal()
-            
+
                 project.properties.getOrDefault("mavenInternalRepositoryUrl", "").tap { localUrl ->
                     if (localUrl.empty) {
                         project.logger.error("Using mavenCentral repository")
@@ -21,7 +22,7 @@ subprojects {
                         project.logger.error("Using internal URL repository: ${localUrl}")
                         maven {
                             url localUrl
-            
+
                             credentials {
                                 username = project.properties["mavenUsername"]
                                 password = project.properties["mavenPassword"]
@@ -96,10 +97,13 @@ subprojects {
                 }
             }
 
+            // Something is stupid and adds gradle embedded Kotlin (1.4.20 VERSION) dependencies
+            // Same problem described here: https://stackoverflow.com/a/64825340
+            // Thus, dependencies must be applied in `afterEvaluate`
             dependencies {
-                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib'
-                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect'
-                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-test'
+                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-stdlib', version: kotlin_version
+                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-reflect', version: kotlin_version
+                implementation group: 'org.jetbrains.kotlin', name: 'kotlin-test', version: kotlin_version
 
                 implementation group: 'com.github.inforion.common', name: 'logging', version: kotlin_extensions_version
                 implementation group: 'com.github.inforion.common', name: 'extensions', version: kotlin_extensions_version

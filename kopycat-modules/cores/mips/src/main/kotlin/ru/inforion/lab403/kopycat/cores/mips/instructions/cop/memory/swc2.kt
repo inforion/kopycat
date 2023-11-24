@@ -25,7 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.memory
 
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.mips.instructions.FtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -36,14 +40,23 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  *
  * SWC2 ft, offset(base)
  */
-class swc2(core: MipsCore,
-           data: ULong,
-           ct: MipsRegister,
-           off: MipsDisplacement) : FtOffsetInsn(core, data, Type.VOID, ct, off) {
+class swc2(
+    core: MipsCore,
+    data: ULong,
+    ct: MipsRegister,
+    off: MipsDisplacement
+) : FtOffsetInsn(core, data, Type.VOID, ct, off) {
 
     override val mnem = "swc2"
 
     override fun execute() {
-        throw GeneralException("Sorry, but I don't know how to execute this instruction!")
+        val vAddr = address
+        val bytesel = (vAddr[2..0] xor core.cpu.bigEndianCPU.ulong_z shl 2).int
+
+        if (address[1..0] != 0uL)
+            throw MemoryAccessError(core.pc, address, AccessAction.STORE, "ADES")
+        val datadoubleword = vrt[63 - 8 * bytesel..0] shl 8 * bytesel
+
+        memword = datadoubleword
     }
 }

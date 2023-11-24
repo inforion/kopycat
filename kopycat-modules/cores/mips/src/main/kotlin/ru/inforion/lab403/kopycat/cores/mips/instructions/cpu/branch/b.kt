@@ -44,6 +44,6 @@ class b(core: MipsCore,
     override val mnem = "b"
 
     override fun execute() {
-        throw GeneralException("Sorry, but I don't know how to execute this instruction!")
+        throw GeneralException("$mnem: Sorry, but I don't know how to execute this instruction!")
     }
 }

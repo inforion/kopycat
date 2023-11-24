@@ -48,6 +48,10 @@ class lui(
     override val mnem = "lui"
 
     override fun execute() {
-        vrt = imm.value shl 16
+        vrt = if (core.is64bit) {
+            imm.usext shl 16
+        } else {
+            imm.value shl 16
+        }
     }
 }

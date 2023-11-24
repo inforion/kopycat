@@ -27,7 +27,7 @@ package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api
 
 import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces.LinuxSysFilesystemApi
 
-class LinuxSys<T>(
+open class LinuxSys<T>(
     val raw: T
 ) where T : LinuxSysFilesystemApi {
 

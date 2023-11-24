@@ -25,18 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.decoders.mips
 
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ProcType
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
-import ru.inforion.lab403.kopycat.cores.mips.instructions.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+
 
 /**
  *
@@ -44,18 +40,30 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * SDC1(rt=ft), SDC2, SH, SW, SWC1(rt=ft), SWC2, SWL, SWR
  */
 
-class RtOffset(
-        core: MipsCore,
-        val construct: (MipsCore, ULong, MipsRegister, MipsDisplacement) -> AMipsInstruction,
-        val dtyp: Datatype,
-        val store: AccessAction,
-        val type: ProcType = ProcType.CentralProc
-) : ADecoder(core) {
 
-    override fun decode(data: ULong): AMipsInstruction {
-        val rt = data[20..16].int
-        val offset = data[15..0].signextRenameMeAfter(15)
-        val base = data[25..21].int
-        return construct(core, data, gpr(rt), displ(dtyp, base, offset))
-    }
-}
+fun RtOffset(
+    core: MipsCore,
+    construct: (MipsCore, ULong, MipsRegister, MipsDisplacement) -> AMipsInstruction,
+    dtyp: Datatype,
+    store: AccessAction
+) = FtOffset(
+    core,  construct, dtyp, store, ProcType.CentralProc
+)
+
+
+
+//class RtOffset(
+//        core: MipsCore,
+//        val construct: (MipsCore, ULong, MipsRegister, MipsDisplacement) -> AMipsInstruction,
+//        val dtyp: Datatype,
+//        val store: AccessAction,
+//        val type: ProcType = ProcType.CentralProc
+//) : ADecoder(core) {
+//
+//    override fun decode(data: ULong): AMipsInstruction {
+//        val rt = data[20..16].int
+//        val offset = data[15..0].signext(15)
+//        val base = data[25..21].int
+//        return construct(core, data, gpr(rt), displ(dtyp, base, offset))
+//    }
+//}

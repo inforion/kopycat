@@ -52,7 +52,7 @@ class SSAT(cpu: AARMCore,
     override fun execute() {
         val operand = Shift(rn.value(core), 32, shiftT, shiftN.int, core.cpu.flags.c.int)
         val (result, sat) = SignedSatQ(SInt(operand, 32).int, saturateTo.value.int)
-        rd.value(core, result.ulong_z.signextRenameMeAfter(saturateTo.value.int - 1))
-        if(sat) FlagProcessor.processSatFlag(core)
+        rd.value(core, result.ulong_z.signext(saturateTo.value.int - 1))
+        if (sat) FlagProcessor.processSatFlag(core)
     }
 }

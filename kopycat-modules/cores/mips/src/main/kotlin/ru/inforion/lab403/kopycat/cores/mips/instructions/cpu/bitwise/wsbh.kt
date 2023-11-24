@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.bitwise
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -45,7 +46,12 @@ class wsbh(
     override val mnem = "wsbh"
 
     override fun execute() {
-        vrd = vrt[31..24].shl(16) or vrt[23..16].shl(24) or vrt[15..8] or vrt[7..0].shl(8)
+        val intermediate = vrt[31..24].shl(16) or vrt[23..16].shl(24) or vrt[15..8] or vrt[7..0].shl(8)
+        vrd = if (core.is32bit) {
+            intermediate
+        } else {
+            intermediate.signext(31)
+        }
     }
 
 }

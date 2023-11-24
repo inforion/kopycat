@@ -59,7 +59,7 @@ class LinuxQueuedFilesystemRead<T>(
         queued.functionsQueue.push(
             x86funQueuedUtilsData(
                 isReadyToCall = {
-                    threadInfoBlock() != null && x86.pc in availablePc
+                    x86.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -108,7 +108,7 @@ class LinuxQueuedFilesystemRead<T>(
         queued.functionsQueue.push(
             x86funQueuedUtilsData(
                 isReadyToCall = {
-                    threadInfoBlock() != null && x86.pc in availablePc
+                    x86.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -158,7 +158,7 @@ class LinuxQueuedFilesystemRead<T>(
         queued.functionsQueue.push(
             x86funQueuedUtilsData(
                 isReadyToCall = {
-                    threadInfoBlock() != null && x86.pc in availablePc
+                    x86.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {

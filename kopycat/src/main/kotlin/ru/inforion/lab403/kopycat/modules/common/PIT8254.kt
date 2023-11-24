@@ -23,7 +23,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.modules.atom2758
+package ru.inforion.lab403.kopycat.modules.common
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
@@ -31,19 +31,19 @@ import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.modules.BUS16
-import ru.inforion.lab403.kopycat.modules.atom2758.PIT8254.READBACK_TYPE.*
+import ru.inforion.lab403.kopycat.modules.common.PIT8254.READBACK_TYPE.*
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.loadValue
-import java.util.logging.Level.FINE
+import java.util.logging.Level
 
 @Suppress("MemberVisibilityCanBePrivate", "PropertyName")
 class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(FINE)
+        @Transient val log = logger(Level.FINE)
 
         const val CHANNEL_COUNT = 3
 
@@ -66,7 +66,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
 
     enum class READBACK_TYPE { Count, Status, StatusThenCount, None }
 
-    inner class PITxCNT_STA(port: SlavePort, val id: Int) : Register(port, 0x0040uL + id.uint, BYTE, "PIT${id}CNT_STA") {
+    inner class PITxCNT_STA(port: SlavePort, val id: Int) : Register(port, 0x0040uL + id.uint, Datatype.BYTE, "PIT${id}CNT_STA") {
         // Fields for read
         var OUTPUT by bit(7)
         var NULL_CNT by bit(6)
@@ -132,7 +132,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
             }
             // Timer enabled for emulator core if at least one LATCHED value configured
             timer.enabled = PIT_CNT_STA.any { it.LATCHED != 0uL }
-            log.write(FINE)
+            log.write(Level.FINE)
         }
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
@@ -204,7 +204,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
 
     private val PIT_CNT_STA = Array(CHANNEL_COUNT) { PITxCNT_STA(ports.io, it) }
 
-    private val PITMODECTL = object : Register(ports.io, 0x0043u, BYTE, name = "PITMODECTL") {
+    private val PITMODECTL = object : Register(ports.io, 0x0043u, Datatype.BYTE, name = "PITMODECTL") {
         val CTR_SEL by field(CTR_SEL_RANGE)
         val CTR_RW_LATCH by field(CTR_CMD_RANGE)
         val CTR_MODE by field(3..1)
@@ -224,7 +224,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
         }
     }
 
-    private val PITCNTLAT = object : Register(ports.io, 0x0043u, BYTE, name = "PITCNTLAT") {
+    private val PITCNTLAT = object : Register(ports.io, 0x0043u, Datatype.BYTE, name = "PITCNTLAT") {
         val CTR_SEL by field(CTR_SEL_RANGE)
         val CTR_CMD by field(CTR_CMD_RANGE)
 
@@ -243,7 +243,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
         }
     }
 
-    private val PITRDBACK = object : Register(ports.io, 0x0043u, BYTE, "PITRDBACK") {
+    private val PITRDBACK = object : Register(ports.io, 0x0043u, Datatype.BYTE, "PITRDBACK") {
         val CTR_SEL by field(7..6)
         val LCNT by bit(5)
         val LSTAT by bit(4)
@@ -287,8 +287,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
     }
 
 
-
-    inner class NSC_CLASS : Register(ports.io, 0x61u, BYTE, "NSC", 0x20u, level = FINE) {
+    inner class NSC_CLASS : Register(ports.io, 0x61u, Datatype.BYTE, "NSC", 0x20u, level = Level.FINE) {
         var T2S by bit(5)
         var RTS by bit(4)
         var SDE by bit(1)

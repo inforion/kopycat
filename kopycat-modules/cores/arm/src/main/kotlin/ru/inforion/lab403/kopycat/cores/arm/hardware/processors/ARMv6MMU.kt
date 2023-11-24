@@ -37,11 +37,11 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
-import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 import ru.inforion.lab403.kopycat.interfaces.*
+import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 
 
 class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
@@ -55,7 +55,7 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
             privEnabled = value
         }
 
-    val acore = parent as AARMv6Core
+    val acore = parent as AARMCore
 
     // See B3.19.2
     inline fun FCSETranslate(va: ULong): ULong {
@@ -1171,17 +1171,17 @@ class ARMv6MMU(parent: Module, name: String) : AddressTranslator(parent, name) {
 
         (snapshot["tlb_fast"] as ArrayList<Map<String, Any>?>).forEachIndexed { i, recordSnapshot ->
             tlb_fast[i] = if (recordSnapshot == null) null else {
-                val l1desc = recordSnapshot["l1desc"] as Long
+                val l1desc = loadValue<ULong>(recordSnapshot, "l1desc")
                 val entry = recordSnapshot["entry"] as Map<String, Any>
                 when(l1desc[1..0].int) {
                     0b00 -> { // Fault, Reserved
-                        Fault(l1desc.ulong)
+                        Fault(l1desc)
                     }
                     0b01 -> { // Large page or Small page
-                        Page(l1desc.ulong).apply { deserialize(ctxt, entry) }
+                        Page(l1desc).apply { deserialize(ctxt, entry) }
                     }
                     else -> { // Section or Supersection
-                        Section(l1desc.ulong, 0uL).apply { deserialize(ctxt, entry) }
+                        Section(l1desc, 0uL).apply { deserialize(ctxt, entry) }
                     }
                 }
             }

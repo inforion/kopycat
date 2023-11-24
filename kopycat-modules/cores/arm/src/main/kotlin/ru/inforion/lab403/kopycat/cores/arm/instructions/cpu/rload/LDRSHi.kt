@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unknown
@@ -59,8 +58,8 @@ class LDRSHi(cpu: AARMCore,
         val data = core.inw(address like Datatype.DWORD)
 
         if (wback) rn.value(core, offsetAddress)
-        if(core.cpu.UnalignedSupport() || address[0] == 0uL)
-            rt.value(core, data.signextRenameMeAfter(15))
+        if (core.cpu.UnalignedSupport() || address[0] == 0uL)
+            rt.value(core, data signext 15)
         else throw Unknown
     }
 }

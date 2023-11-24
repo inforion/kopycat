@@ -63,6 +63,7 @@ class MRC(cpu: AARMCore,
                 core.cpu.sregs.apsr.v = value[28].truth
             }
         }
-
     }
+
+    override fun toString(): String = "$mnem p$cp_num, $opcode_1, $rd, c$crn, c$crm, $opcode_2"
 }

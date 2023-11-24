@@ -30,18 +30,24 @@ import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.enums.Endian
 import ru.inforion.lab403.kopycat.cores.mips.enums.InstructionSet
+import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.MipsCPU
+import ru.inforion.lab403.kopycat.modules.BUS32
 import java.math.BigInteger
 
 
-class MipsDebugger(parent: Module, name: String): Debugger(parent, name) {
+class MipsDebugger(parent: Module, name: String, dbgAreaSize: ULong = BUS32, val endian: Endian = Endian.LITTLE) :
+    Debugger(parent, name, dbgAreaSize = dbgAreaSize) {
     companion object {
-        @Transient val log = logger(WARNING)
+        @Transient
+        val log = logger(WARNING)
 
-        const val REG_LO = 0x20
-        const val REG_HI = 0x21
-        const val REG_STATUS = 0x22
-        const val REG_EPC = 0x23
+        const val REG_CP0_STATUS = 0x20
+        const val REG_LO = 0x21
+        const val REG_HI = 0x22
+        const val REG_BADVADDR = 0x23
         const val REG_CAUSE = 0x24
         const val REG_PC = 0x25
 
@@ -50,36 +56,49 @@ class MipsDebugger(parent: Module, name: String): Debugger(parent, name) {
 
     private inline val mips get() = core as MipsCore
 
-    override fun ident() = "mips"
+    override fun ident() : String = "mips64-cpu" // ident
 
-    override fun registers() = Array(REG_TOTAL) { regRead(it) }.toMutableList()
-
-    override fun regRead(index: Int) = when (index) {
-        REG_STATUS -> mips.cop.regs.Status.value.bigint
-        REG_LO -> mips.cpu.lo.bigint
-        REG_HI -> mips.cpu.hi.bigint
-        REG_EPC -> mips.cop.regs.EPC.value.bigint
-        REG_CAUSE -> mips.cop.regs.Cause.value.bigint
-        REG_PC -> if (mips.cpu.iset == InstructionSet.MIPS32) mips.cpu.pc.bigint else (mips.cpu.pc set 0).bigint
-        else -> mips.cpu.regs.read(index).bigint
+    override fun target(): String = when (mips.cpu.mode) {
+        MipsCPU.Mode.R32 -> super.target()
+        MipsCPU.Mode.R64 -> "mips64.xml"
+        // MipsCPU.Mode.R64 -> "mips64-linux.xml" // correct source for conf, but big endian for some reason (hate it)
     }
 
-    override fun regWrite(index: Int, value: BigInteger) = when (index) {
-        REG_STATUS -> mips.cop.regs.Status.value = value.ulong
+    override fun registers(): List<BigInteger> = Array(REG_TOTAL) { regRead(it) }.toMutableList()
 
-        REG_LO -> mips.cpu.lo = value.ulong
-        REG_HI -> mips.cpu.hi = value.ulong
+    override fun regSize(index: Int) = if (mips.cpu.mode == MipsCPU.Mode.R32) Datatype.DWORD else Datatype.QWORD
 
-        REG_EPC -> mips.cop.regs.EPC.value = value.ulong
-        REG_CAUSE -> mips.cop.regs.Cause.value = value.ulong
+    override fun regRead(index: Int): BigInteger = when (index) {
+            REG_CP0_STATUS -> mips.cop.regs.Status.value.bigint
+            REG_LO -> mips.cpu.lo.bigint
+            REG_HI -> mips.cpu.hi.bigint
+            REG_BADVADDR -> mips.cop.regs.BadVAddr.value.bigint
+            REG_CAUSE -> mips.cop.regs.Cause.value.bigint
+            REG_PC -> if (mips.cpu.iset == InstructionSet.MIPS32) mips.cpu.pc.bigint else (mips.cpu.pc.bigint set 0)
+            else -> mips.cpu.regs.read(index).bigint
+        }.let { if (endian == Endian.BIG) it.swap64() else it }
 
-        REG_PC -> {
-            mips.cpu.branchCntrl.setIp(value.ulong clr 0)
-            mips.cpu.iset = if (value.ulong[0].truth) InstructionSet.MIPS16 else InstructionSet.MIPS32
-            // dirty hack to make possible reset exception bypassing IDA Pro
-            mips.cpu.resetFault()
+
+
+    override fun regWrite(index: Int, value: BigInteger) {
+        val dataToWrite = if (endian == Endian.BIG) value.ulong.swap64() else value.ulong
+        when (index) {
+            REG_CP0_STATUS -> mips.cop.regs.Status.value = dataToWrite
+
+            REG_LO -> mips.cpu.lo = dataToWrite
+            REG_HI -> mips.cpu.hi = dataToWrite
+
+            REG_BADVADDR -> mips.cop.regs.BadVAddr.value = dataToWrite
+            REG_CAUSE -> mips.cop.regs.Cause.value = dataToWrite
+
+            REG_PC -> {
+                mips.cpu.branchCntrl.setIp(dataToWrite clr 0)
+                mips.cpu.iset = if (dataToWrite[0].truth) InstructionSet.MIPS16 else InstructionSet.MIPS32
+                // dirty hack to make possible reset exception bypassing IDA Pro
+                mips.cpu.resetFault()
+            }
+
+            else -> mips.cpu.regs.write(index, dataToWrite)
         }
-
-        else -> mips.cpu.regs.write(index, value.ulong)
     }
 }

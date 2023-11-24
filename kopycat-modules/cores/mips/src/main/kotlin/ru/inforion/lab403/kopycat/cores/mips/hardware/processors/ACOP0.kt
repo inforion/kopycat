@@ -51,7 +51,8 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
     val cntrls = RSVDBank()
     val regs = CPRBank(core)
 
-    override fun createException(name: String, where: ULong, vAddr: ULong, action: AccessAction) = when (name) {
+    override fun createException(name: String, where: ULong,
+                                 vAddr: ULong, action: AccessAction) = when (name) {
         "TLBInvalid" -> TLBInvalid(action, where, vAddr)
         "TLBMiss" -> TLBMiss(action, where, vAddr)
         "TLBModified" -> TLBModified(where, vAddr)

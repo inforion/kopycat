@@ -75,8 +75,8 @@ class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
         if (isTlbRefillFlag) {
             exception as MipsHardwareException
             regs.BadVAddr.value = exception.vAddr
-            regs.EntryHi.VPN2 = exception.vpn2
-            regs.Context.BadVPN2 = exception.vpn2
+            regs.EntryHi.VPN2 = exception.vpn2()
+            regs.Context.BadVPN2 = exception.vpn2()
         }
 
         // if StatusEXL = 0...

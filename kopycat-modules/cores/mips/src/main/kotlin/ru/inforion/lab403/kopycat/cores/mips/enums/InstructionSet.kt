@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.enums
 
-import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.truth
 
 enum class InstructionSet {
     NONE,

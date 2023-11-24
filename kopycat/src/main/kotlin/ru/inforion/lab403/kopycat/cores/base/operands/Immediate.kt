@@ -58,7 +58,7 @@ open class Immediate<in T: AGenericCore>(
      * Note: this isn't mean sign comparison (use cast toInt)
      * {EN}
      */
-    val ssext: Long get() = value.signextRenameMeAfter(dtyp.msb).long
+    val ssext: Long get() = value.signext(dtyp.msb).long
 
     /**
      * {RU}Возвращает расширенное знаковое представление Immediate operand
@@ -72,7 +72,7 @@ open class Immediate<in T: AGenericCore>(
      * see AOperand method usext(dev: T)
      * {EN}
      */
-    val usext: ULong get() = value.signextRenameMeAfter(dtyp.msb)
+    val usext: ULong get() = value signext dtyp.msb
 
     /**
      * {RU}Вернуть бит по его индексу{RU}

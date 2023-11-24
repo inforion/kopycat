@@ -43,5 +43,5 @@ class mfhc1(
 
     override val mnem = "mfhc1"
 
-    override fun execute() = throw GeneralException("Sorry, but I don't know how to execute this instruction!")
+    override fun execute() = throw GeneralException("$mnem: Sorry, but I don't know how to execute this instruction!")
 }

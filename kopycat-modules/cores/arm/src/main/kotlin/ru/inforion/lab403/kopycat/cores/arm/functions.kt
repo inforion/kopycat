@@ -33,7 +33,7 @@ import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unpr
 enum class SRType { SRType_LSL, SRType_LSR, SRType_ASR, SRType_ROR, SRType_RRX }
 
 inline fun UInt(x: ULong, N: Int): ULong = x mask N
-inline fun SInt(x: ULong, N: Int): ULong = if (N != 64) x.signextRenameMeAfter(N - 1) else x
+inline fun SInt(x: ULong, N: Int): ULong = if (N != 64) x.signext(N - 1) else x
 
 inline fun Align(x: ULong, y: Int): ULong = y.uint * (x / y.uint)
 
@@ -232,9 +232,10 @@ fun UnsignedSat(i: Int, N: Int): Int{
 
 fun BitCount(i: Int): Int {
     var count = 0
-    while (i > 0){
-        count += i and 1
-        i ushr 1
+    var num = i
+    while (num > 0) {
+        count += num and 1
+        num = num ushr 1
     }
     return count
 }

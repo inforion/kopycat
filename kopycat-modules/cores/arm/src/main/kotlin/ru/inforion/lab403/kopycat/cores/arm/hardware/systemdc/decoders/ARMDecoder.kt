@@ -25,9 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders
 
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.find
-import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.ExceptionDecoder
@@ -52,9 +49,8 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.miscellaneous.
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.miscellaneous.MSRRegSLDecoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.multiply.*
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.packing.*
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.unconditional.ClearExclusiveDecoder
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.unconditional.CpsDecoder
-import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.unconditional.PldDecoder
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.special.*
+import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.arm.unconditional.*
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.support.Table
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.arithm.immediate.*
@@ -85,6 +81,7 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.saturating.USAT
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.saturating.USAT16
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.shift.*
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special.PKH
+import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.special.SETEND
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.LDM
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.LDMur
 import ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.system.STM
@@ -207,6 +204,7 @@ class ARMDecoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
 
     private val bx     = GetRmDecoder(cpu, ::BX)
     private val blxi   = ArmBranchWithLinkDecoder.A1(cpu)
+    private val blxi_uncond  = ArmBranchWithLinkDecoder.A2(cpu)
     private val blxr   = GetRmDecoder(cpu, ::BLXr)
 //    private val mrsbr =
 //    private val msrbr =
@@ -574,12 +572,14 @@ class ARMDecoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
                     ))
 
     private val cps = CpsDecoder(cpu, ::CPS)
+    private val setend = SetendDecoder(cpu, ::SETEND)
     private val pld = PldDecoder(cpu, ::PLD)
     private val clrex = ClearExclusiveDecoder(cpu)
 
     private val advanced = Table("Memory hints, Advanced SIMD instructions, and miscellaneous instructions",
             arrayOf(26..20, 7..4, 19..16),
             arrayOf("0010000, xx0x,     xxx0" to cps,
+                    "0010000, 0000,     xxx1" to setend,
                     "101x001,    -, not 1111" to pld,
                     "101x001,    -,     1111" to unpredictable,
                     "101x101,    -, not 1111" to pld,
@@ -588,7 +588,8 @@ class ARMDecoder(cpu: AARMCore): ADecoder<AARMInstruction>(cpu) {
     // See A5.7
     private val unconditional = Table("Unconditional instructions",
             arrayOf(27..20, 4, 19..16),
-            arrayOf("0xxxxxxx, -, -" to advanced))
+            arrayOf("0xxxxxxx, -, -" to advanced,
+                    "101xxxxx, -, -" to blxi_uncond))
 
     private val iset = Table("Instruction Set",
             arrayOf(31..28, 27..25, 4),

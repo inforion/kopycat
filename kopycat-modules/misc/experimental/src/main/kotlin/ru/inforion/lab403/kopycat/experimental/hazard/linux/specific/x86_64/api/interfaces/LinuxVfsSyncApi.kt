@@ -25,6 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces
 
+import ru.inforion.lab403.kopycat.experimental.common.capturable.CapturableNoBody
+
 interface LinuxVfsSyncApi {
     fun vfsFSync(filePointer: ULong, onlyMetadata: Boolean): ULong
+}
+
+interface LinuxVfsSyncCapturable {
+    val PTR_VFS_FSYNC: ULong
+
+    fun vfsFSyncCapturable(filePointer: ULong, onlyMetadata: Boolean): CapturableNoBody
 }

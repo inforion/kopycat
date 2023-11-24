@@ -35,12 +35,12 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ARMDecode
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.Thumb16Decoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.Thumb32Decoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
+import ru.inforion.lab403.kopycat.modules.cores.AARMCore
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
-import ru.inforion.lab403.kopycat.modules.cores.AARMv6Core
 
 
 class ARMv6CPU(
-        core: AARMv6Core,
+        core: AARMCore,
         name: String,
         haveSecurityExt: Boolean = false,
         haveVirtExt: Boolean = false
@@ -123,7 +123,7 @@ class ARMv6CPU(
                     data = swapByte(data)
                     decoder = thumb32
                     offset = 0u
-                    TODO("CHECK IT (OFFSET)")
+                    // FIXME: Check offset
                 }
             }
             else -> throw ARMHardwareException.Undefined

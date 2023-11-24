@@ -26,19 +26,35 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.fpu
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.FWRBank
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import java.math.BigInteger
 import java.nio.file.Paths
+import kotlin.io.path.exists
 
 class LongDouble private constructor(private var buffer: ByteArray, private val cwr: FWRBank.CWR) {
     companion object {
+        @Transient val log = logger(INFO)
+
         init {
+            val paths = listOf(
+
+                "libs",
+            ).map {
+                Paths.get(it / System.mapLibraryName("longdouble"))
+            }.filter { it.exists() }
+
             try {
-                System.load(Paths.get("libs" / System.mapLibraryName("longdouble")).toAbsolutePath().toString())
+                paths.forEach {
+                    System.load(it.toAbsolutePath().toString())
+                    log.info { "LibLongDouble has been loaded from path: $it" }
+                }
             } catch (_: UnsatisfiedLinkError) {
+                log.severe { "Unable to load LibLongDouble by path" }
                 // java.library.path for instruction tests is set in build.gradle
                 System.loadLibrary("longdouble")
             }

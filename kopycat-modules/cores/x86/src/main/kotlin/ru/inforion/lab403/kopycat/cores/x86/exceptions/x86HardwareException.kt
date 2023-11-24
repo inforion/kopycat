@@ -34,7 +34,7 @@ import ru.inforion.lab403.kopycat.cores.x86.enums.ExcCode
 
 
 abstract class x86HardwareException(excCode: ExcCode, where: ULong, val errorCode: ULong = 0u): HardwareException(excCode, where) {
-    override fun toString(): String = "$prefix: $excCode"
+    override fun toString(): String = "$prefix: $excCode (0x${errorCode.hex})"
 
     class DivisionByZero(where: ULong) : x86HardwareException(ExcCode.DivisionByZero, where)
     class Debug(where: ULong) : x86HardwareException(ExcCode.Debug, where)

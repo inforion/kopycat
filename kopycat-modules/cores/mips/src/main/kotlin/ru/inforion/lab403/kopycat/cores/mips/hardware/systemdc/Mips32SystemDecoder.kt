@@ -51,9 +51,7 @@ import ru.inforion.lab403.kopycat.cores.mips.instructions.cop.memory.swc2
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cop.move.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith.*
-import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.bitwise.ext
-import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.bitwise.ins
-import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.bitwise.wsbh
+import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.bitwise.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.logical.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory.*
@@ -137,18 +135,36 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  rddspd = Rd(core, ::rddsp)  // B8 B4 FF 7F
     private val  wrdspd = Rd(core, ::wrdsp)  // F8 FC DF 7E
 
+    // e_cop0: mips 64 specific
+    private val dmtc0d = RtRdSel(core, ::dmtc0, SystemControlCop, General)
+    private val dmfc0d = RtRdSel(core, ::dmfc0, SystemControlCop, General)
+
     // e_bshfl
     private val  wsbhd = RdRt(core, ::wsbh)
     private val  sebd = RdRt(core, ::seb)
     private val  sehd = RdRt(core, ::seh)
 
+    // e_dbshfl
+    private val  dsbhd = RdRt(core, ::dsbh)
+    private val  dshdd = RdRt(core, ::dshd)
+
     // e_srl
     private val  srld = RdRtSa(core, ::srl)
     private val  rotrd = RdRtSa(core, ::rotr)
 
+    // e_dsrl
+    private val  dsrld = RdRtSa(core, ::dsrl)
+    private val  drotrd = RdRtSa(core, ::drotr)
+
+    // e_dsrl32d
+    private val dsrl32d = RdRtSa(core, ::dsrl32)
+
     // e_srlv
     private val  srlvd = RdRtRs(core, ::srlv)
     private val  rotrvd = RdRtRs(core, ::rotrv)
+
+    // e_dsrlv
+    private val dsrlvd = RdRtRs(core, ::dsrlv)
 
     // e_movci
     private val  movfd = RdRsCc(core, ::movf)
@@ -158,6 +174,13 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  extd = RsRtPosSize(core, ::ext)
     private val  insd = RsRtPosSize(core, ::ins)
     private val  rdhwrd = RtRdSel(core, ::rdhwr, ImplementSpecCop, General)
+    // mips64 specific
+    private val  dextd = RsRtPosSize(core, ::dext)
+    private val  dextud = RsRtPosSize(core, ::dextu)
+    private val  dextmd = RsRtPosSize(core, ::dextm)
+    private val  dinsd = RsRtPosSize(core, ::dins)
+    private val  dinsud = RsRtPosSize(core, ::dinsu)
+    private val  dinsmd = RsRtPosSize(core, ::dinsm)
 
     // e_special2
     private val  maddd = RdRsRt(core, ::madd)
@@ -222,6 +245,20 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  tltud = RsRtCode(core, ::tltu)
     private val  teqd = RsRtCode(core, ::teq)
     private val  tned = RsRtCode(core, ::tne)
+    // mips64 specific
+    private val  daddud = RdRsRt(core, ::daddu)
+    private val  daddd = RdRsRt(core, ::dadd)
+    private val  dsubud = RdRsRt(core, ::dsubu)
+    private val  dssld = RdRtSa(core, ::dsll)
+    private val  dsllvd = RdRtRs(core, ::dsllv)
+    private val  dsrad = RdRtSa(core, ::dsra)
+    private val  dsra32d = RdRtSa(core, ::dsra32)
+    private val  dsravd = RdRtRs(core, ::dsrav)
+    private val  dsll32d = RdRtSa(core, ::dsll32)
+    private val  dmultd = RdRsRt(core, ::dmult)
+    private val  ddivd = RdRsRt(core, ::ddiv)
+    private val  ddivud = RdRsRt(core, ::ddivu)
+    private val  dmultud = RdRsRt(core, ::dmultu)
 
     // e_opcode
     private val  jd = Index(core, ::j)
@@ -231,6 +268,8 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  blezd = RsOffset(core, ::blez)
     private val  bgtzd = RsOffset(core, ::bgtz)
     private val  addid = RtRsImm(core, ::addi, true)
+    private val  daddiud = RtRsImm(core, ::daddiu, true)
+    private val  daddid = RtRsImm(core, ::daddi, true)
     private val  addiud = RtRsImm(core, ::addiu, false)
     private val  sltid = RtRsImm(core, ::slti, true)
     private val  sltiud = RtRsImm(core, ::sltiu, false)
@@ -246,13 +285,18 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  lbd = RtOffset(core, ::lb, BYTE, LOAD)
     private val  lhd = RtOffset(core, ::lh, WORD, LOAD)
     private val  lwld = RtOffset(core, ::lwl, DWORD, LOAD)
+    private val  ldld = RtOffset(core, ::ldl, QWORD, LOAD)
     private val  lwd = RtOffset(core, ::lw, DWORD, LOAD)
     private val  lbud = RtOffset(core, ::lbu, BYTE, LOAD)
     private val  lhud = RtOffset(core, ::lhu, WORD, LOAD)
     private val  lwrd = RtOffset(core, ::lwr, DWORD, LOAD)
+    private val  ldrd = RtOffset(core, ::ldr, QWORD, LOAD)
+    private val  lwud = RtOffset(core, ::lwu, DWORD, LOAD)
     private val  sbd = RtOffset(core, ::sb, BYTE, STORE)
     private val  shd = RtOffset(core, ::sh, WORD, STORE)
     private val  swld = RtOffset(core, ::swl, DWORD, STORE)
+    private val  sdld = RtOffset(core, ::sdl, QWORD, STORE)
+    private val  sdrd = RtOffset(core, ::sdr, QWORD, STORE)
     private val  swd = RtOffset(core, ::sw, DWORD, STORE)
     private val  swrd = RtOffset(core, ::swr, DWORD, STORE)
     private val  cached = OpOffsetBase(core, ::cache)
@@ -298,6 +342,12 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
 //    private val e_movcf_s = null
 
     private val e_c2d = null
+
+    // mips64 specific
+    private val sdd = RtOffset(core, ::sd, QWORD, STORE)
+    private val ldd = RtOffset(core, ::ld, QWORD, LOAD)
+    private val lldd = RtOffset(core, ::lld, QWORD, LOAD)
+    private val scdd = RtOffset(core, ::scd, QWORD, STORE)
 
     private val e_bc2d = InstructionTable(
             2, 2,
@@ -432,10 +482,10 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             4, 8,
             { data -> data[25..24] },
             { data -> data[23..21] },
-            mfc0d, null,  null,    null,     mtc0d, null,  null,    null,
-            null,  null,  rdpgprd, e_mfmc0d, null,  null,  wrpgprd, null,
-            e_c0d, e_c0d, e_c0d,   e_c0d,    e_c0d, e_c0d, e_c0d,   e_c0d,
-            e_c0d, e_c0d, e_c0d,   e_c0d,    e_c0d, e_c0d, e_c0d,   e_c0d
+            mfc0d, dmfc0d,  null,    null,     mtc0d, dmtc0d,  null,    null,
+            null,  null,    rdpgprd, e_mfmc0d, null,  null,    wrpgprd, null,
+            e_c0d, e_c0d,   e_c0d,   e_c0d,    e_c0d, e_c0d,   e_c0d,   e_c0d,
+            e_c0d, e_c0d,   e_c0d,   e_c0d,    e_c0d, e_c0d,   e_c0d,   e_c0d
     )
 
     private val e_bshfld = InstructionTable(
@@ -448,6 +498,17 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             sehd,  null,  null,   null,  null,  null,  null,  null
     )
 
+    // mips64 specific
+    private val e_dbshfld = InstructionTable(
+            4, 8,
+            { data -> data[10..9] },
+            { data -> data[8..6] },
+            null,  null,  dsbhd,  null,  null,  dshdd,  null,  null,
+            null,  null,  null,   null,  null,  null,  null,    null,
+            null,  null,  null,   null,  null,  null,  null,    null,
+            null,  null,  null,   null,  null,  null,  null,    null
+    )
+
     private val e_srld = InstructionTable(
             1, 2,
             { data -> 0u },
@@ -455,11 +516,35 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             srld, rotrd
     )
 
+    // mips64 specific
+    private val e_dsrld = InstructionTable(
+            1, 2,
+            { data -> 0u },
+            { data -> data[21] },
+            dsrld, drotrd
+    )
+
+    // mips64 specific
+    private val e_dsrl32d = InstructionTable(
+        1, 2,
+        { data -> 0u },
+        { data -> data[21] },
+        dsrl32d, null
+    )
+
     private val e_srlvd = InstructionTable(
             1, 2,
             { data -> 0u },
             { data -> data[6] },
             srlvd, rotrvd
+    )
+
+    // mips64 specific
+    private val e_dsrlvd = InstructionTable(
+            1, 2,
+            { data -> 0u },
+            { data -> data[6] },
+            dsrlvd, null
     )
 
     private val e_movcid = InstructionTable(
@@ -473,14 +558,14 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             8, 8,
             { data -> data[5..3] },
             { data -> data[2..0] },
-            extd,     null,  null,  null,   insd,  null, null, null,
-            null,     null,  null,  null,   null,  null, null, null,
-            null,     null,  null,  null,   null,  null, null, null,
-            null,     null,  null,  null,   null,  null, null, null,
-            e_bshfld, null,  null,  null,   null,  null, null, null,
-            null,     null,  null,  null,   null,  null, null, null,
-            null,     null,  null,  null,   null,  null, null, null,
-            rddspd,   null,  null,  rdhwrd, null,  null, null, null
+            extd,     dextmd,  dextud,  dextd,  insd,      dinsmd,  dinsud,  dinsd,
+            null,     null,    null,    null,   null,      null,    null,    null,
+            null,     null,    null,    null,   null,      null,    null,    null,
+            null,     null,    null,    null,   null,      null,    null,    null,
+            e_bshfld, null,    null,    null,   e_dbshfld, null,    null,    null,
+            null,     null,    null,    null,   null,      null,    null,    null,
+            null,     null,    null,    null,   null,      null,    null,    null,
+            rddspd,   null,    null,    rdhwrd, null,      null,    null,    null
     )
 
     private val e_special2d = InstructionTable(
@@ -511,28 +596,28 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             8, 8,
             { data -> data[5..3] },
             { data -> data[2..0] },
-            slld,  e_movcid, e_srld, srad,  sllvd,    null,    e_srlvd, sravd,
-            jrd,   jalrd,    movzd,  movnd, syscalld, breakrd, null,    syncd,
-            mfhid, mthid,    mflod,  mtlod, null,     null,    null,    null,
-            multd, multud,   divd,   divud, null,     null,    null,    null,
-            addd,  addud,    subd,   subud, andrd,    orrd,    xord,    nord,
-            null,  null,     sltd,   sltud, null,     null,    null,    null,
-            tged,  tgeud,    tltd,   tltud, teqd,     null,    tned,    null,
-            null,  null,     null,   null,  null,     null,    null,    null
+            slld,  e_movcid, e_srld,  srad,   sllvd,    null,    e_srlvd,    sravd,
+            jrd,   jalrd,    movzd,   movnd,  syscalld, breakrd, null,       syncd,
+            mfhid, mthid,    mflod,   mtlod,  dsllvd,   null,    e_dsrlvd,   dsravd,
+            multd, multud,   divd,    divud,  dmultd,   dmultud, ddivd,      ddivud,
+            addd,  addud,    subd,    subud,  andrd,    orrd,    xord,       nord,
+            null,  null,     sltd,    sltud,  daddd,    daddud,  null,       dsubud,
+            tged,  tgeud,    tltd,    tltud,  teqd,     null,    tned,       null,
+            dssld, null,     e_dsrld, dsrad,  dsll32d,  null,    e_dsrl32d,  dsra32d
     )
 
     private val e_opcoded = InstructionTable(
             8, 8,
             { data -> data[31..29] },
             { data -> data[28..26] },
-            e_speciald, e_regimmd, jd,      jald,     beqd,        bned,  blezd,  bgtzd,
-            addid,      addiud,    sltid,   sltiud,   andid,       orid,  xorid,  luid,
-            e_cop0d,    e_cop1d,   e_cop2d, e_cop1xd, beqld,       bneld, blezld, bgtzld,
-            null,       null,      null,    null,     e_special2d, null,  null,   e_special3d,
-            lbd,        lhd,       lwld,    lwd,      lbud,        lhud,  lwrd,   null,
-            sbd,        shd,       swld,    swd,      null,        null,  swrd,   cached,
-            lld,        lwc1d,     lwc2d,   prefd,    null,        ldc1d, ldc2d,  null,
-            scd,        swc1d,     swc2d,   null,     null,        sdc1d, sdc2d,  stubd
+            e_speciald, e_regimmd, jd,      jald,     beqd,         bned,  blezd,  bgtzd,
+            addid,      addiud,    sltid,   sltiud,   andid,        orid,  xorid,  luid,
+            e_cop0d,    e_cop1d,   e_cop2d, e_cop1xd, beqld,        bneld, blezld, bgtzld,
+            daddid,     daddiud,   ldld,    ldrd,     e_special2d,  null,  null,   e_special3d,
+            lbd,        lhd,       lwld,    lwd,      lbud,         lhud,  lwrd,   lwud,
+            sbd,        shd,       swld,    swd,      sdld,         sdrd,  swrd,   cached,
+            lld,        lwc1d,     lwc2d,   prefd,    lldd,         ldc1d, ldc2d,  ldd,
+            scd,        swc1d,     swc2d,   null,     scdd,         sdc1d, sdc2d,  sdd
     )
 
     private val dcCache = dictionary<ULong, AMipsInstruction>(0x100000)

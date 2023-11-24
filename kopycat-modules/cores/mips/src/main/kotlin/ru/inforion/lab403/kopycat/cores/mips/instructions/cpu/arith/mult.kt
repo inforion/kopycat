@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.ulong_s
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -44,7 +45,15 @@ class mult(
 
     override fun execute() {
         val v1 = vrs.int.ulong_s * vrt.int.ulong_s
-        hi = v1[63..32]
-        lo = v1[31..0]
+
+        if (core.is32bit) {
+            hi = v1[63..32]
+            lo = v1[31..0]
+        } else {
+            hi = v1[63..32].signext(31)
+            lo = v1[31..0].signext(31)
+            log.severe { "$mnem executed; may be UNPREDICTABLE for mips64" }
+        }
+
     }
 }

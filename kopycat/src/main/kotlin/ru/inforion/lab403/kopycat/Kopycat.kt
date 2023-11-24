@@ -400,8 +400,12 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
     }
 
     fun runScript(filename: String) {
-        val file = (Path(scriptDir) / Path(filename)).toFile()
-        // TODO: check file existence
+        val file = (Path(scriptDir) / Path(filename.addExtension(".kts"))).toFile()
+        if (file.exists()) {
+            log.severe { "Executed $file" }
+        } else {
+            log.severe { "file $file does not exist" }
+        }
 
         log.severe { "Run script: ${file.absolutePath}" }
         REPL.get().silentEval(file.readText() + "\n")

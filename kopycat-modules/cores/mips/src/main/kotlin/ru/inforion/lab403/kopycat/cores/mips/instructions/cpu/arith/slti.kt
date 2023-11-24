@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRsImmInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -50,6 +51,6 @@ class slti(
     override fun execute() {
         // ancient bug awaken here
         // 50026BC4 slti   $v0, $s2, 50 ; WTF??? 500267B4 addiu  $s2, $zero, -1
-        vrt = (vrs.int < imm.ssext.int).ulong
+        vrt = if (core.is32bit) (vrs.int < imm.ssext.int).ulong else (vrs.long < imm.ssext).ulong
     }
 }

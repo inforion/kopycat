@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
@@ -50,6 +49,6 @@ class lh(core: MipsCore,
         // I hate mips... and big-endian unsupported
         if (address[0] != 0uL)
             throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
-        vrt = memword[15..0].signextRenameMeAfter(15)
+        vrt = memword[15..0].signext(15)
     }
 }

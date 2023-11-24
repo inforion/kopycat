@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.bext
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
@@ -51,7 +52,7 @@ class swl(core: MipsCore,
 
         val vAddr = address
 
-        val alignAddr = vAddr and 0xFFFFFFFCu
+        val alignAddr = vAddr and 0xFFFFFFFF_FFFFFFFCu
         val byte = (vAddr[1..0] xor core.cpu.bigEndianCPU.bext(2)).int
 
         val memword = core.inl(alignAddr)
@@ -61,6 +62,7 @@ class swl(core: MipsCore,
 
         val result = hi.shl(8 * (byte + 1)) or lo
 
+        log.warning { "swl. alignAddr: 0x${alignAddr.hex}, vAddr: 0x${vAddr.hex}, address: 0x${address.hex}" }
         core.outl(alignAddr, result)
     }
 }

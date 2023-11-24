@@ -25,10 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
-import ru.inforion.lab403.common.extensions.ashr
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.ulong_s
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtRsInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -48,6 +45,6 @@ class srav(core: MipsCore,
     override fun execute() {
         val v = vrt.int
         val s = vrs[4..0].int
-        vrd = (v ashr s).ulong_s
+        vrd = if (core.is32bit) (v ashr s).ulong_s else (v ashr s).ulong_s.signext(31)
     }
 }

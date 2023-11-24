@@ -26,6 +26,6 @@
 package ru.inforion.lab403.gradle.common.configurables
 
 open class PropertyConfigurableHashMap :
-        HashMap<String, Any?>(), IPropertyConfigurable {
+        HashMap<String, Any?>(), IPropertyConfigurable, IConfigurable {
     override fun propertyMissing(name: String, value: Any?) = set(name, value)
 }

@@ -163,7 +163,7 @@ object settings {
     /**
      * {EN}Capacity of program counter trace for [CoreInfo]{EN}
      */
-    const val traceItemsCapacity = 128
+    var traceItemsCapacity = 1024
 
     /**
      * {EN}Track or not access to bifOf method{EN}

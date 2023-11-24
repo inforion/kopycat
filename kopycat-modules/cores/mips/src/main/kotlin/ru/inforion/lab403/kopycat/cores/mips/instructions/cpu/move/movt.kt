@@ -43,6 +43,6 @@ class movt(core: MipsCore,
 
     override val mnem = "movt"
 
-    override fun execute(): Unit = throw GeneralException("Sorry, but I don't know how to execute this instruction!")
+    override fun execute(): Unit = throw GeneralException("$mnem: Sorry, but I don't know how to execute this instruction!")
 }
 

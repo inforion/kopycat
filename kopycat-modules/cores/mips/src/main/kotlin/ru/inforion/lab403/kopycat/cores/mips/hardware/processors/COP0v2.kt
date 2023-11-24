@@ -139,8 +139,8 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
             if (exception is TLBInvalid || exception is TLBMiss || exception is TLBModified) {
                 exception as MipsHardwareException
                 regs.BadVAddr.value = exception.vAddr
-                regs.EntryHi.VPN2 = exception.vpn2
-                regs.Context.BadVPN2 = exception.vpn2
+                regs.EntryHi.VPN2 = exception.vpn2()
+                regs.Context.BadVPN2 = exception.vpn2()
 //                log.warning { "[${core.cpu.pc.hex8}] ${exception.excCode} -> BadVAddr = ${exception.vAddr.hex8}" }
                 if (exception.vAddr == 0uL) {
                     log.severe { "Null-pointer exception occurred... halting CPU core!" }

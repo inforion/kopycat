@@ -49,8 +49,8 @@ abstract class ACPU<
     val busSize: ULong = BUS32
 ) : Module(core, name) {
 
-    inner class Ports : ModulePorts(this) {
-        val mem = Master("mem", busSize)
+    open inner class Ports : ModulePorts(this) {
+        open val mem = Master("mem", busSize)
     }
 
     override val ports = Ports()
@@ -126,7 +126,6 @@ abstract class ACPU<
      * {EN}
      */
     var halted = false
-        internal set
 
     /**
      * {EN}

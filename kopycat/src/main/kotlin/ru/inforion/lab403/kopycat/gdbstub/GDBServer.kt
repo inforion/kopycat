@@ -45,11 +45,12 @@ import kotlin.time.measureTimedValue
  * {RU}
  *
  * @param port номер порта для GDB
- * @param binaryProtoEnabled разрешить использование бинароного протокола GDB (команда X)
+ * @param binaryProtoEnabled разрешить использование бинарного протокола GDB (команда X)
  * {RU}
  */
 class GDBServer constructor(
     port: Int,
+    host: String = "0.0.0.0",
     val packetSize: Int = 0x4000,
     val binaryProtoEnabled: Boolean = false
 ) : Closeable {
@@ -58,7 +59,7 @@ class GDBServer constructor(
         @Transient val log = logger(INFO)
     }
 
-    private val network = Network(port, "GDB_SERVER", 0x1000, 1).onConnect {
+    private val network = Network("GDB_SERVER", port, host, 0x1000, 1).onConnect {
         if (debugger == null)
             log.severe { "GDB Client connected but debugger wasn't initialized!" }
 

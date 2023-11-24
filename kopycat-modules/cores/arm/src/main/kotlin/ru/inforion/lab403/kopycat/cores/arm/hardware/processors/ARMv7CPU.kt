@@ -82,7 +82,6 @@ class ARMv7CPU(core: ARMv7Core, name: String) : AARMCPU(core, name) {
     override fun decode() {
         var data: ULong
         val decoder: ADecoder<AARMInstruction>
-        val offset: ULong
 
         when (CurrentInstrSet()) {
             InstructionSet.ARM -> {

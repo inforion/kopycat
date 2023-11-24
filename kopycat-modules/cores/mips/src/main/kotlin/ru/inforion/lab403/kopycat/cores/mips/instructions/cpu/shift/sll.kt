@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtSaInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -48,6 +49,6 @@ class sll(core: MipsCore,
     override val mnem = "sll"
 
     override fun execute() {
-        vrd = vrt shl vsa
+        vrd = if (core.is32bit) vrt shl vsa else (vrt shl vsa).signext(31)
     }
 }

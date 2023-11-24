@@ -37,19 +37,62 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Endian
 import java.math.BigInteger
 
-class ARMDebugger(parent: Module, name: String, val endian: Endian): Debugger(parent, name) {
-
-    constructor(parent: Module, name: String) : this(parent, name, Endian.LITTLE)
+/**
+ * {RU}
+ * Отладчик ARM
+ *
+ * @property parent родительский модуль, в который встраивается отладчик
+ * @property name произвольное имя объекта отладчика
+ * @property endian порядок байтов
+ * @property sendTargetXml передавать ли описание отлаживаемой архитектуры
+ * ([документация](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Target-Descriptions.html#Target-Descriptions))
+ * при подключении gdb.
+ * - Если `false`, то при подключении IDA будет выведено сообщение
+ * "The GDB stub did not report a remote target configuration".
+ * - Если `true`, то IDA может посчитать, что порядок байтов отлаживаемой системы отличается от порядка байтов
+ * базы и сломать базу. Пример сообщения, выводимого IDA в таком случае: "The configuration reported by GDB
+ * stub (ARM Little-endian) differs from the configuration in the IDB (ARM Big-endian)".
+ * - По умолчанию `false` чтобы предотвратить случайную поломку баз IDA.
+ * {RU}
+ *
+ * {EN}
+ * ARM debugger
+ *
+ * @property parent parent module
+ * @property name module name
+ * @property endian byte order (endianness)
+ * @property sendTargetXml whether to send target architecture description or not
+ * ([documentation](https://sourceware.org/gdb/current/onlinedocs/gdb.html/Target-Descriptions.html#Target-Descriptions))
+ * when connecting using gdb protocol.
+ * - If `false`, then the following message will be displayed when connecting with IDA:
+ * "The GDB stub did not report a remote target configuration".
+ * - If `true`, then IDA may think that target endianness differs from that of the CPU that is set in the database
+ * and then corrupt the database. Example of a message in that case: "The configuration reported by GDB
+ * stub (ARM Little-endian) differs from the configuration in the IDB (ARM Big-endian)".
+ * - `false` by default to prevent accidental IDA database corruption.
+ * {EN}
+ */
+class ARMDebugger(
+    parent: Module,
+    name: String,
+    val endian: Endian = Endian.LITTLE,
+    private val sendTargetXml: Boolean = false,
+): Debugger(parent, name) {
 
     companion object {
         @Transient val log = logger(WARNING)
-
-        const val GDB_REGS_COUNT = 42
+        const val GDB_REGS_COUNT = 26
     }
 
     inline val cpu get() = core.cpu as AARMCPU
 
     override fun ident() = "arm"
+
+    override fun target() = if (sendTargetXml) {
+        "arm.xml"
+    } else {
+        "empty.xml"
+    }
 
     override fun registers() = Array(GDB_REGS_COUNT) { regRead(it) }.toList()
 
@@ -86,7 +129,7 @@ class ARMDebugger(parent: Module, name: String, val endian: Endian): Debugger(pa
             in 0..14 -> cpu.reg(index, dataToWrite)
             // PC
             15 -> {
-                cpu.reg(index, value.ulong)
+                cpu.reg(index, dataToWrite)
                 // dirty hack to make possible reset exception bypassing IDA Pro
                 core.cpu.resetFault()
             }

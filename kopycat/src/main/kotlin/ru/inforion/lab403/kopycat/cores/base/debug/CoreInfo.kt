@@ -107,10 +107,12 @@ class CoreInfo<C: AGenericCore>(val core: C): IAutoSerializable, IResettable {
 
     fun printCpuState() {
         log.info { "-------------------- CPU state: --------------------------------" }
-
-        log.info { "Total executed instructions: $totalExecuted" }
-
+        printTotalExecutedInstructions()
         log.info { core.stringify() }
+    }
+
+    fun printTotalExecutedInstructions() {
+        log.info { "Total executed instructions: $totalExecuted" }
     }
 
     fun dump(cpu: Boolean = true, stack: Boolean = true, trace: Boolean = true) {

@@ -54,7 +54,7 @@ class FtOffset(
 
     override fun decode(data: ULong): AMipsInstruction {
         val rt = data[20..16].int
-        val offset = data[15..0]
+        val offset = data[15..0].signext(15)
         val base = data[25..21].int
         return construct(core, data,
                 any(type, Designation.General, rt, 0),

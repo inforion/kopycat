@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -47,6 +48,10 @@ class slt(
     override val mnem = "slt"
 
     override fun execute() {
-        vrd = if (vrs.int < vrt.int) 1u else 0u
+        vrd = if (core.is32bit) {
+            if (vrs.int < vrt.int) 1u else 0u
+        } else {
+            if (vrs.long < vrt.long) 1u else 0u
+        }
     }
 }

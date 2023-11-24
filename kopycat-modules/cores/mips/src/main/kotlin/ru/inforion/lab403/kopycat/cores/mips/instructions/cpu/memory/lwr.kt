@@ -25,18 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
-import ru.inforion.lab403.common.extensions.bext
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
+import ru.inforion.lab403.kopycat.interfaces.inl
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
-import ru.inforion.lab403.kopycat.interfaces.*
 
 /**
  *
  * LWR rt, offset(base)
+ *
+ * To load the least-significant part of a word from an unaligned memory address as a signed value
  */
 class lwr(core: MipsCore,
           data: ULong,
@@ -52,12 +52,31 @@ class lwr(core: MipsCore,
         val vAddr = address
 
         val byte = (vAddr[1..0] xor core.cpu.bigEndianCPU.bext(2)).int
-        // Can't use operand value because to specific handler required
-        val memword = core.inl(vAddr and 0xFFFFFFFCu)
 
-        val hi = dataword[31..32 - 8 * byte]
-        val lo = memword[31..8 * byte]
+        vrt = if (core.is32bit) {
+            // Can't use operand value because to specific handler required
+            val memword = core.inl(vAddr and 0xFFFFFFFCu)
 
-        vrt = hi.shl(32 - 8 * byte) or lo
+            val hi = dataword[31..32 - 8 * byte] // 1st part of temp
+            val lo = memword[31..8 * byte]       // 2d part of temp
+
+            hi.shl(32 - 8 * byte) or lo // temp
+
+        } else {
+            val memdoubleword = core.inl(vAddr and 0xFFFF_FFFF_FFFF_FFFCu)
+
+            val word = (vAddr[2] xor core.cpu.bigEndianCPU.ulong_z).int
+
+            val hi = dataword[31..32 - 8 * byte]
+            val lo = memdoubleword[(31 + 32 * word)..(32 * word + 8 * byte)]
+            val temp = hi.shl(32 - 8 * byte) or lo
+
+            // what the hell "one of the two following behaviors"?
+            // I hate mips.
+
+            val utemp = temp.signext(31)        // ignoring if byte == 4 condition
+
+            cat(utemp, temp, 31)          // TODO: test this!!!
+        }
     }
 }

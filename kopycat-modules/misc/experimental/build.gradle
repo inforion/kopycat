@@ -10,7 +10,11 @@ repositories {
     mavenCentral()
 }
 
+dependencies {
+    compileOnly project(":kopycat-modules:cores:x86")
+    compileOnly project(":kopycat-modules:cores:arm")
+}
+
 buildKopycatModule {
     library = "experimental"
-    require += ["cores:x86", "cores:arm"]
 }

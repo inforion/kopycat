@@ -26,8 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.interfaces.*
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.Align
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
@@ -53,8 +53,8 @@ class LDRSHl(cpu: AARMCore,
         val address = base + if (add) imm32.value else -imm32.value
         val data = core.inw(address like Datatype.DWORD)
 
-        if(core.cpu.UnalignedSupport() || address[0] == 0uL)
-            rt.value(core, data.signextRenameMeAfter(15))
+        if (core.cpu.UnalignedSupport() || address[0] == 0uL)
+            rt.value(core, data signext 15)
         else throw Unknown
     }
 }

@@ -25,12 +25,36 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
+import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AFPU
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.FCRBank
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.FPRBank
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
-class MipsFPU(core: MipsCore, name: String) : AFPU<MipsCore>(core, name) {
-    val regs: FPRBank = FPRBank()
+class MipsFPU(core: MipsCore, name: String, dtype: Datatype = Datatype.DWORD) : AFPU<MipsCore>(core, name) {
+    val regs: FPRBank = FPRBank(dtype)
     val cntrls: FCRBank = FCRBank()
+
+    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
+        return mapOf(
+            "name" to name,
+            "regs" to regs.serialize(ctxt),
+            "cntrls" to cntrls.serialize(ctxt)
+        )
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        val snapshotName = snapshot["name"] as String
+        if (name != snapshotName) {
+            throw IllegalStateException("Wrong module name %s != %s".format(name, snapshotName))
+        }
+        try {
+            regs.deserialize(ctxt, snapshot["regs"] as Map<String, Any>)
+            cntrls.deserialize(ctxt, snapshot["cntrls"] as Map<String, Any>)
+        } catch (e: java.lang.NullPointerException) {
+            log.severe { "Can't deserialize fpu regs -> fpu regs left unchanged" }
+        }
+    }
 }

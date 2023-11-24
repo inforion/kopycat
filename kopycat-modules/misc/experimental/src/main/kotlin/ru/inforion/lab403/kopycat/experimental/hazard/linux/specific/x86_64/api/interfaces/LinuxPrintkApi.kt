@@ -25,6 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces
 
+import ru.inforion.lab403.kopycat.experimental.common.capturable.CapturableNoBody
+
 interface LinuxPrintkApi {
     fun printk(fmt: String): ULong
+}
+
+interface LinuxPrintkCapturableApi {
+    val PTR_PRINTK: ULong
+
+    fun printkCapturable(fmt: String): CapturableNoBody
 }

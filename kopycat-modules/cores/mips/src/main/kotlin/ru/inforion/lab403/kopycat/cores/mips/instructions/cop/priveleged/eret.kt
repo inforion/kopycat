@@ -56,6 +56,9 @@ class eret(
             cop0.regs.Status.EXL = false
             cop0.regs.EPC
         }
+        log.warning { "eret has been called!" }
+
+        // TODO: do we have an InstructionSize ?
         core.cpu.branchCntrl.jump(pc.value)
         core.cpu.llbit = 0
         // ClearHazards()

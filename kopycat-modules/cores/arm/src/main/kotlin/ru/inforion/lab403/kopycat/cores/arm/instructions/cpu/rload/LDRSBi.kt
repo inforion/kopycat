@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.rload
 
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
@@ -53,7 +53,7 @@ class LDRSBi(cpu: AARMCore,
     override fun execute() {
         val offsetAddress = rn.value(core) + if (add) imm32.value else -imm32.value
         val address = if (index) offsetAddress else rn.value(core)
-        rt.value(core, core.inb(address like Datatype.DWORD).signextRenameMeAfter(7))
+        rt.value(core, core.inb(address like Datatype.DWORD) signext 7)
         if (wback) rn.value(core, offsetAddress)
     }
 }

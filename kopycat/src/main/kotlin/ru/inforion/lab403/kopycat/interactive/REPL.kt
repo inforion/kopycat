@@ -69,7 +69,7 @@ class REPL private constructor(
                     e.printStackTrace()
                     null
                 } catch (e: Exception) {
-                    log.severe { "Something went wrong: ${e.message}"}
+                    log.severe { "Something went wrong ($e): ${e.message}"}
                     null
                 }?.also { line -> eval(line) }
             }

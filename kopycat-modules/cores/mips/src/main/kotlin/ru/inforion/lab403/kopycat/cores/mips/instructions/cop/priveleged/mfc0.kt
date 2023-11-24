@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRdSelInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -41,7 +42,11 @@ class mfc0(core: MipsCore,
     override val mnem = "mfc0"
 
     override fun execute() {
-        vrt = vrd
+        vrt = if (core.is32bit) {
+            vrd
+        } else {
+            vrd.signext(31)
+        }
     }
 }
 

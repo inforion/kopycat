@@ -25,14 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
-import ru.inforion.lab403.common.extensions.bext
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
+import ru.inforion.lab403.kopycat.interfaces.inl
+import ru.inforion.lab403.kopycat.interfaces.inq
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
-import ru.inforion.lab403.kopycat.interfaces.*
 
 
 /**
@@ -53,11 +52,26 @@ class lwl(core: MipsCore,
         val vAddr = address
 
         val byte = (vAddr[1..0] xor core.cpu.bigEndianCPU.bext(2)).int
-        // Can't use operand value because to specific handler required
-        val memword = core.inl(vAddr and 0xFFFFFFFCu)
 
-        val hi = memword[8 * byte + 7..0]
-        val lo = dataword[23 - 8 * byte..0]
-        vrt = hi.shl(24 - 8 * byte) or lo
+        vrt = if (core.is32bit) {
+            // Can't use operand value because to specific handler required
+            val memword = core.inl(vAddr and 0xFFFFFFFCu)
+
+            val hi = memword[8 * byte + 7..0]
+            val lo = dataword[23 - 8 * byte..0]
+            hi.shl(24 - 8 * byte) or lo         // temp
+
+        } else {
+            // throw IllegalStateException("lwl is not implemented for 64bit regs")
+            // TODO: test this!!!!!!
+            val word = (vAddr[2] xor core.cpu.bigEndianCPU.ulong_z).int
+
+            val memdoubleword = core.inq(vAddr and 0xFFFF_FFFF_FFFF_FFFCu)
+
+            val hi = memdoubleword[(31 + 32 * word - 8 * byte)..32 * word]
+            val lo = dataword[23 - 8 * byte .. 0]
+            val temp = hi.shl(24 - 8 * byte) or lo
+            temp.signext(31)
+        }
     }
 }

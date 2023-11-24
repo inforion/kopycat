@@ -44,7 +44,7 @@ class BLXi(cpu: AARMCore,
            size: Int = 4):
         AARMInstruction(cpu, Type.COND_JUMP, cond, opcode, imm32, size = size) {
 
-    override val mnem = "BL${if (targetInstrSet != CURRENT) "X" else ""}$mcnd"
+    override val mnem = "BL${if (targetInstrSet != core.cpu.CurrentInstrSet()) "X" else ""}$mcnd"
 
     override fun execute() {
         val pc = core.cpu.pc

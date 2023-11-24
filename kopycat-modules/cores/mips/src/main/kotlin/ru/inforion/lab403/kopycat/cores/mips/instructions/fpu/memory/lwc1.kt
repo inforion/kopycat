@@ -49,6 +49,6 @@ class lwc1(
     override fun execute() {
         if (address[1..0] != 0uL)
             throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
-        vct = memword
+        vrt = memword
     }
 }

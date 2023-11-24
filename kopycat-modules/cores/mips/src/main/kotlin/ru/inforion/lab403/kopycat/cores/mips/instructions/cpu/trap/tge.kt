@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.trap
 
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RsRtCodeInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -53,8 +54,11 @@ class tge(core: MipsCore,
 
     override fun execute() {
         // Compare as signed integers
-        if (vrs.int >= vrt.int)
-            throw MipsHardwareException.TR(core.pc)
+        if (core.is32bit) {
+            if (vrs.int >= vrt.int) throw MipsHardwareException.TR(core.pc)
+        } else {
+            if (vrs.long >= vrt.long) throw MipsHardwareException.TR(core.pc)
+        }
     }
 
 }

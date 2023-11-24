@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.arm.instructions.cpu.reversal
 
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.arm.operands.ARMRegister
@@ -43,7 +42,7 @@ class REVSH(cpu: AARMCore,
     override val mnem = "REVSH$mcnd"
 
     override fun execute() {
-        rd.bits(core, 31..8, rm.bits(core, 7..0).signextRenameMeAfter(7))
+        rd.bits(core, 31..8, rm.bits(core, 7..0).signext(7))
         rd.bits(core, 7..0, rm.bits(core, 15..8))
     }
 }

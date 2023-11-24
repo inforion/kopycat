@@ -28,7 +28,6 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.decoders.mips
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.common.extensions.signextRenameMeAfter
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
 import ru.inforion.lab403.kopycat.cores.mips.instructions.decoders.ADecoder
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
@@ -48,7 +47,7 @@ class RsRtOffset(
     override fun decode(data: ULong): AMipsInstruction {
         val rs = data[25..21].int
         val rt = data[20..16].int
-        val offset = (data[15..0] shl 2).signextRenameMeAfter(17)
+        val offset = (data[15..0] shl 2).signext(17)
         return construct(core, data, gpr(rs), gpr(rt), near(offset.int))
     }
 }

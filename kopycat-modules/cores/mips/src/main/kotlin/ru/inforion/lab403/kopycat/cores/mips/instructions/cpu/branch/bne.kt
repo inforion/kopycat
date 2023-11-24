@@ -35,11 +35,12 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * BNE rs, rt, offset
  */
 class bne(
-        core: MipsCore,
-        data: ULong,
-        rs: MipsRegister,
-        rt: MipsRegister,
-        off: MipsNear) : RsRtOffsetInsn(core, data, Type.COND_JUMP, rs, rt, off) {
+    core: MipsCore,
+    data: ULong,
+    rs: MipsRegister,
+    rt: MipsRegister,
+    off: MipsNear
+) : RsRtOffsetInsn(core, data, Type.COND_JUMP, rs, rt, off) {
 
     override val mnem = "bne"
 
@@ -50,5 +51,7 @@ class bne(
         } else {
             core.cpu.branchCntrl.nop()
         }
+
     }
 }
+

@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.decoders
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
@@ -68,7 +69,7 @@ class FucomDC(core: x86Core) : ADecoder<AX86Instruction>(core) {
                 }
             }
 
-            else -> throw GeneralException("Incorrect opcode in decoder")
+            else -> throw GeneralException("Incorrect opcode ${opcode.hex} in decoder")
         }
     }
 }

@@ -50,7 +50,11 @@ class teqi(core: MipsCore,
 
     override fun execute() {
         // TODO: UNTESTED
-        if (vrs.uint == imm.usext.uint) throw MipsHardwareException.TR(core.pc)
+        if (core.is32bit) {
+            if (vrs.uint == imm.usext.uint) throw MipsHardwareException.TR(core.pc)
+        } else {
+            if (vrs == imm.usext) throw MipsHardwareException.TR(core.pc)
+        }
     }
 
 }

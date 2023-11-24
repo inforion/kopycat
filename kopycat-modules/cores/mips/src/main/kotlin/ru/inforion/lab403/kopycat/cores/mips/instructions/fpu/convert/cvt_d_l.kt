@@ -45,5 +45,5 @@ class cvt_d_l(
 
     override val mnem = "cvt.d.l"
 
-    override fun execute() = throw GeneralException("Sorry, but I don't know how to execute this instruction!")
+    override fun execute() = throw GeneralException("$mnem: Sorry, but I don't know how to execute this instruction!")
 }

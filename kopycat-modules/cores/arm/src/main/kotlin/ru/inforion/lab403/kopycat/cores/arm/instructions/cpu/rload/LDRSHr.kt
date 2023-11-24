@@ -62,7 +62,7 @@ class LDRSHr(cpu: AARMCore,
 
         if (wback) rn.value(core, offsetAddress)
         if(core.cpu.UnalignedSupport() || address[0] == 0uL)
-            rt.value(core, data.signextRenameMeAfter(15))
+            rt.value(core, data signext 15)
         else throw Unknown
     }
 }

@@ -281,12 +281,14 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val finitDC = SimpleDC(core, ::Finit, 2)
     private val fclexDC = SimpleDC(core, ::Fclex, 2)
     private val fstswDc = FstswDC(core)
+    private val fntswDc = FstswDC(core)
     private val fsaveDc = FsaveRstorDC(core, ::Fsave)
     private val frstorDc = FsaveRstorDC(core, ::Frstor)
     private val fldenvDc = FldenvDC(core)
     private val fstenvDc = FstenvDC(core)
     private val fstcwDc = FstcwDC(core)
     private val fucomDc = FucomDC(core)
+    private val fcomDc = FcomDC(core)
     private val fldcwDc = FldcwDC(core)
     private val fistDc = FistDC(core)
     private val faddDc = FArithmDC(core, ::Fadd)
@@ -311,6 +313,8 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val fldlg2Dc = FLoadConstDC(core, ::Fldlg2)
     private val fldln2Dc = FLoadConstDC(core, ::Fldln2)
     private val fldzDc = FLoadConstDC(core, ::Fldz)
+    private val fyl2xp1Dc = FLoadConstDC(core, ::Fyl2xp1)
+    private val fyl2xDc = FLoadConstDC(core, ::Fyl2x)
 
     private val movdDc = MovdDC(core)
     private val movdqDc = MovdqDC(core)
@@ -538,7 +542,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
 
     private val cell_dc_a15 = byte1RMDC_Memory(
             /////           0           1           2           3           4           5           6           7
-            /*0*/         faddDc,     fmulDc,     null,       null,       fsubDc,    fsubrDc,     fdivDc,     fdivrDc
+            /*0*/         faddDc,     fmulDc,     null,       fcomDc,       fsubDc,    fsubrDc,     fdivDc,     fdivrDc
     )
 
     private val cell_dc_a16 = byte1RMDC_11B(
@@ -591,7 +595,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
             /*C*/ fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      fldDC,      null,       fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,     fxchDC,
             /*D*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       null,
             /*E*/ fchsDc,     fabsDc,     null,       null,       null,       fxamDC,       null,       null,       fld1Dc,     fldl2tDc,   fldl2eDc,   fldpiDc,    fldlg2Dc,   fldln2Dc,   fldzDc,     null,
-            /*F*/ null,       null,       null,       null,       null,       null,       null,       null,       null,       null,       fsqrtDc,       null,       frndintDc,  fscaleDc,   null,       null
+            /*F*/ null,       fyl2xDc,       null,       null,       null,       null,       null,       null,       null,       fyl2xp1Dc,       fsqrtDc,       null,       frndintDc,  fscaleDc,   null,       null
     )
 
     private val cell_d9 = byte1RMDC(cell_d9_a9,  cell_d9_a10)

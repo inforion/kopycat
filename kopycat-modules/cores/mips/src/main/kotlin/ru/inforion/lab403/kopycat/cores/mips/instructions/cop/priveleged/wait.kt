@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.Code19bitInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -41,7 +40,7 @@ class wait(core: MipsCore,
     override val mnem = "wait"
 
     override fun execute() {
-        throw GeneralException("Sorry, but I don't know how to execute this instruction!")
+        core.cpu.halted = true
     }
 }
 
