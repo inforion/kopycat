@@ -29,9 +29,9 @@ import org.jetbrains.kotlin.library.impl.buffer
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
-import ru.inforion.lab403.kopycat.experimental.fields.common.AbsoluteField
-import ru.inforion.lab403.kopycat.experimental.fields.delegates.absoluteField
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IMemoryRef
+import ru.inforion.lab403.kopycat.auxiliary.fields.common.AbsoluteField
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.absoluteField
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IMemoryRef
 import ru.inforion.lab403.kopycat.interfaces.IReadWrite
 import java.nio.ByteOrder
 

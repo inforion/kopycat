@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.move
 
+import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRdSelInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -43,6 +44,6 @@ class mtc1(
     override val mnem = "mtc1"
 
     override fun execute() {
-        vrd = vrt
+        vrd = vrt[31..0]
     }
 }

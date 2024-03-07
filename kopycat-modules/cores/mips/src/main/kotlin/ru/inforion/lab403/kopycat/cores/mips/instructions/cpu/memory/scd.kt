@@ -27,8 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.ulong_z
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -53,7 +52,7 @@ class scd(core: MipsCore,
     override fun execute() {
         val vAddr = address
         if (vAddr[2..0] != 0uL)
-            throw MemoryAccessError(core.pc, address, AccessAction.STORE, "ADES")
+            throw MipsHardwareException.AdES(core.pc, address)
         if (core.cpu.llbit == 1)
             memword = vrt
         vrt = core.cpu.llbit.ulong_z

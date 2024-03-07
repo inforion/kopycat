@@ -48,15 +48,40 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
         super.reset()
         regs.EBase.value = 0xFFFF_FFFF_8000_0000uL // p 250 PRA
     }
-    override fun processInterrupts() {
-        super.processInterrupts()
-        // TODO: IE set always true for backward MIPS compat. but reconsideration required
-        // Process interrupt at once it requested (i.e. external interrupt controller set it to pending and active state)
-        // Don't wait while EI bit will be set by MIPS core (if firmware not hurry up then interrupt will be discarded)
 
-        // Maybe IE bit of the Status reg, Interrupt Enable: Acts as the master enable
-        // for software and hardware interrupts. There are EI and DI instructions
-        val interrupt = pending(true)
+    override fun processInterrupts() {
+        // TODO: COP0 timer
+
+        // Vol III chapter 6 p.80
+        // An interrupt is only taken when all of the following are true:
+        // - A specific request for interrupt service is made, as a function of the interrupt mode, described bel w.
+        // - The IE bit in the Status register is a one.
+        // - The DM bit in the Debug register is a zero (for processors implementing EJTAG)
+        // - The EXL and ERL bits in the Status register are both zero
+        val debugDM = false // regs.Debug.DM
+        if (regs.Status.IE && !debugDM && !regs.Status.EXL && !regs.Status.ERL) {
+            if (regs.Config3.VEIC) {
+                TODO("EIC")
+            }
+
+            (pending(true) ?: return).run {
+                pending = false
+                inService = true
+                regs.Cause.IP7_0 = 0uL.set(cause)
+            }
+
+            val unmaskedCauses = regs.Cause.IP7_0 and regs.Status.IM7_0
+            if (unmaskedCauses.truth) {
+                val highestPriorityCause = (7 - ((0..7).firstOrNull { unmaskedCauses[7 - it].truth } ?: -1))
+                handleException(
+                    INT(
+                        core.pc,
+                        if (highestPriorityCause > 7) 0 else highestPriorityCause, // probably highest priority cause
+                        0, // TODO: EIC
+                    )
+                )
+            }
+        }
     }
 
     /**
@@ -69,7 +94,7 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
 
         // See MIPS® Architecture For Programmers
         // p. 101 Vol. III: MIPS64® Privileged Resource Architecture
-        log.severe { "Trouble happens, pc=0x${core.pc.hex}; $exception" }
+        log.info { "Exception, pc=0x${core.pc.hex}; $exception" }
 
         if (exception is MemoryAccessError) {
             throw exception
@@ -105,8 +130,22 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
             if (exception is TLBInvalid || exception is TLBMiss || exception is TLBModified) {
                 exception as MipsHardwareException
                 regs.BadVAddr.value = exception.vAddr
-                regs.EntryHi.VPN2 = exception.vpn2(core.SEGBITS!!)
-                regs.Context.BadVPN2 = exception.vpn2(core.SEGBITS!!)
+
+                regs.EntryHi.run {
+                    ASID = if (regs.Config5.mi) 0u else regs.EntryHi.ASID
+                    VPN2X = 0uL
+                    VPN2 = 0uL
+                    value = value.insert(exception.vAddr[63..13], 63..13) and core.segmask
+                }
+
+                regs.Context.BadVPN2 = exception.vAddr[31..13]
+
+                regs.XContext.run {
+                    R = exception.vAddr[63..62]
+                    BadVPN2 = exception.vAddr[core.SEGBITS - 1 .. 13]
+                    zero = 0u
+                }
+
 //                log.warning { "[${core.cpu.pc.hex8}] ${exception.excCode} -> BadVAddr = ${exception.vAddr.hex16}" }
                 if (exception.vAddr == 0uL) {
                     log.severe { "Null-pointer exception occurred... halting CPU core!" }
@@ -144,7 +183,7 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
 
                             VecNum = when {
                                 core.EIC_option1 -> CauseRIPL
-                                core.EIC_option2 -> exception.interrupt!!.irq // EIC_VecNum_Signal
+                                core.EIC_option2 -> exception.irq!! // EIC_VecNum_Signal
                                 core.EIC_option3 -> -1  // unused
                                 else -> throw GeneralException("Wrong EIC options configuration...")
                             }
@@ -154,7 +193,7 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
                             NewShadowSet = ShadowSetEncoder(VecNum)
                         }
                         vectorOffset = if (Config3VEIC && core.EIC_option3) {
-                            exception.interrupt!!.vector // EIC_VectorOffset_Signal
+                            exception.vector!! // EIC_VectorOffset_Signal
                         } else {
                             0x200 + VecNum * (IntCtlVS shl 5)
                         }
@@ -200,7 +239,7 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
         val PC = cat(vectorBase[63..30], offset, 29)
         core.cpu.branchCntrl.setIp(PC)
 
-        log.severe { "New PC: ${PC.hex16}" }
+        log.info { "New PC: ${PC.hex16}" }
         return null
     }
 }

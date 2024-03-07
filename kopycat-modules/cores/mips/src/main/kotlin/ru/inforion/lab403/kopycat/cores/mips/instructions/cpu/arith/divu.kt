@@ -46,8 +46,8 @@ class divu(
             lo = vrs / vrt
             hi = vrs % vrt
         } else {
-            lo = vrs[31..0] / vrt[31..0].signext(31)
-            hi = vrs[31..0] % vrt[31..0].signext(31)
+            lo = (vrs[31..0] / vrt[31..0]) signext 31
+            hi = (vrs[31..0] % vrt[31..0]) signext 31
         }
     }
 }

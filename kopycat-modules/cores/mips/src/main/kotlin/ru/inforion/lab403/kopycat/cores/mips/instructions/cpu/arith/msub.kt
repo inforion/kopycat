@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.ulong_s
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -43,9 +44,9 @@ class msub(
     override val mnem = "msub"
 
     override fun execute() {
-        val v1 = (hi shl 32) or lo
+        val v1 = (hi[31..0] shl 32) or lo[31..0]
         val v2 = v1 - vrs.int.ulong_s * vrt.int.ulong_s
-        hi = v2[63..32]
-        lo = v2[31..0]
+        hi = v2[63..32] signext 31
+        lo = v2[31..0] signext 31
     }
 }

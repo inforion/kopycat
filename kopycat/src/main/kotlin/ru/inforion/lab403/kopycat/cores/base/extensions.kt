@@ -31,7 +31,13 @@ import ru.inforion.lab403.common.extensions.byte
 import ru.inforion.lab403.common.extensions.mask
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.extensions.ushr
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
+import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import kotlin.io.path.Path
+import kotlin.reflect.KClass
 
 fun ByteArray.putNumberLE(position: Int, value: ULong, size: Int) {
     when (size) {
@@ -119,3 +125,38 @@ inline infix fun Long.like(dtyp: Datatype): Long = this mask dtyp.bits
 inline infix fun Int.like(dtyp: Datatype): Int = this mask dtyp.bits
 inline infix fun Short.like(dtyp: Datatype): Short = this mask dtyp.bits
 inline infix fun Byte.like(dtyp: Datatype): Byte = this mask dtyp.bits
+
+fun <R : ACore<R, U, P>, U : ACPU<U, R, *, *>, P : ACOP<P, R>> ACore<R, U, P>.stepOrFail() {
+    step().also { status ->
+        if (!status.resume) {
+            info.dump()
+            throw GeneralException("Unable to continue the execution")
+        }
+    }
+}
+
+fun <R : ACore<R, U, P>, U : ACPU<U, R, *, *>, P : ACOP<P, R>> ACore<R, U, P>.stepOrFailWhile(block: () -> Boolean) {
+    while (block()) {
+        stepOrFail()
+    }
+}
+
+fun <R : ACore<R, U, P>, U : ACPU<U, R, *, *>, P : ACOP<P, R>> ACore<R, U, P>.stepOrFailToPc(expectedPc: ULong) {
+    return stepOrFailWhile {
+        pc != expectedPc
+    }
+}
+
+fun <T> ULong.letOrNull(block: (ULong) -> T): T? = if (this == 0uL) {
+    null
+} else {
+    this.let(block)
+}
+
+fun <T> ULong.letOrFailIfNull(block: (ULong) -> T): T = if (this == 0uL) {
+    throw IllegalStateException("Value is null")
+} else {
+    this.let(block)
+}
+
+val KClass<*>.classResourcePath get() = Path(this.java.`package`.name.replace('.', '/'))

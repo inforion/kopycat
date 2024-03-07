@@ -32,12 +32,13 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
-import ru.inforion.lab403.kopycat.experimental.fields.delegates.offsetField
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IMemoryRef
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IOffsetable
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.offsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IMemoryRef
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
 import ru.inforion.lab403.kopycat.interfaces.*
 
-class MsgHdr(override val memory: IReadWrite, override val baseAddress: ULong, is32Bit: Boolean = false) : IMemoryRef, IOffsetable {
+class MsgHdr(override val memory: IReadWrite, override val baseAddress: ULong, is32Bit: Boolean = false) : IMemoryRef,
+    IOffsetable {
     companion object {
         enum class IovPutResult {
             Success,

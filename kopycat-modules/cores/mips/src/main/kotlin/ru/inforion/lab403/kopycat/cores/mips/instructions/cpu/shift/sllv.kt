@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtRsInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -45,6 +46,6 @@ class sllv(core: MipsCore,
 
     override fun execute() {
         val s = vrs[4..0].int
-        vrd = vrt shl s
+        vrd = if (core.is32bit) vrt shl s else (vrt shl s).signext(31)
     }
 }

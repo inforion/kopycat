@@ -26,8 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.memory
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.FtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -48,7 +47,7 @@ class ldc1(
 
     override fun execute() {
         if (address[1..0] != 0uL)
-            throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
+            throw MipsHardwareException.AdEL(core.pc, address)
         dft = memword
     }
 }

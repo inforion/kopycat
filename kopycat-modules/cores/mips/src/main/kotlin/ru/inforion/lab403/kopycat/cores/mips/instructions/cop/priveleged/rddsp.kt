@@ -25,24 +25,42 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
+
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.insert
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdInsn
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
  *
  * RDDSP rd - for DSP extension
+ *
+ * To copy selected fields from the special-purpose DSPControl register to the specified GPR.
  */
 class rddsp(core: MipsCore,
             data: ULong,
-            rd: MipsRegister
+            rd: MipsRegister,
+            private val mask: MipsImmediate,
 ) : RdInsn(core, data, Type.VOID, rd) {
 
     override val mnem = "rddsp"
 
     override fun execute() {
-        if (core.dspExtension)
-            log.severe { "dspExtension not implemented!" }
+        if (!core.dspExtension) throw MipsHardwareException.DSPDis(core.pc)
+        val dspCtrl = core.dspModule?.regs?.DSPControl
+        val temp = 0uL
+
+        if (mask.value[0] == 1uL) dspCtrl?.let { temp.insert(it.pos, 6..0) }
+        if (mask.value[1] == 1uL) dspCtrl?.let { temp.insert(it.scount, 12..7) }
+        if (mask.value[2] == 1uL) dspCtrl?.let { temp.insert(it.c, 13) }
+        if (mask.value[3] == 1uL) dspCtrl?.let { temp.insert(it.ouflag, 23..16) }
+        if (mask.value[4] == 1uL) dspCtrl?.let { temp.insert(it.ccond, 31..24) }
+        if (mask.value[5] == 1uL) dspCtrl?.let { temp.insert(it.EFI, 14) }
+
+        rd.value(core, temp)
     }
 }
 

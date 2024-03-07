@@ -43,9 +43,10 @@ import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.modules.BUS16
+import ru.inforion.lab403.kopycat.serializer.loadValue
 
 @Suppress("unused", "MemberVisibilityCanBePrivate", "PropertyName")
-class PIC8259(parent: Module, name: String) : APIC(parent, name) {
+class PIC8259(parent: Module, name: String, val cause: Int? = null) : APIC(parent, name) {
     companion object {
         @Transient val log = logger(FINE)
 
@@ -69,39 +70,19 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
     enum class CR_HIGH_WRITE_STATE { MSK, ICW2, ICW3, ICW4 }
 
     class Pin(
-            val num: Int,
-            var inService: Boolean = false,
-            var pending: Boolean = false,
-            var masked: Boolean = false): IAutoSerializable, IConstructorSerializable
+        val num: Int,
+        var inService: Boolean = false,
+        var pending: Boolean = false,
+        var masked: Boolean = false,
+    ): IAutoSerializable, IConstructorSerializable
 
-    interface IMultiplexer {
-        val pins: Array<Pin>
-        fun pending(num: Int): Boolean
-        fun inService(num: Int): Boolean
-        fun inService(num: Int, value: Boolean) {
-            pins[num].inService = false
-        }
-
-        fun masked(num: Int): Boolean
-        var vectorOffset: Int
-    }
-
-    inner class I8259(val offset: ULong) : IMultiplexer, IAutoSerializable {
-        override var vectorOffset: Int = 0
-        override val pins = Array(8) { Pin(it) }
+    inner class I8259(val offset: ULong) : IAutoSerializable {
+        var vectorOffset: Int = 0
+        val pins = Array(8) { Pin(it) }
         protected var portLowReadState = CR_LOW_READ_STATE.NONE
         protected var portHighWriteState = CR_HIGH_WRITE_STATE.MSK
         protected var omitICW3 = false
         protected var omitICW4 = false
-
-        override fun masked(num: Int): Boolean = pins[num].masked
-        override fun pending(num: Int): Boolean {
-            return pins[num].pending
-        }
-
-        override fun inService(num: Int): Boolean {
-            return pins[num].inService
-        }
 
         private val IR = object : Register(ports.io, offset, Datatype.BYTE, "IR", writable = false) {
             override fun beforeRead(from: MasterPort, ea: ULong) = portLowReadState == CR_LOW_READ_STATE.IR
@@ -230,6 +211,8 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
 
         private val OCW2 = object : Register(ports.io, offset, Datatype.BYTE, "OCW2", readable = false) {
             val R_SL_EOI by field(7..5)
+            val EOI by bit(5)
+            val SL by bit(6)
             val SLCT_ICW1 by bit(SLCT_ICW1_BIT)
             val IS_OCW3 by bit(IS_OCW3_BIT)
             val LS by field(2..0)
@@ -240,8 +223,24 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
                 super.write(ea, ss, size, value)
-                // FIXME: Oh, it's gonna be fack up here ... quite a strange EOI types: Rotate on nonspecific EOI command
-                pins[LS.int].inService = !R_SL_EOI.truth
+                if (EOI.truth) {
+                    if (SL.truth) {
+                        pins[LS.int].run {
+                            inService = false
+                            // pending = false
+                        }
+                    } else {
+                        val maxPrioInterrupt = pins.maxBy {
+                            if (it.inService) {
+                                it.num
+                            } else {
+                                -1
+                            }
+                        }
+                        // maxPrioInterrupt.pending = false
+                        maxPrioInterrupt.inService = false
+                    }
+                }
             }
         }
 
@@ -266,7 +265,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
         }
     }
 
-    inner class Interrupt(irq: Int, val pic: I8259, val postfix: String) : AInterrupt(irq, postfix), IAutoSerializable {
+    inner class Interrupt(irq: Int, val pic: I8259, val postfix: String) : AInterrupt(irq, postfix) {
         override val cop get() = core.cop
 
         override fun hashCode(): Int {
@@ -285,24 +284,59 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
             return true
         }
 
+        override val cause: Int
+            get() = this@PIC8259.cause ?: super.cause
+
         override val vector: Int
             get() = pic.vectorOffset or irq
+
+        override var pending
+            get() = cop.interrupt(this)
+            set(value) {
+                pic.pins[irq % 8].pending = value
+                cop.interrupt(this, value)
+            }
+
+        override var inService: Boolean
+            get() = pic.pins[irq % 8].inService
+            set(value) {
+                pic.pins[irq % 8].inService = value
+            }
 
         override val priority: Int get() = irq + 1
 
         override val masked: Boolean
-            get() {
-                return !enabled && pic.masked(irq)
-            }
+            get() = !enabled && pic.pins[irq % 8].masked
 
         override fun onInterrupt() = Unit
 
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-            return super<IAutoSerializable>.serialize(ctxt)
-        }
+        override fun serialize(ctxt: GenericSerializer) = mapOf(
+            "enabled" to enabled,
+            "name" to name, // required for APIC to be able to deserialize properly
+            // Everything else is either const or is in pic.pins
+        )
 
+        @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            super<IAutoSerializable>.deserialize(ctxt, snapshot)
+            enabled = loadValue(snapshot, "enabled")
+
+            // For compatibility
+            if ("pending" in snapshot) pending = loadValue(snapshot, "pending")
+            if ("pic" in snapshot) {
+                val pins = (
+                    snapshot["pic"] as Map<String, List<MutableMap<String, String>>>
+                )["pins"]!!
+
+                if ("alias" !in pins[0]) {
+                    pins.forEach { p ->
+                        p["class"] = p["class"]!!.replace(
+                            "ru.inforion.lab403.kopycat.modules.atom2758.PIC8259",
+                            "ru.inforion.lab403.kopycat.modules.common.PIC8259",
+                        )
+                    }
+                    pic.deserialize(ctxt, snapshot["pic"] as Map<String, Any>)
+                }
+            }
         }
     }
 
@@ -310,7 +344,7 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
     private val slave = I8259(0xA0u)
 
 
-    private val IRQ = Interrupts(ports.irq, "IRQ",
+    val IRQ = Interrupts(ports.irq, "IRQ",
         Interrupt(0, master,"IRQ0"), // IRQ 0 — system timer
         Interrupt(1, master,"IRQ1"), // IRQ 1 — keyboard controller
         // 2 is a cascade of slave
@@ -330,4 +364,21 @@ class PIC8259(parent: Module, name: String) : APIC(parent, name) {
         Interrupt(15, slave,"IRQ15") // IRQ 15 — ATA channel 2
     )
 
+    override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + mapOf(
+        "master" to master.serialize(ctxt),
+        "slave" to slave.serialize(ctxt),
+    )
+
+    @Suppress("UNCHECKED_CAST")
+    override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
+        super.deserialize(ctxt, snapshot)
+
+        if ("master" in snapshot) {
+            master.deserialize(ctxt, snapshot["master"] as Map<String, Any>)
+        }
+
+        if ("slave" in snapshot) {
+            slave.deserialize(ctxt, snapshot["slave"] as Map<String, Any>)
+        }
+    }
 }

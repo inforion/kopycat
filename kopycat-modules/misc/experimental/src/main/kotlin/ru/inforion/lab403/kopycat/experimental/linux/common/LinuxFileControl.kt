@@ -85,15 +85,17 @@ fun buildLinuxFileControl(block: LinuxFileControlBuilder.() -> Unit): Int {
 /**
  * [Sources on bootlin](https://elixir.bootlin.com/linux/v3.2.16/source/include/asm-generic/fcntl.h)
  */
+
+// TODO: fix for different versions!!!
 enum class LinuxFileControl(val code: Int, val description: String) {
     RDONLY(0, "RdOnly"),
     WRONLY(1, "WrOnly"),
-    CREAT(0x40, "Creat"),
+    CREAT(0x100, "Creat"),
     TRUNC(0x200, "Trunc"),
-    DSYNC(0x1000, "DSync"),
-    DIRECT(0x4000, "Direct"),
-    LARGEFILE(0x8000, "LargeFile"),
-    DIRECTORY(0x1_0000, "Directory"),
-    NOFOLLOW(0x2_0000, "NoFollow"),
-    CLOEXEC(0x8_0000, "CloExec");
+    DSYNC(0x1_0000, "DSync"),
+    DIRECT(0x4_0000, "Direct"),
+    LARGEFILE(0x10_0000, "LargeFile"),
+    DIRECTORY(0x20_0000, "Directory"),
+    NOFOLLOW(0x40_0000, "NoFollow"),
+    CLOEXEC(0x200_0000, "CloExec");
 }

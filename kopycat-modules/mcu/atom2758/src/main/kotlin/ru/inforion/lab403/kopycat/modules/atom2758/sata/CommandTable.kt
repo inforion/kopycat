@@ -29,10 +29,10 @@ import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.experimental.fields.common.OffsetField
-import ru.inforion.lab403.kopycat.experimental.fields.delegates.offsetField
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IMemoryRef
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IOffsetable
+import ru.inforion.lab403.kopycat.auxiliary.fields.common.OffsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.offsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IMemoryRef
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
 
 /**
  * Таблица с командой.
@@ -42,7 +42,8 @@ import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IOffsetable
  * @param memory DMA порт
  * @param baseAddress базовый адрес таблицы
  */
-internal class CommandTable(override val memory: MasterPort, override val baseAddress: ULong) : IMemoryRef, IOffsetable {
+internal class CommandTable(override val memory: MasterPort, override val baseAddress: ULong) : IMemoryRef,
+    IOffsetable {
     // Command FIS 0 - 40h
 
     /** FIS_REGISTER_H2D */

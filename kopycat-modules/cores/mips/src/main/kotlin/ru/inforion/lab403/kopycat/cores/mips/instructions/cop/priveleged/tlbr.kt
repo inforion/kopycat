@@ -25,14 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
-import ru.inforion.lab403.common.extensions.hex8
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.Code19bitInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
- *
  * TLBR
  */
 class tlbr(core: MipsCore,
@@ -43,13 +40,24 @@ class tlbr(core: MipsCore,
 
     override fun execute() {
         val i = index
-        if (i > core.mmu.tlbEntries)
-            throw GeneralException("Trying to read TLB register above index: $i > ${core.mmu.tlbEntries}")
         val entry = core.mmu.readTlbEntry(i)
-        pageMask = entry.pageMask
-        entryHi = entry.entryHi
-        entryLo0 = entry.entryLo0
-        entryLo1 = entry.entryLo1
-        log.warning { "${core.cpu.pc.hex8} -> $mnem $entry" }
+
+        if (entry.EHINV) {
+            pageMask = 0u
+            entryHi = 1uL shl 10
+            entryLo0 = 0u
+            entryLo1 = 0u
+        } else {
+            pageMask = entry.pageMask
+            entryHi = if (core.cop.regs.Config5.mi) {
+                entry.VPN2
+            } else {
+                entry.VPN2 or entry.ASID(core.cop.regs.Config5.mi)
+            }
+            entryLo0 = entry.entryLo0
+            entryLo1 = entry.entryLo1
+            memoryMapId = entry.mmid
+        }
+//        log.warning { "${core.cpu.pc.hex8} -> $mnem $entry" }
     }
 }

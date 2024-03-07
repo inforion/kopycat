@@ -38,8 +38,12 @@ import ru.inforion.lab403.kopycat.modules.BUS32
 import java.math.BigInteger
 
 
-class MipsDebugger(parent: Module, name: String, dbgAreaSize: ULong = BUS32, val endian: Endian = Endian.LITTLE) :
-    Debugger(parent, name, dbgAreaSize = dbgAreaSize) {
+class MipsDebugger(
+    parent: Module,
+    name: String,
+    dbgAreaSize: ULong = BUS32,
+    val endian: Endian = Endian.LITTLE,
+) : Debugger(parent, name, dbgAreaSize = dbgAreaSize) {
     companion object {
         @Transient
         val log = logger(WARNING)
@@ -56,12 +60,14 @@ class MipsDebugger(parent: Module, name: String, dbgAreaSize: ULong = BUS32, val
 
     private inline val mips get() = core as MipsCore
 
-    override fun ident() : String = "mips64-cpu" // ident
+    override fun ident() : String = "mips"
 
     override fun target(): String = when (mips.cpu.mode) {
         MipsCPU.Mode.R32 -> super.target()
-        MipsCPU.Mode.R64 -> "mips64.xml"
-        // MipsCPU.Mode.R64 -> "mips64-linux.xml" // correct source for conf, but big endian for some reason (hate it)
+        MipsCPU.Mode.R64 -> when (endian) {
+            Endian.LITTLE -> super.target()
+            Endian.BIG -> "mips64-linux.xml"
+        }
     }
 
     override fun registers(): List<BigInteger> = Array(REG_TOTAL) { regRead(it) }.toMutableList()
@@ -69,19 +75,32 @@ class MipsDebugger(parent: Module, name: String, dbgAreaSize: ULong = BUS32, val
     override fun regSize(index: Int) = if (mips.cpu.mode == MipsCPU.Mode.R32) Datatype.DWORD else Datatype.QWORD
 
     override fun regRead(index: Int): BigInteger = when (index) {
-            REG_CP0_STATUS -> mips.cop.regs.Status.value.bigint
-            REG_LO -> mips.cpu.lo.bigint
-            REG_HI -> mips.cpu.hi.bigint
-            REG_BADVADDR -> mips.cop.regs.BadVAddr.value.bigint
-            REG_CAUSE -> mips.cop.regs.Cause.value.bigint
-            REG_PC -> if (mips.cpu.iset == InstructionSet.MIPS32) mips.cpu.pc.bigint else (mips.cpu.pc.bigint set 0)
-            else -> mips.cpu.regs.read(index).bigint
-        }.let { if (endian == Endian.BIG) it.swap64() else it }
-
-
+        REG_CP0_STATUS -> mips.cop.regs.Status.value.bigint
+        REG_LO -> mips.cpu.lo.bigint
+        REG_HI -> mips.cpu.hi.bigint
+        REG_BADVADDR -> mips.cop.regs.BadVAddr.value.bigint
+        REG_CAUSE -> mips.cop.regs.Cause.value.bigint
+        REG_PC -> if (mips.cpu.iset == InstructionSet.MIPS32) mips.cpu.pc.bigint else (mips.cpu.pc.bigint set 0)
+        else -> mips.cpu.regs.read(index).bigint
+    }.let {
+        when (endian) {
+            Endian.BIG -> when (mips.cpu.mode) {
+                MipsCPU.Mode.R32 -> it.swap32()
+                MipsCPU.Mode.R64 -> it.swap64()
+            }
+            else -> it
+        }
+    }
 
     override fun regWrite(index: Int, value: BigInteger) {
-        val dataToWrite = if (endian == Endian.BIG) value.ulong.swap64() else value.ulong
+        val dataToWrite = when (endian) {
+            Endian.BIG -> when (mips.cpu.mode) {
+                MipsCPU.Mode.R32 -> value.ulong.swap32()
+                MipsCPU.Mode.R64 -> value.ulong.swap64()
+            }
+            else -> value.ulong
+        }
+
         when (index) {
             REG_CP0_STATUS -> mips.cop.regs.Status.value = dataToWrite
 

@@ -147,13 +147,17 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
     override fun count() = regs.count
     override fun flags(): ULong = 0u
 
-    var bigEndianCPU = 0
+    var bigEndianCPU
+        get() = mips.cop.regs.Config0.BE.int
+        set(value) {
+            mips.cop.regs.Config0.BE = value > 0
+        }
 
     val mips32decoder = Mips32SystemDecoder(mips)
     val mips16decoder = Mips16SystemDecoder(mips)
     val branchCntrl = BranchController()
 
-    val regs = GPRBank(this)
+    val regs = GPRBank(this, mips.abi)
 
     val hwrs = HWRBank(mips)        // COP2
 
@@ -216,13 +220,15 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
     }
 
     override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + mapOf(
-            "hi" to hi.hex8,
-            "lo" to lo.hex8,
-            "status" to status.hex8,
-            "pc" to pc.hex8,
-            "llbit" to llbit.toString(),
-            "regs" to regs.serialize(ctxt),
-            "branchCntrl" to branchCntrl.serialize(ctxt))
+        "hi" to hi.hex8,
+        "lo" to lo.hex8,
+        "status" to status.hex8,
+        "pc" to pc.hex8,
+        "llbit" to llbit.toString(),
+        "regs" to regs.serialize(ctxt),
+        "branchCntrl" to branchCntrl.serialize(ctxt),
+        "hwrs" to hwrs.serialize(ctxt),
+    )
 
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
@@ -234,5 +240,8 @@ class MipsCPU(val mips: MipsCore, name: String) : ACPU<MipsCPU, MipsCore, AMipsI
         llbit = (snapshot["llbit"] as String).intByDec
         regs.deserialize(ctxt, snapshot["regs"] as Map<String, String>)
         branchCntrl.deserialize(ctxt, snapshot["branchCntrl"] as Map<String, String>)
+        if ("hwrs" in snapshot) {
+            hwrs.deserialize(ctxt, snapshot["hwrs"] as Map<String, String>)
+        }
     }
 }

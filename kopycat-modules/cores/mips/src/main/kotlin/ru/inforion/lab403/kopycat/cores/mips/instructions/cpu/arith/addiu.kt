@@ -50,7 +50,7 @@ class addiu(
 
     override fun execute() {
         vrt = if (core.is64bit) {
-            (vrs + imm.usext.uint)[31 .. 0].signext(31)
+            (vrs + imm.usext)[31 .. 0].signext(31)
         } else {
             vrs + imm.usext.uint
         }

@@ -40,15 +40,14 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class CcFsFt(
         core: MipsCore,
-        val construct: (MipsCore, ULong, MipsRegister, MipsRegister, MipsImmediate) -> AMipsInstruction
+        val construct: (MipsCore, ULong, MipsRegister, MipsRegister, MipsImmediate, MipsImmediate) -> AMipsInstruction
 ) : ADecoder(core) {
 
     override fun decode(data: ULong): AMipsInstruction {
         val cond = data[3..0]
         val cc = data[10..8]
-        if (cc != 0uL) throw UnsupportedOperationException()
         val ft = data[20..16].int
         val fs = data[15..11].int
-        return construct(core, data, fpr(fs), fpr(ft), imm(cond))
+        return construct(core, data, fpr(fs), fpr(ft), imm(cond), imm(cc))
     }
 }

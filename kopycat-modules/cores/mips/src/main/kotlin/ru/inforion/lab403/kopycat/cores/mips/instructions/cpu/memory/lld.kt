@@ -26,8 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -51,7 +50,7 @@ class lld(core: MipsCore,
     override fun execute() {
         // TODO: throw exception
         if (address[2..0] != 0uL)
-            throw MemoryAccessError(core.pc, address, AccessAction.LOAD, "ADEL")
+            throw MipsHardwareException.AdEL(core.pc, address)
 
         vrt = memword
         core.cpu.llbit = 1

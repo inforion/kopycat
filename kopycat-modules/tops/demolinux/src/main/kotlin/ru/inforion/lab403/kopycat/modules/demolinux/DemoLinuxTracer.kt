@@ -32,9 +32,8 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 import ru.inforion.lab403.kopycat.experimental.runtime.DataUtils
 import ru.inforion.lab403.kopycat.experimental.tracer.TracerUtils
-import ru.inforion.lab403.kopycat.experimental.x86.TracerBypassUtils
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.abi.x64AbiSystemV
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.x86funUtils
+import ru.inforion.lab403.kopycat.runtime.abi.x64AbiSystemV
+import ru.inforion.lab403.kopycat.experimental.tracer.TracerBypassUtils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 class DemoLinuxTracer(parent: Module?, name: String) : ATracer<x86Core>(parent, name) {
@@ -45,7 +44,7 @@ class DemoLinuxTracer(parent: Module?, name: String) : ATracer<x86Core>(parent, 
 //    val linux by lazy { LinuxTODO(x86) }
 
     @DontAutoSerialize
-    val funUtils by lazy { x86funUtils(x86, x64AbiSystemV(x86)) }
+    val abi by lazy { x64AbiSystemV(x86) }
 
     @DontAutoSerialize
     val data by lazy { DataUtils(x86) }
@@ -54,7 +53,7 @@ class DemoLinuxTracer(parent: Module?, name: String) : ATracer<x86Core>(parent, 
     val tracerUtils by lazy { TracerUtils(x86) }
 
     @DontAutoSerialize
-    val tracerBypassUtils by lazy { TracerBypassUtils(funUtils) }
+    val TracerBypassUtils by lazy { TracerBypassUtils(abi) }
 
     override fun postExecute(core: x86Core, status: Status): ULong {
         return TRACER_STATUS_SUCCESS

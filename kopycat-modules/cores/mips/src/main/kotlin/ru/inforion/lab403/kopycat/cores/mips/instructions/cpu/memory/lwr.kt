@@ -46,37 +46,9 @@ class lwr(core: MipsCore,
     override val mnem = "lwr"
 
     override fun execute() {
-        // I hate mips...
-        val dataword = vrt
-
-        val vAddr = address
-
-        val byte = (vAddr[1..0] xor core.cpu.bigEndianCPU.bext(2)).int
-
-        vrt = if (core.is32bit) {
-            // Can't use operand value because to specific handler required
-            val memword = core.inl(vAddr and 0xFFFFFFFCu)
-
-            val hi = dataword[31..32 - 8 * byte] // 1st part of temp
-            val lo = memword[31..8 * byte]       // 2d part of temp
-
-            hi.shl(32 - 8 * byte) or lo // temp
-
-        } else {
-            val memdoubleword = core.inl(vAddr and 0xFFFF_FFFF_FFFF_FFFCu)
-
-            val word = (vAddr[2] xor core.cpu.bigEndianCPU.ulong_z).int
-
-            val hi = dataword[31..32 - 8 * byte]
-            val lo = memdoubleword[(31 + 32 * word)..(32 * word + 8 * byte)]
-            val temp = hi.shl(32 - 8 * byte) or lo
-
-            // what the hell "one of the two following behaviors"?
-            // I hate mips.
-
-            val utemp = temp.signext(31)        // ignoring if byte == 4 condition
-
-            cat(utemp, temp, 31)          // TODO: test this!!!
-        }
+        val byte = (address[1..0] xor core.cpu.bigEndianCPU.bext(2)).int
+        val hi = vrt mask 31 .. 32 - 8 * byte
+        val lo = core.inl(address clr 1..0) ushr (byte * 8)
+        vrt = (hi or lo) signext 31
     }
 }

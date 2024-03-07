@@ -26,8 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.mips16.memory
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction16
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -49,7 +48,7 @@ class lhu(core: MipsCore,
 
         val address = rx.value(core) + (off.value shl 1)
         if (address[0] != 0uL)
-            throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
+            throw MipsHardwareException.AdEL(core.pc, address)
         ry.value(core, core.inw(address))
     }
 }

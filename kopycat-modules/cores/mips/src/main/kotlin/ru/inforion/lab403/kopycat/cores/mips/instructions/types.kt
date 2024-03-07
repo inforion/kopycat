@@ -71,8 +71,9 @@ abstract class CcFsFtInsn(
         type: Type,
         val fs: MipsRegister,
         val ft: MipsRegister,
-        val cc: MipsImmediate
-) : AMipsInstruction(core, data, type, fs, ft, cc) {
+        val condition: MipsImmediate,
+        val cc: MipsImmediate,
+) : AMipsInstruction(core, data, type, fs, ft, condition) {
     inline var vfs: ULong
         get() = fs.value(core)
         set(value) = fs.value(core, value)
@@ -83,10 +84,9 @@ abstract class CcFsFtInsn(
     var dfs : ULong by DoubleRegister(1)
     var dft : ULong by DoubleRegister(2)
 
-    //  FCC0 bit is 23
     inline var vcc: Boolean
-        get() = core.fpu.cntrls.fccr.fcc0
-        set(value) { core.fpu.cntrls.fccr.fcc0 = value }
+        get() = core.fpu.cntrls.fccr.fccn(cc.value.int)
+        set(value) = core.fpu.cntrls.fccr.fccn(cc.value.int, value)
 
     val cond by lazy { COND.values().first { it.ordinal == (op3 as MipsImmediate).value.int } }
 }
@@ -104,10 +104,9 @@ abstract class CcOffsetInsn(
     }
     inline val eaAfterBranch: ULong get() = core.cpu.pc + 8u
 
-    //  FCC0 bit is 23
     inline var vcc: Boolean
-        get() = core.fpu.cntrls.fccr.fcc0
-        set(value) { core.fpu.cntrls.fccr.fcc0 = value }
+        get() = core.fpu.cntrls.fccr.fccn(cc.value.int)
+        set(value) = core.fpu.cntrls.fccr.fccn(cc.value.int, value)
 }
 
 abstract class Code19bitInsn(core: MipsCore, data: ULong, type: Type, val imm: MipsImmediate) :
@@ -115,11 +114,8 @@ abstract class Code19bitInsn(core: MipsCore, data: ULong, type: Type, val imm: M
 
     inline val cop0: ACOP0 get() = core.cop
 
-    inline var index: Int
-        get() = cop0.regs.Index.value.int
-        set(value) {
-            cop0.regs.Index.value = value.ulong_s
-        }
+    inline val index: Int
+        get() = (cop0.regs.Index.index % core.mmu.tlbEntries.ulong_z).int
 
     inline val random: ULong get() = cop0.regs.Random.value
 
@@ -142,6 +138,11 @@ abstract class Code19bitInsn(core: MipsCore, data: ULong, type: Type, val imm: M
         get() = cop0.regs.EntryLo1.value.uint
         set(value) {
             cop0.regs.EntryLo1.value = value.ulong_z
+        }
+    inline var memoryMapId: ULong
+        get() = cop0.regs.MMID.mmid
+        set(value) {
+            cop0.regs.MMID.value = value[15..0]
         }
 }
 
@@ -261,8 +262,18 @@ abstract class RdRsCcInsn(
         type: Type,
         val rd: MipsRegister,
         val rs: MipsRegister,
-        val cc: MipsImmediate
-) : AMipsInstruction(core, data, type, rd, rs, cc)
+        val cc: MipsImmediate,
+) : AMipsInstruction(core, data, type, rd, rs, cc) {
+    inline var vrd: ULong
+        get() = rd.value(core)
+        set(value) = rd.value(core, value)
+    inline var vrs: ULong
+        get() = rs.value(core)
+        set(value) = rs.value(core, value)
+    inline var vcc: Boolean
+        get() = core.fpu.cntrls.fccr.fccn(cc.value.int)
+        set(value) = core.fpu.cntrls.fccr.fccn(cc.value.int, value)
+}
 
 abstract class RdRsRtInsn(
         core: MipsCore,

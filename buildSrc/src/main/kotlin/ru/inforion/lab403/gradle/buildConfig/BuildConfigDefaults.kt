@@ -74,6 +74,8 @@ class BuildConfigDefaults(
 
     fun gdbPort() = 64128
 
+    fun httpPort() = 64129
+
     fun starter() = "ru.inforion.lab403.kopycat.KopycatStarter"
 
     fun initScript() = "init.kts"

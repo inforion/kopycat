@@ -25,10 +25,14 @@
  */
 package ru.inforion.lab403.kopycat.experimental.fields.delegates
 
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.absoluteField
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.dynamicAbsoluteField
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.dynamicOffsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.offsetField
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.experimental.fields.common.*
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IMemoryRef
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IOffsetable
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IMemoryRef
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
 import ru.inforion.lab403.kopycat.modules.BUS32
 
 

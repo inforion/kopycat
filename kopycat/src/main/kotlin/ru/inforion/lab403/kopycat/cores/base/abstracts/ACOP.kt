@@ -94,15 +94,17 @@ abstract class ACOP<
      * Запрос ожидающего прерывания
      *
      * @param [ie] флаг глобального разрешения прерываний (может быть использован для немаскируемых прерываний)
+     * @param [condition] дополнительное условие
      * @return прерывание с наибольшим приоритетом или NULL при отсутствии прерываний
      * {RU}
      *
      * {EN}
      * Return pending interrupt with highest priority or null if no interrupt pending
      * @param ie - flag of global interrupt enable status (may be used for NMI processing)
+     * @param condition - additional condition
      * {EN}
      */
-    fun pending(ie: Boolean) = qInterrupts.take(ie)
+    fun pending(ie: Boolean, condition: ((AInterrupt) -> Boolean)? = null) = qInterrupts.take(ie, condition)
 
     /**
      * {RU}

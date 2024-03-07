@@ -26,8 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.STORE
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -46,8 +45,8 @@ class sh(core: MipsCore,
     override val mnem = "sh"
 
     override fun execute() {
-        if (address[0] != 0uL)
-            throw MemoryAccessError(core.pc, address, STORE, "ADES")
+        if (address[0] != 0uL && core.cop.regs.CvmCtl?.REPUN != true)
+            throw MipsHardwareException.AdES(core.pc, address)
         memword = if (core.is32bit) {
             (memword[31..16] shl 16) or vrt[15..0]
         } else {

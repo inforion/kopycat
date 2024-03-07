@@ -27,10 +27,8 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.mips16.memory
 
 import ru.inforion.lab403.common.extensions.clr
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.common.extensions.signextRenameMeAfter
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -52,7 +50,7 @@ class lwpcExt(core: MipsCore,
     override fun execute() {
         val address = (core.pc clr 1..0) + off.value.signextRenameMeAfter(15)
         if (address[1..0] != 0uL)
-            throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
+            throw MipsHardwareException.AdEL(core.pc, address)
         rx.value(core, core.inl(address))
     }
 }

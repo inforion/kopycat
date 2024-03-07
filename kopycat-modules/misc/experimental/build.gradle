@@ -13,6 +13,7 @@ repositories {
 dependencies {
     compileOnly project(":kopycat-modules:cores:x86")
     compileOnly project(":kopycat-modules:cores:arm")
+    compileOnly project(":kopycat-modules:cores:mips")
 }
 
 buildKopycatModule {

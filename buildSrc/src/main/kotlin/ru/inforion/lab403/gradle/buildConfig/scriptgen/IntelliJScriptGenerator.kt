@@ -29,33 +29,30 @@ package ru.inforion.lab403.gradle.buildConfig.scriptgen
  * Generates powershell KOPYCAT startup script
  */
 class IntelliJScriptGenerator(
-    override val name: String,
-    override val description: String,
-    val classpath: Iterable<String>,
-    override val starterClass: String,
-    val projectDir: String,
-    val gradleBuildTask: String,
-    val kcPackageName: String,
+    val data: ScriptGeneratorData
 ) : IScriptGenerator {
+    override val name: String = data.name
+    override val description: String = data.description
+    override val starterClass: String = data.starterClass
 
-    override val classpathStr by lazy { classpath.joinToString(";") }
+    override val classpathStr by lazy { data.classpath.joinToString(";") }
 
     override val arguments = linkedMapOf<String, String?>()
 
     val gradleBuildTaskPath by lazy {
-        gradleBuildTask.split(":").run {
+        data.gradleBuildTask.split(":").run {
             subList(1, this.size - 1).joinToString("/")
         }
     }
 
     override fun generate(): String {
         val argumentsStr = arguments.map { (key, value) ->
-            value?.let { "$key &quot;$it&quot;" } ?: "  $key"
+            value?.let { "$key &quot;$it&quot;" } ?: key
         }.joinToString(" ")
 
         return """<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="kopycat-gen-$kcPackageName $name" type="JetRunConfigurationType" folderName="kopycat-gen">
-    <output_file path="./temp/$kcPackageName-$name-kc-last" is_save="true" />
+  <configuration default="false" name="kopycat-gen-${data.kcPackageName} $name" type="JetRunConfigurationType" folderName="kopycat-gen">
+    <output_file path="./temp/${data.kcPackageName}-$name-kc-last" is_save="true" />
     <option name="MAIN_CLASS_NAME" value="$starterClass" />
     <module name="kopycat-private.kopycat.main" />
     <option name="PROGRAM_PARAMETERS" value="$argumentsStr" />
@@ -69,6 +66,6 @@ class IntelliJScriptGenerator(
 </component>""".replace("💲", "${'$'}")
     }
 
-    override fun fileName(): String = "kopycat-gen-$kcPackageName $name.run.xml"
+    override fun fileName(): String = "kopycat-gen-${data.kcPackageName} $name.run.xml"
     override fun dirName(): String = "intellij"
 }

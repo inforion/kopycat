@@ -30,8 +30,8 @@ import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.extensions.untruth
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.experimental.fields.delegates.offsetField
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IOffsetable
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.offsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
 
 /**
  * Received FIS, D2H.

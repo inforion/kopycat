@@ -33,11 +33,14 @@ import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 
-class c_cond_d(core: MipsCore,
-               data: ULong,
-               fs: MipsRegister,
-               ft: MipsRegister,
-               cc: MipsImmediate) : CcFsFtInsn(core, data, Type.VOID, fs, ft, cc) {
+class c_cond_d(
+    core: MipsCore,
+    data: ULong,
+    fs: MipsRegister,
+    ft: MipsRegister,
+    cond: MipsImmediate,
+    cc: MipsImmediate,
+) : CcFsFtInsn(core, data, Type.VOID, fs, ft, cond, cc) {
 
     override val mnem get() = "c.$cond.d".lowercase()
 

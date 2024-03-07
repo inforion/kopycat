@@ -132,8 +132,16 @@ object KopycatStarter {
             it.setScriptDirectory(opts.scriptDir)
         }
 
-        // TODO: check file existence
-        initScript = opts.initScript?.let { (Path(Kopycat.scriptDir) / Path(it)).toFile() }
+        initScript = opts.initScript
+            ?.let { (Path(Kopycat.scriptDir) / Path(it)).toFile() }
+            ?.let {
+                return@let if (it.exists()) {
+                    it
+                } else {
+                    log.severe { "Initial script at path ${it.path} does not exist" }
+                    null
+                }
+            }
 
         if (opts.modulesRegistryAllInfo) {
             kopycat.printModulesRegistryInfo(false)

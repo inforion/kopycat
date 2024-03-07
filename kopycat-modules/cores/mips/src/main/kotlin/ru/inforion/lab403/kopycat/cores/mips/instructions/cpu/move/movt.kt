@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.move
 
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsCcInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -43,6 +42,9 @@ class movt(core: MipsCore,
 
     override val mnem = "movt"
 
-    override fun execute(): Unit = throw GeneralException("$mnem: Sorry, but I don't know how to execute this instruction!")
+    override fun execute() {
+        if (vcc) {
+            vrd = vrs
+        }
+    }
 }
-

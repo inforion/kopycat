@@ -25,8 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.untruth
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.VOID
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdInsn
+import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
@@ -36,14 +40,24 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class wrdsp(core: MipsCore,
             data: ULong,
-            rd: MipsRegister
+            rd: MipsRegister,
+            private val mask: MipsImmediate
 ) : RdInsn(core, data, VOID, rd) {
 
     override val mnem = "wrdsp"
 
     override fun execute() {
-        if (core.dspExtension)
-            log.severe { "dspExtension not implemented!" }
+        if (!core.dspExtension) throw MipsHardwareException.DSPDis(core.pc)
+        val rs = rd.value(core)
+        val dspCtrl = core.dspModule?.regs?.DSPControl
+
+        if (mask.value[0] == 1uL) dspCtrl?.pos = rs[5..0]
+        if (mask.value[1] == 1uL) dspCtrl?.scount = rs[12..7]
+        if (mask.value[2] == 1uL) dspCtrl?.c = rs[13].untruth
+        if (mask.value[3] == 1uL) dspCtrl?.ouflag = rs[23..16]
+        if (mask.value[4] == 1uL) dspCtrl?.ccond = rs[31..24]
+        if (mask.value[5] == 1uL) dspCtrl?.EFI = rs[14].untruth
+
     }
 }
 

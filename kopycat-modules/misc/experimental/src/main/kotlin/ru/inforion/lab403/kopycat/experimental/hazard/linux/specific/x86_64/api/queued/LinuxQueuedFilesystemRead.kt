@@ -28,26 +28,33 @@ package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api
 import org.jetbrains.kotlin.backend.common.push
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.kopycat.experimental.common.capturable.Capturable
-import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces.LinuxVfsRWCapturableApi
-import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces.LinuxFilpCapturableApi
+import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.kopycat.auxiliary.capturable.Capturable
+import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedUtils
+import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedUtilsData
 import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.data.interfaces.LinuxThreadInfo
+import ru.inforion.lab403.kopycat.experimental.linux.api.interfaces.LinuxFilpCapturableApi
+import ru.inforion.lab403.kopycat.experimental.linux.api.interfaces.LinuxVfsRWCapturableApi
 import ru.inforion.lab403.kopycat.experimental.linux.common.LinuxReturn
 import ru.inforion.lab403.kopycat.experimental.linux.common.buildLinuxFileControl
 import ru.inforion.lab403.kopycat.experimental.linux.common.toLinuxReturn
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.queued.x86funQueuedUtils
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.queued.x86funQueuedUtilsData
 import ru.inforion.lab403.kopycat.interfaces.inq
 import java.io.File
 
 class LinuxQueuedFilesystemRead<T>(
     val raw: T,
-    val queued: x86funQueuedUtils,
+    val queued: FunQueuedUtils,
     val sourcePath: String,
     val destinationPath: String,
     val bucketSize: ULong = 1024uL,
     val threadInfoBlock: () -> LinuxThreadInfo?
 ) where T : LinuxVfsRWCapturableApi, T : LinuxFilpCapturableApi {
+    companion object {
+        @Transient
+        val log = logger(INFO)
+    }
+
     val stream = File(destinationPath).outputStream()
     val availablePc = setOf(raw.PTR_FILP_CLOSE, raw.PTR_FILP_OPEN, raw.PTR_VFS_WRITE, raw.PTR_VFS_READ)
 
@@ -57,9 +64,9 @@ class LinuxQueuedFilesystemRead<T>(
 
     private fun fileOpen() {
         queued.functionsQueue.push(
-            x86funQueuedUtilsData(
+            FunQueuedUtilsData(
                 isReadyToCall = {
-                    x86.pc in availablePc && threadInfoBlock() != null
+                    core.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -76,7 +83,7 @@ class LinuxQueuedFilesystemRead<T>(
                         }
 
                         override fun body() {
-                            x86.pc = raw.PTR_FILP_OPEN
+                            abi.call(raw.PTR_FILP_OPEN)
                         }
 
                         override fun destroy() {
@@ -90,7 +97,7 @@ class LinuxQueuedFilesystemRead<T>(
                                     fileIterator = 0uL,
                                 )
 
-                                else -> println("ERROR: file pointer = 0x${filePointer.rawValue.hex}")
+                                else -> log.severe { "File pointer = 0x${filePointer.rawValue.hex}" }
                             }
 
                         }
@@ -106,9 +113,9 @@ class LinuxQueuedFilesystemRead<T>(
         fileIterator: ULong
     ) {
         queued.functionsQueue.push(
-            x86funQueuedUtilsData(
+            FunQueuedUtilsData(
                 isReadyToCall = {
-                    x86.pc in availablePc && threadInfoBlock() != null
+                    core.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -125,13 +132,13 @@ class LinuxQueuedFilesystemRead<T>(
                         }
 
                         override fun body() {
-                            x86.pc = raw.PTR_VFS_READ
+                            abi.call(raw.PTR_VFS_READ)
                         }
 
                         override fun destroy() {
                             val readSize = abi.getResult()
-                            val newIterator = x86.inq(vfsWrite.pointer.address)
-                            val data = x86.load(vfsWrite.alloca.address, vfsWrite.alloca.size.int)
+                            val newIterator = core.inq(vfsWrite.pointer.address)
+                            val data = core.load(vfsWrite.alloca.address, vfsWrite.alloca.size.int)
 
                             stream.write(data.sliceArray(0 until readSize.int))
 
@@ -156,9 +163,9 @@ class LinuxQueuedFilesystemRead<T>(
 
     private fun fileClose(filePointer: ULong) {
         queued.functionsQueue.push(
-            x86funQueuedUtilsData(
+            FunQueuedUtilsData(
                 isReadyToCall = {
-                    x86.pc in availablePc && threadInfoBlock() != null
+                    core.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -173,7 +180,7 @@ class LinuxQueuedFilesystemRead<T>(
                         }
 
                         override fun body() {
-                            x86.pc = raw.PTR_FILP_CLOSE
+                            abi.call(raw.PTR_FILP_CLOSE)
                         }
 
                         override fun destroy() {

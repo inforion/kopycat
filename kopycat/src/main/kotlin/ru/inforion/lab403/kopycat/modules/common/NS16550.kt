@@ -29,6 +29,7 @@ package ru.inforion.lab403.kopycat.modules.common
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.SEVERE
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.bit
@@ -79,8 +80,10 @@ class NS16550(
      *
      * Пример симптома: `ttyS0: 3 input overrun(s)`.
      */
-    private val t2mTimer = object : SystemClock.PeriodicalTimer("terminal 2 machine timer") {
+    private val t2mTimer = object : SystemClock.PeriodicalTimer("terminal 2 machine timer $name") {
         override fun trigger() {
+            super.trigger()
+
             if (RBR_THR_DLL.bytesIn.isNotEmpty()) {
                 if (FCR_IIR.fcr[0].untruth && LSR.DR.truth) {
                     LSR.OE = 1
@@ -103,12 +106,18 @@ class NS16550(
     override fun serialize(ctxt: GenericSerializer) = super.serialize(ctxt) + storeValues(
         "thrIntr" to thrIntr,
         "timeoutIntr" to timeoutIntr,
+    ) + mapOf(
+        "t2mTimer" to t2mTimer.serialize(ctxt)
     )
 
+    @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
         thrIntr = loadValue(snapshot, "thrIntr") { false }
         timeoutIntr = loadValue(snapshot, "timeoutIntr") { false }
+        snapshot["t2mTimer"] ifNotNull {
+            t2mTimer.deserialize(ctxt, snapshot["t2mTimer"] as Map<String, Any>)
+        }
     }
 
     private fun checkIrq() {

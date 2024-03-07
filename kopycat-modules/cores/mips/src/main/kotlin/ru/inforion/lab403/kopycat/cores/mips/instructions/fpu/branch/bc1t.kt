@@ -36,8 +36,8 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  */
 class bc1t(core: MipsCore,
            data: ULong,
-           imm: MipsImmediate,
-           off: MipsNear) : CcOffsetInsn(core, data, Type.VOID, imm, off) {
+           cc: MipsImmediate,
+           off: MipsNear) : CcOffsetInsn(core, data, Type.VOID, cc, off) {
 
     override val mnem = "bc1t"
 

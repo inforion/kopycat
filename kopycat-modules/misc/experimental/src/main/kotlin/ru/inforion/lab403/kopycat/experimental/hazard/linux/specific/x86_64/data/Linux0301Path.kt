@@ -26,9 +26,9 @@
 package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.data
 
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.experimental.fields.common.OffsetData
-import ru.inforion.lab403.kopycat.experimental.fields.common.OffsetField
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IOffsetable
+import ru.inforion.lab403.kopycat.auxiliary.fields.common.OffsetData
+import ru.inforion.lab403.kopycat.auxiliary.fields.common.OffsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
 import ru.inforion.lab403.kopycat.interfaces.IReadWrite
 
 

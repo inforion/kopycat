@@ -59,7 +59,7 @@ open class MipsHardwareException(
     }
 
     // if MipsCPU.Mode.R32 then VPN2 left border is always 31
-    inline fun vpn2(segbits: Int = 31) = if (cpuMode == MipsCPU.Mode.R32) vAddr[31..13] else vAddr[segbits - 1..13]
+    fun vpn2(segbits: Int = 31) = if (cpuMode == MipsCPU.Mode.R32) vAddr[31..13] else vAddr[segbits - 1..13]
 
     override fun toString(): String = "$prefix[${where.hex8}]: $excCode VA = ${vAddr.hex8}"
 
@@ -68,14 +68,23 @@ open class MipsHardwareException(
 
     class TLBModified(where: ULong, vAddr: ULong) : MipsHardwareException(ExcCode.MOD, where, vAddr)
 
+    class AdEL(where: ULong, vAddr: ULong) : MipsHardwareException(ExcCode.ADEL, where, vAddr)
+    class AdES(where: ULong, vAddr: ULong) : MipsHardwareException(ExcCode.ADES, where, vAddr)
+
     /**
      * EIC_Vector is common field for external interrupt controller support
      */
-    class INT(where: ULong, val interrupt: AInterrupt?) : MipsHardwareException(ExcCode.INT, where)
+    class INT(where: ULong, val irq: Int?, val vector: Int?) : MipsHardwareException(ExcCode.INT, where) {
+        constructor(where: ULong, interrupt: AInterrupt?) : this(where, interrupt?.irq, interrupt?.vector)
+        override fun toString(): String = "$prefix[${where.hex8}]: $excCode IRQ = $irq"
+    }
 
     class BP(where: ULong) : MipsHardwareException(ExcCode.BP, where)
     class SYS(where: ULong) : MipsHardwareException(ExcCode.SYS, where)
     class OV(where: ULong) : MipsHardwareException(ExcCode.OV, where)
     class TR(where: ULong) : MipsHardwareException(ExcCode.TR, where)
     class RI(where: ULong) : MipsHardwareException(ExcCode.RI, where)
+    class TLBRI(where: ULong, vAddr: ULong) : MipsHardwareException(ExcCode.TLBRI, where, vAddr)
+    class TLBXI(where: ULong, vAddr: ULong) : MipsHardwareException(ExcCode.TLBXI, where, vAddr)
+    class DSPDis(where: ULong) : MipsHardwareException(ExcCode.DSPDIS, where)
 }

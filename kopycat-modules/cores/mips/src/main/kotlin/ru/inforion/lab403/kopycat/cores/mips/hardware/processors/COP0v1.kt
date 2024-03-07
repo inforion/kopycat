@@ -36,7 +36,9 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 class COP0v1(core: MipsCore, name: String) : ACOP0(core, name) {
     // TODO: refactor to ARegisterBankNG-fields
     override fun processInterrupts() {
-        super.processInterrupts()
+        if (super.processCountCompare()) {
+            raiseCountCompareCause()
+        }
 
         // Process interrupt at once it requested (i.e. external interrupt controller set it to pending and active state)
         // Don't wait while EI bit will be set by MIPS core (if firmware not hurry up then interrupt will be discarded)

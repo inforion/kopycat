@@ -44,6 +44,8 @@ class movf(core: MipsCore,
     override val mnem = "movf"
 
     override fun execute() {
-        throw GeneralException("$mnem: Sorry, but I don't know how to execute this instruction!")
+        if (!vcc) {
+            vrd = vrs
+        }
     }
 }

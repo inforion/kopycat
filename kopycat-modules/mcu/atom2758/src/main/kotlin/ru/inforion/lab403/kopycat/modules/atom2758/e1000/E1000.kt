@@ -35,7 +35,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.experimental.fields.common.AbsoluteField
+import ru.inforion.lab403.kopycat.auxiliary.fields.common.AbsoluteField
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.PIN
 import ru.inforion.lab403.kopycat.modules.atom2758.BRIDGE

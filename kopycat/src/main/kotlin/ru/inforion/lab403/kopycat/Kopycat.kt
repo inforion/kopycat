@@ -29,6 +29,7 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.reflection.type
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.AGenericDebugger
 import ru.inforion.lab403.kopycat.cores.base.AGenericTracer
@@ -47,6 +48,8 @@ import ru.inforion.lab403.kopycat.interactive.REPL
 import ru.inforion.lab403.kopycat.interfaces.IDebugger
 import ru.inforion.lab403.kopycat.interfaces.ITracer
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
+import ru.inforion.lab403.kopycat.runtime.analyzer.stack.StackAnalyzer
+import ru.inforion.lab403.kopycat.runtime.analyzer.stack.printer
 import ru.inforion.lab403.kopycat.serializer.Serializer
 import ru.inforion.lab403.kopycat.settings.snapshotFileExtension
 import java.io.Closeable
@@ -61,6 +64,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 import kotlin.io.path.Path
 import kotlin.io.path.div
+import kotlin.reflect.full.memberProperties
 
 /**
  * {EN}
@@ -316,6 +320,10 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
         core.info.printTrace()
     }
 
+    fun trace() {
+        core.info.printTrace()
+    }
+
     fun run(predicate: (step: ULong, core: AGenericCore) -> Boolean): ULong {
         val hook = hook(predicate)
         if (hook != null) {
@@ -336,6 +344,19 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
 
     fun info() {
         println(core.stringify())
+    }
+
+    private fun getTopStackAnalyzerOrNull() = top::class
+        .memberProperties
+        .firstOrNull { it.type == StackAnalyzer::class.java }
+        ?.getter?.call(top) as StackAnalyzer?
+
+    fun stackTrace() {
+        val stackAnalyzer = getTopStackAnalyzerOrNull() ?: let {
+            log.severe { "top member of class StackAnalyzer not found" }
+            return
+        }
+        log.info { "\n" + stackAnalyzer.printer.toTable() }
     }
 
     private val sdf = SimpleDateFormat("yyyyMMddHHmmss")
@@ -449,6 +470,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
     }
 
     fun exit() {
+        log.severe { "This is probably wrong exit! Use `exit()` instead next time" }
         close()
         working = false
     }

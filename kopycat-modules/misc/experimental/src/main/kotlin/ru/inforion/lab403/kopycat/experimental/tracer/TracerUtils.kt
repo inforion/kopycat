@@ -28,7 +28,6 @@ package ru.inforion.lab403.kopycat.experimental.tracer
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
-import ru.inforion.lab403.kopycat.experimental.x86.TracerBypassUtils
 
 class TracerUtils(val core: ACore<*, *, *>) {
     fun safeTraceSuccess(functionName: String? = null, block: (functionName: String) -> Unit) =

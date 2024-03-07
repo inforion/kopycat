@@ -25,6 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.move
 
+import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtRdSelInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -41,6 +43,6 @@ class mfc2(core: MipsCore,
     override val mnem = "mfc2"
 
     override fun execute() {
-        vrt = vrd
+        vrt = vrd[31..0] signext 31
     }
 }

@@ -27,28 +27,34 @@ package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api
 
 import org.jetbrains.kotlin.backend.common.push
 import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.readAvailableBytes
-import ru.inforion.lab403.kopycat.experimental.common.capturable.Capturable
-import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces.LinuxVfsRWCapturableApi
-import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces.LinuxFilpCapturableApi
+import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.kopycat.auxiliary.capturable.Capturable
+import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedUtils
+import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedUtilsData
 import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.data.interfaces.LinuxThreadInfo
+import ru.inforion.lab403.kopycat.experimental.linux.api.interfaces.LinuxFilpCapturableApi
+import ru.inforion.lab403.kopycat.experimental.linux.api.interfaces.LinuxVfsRWCapturableApi
 import ru.inforion.lab403.kopycat.experimental.linux.common.LinuxReturn
 import ru.inforion.lab403.kopycat.experimental.linux.common.buildLinuxFileControl
 import ru.inforion.lab403.kopycat.experimental.linux.common.toLinuxReturn
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.queued.x86funQueuedUtils
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.queued.x86funQueuedUtilsData
 import ru.inforion.lab403.kopycat.interfaces.inq
 import java.io.File
 
 class LinuxQueuedFilesystemWrite<T>(
     val raw: T,
-    val queued: x86funQueuedUtils,
+    val queued: FunQueuedUtils,
     val sourcePath: String,
     val destinationPath: String,
     val bucketSize: Int = 1024,
     val threadInfoBlock: () -> LinuxThreadInfo?
 ) where T : LinuxVfsRWCapturableApi, T : LinuxFilpCapturableApi {
+    companion object {
+        @Transient
+        val log = logger(INFO)
+    }
+
     val stream = File(sourcePath).inputStream()
 
     fun start() {
@@ -62,9 +68,9 @@ class LinuxQueuedFilesystemWrite<T>(
 
     private fun fileOpen() {
         queued.functionsQueue.push(
-            x86funQueuedUtilsData(
+            FunQueuedUtilsData(
                 isReadyToCall = {
-                    x86.pc in availablePc && threadInfoBlock() != null
+                    core.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -83,8 +89,7 @@ class LinuxQueuedFilesystemWrite<T>(
                         }
 
                         override fun body() {
-
-                            x86.pc = raw.PTR_FILP_OPEN
+                            abi.call(raw.PTR_FILP_OPEN)
                         }
 
                         override fun destroy() {
@@ -101,7 +106,7 @@ class LinuxQueuedFilesystemWrite<T>(
 
                                 else -> {
                                     onClose.forEach { it(this@LinuxQueuedFilesystemWrite) }
-                                    println("ERROR: file pointer = 0x${filePointer.rawValue.hex}")
+                                    log.severe { "File pointer = 0x${filePointer.rawValue.hex}" }
                                 }
                             }
 
@@ -119,9 +124,9 @@ class LinuxQueuedFilesystemWrite<T>(
         fileIterator: ULong
     ) {
         queued.functionsQueue.push(
-            x86funQueuedUtilsData(
+            FunQueuedUtilsData(
                 isReadyToCall = {
-                    x86.pc in availablePc && threadInfoBlock() != null
+                    core.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -138,18 +143,20 @@ class LinuxQueuedFilesystemWrite<T>(
                         }
 
                         override fun body() {
-                            x86.pc = raw.PTR_VFS_WRITE
+                            abi.call(raw.PTR_VFS_WRITE)
                         }
 
                         override fun destroy() {
                             when (val result = abi.getResult().toLinuxReturn()) {
-                                is LinuxReturn.Success -> {}
-                                else -> {
-                                    println("ERROR: vfs_write <${destinationPath}> Error = 0x${result.rawValue.hex}")
+                                is LinuxReturn.Success -> {log.info {
+                                    "SUCCESS: vfs_write <${destinationPath}> Result = 0x${result.rawValue.hex}"
+                                }}
+                                else -> log.severe {
+                                    "ERROR: vfs_write <${destinationPath}> Error = 0x${result.rawValue.hex}"
                                 }
                             }
 
-                            val newIterator = x86.inq(vfsWrite.pointer.address)
+                            val newIterator = core.inq(vfsWrite.pointer.address)
 
                             vfsWrite.destroy()
                             threadInfo.restoreAddrLimit()
@@ -173,9 +180,9 @@ class LinuxQueuedFilesystemWrite<T>(
 
     private fun fileClose(filePointer: ULong) {
         queued.functionsQueue.push(
-            x86funQueuedUtilsData(
+            FunQueuedUtilsData(
                 isReadyToCall = {
-                    x86.pc in availablePc && threadInfoBlock() != null
+                    core.pc in availablePc && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -190,7 +197,7 @@ class LinuxQueuedFilesystemWrite<T>(
                         }
 
                         override fun body() {
-                            x86.pc = raw.PTR_FILP_CLOSE
+                            abi.call(raw.PTR_FILP_CLOSE)
                         }
 
                         override fun destroy() {

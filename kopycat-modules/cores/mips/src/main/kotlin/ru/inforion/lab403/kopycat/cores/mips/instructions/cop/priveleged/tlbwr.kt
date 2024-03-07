@@ -41,10 +41,8 @@ class tlbwr(core: MipsCore,
 
     override fun execute() {
         core.mmu.invalidateCache()
-//        val i = core.cop.regs.Random.asInt  // pay attention to Wired register!
         val i = core.mmu.getFreeTlbIndex()
-        val entry = core.mmu.writeTlbEntry(i, pageMask, entryHi, entryLo0, entryLo1)
+        core.mmu.writeTlbEntry(i, pageMask, entryHi, entryLo0, entryLo1)
 //        log.severe { "${core.cpu.pc.hex8} -> $mnem $entry" }
     }
 }
-

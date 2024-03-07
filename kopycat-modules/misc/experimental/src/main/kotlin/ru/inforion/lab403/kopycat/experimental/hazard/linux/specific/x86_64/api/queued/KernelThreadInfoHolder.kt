@@ -26,15 +26,22 @@
 package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.queued
 
 import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.data.interfaces.LinuxThreadInfo
 
 class KernelThreadInfoHolder(val threadInfoBlock: () -> LinuxThreadInfo?) {
+    companion object {
+        @Transient
+        val log = logger(INFO)
+    }
+
     var oldAddrLimit: ULong = 0x0uL
 
     fun saveAddrLimit() {
         val kernelThreadInfo = threadInfoBlock
         oldAddrLimit = kernelThreadInfo()?.let { info ->
-            println("Current addr limit = 0x${info.addrLimit.hex}")
+            log.info { "Current addr limit = 0x${info.addrLimit.hex}" }
             val addrLimit = info.addrLimit
             info.addrLimit = 0xFFFFFFFF_FFFFFFFFuL
 

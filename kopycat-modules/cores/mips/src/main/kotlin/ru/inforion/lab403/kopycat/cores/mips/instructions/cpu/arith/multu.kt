@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -41,8 +42,8 @@ class multu(
     override val mnem = "multu"
 
     override fun execute() {
-        val v1 = vrs * vrt
-        hi = v1[63..32]
-        lo = v1[31..0]
+        val v1 = vrs[31..0] * vrt[31..0]
+        hi = v1[63..32] signext 31
+        lo = v1[31..0] signext 31
     }
 }

@@ -25,14 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.random
-import ru.inforion.lab403.common.extensions.ulong
-import ru.inforion.lab403.common.extensions.ulong_s
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
-
 
 class mul(
         core: MipsCore,
@@ -49,6 +45,6 @@ class mul(
             lo = random.ulong
             hi = random.ulong
         }
-        vrd = (vrs.int * vrt.int).ulong_s
+        vrd = (vrs.int.long_s * vrt.int.long_s).ulong signext 31
     }
 }

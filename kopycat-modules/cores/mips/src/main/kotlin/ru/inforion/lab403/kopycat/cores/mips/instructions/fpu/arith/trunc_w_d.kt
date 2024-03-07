@@ -34,9 +34,9 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
  *
- * TRUNC.W.(S,D) fd, fs
+ * TRUNC.W.D fd, fs
  *
- * Floating Point Convert to Double Floating Point
+ * Floating Point Truncate to Word Fixed Point
  */
 class trunc_w_d(core: MipsCore,
                 data: ULong,

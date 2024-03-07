@@ -27,10 +27,10 @@ package ru.inforion.lab403.kopycat.modules.atom2758.sata
 
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.experimental.fields.common.OffsetField
-import ru.inforion.lab403.kopycat.experimental.fields.delegates.offsetField
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IMemoryRef
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IOffsetable
+import ru.inforion.lab403.kopycat.auxiliary.fields.common.OffsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.offsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IMemoryRef
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
 
 /**
  * Заголовок команды.

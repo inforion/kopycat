@@ -27,8 +27,8 @@ package ru.inforion.lab403.kopycat.modules.atom2758.sata
 
 import ru.inforion.lab403.kopycat.cores.base.MasterPort
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.experimental.fields.delegates.offsetField
-import ru.inforion.lab403.kopycat.experimental.fields.interfaces.IOffsetable
+import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.offsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
 
 /**
  * Запись в таблице PRDT.

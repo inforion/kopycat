@@ -29,16 +29,13 @@ package ru.inforion.lab403.gradle.buildConfig.scriptgen
  * Generates bash KOPYCAT startup script
  */
 class BashScriptGenerator(
-    override val name: String,
-    override val description: String,
-    val classpath: Iterable<String>,
-    override val starterClass: String,
-    val projectDir: String,
-    val gradleBuildTask: String,
-    val kcPackageName: String,
+    val data: ScriptGeneratorData
 ) : IScriptGenerator {
+    override val name: String = data.name
+    override val description: String = data.description
+    override val starterClass: String = data.starterClass
 
-    override val classpathStr by lazy { classpath.joinToString(":") }
+    override val classpathStr by lazy { data.classpath.joinToString(":") }
 
     override val arguments = linkedMapOf<String, String?>()
 
@@ -54,20 +51,20 @@ class BashScriptGenerator(
 
 set -eu
 
-PROJECT_DIR="$projectDir"
+PROJECT_DIR="${data.projectDir}"
 printf "Configuration: %s\n" "$name"
 printf "%s\n" "$description"
 
 printf "Project dir: %s\n" "💲PROJECT_DIR"
 cd "💲PROJECT_DIR"
 
-./gradlew $gradleBuildTask
+./gradlew ${data.gradleBuildTask}
 
 java \
   -server \
   `# JVM Environment settings` \
   -Xms2G \
-  -Xmx4G \
+  -Xmx8G \
   -XX:MaxMetaspaceSize=256m \
   -XX:+UseParallelGC \
   -XX:SurvivorRatio=6 \
@@ -81,6 +78,6 @@ $argumentsStr
 """.replace("💲", "${'$'}")
     }
 
-    override fun fileName(): String = "$kcPackageName-$name.sh"
+    override fun fileName(): String = "${data.kcPackageName}-$name.sh"
     override fun dirName(): String = "bash"
 }

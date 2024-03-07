@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
@@ -40,16 +40,16 @@ import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.CPRBank
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.RSVDBank
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.serializer.loadValue
-import java.util.logging.Level
 
 
 abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core, name) {
     companion object {
-        @Transient val log = logger(INFO)
+        @Transient val log = logger(WARNING)
     }
 
     val cntrls = RSVDBank()
     val regs = CPRBank(core)
+    private var cop0TimerIrq = false
 
     override fun createException(name: String, where: ULong,
                                  vAddr: ULong, action: AccessAction) = when (name) {
@@ -59,21 +59,29 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
         else -> throw IllegalArgumentException("Exception $name not implemented here!")
     }
 
-    fun setCountCompareTimerBits(oldCnt: ULong, newCnt: ULong) {
-        if (regs.Compare.value in oldCnt until newCnt) {
-            if (core.ArchitectureRevision > 1) {
-                val IPTI = regs.IntCtl.IPTI.int
-                if (IPTI >= 2) {
-                    regs.Cause.IP7_0 = regs.Cause.IP7_0 or (1uL shl IPTI)
-                    regs.Cause.TI = true
-                }
+    val countCompareCause
+        get() = if (core.ArchitectureRevision > 1) {
+            val ipti = regs.IntCtl.IPTI.int
+            if (ipti >= 2) {
+                ipti
             } else {
-                regs.Cause.IP7 = true
+                null
+            }
+        } else {
+            7
+        }
+
+    fun raiseCountCompareCause() {
+        countCompareCause?.also {
+            regs.Cause.IP7_0 = regs.Cause.IP7_0 set it
+            if (core.ArchitectureRevision > 1) {
+                regs.Cause.TI = true
             }
         }
     }
 
-    fun clearCountCompareTimerBits() {
+    fun lowerCountCompareIrq() {
+        cop0TimerIrq = false
         if (core.ArchitectureRevision > 1) {
             regs.Cause.TI = false
             val IPTI = regs.IntCtl.IPTI.int
@@ -89,7 +97,7 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
     private var countCompareCycles = 0.0
     private val countCompareInc = core.countRateFactor * core.ipc
 
-    override fun processInterrupts() {
+    fun processCountCompare(): Boolean {
         /*
         The Compare register acts in conjunction with the Count register to implement a timer and timer interrupt function.
 
@@ -116,6 +124,11 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
         //   oldCnt = 8000
         //   newCnt = 8001
         //   regs.Count = 8001
+
+        if (regs.Cause.DC) {
+            return false
+        }
+
         countCompareCycles += countCompareInc
 
         if (countCompareCycles >= 1) {
@@ -123,14 +136,21 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
             countCompareCycles -= decimal
 
             val oldCnt = regs.Count.value
-            val newCnt = oldCnt + decimal
-
+            val newCnt = (oldCnt + decimal)[31..0]
             regs.Count.value = newCnt
 
             // Due to countCompareCycles >= 1 -> oldCnt != newCnt
-            if (core.countCompareSupported)
-                setCountCompareTimerBits(oldCnt, newCnt)
+            if (core.countCompareSupported && !cop0TimerIrq) {
+                cop0TimerIrq = if (newCnt > oldCnt) {
+                    regs.Compare.value in oldCnt until newCnt
+                } else {
+                    // Overflow
+                    regs.Compare.value in oldCnt .. 0xFFFF_FFFFuL || regs.Compare.value in 0uL until newCnt
+                }
+            }
         }
+
+        return cop0TimerIrq
     }
 
     /* =============================== Interrupt support mechanism =============================== */
@@ -198,7 +218,8 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
                 "name" to name,
                 "regs" to regs.serialize(ctxt),
                 "cntrls" to cntrls.serialize(ctxt),
-                "countCompareCycles" to countCompareCycles
+                "countCompareCycles" to countCompareCycles,
+                "cop0TimerIrq" to cop0TimerIrq,
         )
     }
 
@@ -211,5 +232,6 @@ abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core,
         regs.deserialize(ctxt, snapshot["regs"] as Map<String, Any>)
         cntrls.deserialize(ctxt, snapshot["cntrls"] as Map<String, Any>)
         countCompareCycles = loadValue(snapshot, "countCompareCycles")
+        cop0TimerIrq = loadValue(snapshot, "cop0TimerIrq") { false }
     }
 }

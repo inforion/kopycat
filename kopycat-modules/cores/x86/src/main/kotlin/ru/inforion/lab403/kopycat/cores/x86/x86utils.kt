@@ -35,6 +35,7 @@ import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.operands.*
+import ru.inforion.lab403.kopycat.interfaces.outb
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import kotlin.math.absoluteValue
 
@@ -98,4 +99,22 @@ object x86utils {
         sp.value += dtyp.bytes.uint + offset
         return data
     }
+
+    fun modeToDatatype(core: x86Core) = modeToDatatype(core.cpu.mode)
+
+    fun modeToDatatype(mode: x86CPU.Mode) = when (mode) {
+        x86CPU.Mode.R16 -> WORD
+        x86CPU.Mode.R32 -> DWORD
+        x86CPU.Mode.R64 -> QWORD
+    }
+}
+
+fun x86Core.fillNops(range: ULongRange) {
+    range.forEach { ea ->
+        core.outb(ea, 0x90uL)
+    }
+}
+
+fun x86Core.fillNops(ea: ULong, size: ULong) {
+    this.fillNops(ea until ea + size)
 }

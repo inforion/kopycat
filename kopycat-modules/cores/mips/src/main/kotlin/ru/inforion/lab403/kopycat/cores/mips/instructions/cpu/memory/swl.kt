@@ -62,7 +62,6 @@ class swl(core: MipsCore,
 
         val result = hi.shl(8 * (byte + 1)) or lo
 
-        log.warning { "swl. alignAddr: 0x${alignAddr.hex}, vAddr: 0x${vAddr.hex}, address: 0x${address.hex}" }
         core.outl(alignAddr, result)
     }
 }

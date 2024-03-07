@@ -27,8 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -47,8 +46,8 @@ class lh(core: MipsCore,
 
     override fun execute() {
         // I hate mips... and big-endian unsupported
-        if (address[0] != 0uL)
-            throw MemoryAccessError(core.pc, address, LOAD, "ADEL")
+        if (address[0] != 0uL && core.cop.regs.CvmCtl?.REPUN != true)
+            throw MipsHardwareException.AdEL(core.pc, address)
         vrt = memword[15..0].signext(15)
     }
 }

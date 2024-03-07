@@ -163,7 +163,7 @@ object settings {
     /**
      * {EN}Capacity of program counter trace for [CoreInfo]{EN}
      */
-    var traceItemsCapacity = 1024
+    var traceItemsCapacity = 128
 
     /**
      * {EN}Track or not access to bifOf method{EN}

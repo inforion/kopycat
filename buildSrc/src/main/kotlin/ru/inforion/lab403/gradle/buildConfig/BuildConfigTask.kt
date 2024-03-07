@@ -30,12 +30,10 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
+import org.gradle.api.tasks.TaskAction
 import ru.inforion.lab403.common.extensions.div
 import ru.inforion.lab403.common.extensions.removeIf
-import ru.inforion.lab403.gradle.buildConfig.scriptgen.BashScriptGenerator
-import ru.inforion.lab403.gradle.buildConfig.scriptgen.IScriptGenerator
-import ru.inforion.lab403.gradle.buildConfig.scriptgen.IntelliJScriptGenerator
-import ru.inforion.lab403.gradle.buildConfig.scriptgen.PowerShellScriptGenerator
+import ru.inforion.lab403.gradle.buildConfig.scriptgen.*
 import ru.inforion.lab403.gradle.common.*
 import java.io.File
 
@@ -119,111 +117,141 @@ open class BuildConfigTask : DefaultTask() {
         closure.call()
 
         if (data.name == nonameString) {
-            project.logger.error("Configuration in `addConfig` name is unset")
+            project.logger.error("[BuildConfig] Configuration in `addConfig` name is unset")
             throw IllegalStateException("Configuration in `addConfig` name is unset")
         }
 
         dataList.add(data)
     }
 
-    fun addConfigData(data: BuildConfigData) {
-        dataList.add(data)
+    /**
+     * Check does the file/directory exist.
+     * If not, show the log message and create the directory
+     */
+    private fun File.dirCheckOrCreate() {
+        if (!exists()) {
+            logger.info("[BuildConfig] '$configDirPath' does not exist. Creating.")
+            mkdirs()
+        }
     }
 
+    /**
+     * Java classpath for the generated scripts
+     */
+    private fun getRuntimeClasspath() = project
+        .getSourceSets("main")
+        .runtimeClasspath
+        .map { it.absolutePath }
+
+    /**
+     * Prepares arguments for the script generator
+     *
+     * Sources:
+     * 1. Default arguments
+     * 2. Special variables (e.g. kcTopClass, kcModuleLibraries)
+     * 3. kcArguments
+     */
+    private fun prepareArguments(data: BuildConfigData) = linkedMapOf<String, String?>().also { arguments ->
+        if (data.withDefaultArguments) {
+            arguments["-g"] = defaults.gdbPort().toString()
+            arguments["-r"] = defaults.httpPort().toString()
+            arguments["-w"] = defaults.tempDir()
+            arguments["-sd"] = defaults.scriptsDir()
+            arguments["-rd"] = defaults.resourcesDir()
+            arguments["-is"] = defaults.initScript()
+            arguments["-lf"] = defaults.logFilePath(data.name)
+        }
+
+        arguments["-n"] = kcTopClass
+        arguments["-y"] = kcModuleLibraries
+        arguments["-l"] = kcLibraryDirectory
+        if (data.kcConstructorArgumentsString.isNotEmpty()) {
+            arguments["-p"] = data.kcConstructorArgumentsString
+        }
+
+        // Creates (key exists), but the value is null
+        if (data.withKotlinConsole) {
+            arguments["-kts"] = null
+        }
+        if (data.withConnectionInfo) {
+            arguments["-ci"] = null
+        }
+    }.also { defaultArguments ->
+        data.kcArguments
+            .filter { (key, _) -> key in defaultArguments }
+            .keys
+            .joinToString(", ")
+            .also { keys ->
+                if (keys.isNotEmpty()) {
+                    logger.warn("[WARN] Keys collision in '${data.name}' between default arguments and kcArguments: '$keys'")
+                }
+            }
+    }.let { defaultArguments ->
+        LinkedHashMap<String, String?>().also { copy ->
+            copy.putAll(defaultArguments)
+            copy.putAll(data.kcArguments)
+            copy.removeIf { (_, value) -> value == defaults.deleteArgument() }
+        }
+    }
 
     /**
      * Is being called after all project tasks has been collected
      */
     internal fun afterProjectEvaluate() {
-        if (!configDirPath.exists()) {
-            project.logger.info("$configDirPath does not exist. Creating.")
-            configDirPath.mkdirs()
-        }
-
-        val classpath = project.getSourceSets("main").runtimeClasspath.map { it.absolutePath }
-
-        // TODO: encapsulate script generation
         for (data in dataList) {
-            listOf<IScriptGenerator>(
-                // TODO: encapsulate constructor arguments
-                BashScriptGenerator(
-                    data.name,
-                    data.description,
-                    classpath,
-                    data.starterClass,
-                    rootProjectDir.path,
-                    "${project.path}:buildKopycatModule",
-                    kcPackageName
-                ),
-                PowerShellScriptGenerator(
-                    data.name,
-                    data.description,
-                    classpath,
-                    data.starterClass,
-                    rootProjectDir.path,
-                    "${project.path}:buildKopycatModule",
-                    kcPackageName
-                ),
-                IntelliJScriptGenerator(
-                    data.name,
-                    data.description,
-                    classpath,
-                    data.starterClass,
-                    rootProjectDir.path,
-                    "${project.path}:buildKopycatModule",
-                    kcPackageName
-                ),
+            // just check
+            prepareArguments(data)
+        }
+    }
+
+    /**
+     * Copies IDEA configs into the acceptable IDEA directory
+     */
+    private fun intellijPostCopy( ) {
+        val intelliJRunDir = File(rootProjectDir.path, ".idea/runConfigurations")
+        intelliJRunDir.dirCheckOrCreate()
+
+        File(configDirPath, "intellij").listFiles()?.forEach {
+            it.copyTo(File(intelliJRunDir, it.name), true)
+            logger.info("[BuildConfig] Copied '$it' into '$intelliJRunDir'")
+        }
+    }
+
+    /**
+     * Task itself
+     */
+    @TaskAction
+    fun createKopycatConfig() {
+        configDirPath.dirCheckOrCreate()
+
+        for (data in dataList) {
+            val genData = ScriptGeneratorData(
+                data.name,
+                data.description,
+                getRuntimeClasspath(),
+                data.starterClass,
+                rootProjectDir.path,
+                "${project.path}:buildKopycatModule",
+                kcPackageName
+            )
+
+            val args = prepareArguments(data)
+
+            listOf(
+                BashScriptGenerator(genData),
+                PowerShellScriptGenerator(genData),
+                IntelliJScriptGenerator(genData),
             ).forEach { generator ->
-                if (data.withDefaultArguments) {
-                    generator.arguments["-g"] = defaults.gdbPort().toString()
-                    generator.arguments["-w"] = defaults.tempDir()
-                    generator.arguments["-sd"] = defaults.scriptsDir()
-                    generator.arguments["-rd"] = defaults.resourcesDir()
-                    generator.arguments["-is"] = defaults.initScript()
-                    generator.arguments["-lf"] = defaults.logFilePath(data.name)
-                }
-
-                generator.arguments["-n"] = kcTopClass
-                generator.arguments["-y"] = kcModuleLibraries
-                generator.arguments["-l"] = kcLibraryDirectory
-                if (data.kcConstructorArgumentsString.isNotEmpty()) {
-                    generator.arguments["-p"] = data.kcConstructorArgumentsString
-                }
-
-                // Creates (key exists), but the value is null
-                if (data.withKotlinConsole) {
-                    generator.arguments["-kts"] = null
-                }
-                if (data.withConnectionInfo) {
-                    generator.arguments["-ci"] = null
-                }
-
-                // TODO: check arguments collision
-
-                generator.arguments.putAll(data.kcArguments)
-                generator.arguments.removeIf { (_, value) -> value == defaults.deleteArgument() }
+                generator.arguments.putAll(args)
 
                 val text = generator.generate()
                 val innerConfigDirPath = File(configDirPath, generator.dirName())
-
-                if (!innerConfigDirPath.exists()) {
-                    project.logger.info("$innerConfigDirPath does not exist. Creating.")
-                    innerConfigDirPath.mkdirs()
-                }
+                innerConfigDirPath.dirCheckOrCreate()
                 File(innerConfigDirPath, generator.fileName())
                     .writeText(text)
             }
         }
 
-        // TODO: refactor crunch
-         val intelliJRunDir = File(rootProjectDir.path, ".idea/runConfigurations")
-        if (!intelliJRunDir.exists()) {
-            project.logger.info("$intelliJRunDir does not exist. Creating.")
-            intelliJRunDir.mkdirs()
-        }
-        File(configDirPath, "intellij").listFiles()?.forEach {
-            it.copyTo(File(intelliJRunDir, it.name), true)
-            project.logger.info("Copied '$it' into '$intelliJRunDir'")
-        }
+        intellijPostCopy()
     }
 }

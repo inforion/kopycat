@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
+import ru.inforion.lab403.common.extensions.INT_MAX
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
@@ -100,6 +101,8 @@ class InterruptsQueue(val core: AGenericCore): IResettable, ISerializable {
      * (MIPS - IE, x86 - IF, Renesas - !ID и т.д.)
      * Возвращается прерывание, у которого выставлен флаг nmi или выставлен глобальный флаг ie.
      *
+     * @param condition Дополнительное условие
+     *
      * Примечание: выбранное прерывание не будет удалено из очереди.
      * {RU}
      *
@@ -110,17 +113,20 @@ class InterruptsQueue(val core: AGenericCore): IResettable, ISerializable {
      * hardware flag (MIPS - IE, x86 - IF, Renesas - !ID, etc)
      * Interrupt will returned from queue either it nmi or ie flag set
      *
+     * @param condition Additional condition
+     *
      * NOTE: Interrupt won't removed from queue when taken!!!
      * {EN}
      */
-    fun take(ie: Boolean) = safe {
-        var min = Int.MAX_VALUE
+    fun take(ie: Boolean, condition: ((AInterrupt) -> Boolean)? = null) = safe {
+        var min = INT_MAX
         var result: AInterrupt? = null
 
         for (interrupt in interrupts) {
             if (!interrupt.masked
                     && interrupt.priority < min
-                    && (ie || interrupt.nmi)) {
+                    && (ie || interrupt.nmi)
+                    && (condition?.invoke(interrupt) != false)) {
                 min = interrupt.priority
                 result = interrupt
             }

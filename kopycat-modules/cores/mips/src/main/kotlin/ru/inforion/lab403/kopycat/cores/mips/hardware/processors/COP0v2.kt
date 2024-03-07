@@ -28,21 +28,29 @@
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException.*
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import java.util.logging.Level.INFO
 
 class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
+    companion object {
+        @Transient val log = logger(INFO)
+    }
+
     override fun reset() {
         super.reset()
         regs.EBase.value = 0x8000_0000u
     }
 
     override fun processInterrupts() {
-        super.processInterrupts()
+        if (super.processCountCompare()) {
+            raiseCountCompareCause()
+        }
 
         val DebugDM = false  // regs.Debug.DM
         val StatusIE = regs.Status.IE
@@ -105,6 +113,8 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
     override fun handleException(exception: GeneralException?): GeneralException? {
         if (exception !is HardwareException)
             return exception
+
+        log.info { "[0x${core.pc.hex}] Hardware Exception: ${exception.excCode}" }
 
         // See MIPS® Architecture For Programmers
         // Vol. III: MIPS32® Privileged Resource Architecture
@@ -172,7 +182,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
 
                             VecNum = when {
                                 core.EIC_option1 -> CauseRIPL
-                                core.EIC_option2 -> exception.interrupt!!.irq // EIC_VecNum_Signal
+                                core.EIC_option2 -> exception.irq!! // EIC_VecNum_Signal
                                 core.EIC_option3 -> -1  // unused
                                 else -> throw GeneralException("Wrong EIC options configuration...")
                             }
@@ -183,7 +193,7 @@ class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
                         }
 
                         vectorOffset = if (Config3VEIC && core.EIC_option3) {
-                            exception.interrupt!!.vector // EIC_VectorOffset_Signal
+                            exception.vector!! // EIC_VectorOffset_Signal
                         } else {
                             0x200 + VecNum * (IntCtlVS shl 5)
                         }

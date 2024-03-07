@@ -49,7 +49,6 @@ class CoreInfo<C: AGenericCore>(val core: C): IAutoSerializable, IResettable {
     var translator: IDebugSymbolTranslator = HexSymbolTranslator()
 
     private val trace = LimitedQueue<ULong>(settings.traceItemsCapacity)
-    private val stacktrace = Stack<StackElement>()
 
     /**
      * {EN}
@@ -73,21 +72,6 @@ class CoreInfo<C: AGenericCore>(val core: C): IAutoSerializable, IResettable {
             trace.add(core.pc)
     }
 
-    private fun doStackTrace(exception: Boolean) {
-        if (!core.cpu.hasInstruction) {
-            log.warning { "Something weired happen: no instructions executed -> can't handle stack trace..." }
-            return
-        }
-
-        if (core.pc != lastPC + core.cpu.insn.size.uint) { // Jump occurred
-            if (exception || core.cpu.callOccurred) { // Sub call
-                stacktrace.push(StackElement(lastPC, lastPC + core.cpu.insn.size.uint))
-            } else if (stacktrace.isNotEmpty() && stacktrace.peek().ra == core.pc) { // Return from call
-                stacktrace.pop()
-            }
-        }
-    }
-
     fun printTrace() {
         log.info { "-------------------- Program counter trace: --------------------" }
         trace.forEach { log.info { translator.translate(it) } }
@@ -98,11 +82,6 @@ class CoreInfo<C: AGenericCore>(val core: C): IAutoSerializable, IResettable {
         log.info { "-------------------- Program counter trace: --------------------" }
         trace.subList(f, t).forEach { log.info { translator.translate(it) } }
         log.info { translator.translate(core.pc) }
-    }
-
-    fun printStackTrace() {
-        log.info { "-------------------- Stack trace: ------------------------------" }
-        stacktrace.forEach { log.info { translator.translate(it.pc) } }
     }
 
     fun printCpuState() {
@@ -117,7 +96,6 @@ class CoreInfo<C: AGenericCore>(val core: C): IAutoSerializable, IResettable {
 
     fun dump(cpu: Boolean = true, stack: Boolean = true, trace: Boolean = true) {
         if (cpu) printCpuState()
-        if (stack) printStackTrace()
         if (trace) printTrace()
     }
 
@@ -128,7 +106,6 @@ class CoreInfo<C: AGenericCore>(val core: C): IAutoSerializable, IResettable {
     fun trace(exception: Boolean) {
         totalExecuted++
         doProgramCounterTrace(exception)
-        doStackTrace(exception)
     }
 
     fun epilog() {
@@ -140,7 +117,6 @@ class CoreInfo<C: AGenericCore>(val core: C): IAutoSerializable, IResettable {
         lastPC = 0u
         totalExecuted = 0u
         trace.clear()
-        stacktrace.clear()
     }
 
     fun findMemory(ea: ULong, ss: Int = 0) = core.cpu.ports.mem.moduleName(ea, ss)

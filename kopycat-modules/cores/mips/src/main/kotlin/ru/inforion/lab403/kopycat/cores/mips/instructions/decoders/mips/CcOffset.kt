@@ -46,7 +46,6 @@ class CcOffset(
 
     override fun decode(data: ULong): AMipsInstruction {
         val cc = data[20..18]
-        if (cc != 0uL) throw UnsupportedOperationException()
         val offset = (data[15..0] shl 2).signext(18)
         return construct(core, data, imm(cc), near(offset.int))
     }

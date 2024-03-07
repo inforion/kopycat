@@ -46,8 +46,11 @@ enum class ExcCode(val id: ULong) {
     TR(13u),         // Trap exception
     FPE(15u),        // Floating point exception
     C2E(18u),        // Reserved for precise Coprocessor 2 exceptions
+    TLBRI(19u),      // TLB Read-Inhibit exception
+    TLBXI(20u),      // TLB Execution-Inhibit exception
     MDMX(22u),       // Reserved for MDMX Unusable Exception in MIPS64 implementations.
     WATCH(23u),      // Reference to WatchHi/WatchLo address
     MCHECK(24u),     // Machine check
+    DSPDIS(26u),
     CACHEERR(30u)    // Cache error
 }

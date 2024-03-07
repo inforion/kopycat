@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.control
 
-import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtSaInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
+import ru.inforion.lab403.kopycat.cores.mips.instructions.EmptyInsn
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 /**
@@ -37,16 +35,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  * NOP is the assembly idiom used to denote no operation. The actual instruction is interpreted
  * by the hardware as SLL r0, r0, 0.
  */
-class nop(
-        core: MipsCore,
-        data: ULong,
-        rd: MipsRegister,
-        rs: MipsRegister,
-        sa: MipsImmediate) : RdRtSaInsn(core, data, Type.VOID, rd, rs, sa) {
-
+class nop(core: MipsCore, data: ULong) : EmptyInsn(core, data) {
     override val mnem = "nop"
-
-    override fun execute() {
-
-    }
+    override fun execute() = Unit
 }

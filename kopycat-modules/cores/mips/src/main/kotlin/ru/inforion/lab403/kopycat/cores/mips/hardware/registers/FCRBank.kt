@@ -36,6 +36,37 @@ class FCRBank : ARegistersBankNG<MipsCore>("FPU Control Registers", 32, 32) {
 
     inner class FCCR : Register("fccr", 25) {
         var fcc0 by bitOf(23)
+        var fcc1 by bitOf(25)
+        var fcc2 by bitOf(26)
+        var fcc3 by bitOf(27)
+        var fcc4 by bitOf(28)
+        var fcc5 by bitOf(29)
+        var fcc6 by bitOf(30)
+        var fcc7 by bitOf(31)
+
+        fun fccn(n: Int) = when (n) {
+            0 -> fcc0
+            1 -> fcc1
+            2 -> fcc2
+            3 -> fcc3
+            4 -> fcc4
+            5 -> fcc5
+            6 -> fcc6
+            7 -> fcc7
+            else -> throw RuntimeException("Invalid fcc bit")
+        }
+
+        fun fccn(n: Int, value: Boolean) = when (n) {
+            0 -> fcc0 = value
+            1 -> fcc1 = value
+            2 -> fcc2 = value
+            3 -> fcc3 = value
+            4 -> fcc4 = value
+            5 -> fcc5 = value
+            6 -> fcc6 = value
+            7 -> fcc7 = value
+            else -> throw RuntimeException("Invalid fcc bit")
+        }
     }
 
     val fccr = FCCR()

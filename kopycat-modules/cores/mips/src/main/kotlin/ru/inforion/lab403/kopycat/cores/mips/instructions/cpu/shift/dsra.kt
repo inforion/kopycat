@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.shift
 
-import ru.inforion.lab403.common.extensions.ULONG_MAX
 import ru.inforion.lab403.common.extensions.ashr
-import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRtSaInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
@@ -51,13 +49,8 @@ class dsra(core: MipsCore,
 
     override fun execute() {
         if (core.is32bit) throw MipsHardwareException.RI(core.pc)
-        // TODO: test
         if (vsa < 32) {
-            vrd = if (vrt[63] != 0uL) {
-                (ULONG_MAX shl vsa) or (vrt ashr vsa)
-            } else {
-                vrt ashr vsa
-            }
+            vrd = vrt ashr vsa
         } else {
             throw IllegalStateException("Illegal value in sa operand")
         }

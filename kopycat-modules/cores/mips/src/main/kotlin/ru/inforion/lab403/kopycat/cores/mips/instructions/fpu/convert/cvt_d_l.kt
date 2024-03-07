@@ -25,7 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.fpu.convert
 
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
+import ru.inforion.lab403.common.extensions.double
+import ru.inforion.lab403.common.extensions.ieee754AsUnsigned
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.kopycat.cores.mips.instructions.FdFsInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -34,7 +36,7 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
  *
  * CVT.D.(S,W,L) fd, fs
  *
- * Floating Point Convert to Double Floating Point
+ * Long to Double Floating Point
  */
 class cvt_d_l(
         core: MipsCore,
@@ -45,5 +47,7 @@ class cvt_d_l(
 
     override val mnem = "cvt.d.l"
 
-    override fun execute() = throw GeneralException("$mnem: Sorry, but I don't know how to execute this instruction!")
+    override fun execute() {
+        dfd = dfs.long.double.ieee754AsUnsigned()
+    }
 }

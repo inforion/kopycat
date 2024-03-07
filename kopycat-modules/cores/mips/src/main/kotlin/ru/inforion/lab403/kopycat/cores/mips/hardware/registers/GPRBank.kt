@@ -26,13 +26,15 @@
 package ru.inforion.lab403.kopycat.cores.mips.hardware.registers
 
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
+import ru.inforion.lab403.kopycat.cores.mips.enums.MipsCallingConvention
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.MipsCPU
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 
-class GPRBank(cpu: MipsCPU) : ARegistersBankNG<MipsCore>("CPU General Purpose Registers", 32, cpu.BIT_DEPTH.bits) {
-
-    val zero = object : Register( "\$zero", 0 , dtype = cpu.BIT_DEPTH) {
+class GPRBank(cpu: MipsCPU, abi: MipsCallingConvention = MipsCallingConvention.O64) :
+    ARegistersBankNG<MipsCore>("CPU General Purpose Registers", 32, cpu.BIT_DEPTH.bits) {
+    // renamed for GDB trace
+    val zero = object : Register("\$r0", 0, dtype = cpu.BIT_DEPTH) {
         override var value: ULong
             get() = 0u
             set(value) = Unit
@@ -48,25 +50,15 @@ class GPRBank(cpu: MipsCPU) : ARegistersBankNG<MipsCore>("CPU General Purpose Re
     val a2 = Register("\$a2", 6, dtype = cpu.BIT_DEPTH)
     val a3 = Register("\$a3", 7, dtype = cpu.BIT_DEPTH)
 
-//    // TODO: ugly fix
-//    val t0 = Register(if (cpu.mode == R32) "\$t0" else "\$a4", 8,  dtype = cpu.BIT_DEPTH)
-//    val t1 = Register(if (cpu.mode == R32) "\$t1" else "\$a5", 9,  dtype = cpu.BIT_DEPTH)
-//    val t2 = Register(if (cpu.mode == R32) "\$t2" else "\$a6", 10, dtype = cpu.BIT_DEPTH)
-//    val t3 = Register(if (cpu.mode == R32) "\$t3" else "\$a7", 11, dtype = cpu.BIT_DEPTH)
-//    val t4 = Register(if (cpu.mode == R32) "\$t4" else "\$t0", 12, dtype = cpu.BIT_DEPTH)
-//    val t5 = Register(if (cpu.mode == R32) "\$t5" else "\$t1", 13, dtype = cpu.BIT_DEPTH)
-//    val t6 = Register(if (cpu.mode == R32) "\$t6" else "\$t2", 14, dtype = cpu.BIT_DEPTH)
-//    val t7 = Register(if (cpu.mode == R32) "\$t7" else "\$t3", 15, dtype = cpu.BIT_DEPTH)
-
     // TODO: ugly fix
-    val t0 = Register("\$t0", 8,  dtype = cpu.BIT_DEPTH)
-    val t1 = Register("\$t1", 9,  dtype = cpu.BIT_DEPTH)
-    val t2 = Register("\$t2", 10, dtype = cpu.BIT_DEPTH)
-    val t3 = Register("\$t3", 11, dtype = cpu.BIT_DEPTH)
-    val t4 = Register("\$t4", 12, dtype = cpu.BIT_DEPTH)
-    val t5 = Register("\$t5", 13, dtype = cpu.BIT_DEPTH)
-    val t6 = Register("\$t6", 14, dtype = cpu.BIT_DEPTH)
-    val t7 = Register("\$t7", 15, dtype = cpu.BIT_DEPTH)
+    val t0 = Register(if (abi == MipsCallingConvention.O64) "\$t0" else "\$a4", 8,  dtype = cpu.BIT_DEPTH)
+    val t1 = Register(if (abi == MipsCallingConvention.O64) "\$t1" else "\$a5", 9,  dtype = cpu.BIT_DEPTH)
+    val t2 = Register(if (abi == MipsCallingConvention.O64) "\$t2" else "\$a6", 10, dtype = cpu.BIT_DEPTH)
+    val t3 = Register(if (abi == MipsCallingConvention.O64) "\$t3" else "\$a7", 11, dtype = cpu.BIT_DEPTH)
+    val t4 = Register(if (abi == MipsCallingConvention.O64) "\$t4" else "\$t0", 12, dtype = cpu.BIT_DEPTH)
+    val t5 = Register(if (abi == MipsCallingConvention.O64) "\$t5" else "\$t1", 13, dtype = cpu.BIT_DEPTH)
+    val t6 = Register(if (abi == MipsCallingConvention.O64) "\$t6" else "\$t2", 14, dtype = cpu.BIT_DEPTH)
+    val t7 = Register(if (abi == MipsCallingConvention.O64) "\$t7" else "\$t3", 15, dtype = cpu.BIT_DEPTH)
 
 
     val s0 = Register("\$s0", 16, dtype = cpu.BIT_DEPTH)
@@ -86,6 +78,7 @@ class GPRBank(cpu: MipsCPU) : ARegistersBankNG<MipsCore>("CPU General Purpose Re
 
     val gp = Register("\$gp", 28, dtype = cpu.BIT_DEPTH)
     val sp = Register("\$sp", 29, dtype = cpu.BIT_DEPTH)
-    val fp = Register("\$fp", 30, dtype = cpu.BIT_DEPTH)
+
+    val fp = Register( if (abi == MipsCallingConvention.O64) "\$fp" else "\$s8", 30, dtype = cpu.BIT_DEPTH)
     val ra = Register("\$ra", 31, dtype = cpu.BIT_DEPTH)
 }

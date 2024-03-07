@@ -32,13 +32,16 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
+import ru.inforion.lab403.kopycat.modules.BUS64
+import java.nio.ByteOrder
 import kotlin.math.min
 
 class SparseRAM(
     parent: Module,
     name: String,
     val ramSize: ULong,
-    val regionSize: ULong
+    val regionSize: ULong,
+    val endian: ByteOrder = ByteOrder.LITTLE_ENDIAN,
 ) : Module(parent, name), IAutoSerializable {
 
     inner class Ports : ModulePorts(this) {
@@ -50,7 +53,7 @@ class SparseRAM(
 
     inner class Holder : Module(this@SparseRAM, "holder") {
         inner class Ports : ModulePorts(this) {
-            val mem = Slave("mem")
+            val mem = Slave("mem", BUS64)
         }
 
         override val ports = Ports()
@@ -65,7 +68,9 @@ class SparseRAM(
             val base = aligned(ea)
 
             return regions[base] ?: reconnect {
-                Memory(ports.mem, base, base + regionSize - 1u, "Region[${base.hex16}]", ACCESS.R_W)
+                Memory(ports.mem, base, base + regionSize - 1u, "Region[${base.hex16}]", ACCESS.R_W).apply {
+                    endian = this@SparseRAM.endian
+                }
             }.also { regions[base] = it }
         }
 

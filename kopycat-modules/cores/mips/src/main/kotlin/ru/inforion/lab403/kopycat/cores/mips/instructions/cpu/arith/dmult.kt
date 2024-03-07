@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.bigint
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -42,7 +43,7 @@ class dmult(
     override val mnem = "dmult"
 
     override fun execute() {
-        val v1 = (vrs.bigint * vrt.bigint)
+        val v1 = (vrs.long.bigint * vrt.long.bigint)
         lo = v1[63..0].ulong
         hi = v1[127..64].ulong
     }

@@ -28,8 +28,7 @@ package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.memory
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.ulong_z
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.FtOffsetInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
@@ -54,7 +53,7 @@ class swc2(
         val bytesel = (vAddr[2..0] xor core.cpu.bigEndianCPU.ulong_z shl 2).int
 
         if (address[1..0] != 0uL)
-            throw MemoryAccessError(core.pc, address, AccessAction.STORE, "ADES")
+            throw MipsHardwareException.AdES(core.pc, address)
         val datadoubleword = vrt[63 - 8 * bytesel..0] shl 8 * bytesel
 
         memword = datadoubleword

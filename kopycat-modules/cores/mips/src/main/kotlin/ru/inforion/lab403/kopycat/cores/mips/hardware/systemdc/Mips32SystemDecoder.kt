@@ -34,6 +34,7 @@ import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.STORE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
+import ru.inforion.lab403.kopycat.cores.mips.Microarchitecture
 import ru.inforion.lab403.kopycat.cores.mips.enums.Designation.Control
 import ru.inforion.lab403.kopycat.cores.mips.enums.Designation.General
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ProcType.*
@@ -53,6 +54,7 @@ import ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.bitwise.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch.*
+import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.control.nop
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.logical.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory.*
 import ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.move.*
@@ -85,6 +87,10 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
         }
     }
 
+    private val nopd = object : ADecoder(core) {
+        override fun decode(data: ULong) = nop(core, data)
+    }
+
     // e_bc2
     private val  bc2fd = CcOffset(core, ::bc2f)
     private val  bc2td = CcOffset(core, ::bc2t)
@@ -98,18 +104,22 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  bc1tld = CcOffset(core, ::bc1tl)
 
     // e_cop2
-    private val  cfc2d = RtRdSel(core, ::cfc2, ImplementSpecCop, Control)
-    private val  mfc2d = RtRdSel(core, ::mfc2, ImplementSpecCop, General)
-    private val  mfhc2d = RtRdSel(core, ::mfhc2, ImplementSpecCop, General)
-    private val  mtc2d = RtRdSel(core, ::mtc2, ImplementSpecCop, General)
-    private val  ctc2d = RtRdSel(core, ::ctc2, ImplementSpecCop, Control)
-    private val  mthc2d = RtRdSel(core, ::mthc2, ImplementSpecCop, General)
+    private val  cfc2d = RtRdCop2(core, ::cfc2, ImplementSpecCop, Control)
+    private val  mfc2d = RtRdCop2(core, ::mfc2, ImplementSpecCop, General)
+    private val  dmfc2d = RtRdCop2(core, ::dmfc2, ImplementSpecCop, General)
+    private val  mfhc2d = RtRdCop2(core, ::mfhc2, ImplementSpecCop, General)
+    private val  mtc2d = RtRdCop2(core, ::mtc2, ImplementSpecCop, General)
+    private val  dmtc2d = RtRdCop2(core, ::dmtc2, ImplementSpecCop, General)
+    private val  ctc2d = RtRdCop2(core, ::ctc2, ImplementSpecCop, Control)
+    private val  mthc2d = RtRdCop2(core, ::mthc2, ImplementSpecCop, General)
 
     // e_cop1
     private val  mfc1d = RtRdSel(core, ::mfc1, FloatingPointCop, General)
+    private val  dmfc1d = RtRdSel(core, ::dmfc1, FloatingPointCop, General)
     private val  cfc1d = RtRdSel(core, ::cfc1, FloatingPointCop, Control)
     private val  mfhc1d = RtRdSel(core, ::mfhc1, FloatingPointCop, General)
     private val  mtc1d = RtRdSel(core, ::mtc1, FloatingPointCop, General)
+    private val  dmtc1d = RtRdSel(core, ::dmtc1, FloatingPointCop, General)
     private val  ctc1d = RtRdSel(core, ::ctc1, FloatingPointCop, Control)
     private val  mthc1d = RtRdSel(core, ::mthc1, FloatingPointCop, General)
 
@@ -131,9 +141,6 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  rdpgprd = RdRt(core, ::rdpgpr)
     private val  mtc0d = RtRdSel(core, ::mtc0, SystemControlCop, General)
     private val  wrpgprd = RdRt(core, ::wrpgpr)
-
-    private val  rddspd = Rd(core, ::rddsp)  // B8 B4 FF 7F
-    private val  wrdspd = Rd(core, ::wrdsp)  // F8 FC DF 7E
 
     // e_cop0: mips 64 specific
     private val dmtc0d = RtRdSel(core, ::dmtc0, SystemControlCop, General)
@@ -158,6 +165,7 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
 
     // e_dsrl32d
     private val dsrl32d = RdRtSa(core, ::dsrl32)
+    private val drotr32d = RdRtSa(core, ::drotr32)
 
     // e_srlv
     private val  srlvd = RdRtRs(core, ::srlv)
@@ -182,6 +190,39 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  dinsud = RsRtPosSize(core, ::dinsu)
     private val  dinsmd = RsRtPosSize(core, ::dinsm)
 
+    // DSP extension
+    private val  rddspd = RdMask(core, ::rddsp, Position.MLEFT)
+    private val  wrdspd = RdMask(core, ::wrdsp, Position.MRIGHT)
+
+    private val extrw_d = InstructionTable(
+        4, 8,
+        { data -> data[10..9] },
+        { data -> data[8..6] },
+        null,      null,      null,      null,      null,      null,      null,      null,
+        null,      null,      null,      null,      null,      null,      null,      null,
+        null,      null,      rddspd,    wrdspd,    null,      null,      null,      null,
+        null,      null,      null,      null,      null,      null,      null,      null
+    )
+
+    // N.B.: Octeons do not have DSP extension, but implement LBX-and-others
+    private val ldxd = RdIndex(core, ::ldx)
+    private val lwxd = RdIndex(core, ::lwx)
+    private val lwuxd = RdIndex(core, ::lwux)
+    private val lhxd = RdIndex(core, ::lhx)
+    private val lhuxd = RdIndex(core, ::lhux)
+    private val lbxd = RdIndex(core, ::lbx)
+    private val lbuxd = RdIndex(core, ::lbux)
+
+    private val  lxd = InstructionTable(
+        4, 8,
+        { data -> data[10..9] },
+        { data -> data[8..6] },
+        lwxd,      null,      null,      null,      lhxd,      null,      lbuxd,      null,
+        ldxd,      null,      null,      null,      null,      null,      null,      null,
+        lwuxd,     null,      null,      null,      lhuxd,     null,      lbxd,      null,
+        null,      null,      null,      null,      null,      null,      null,      null
+    )
+
     // e_special2
     private val  maddd = RdRsRt(core, ::madd)
     private val  maddud = RdRsRt(core, ::maddu)
@@ -190,7 +231,73 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  msubud = RdRsRt(core, ::msubu)
     private val  clzd = RdRsRt(core, ::clz)
     private val  clod = RdRsRt(core, ::clo)
+    private val  dclzd = RdRsRt(core, ::dclz)
     private val  sdbbpd = Code19bit(core, ::sdbbp)
+
+    private val  saad = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> CvmRtBase(core, DWORD, ::saa)
+        else -> Unimplemented(core)
+    }
+
+    private val  saadd = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> CvmRtBase(core, QWORD, ::saa)
+        else -> Unimplemented(core)
+    }
+
+    private val  laid = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> CvmRdBase(core, DWORD, ::lai)
+        else -> Unimplemented(core)
+    }
+
+    private val  baddud = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> RdRsRt(core, ::baddu)
+        else -> Unimplemented(core)
+    }
+
+    private val  dmuld = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> RdRsRt(core, ::dmul)
+        else -> Unimplemented(core)
+    }
+
+    private val  extsd = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> RsRtPosSize(core, ::exts)
+        else -> Unimplemented(core)
+    }
+
+    private val  cinsd = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> RsRtPosSize(core, ::cins)
+        else -> Unimplemented(core)
+    }
+
+    private val  popd = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> RdRsRt(core, ::pop)
+        else -> Unimplemented(core)
+    }
+
+    private val  dpopd = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> RdRsRt(core, ::dpop)
+        else -> Unimplemented(core)
+    }
+
+    private val  seqd = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> RdRsRt(core, ::seq)
+        else -> Unimplemented(core)
+    }
+
+    private val  sned = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> RdRsRt(core, ::sne)
+        else -> Unimplemented(core)
+    }
+
+    private val  seqid = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> CvmRtRsImm(core, ::seqi)
+        else -> Unimplemented(core)
+    }
+
+    private val  sneid = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> CvmRtRsImm(core, ::snei)
+        else -> Unimplemented(core)
+    }
 
     // e_regimm
     private val  bltzd = RsOffset(core, ::bltz)
@@ -285,32 +392,104 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val  lbd = RtOffset(core, ::lb, BYTE, LOAD)
     private val  lhd = RtOffset(core, ::lh, WORD, LOAD)
     private val  lwld = RtOffset(core, ::lwl, DWORD, LOAD)
+    private val  ulwd = RtOffset(core, ::ulw, DWORD, LOAD)
+    private val  opc4_2d = Conditional(core) {
+        when {
+            !useun -> lwld
+            usely || be -> ulwd
+            else -> nopd
+        }
+    }
     private val  ldld = RtOffset(core, ::ldl, QWORD, LOAD)
+    private val  uldd = RtOffset(core, ::uld, QWORD, LOAD)
+    private val  opc3_2d = Conditional(core) {
+        when {
+            !useun -> ldld
+            usely || be -> uldd
+            else -> nopd
+        }
+    }
     private val  lwd = RtOffset(core, ::lw, DWORD, LOAD)
     private val  lbud = RtOffset(core, ::lbu, BYTE, LOAD)
     private val  lhud = RtOffset(core, ::lhu, WORD, LOAD)
     private val  lwrd = RtOffset(core, ::lwr, DWORD, LOAD)
+    private val  opc4_6d = Conditional(core) {
+        when {
+            !useun -> lwrd
+            usely || be -> nopd
+            else -> ulwd
+        }
+    }
     private val  ldrd = RtOffset(core, ::ldr, QWORD, LOAD)
+    private val  opc3_3d = Conditional(core) {
+        when {
+            !useun -> ldrd
+            usely || be -> nopd
+            else -> uldd
+        }
+    }
     private val  lwud = RtOffset(core, ::lwu, DWORD, LOAD)
     private val  sbd = RtOffset(core, ::sb, BYTE, STORE)
     private val  shd = RtOffset(core, ::sh, WORD, STORE)
     private val  swld = RtOffset(core, ::swl, DWORD, STORE)
+    private val  uswd = RtOffset(core, ::usw, DWORD, STORE)
+    private val  opc5_2d = Conditional(core) {
+        when {
+            !useun -> swld
+            usely || be -> uswd
+            else -> nopd
+        }
+    }
     private val  sdld = RtOffset(core, ::sdl, QWORD, STORE)
+    private val  usdd = RtOffset(core, ::usd, QWORD, STORE)
+    private val  opc5_4d = Conditional(core) {
+        when {
+            !useun -> sdld
+            usely || be -> usdd
+            else -> nopd
+        }
+    }
     private val  sdrd = RtOffset(core, ::sdr, QWORD, STORE)
+    private val  opc5_5d = Conditional(core) {
+        when {
+            !useun -> sdrd
+            usely || be -> nopd
+            else -> usdd
+        }
+    }
     private val  swd = RtOffset(core, ::sw, DWORD, STORE)
     private val  swrd = RtOffset(core, ::swr, DWORD, STORE)
+    private val  opc5_6d = Conditional(core) {
+        when {
+            !useun -> swrd
+            usely || be -> nopd
+            else -> uswd
+        }
+    }
     private val  cached = OpOffsetBase(core, ::cache)
     private val  lld = RtOffset(core, ::ll, DWORD, LOAD)
     private val  lwc1d = FtOffset(core, ::lwc1, DWORD, LOAD, FloatingPointCop)
-    private val  lwc2d = FtOffset(core, ::lwc2, DWORD, LOAD, ImplementSpecCop)
+    private val  opc6_2d = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> Bbit(core, ::bbit)
+        else -> FtOffset(core, ::lwc2, DWORD, LOAD, ImplementSpecCop)
+    }
     private val  prefd = OpOffsetBase(core, ::pref)
     private val  ldc1d = FtOffset(core, ::ldc1, QWORD, LOAD, FloatingPointCop)
-    private val  ldc2d = FtOffset(core, ::ldc2, QWORD, LOAD, ImplementSpecCop)
+    private val  opc6_6d = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> Bbit(core, ::bbit)
+        else -> FtOffset(core, ::ldc2, QWORD, LOAD, ImplementSpecCop)
+    }
     private val  scd = RtOffset(core, ::sc, DWORD, STORE)
     private val  swc1d = FtOffset(core, ::swc1, DWORD, STORE, FloatingPointCop)
-    private val  swc2d = FtOffset(core, ::swc2, DWORD, STORE, ImplementSpecCop)
+    private val  opc7_2d = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> Bbit(core, ::bbit)
+        else -> FtOffset(core, ::swc2, DWORD, STORE, ImplementSpecCop)
+    }
     private val  sdc1d = FtOffset(core, ::sdc1, QWORD, STORE, FloatingPointCop)
-    private val  sdc2d = FtOffset(core, ::sdc2, QWORD, STORE, ImplementSpecCop)
+    private val  opc7_6d = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> Bbit(core, ::bbit)
+        else -> FtOffset(core, ::sdc2, QWORD, STORE, ImplementSpecCop)
+    }
 
     private val c_cond_dd = CcFsFt(core, ::c_cond_d)
     private val c_cond_sd = CcFsFt(core, ::c_cond_s)
@@ -328,12 +507,14 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
     private val mul_dd = FdFsFt(core, ::mul_d)
     private val div_dd = FdFsFt(core, ::div_d)
     private val mov_dd = FdFs(core, ::mov_d)
+    private val trunc_l_dd = FdFs(core, ::trunc_l_d)
     private val trunc_w_dd = FdFs(core, ::trunc_w_d)
     private val cvt_s_dd = FdFs(core, ::cvt_s_d)
 
     private val cvt_s_wd = FdFs(core, ::cvt_s_w)
     private val cvt_d_wd = FdFs(core, ::cvt_d_w)
 
+    private val cvt_s_ld = FdFs(core, ::cvt_s_l)
     private val cvt_d_ld = FdFs(core, ::cvt_d_l)
 
     private val e_cop1xd = null
@@ -369,7 +550,7 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             4, 8,
             { data -> data[25..24] },
             { data -> data[23..21] },
-            mfc2d,  null,  cfc2d, mfhc2d, mtc2d, null,  ctc2d, mthc2d,
+            mfc2d,  dmfc2d,cfc2d, mfhc2d, mtc2d, dmtc2d,ctc2d, mthc2d,
             e_bc2d, null,  null,  null,   null,  null,  null,  null,
             e_c2d,  e_c2d, e_c2d, e_c2d,  e_c2d, e_c2d, e_c2d, e_c2d,
             e_c2d,  e_c2d, e_c2d, e_c2d,  e_c2d, e_c2d, e_c2d, e_c2d
@@ -410,7 +591,7 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             { data -> data[5..3] },
             { data -> data[2..0] },
             add_dd,    sub_dd,    mul_dd,    div_dd,    null,      null,       mov_dd,    null,
-            null,      null,      null,      null,      null,      trunc_w_dd, null,      null,
+            null,      trunc_l_dd,null,      null,      null,      trunc_w_dd, null,      null,
             null,      null,      null,      null,      null,      null,       null,      null,
             null,      null,      null,      null,      null,      null,       null,      null,
             cvt_s_dd,  null,      null,      null,      null,      null,       null,      null,
@@ -423,14 +604,14 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             8, 8,
             { data -> data[5..3] },
             { data -> data[2..0] },
-            null,   null,      null,     null,   null,   null,   null,   null,
-            null,   null,      null,     null,   null,   null,   null,   null,
-            null,   null,      null,     null,   null,   null,   null,   null,
-            null,   null,      null,     null,   null,   null,   null,   null,
-            null,   cvt_d_ld,  null,     null,   null,   null,   null,   null,
-            null,   null,      null,     null,   null,   null,   null,   null,
-            null,   null,      null,     null,   null,   null,   null,   null,
-            null,   null,      null,     null,   null,   null,   null,   null
+            null,     null,      null,     null,   null,   null,   null,   null,
+            null,     null,      null,     null,   null,   null,   null,   null,
+            null,     null,      null,     null,   null,   null,   null,   null,
+            null,     null,      null,     null,   null,   null,   null,   null,
+            cvt_s_ld, cvt_d_ld,  null,     null,   null,   null,   null,   null,
+            null,     null,      null,     null,   null,   null,   null,   null,
+            null,     null,      null,     null,   null,   null,   null,   null,
+            null,     null,      null,     null,   null,   null,   null,   null
     )
 
     private val e_fmt_psd = InstructionTable(
@@ -451,7 +632,7 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             4, 8,
             { data -> data[25..24] },
             { data -> data[23..21] },
-            mfc1d,       null,       cfc1d,      mfhc1d,  mtc1d,      null,       ctc1d,      mthc1d,
+            mfc1d,       dmfc1d,     cfc1d,      mfhc1d,  mtc1d,      dmtc1d,     ctc1d,      mthc1d,
             e_bc1d,      null,       null,       null,    null,       null,       null,       null,
             e_fmt_sd,    e_fmt_dd,   null,       null,    e_fmt_wd,   e_fmt_ld,   e_fmt_psd,  null,
             null,        null,       null,       null,    null,       null,       null,       null
@@ -529,7 +710,7 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
         1, 2,
         { data -> 0u },
         { data -> data[21] },
-        dsrl32d, null
+        dsrl32d, drotr32d,
     )
 
     private val e_srlvd = InstructionTable(
@@ -559,27 +740,27 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             { data -> data[5..3] },
             { data -> data[2..0] },
             extd,     dextmd,  dextud,  dextd,  insd,      dinsmd,  dinsud,  dinsd,
-            null,     null,    null,    null,   null,      null,    null,    null,
+            null,     null,    lxd,     null,   null,      null,    null,    null,
             null,     null,    null,    null,   null,      null,    null,    null,
             null,     null,    null,    null,   null,      null,    null,    null,
             e_bshfld, null,    null,    null,   e_dbshfld, null,    null,    null,
             null,     null,    null,    null,   null,      null,    null,    null,
             null,     null,    null,    null,   null,      null,    null,    null,
-            rddspd,   null,    null,    rdhwrd, null,      null,    null,    null
+            extrw_d,   null,    null,   rdhwrd, null,      null,    null,    null
     )
 
     private val e_special2d = InstructionTable(
             8, 8,
             { data -> data[5..3] },
             { data -> data[2..0] },
-            maddd, maddud, muld, null, msubd, msubud, null,  null,
-            null,  null,   null, null, null,  null,   null,  null,
-            null,  null,   null, null, null,  null,   null,  null,
-            null,  null,   null, null, null,  null,   null,  null,
-            clzd,  clod,   null, null, null,  null,   null,  null,
-            null,  null,   null, null, null,  null,   null,  null,
-            null,  null,   null, null, null,  null,   null,  null,
-            null,  null,   null, null, null,  null,   null,  sdbbpd
+            maddd,  maddud, muld,   dmuld,  msubd, msubud, null,    null,
+            null,   null,   null,   null,   null,  null,   null,    null,
+            null,   null,   null,   null,   null,  null,   null,    null,
+            saad,   saadd,  null,   null,   null,  null,   null,    laid,
+            clzd,   clod,   null,   null,   dclzd, null,   null,    null,
+            baddud, null,   seqd,   sned,   popd,  dpopd,  seqid,   sneid,
+            null,   null,   cinsd,  cinsd,  null,  null,   null,    null,
+            null,   null,   extsd,  extsd,  null,  null,   null,    sdbbpd
     )
 
     private val e_regimmd = InstructionTable(
@@ -610,14 +791,14 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             8, 8,
             { data -> data[31..29] },
             { data -> data[28..26] },
-            e_speciald, e_regimmd, jd,      jald,     beqd,         bned,  blezd,  bgtzd,
-            addid,      addiud,    sltid,   sltiud,   andid,        orid,  xorid,  luid,
-            e_cop0d,    e_cop1d,   e_cop2d, e_cop1xd, beqld,        bneld, blezld, bgtzld,
-            daddid,     daddiud,   ldld,    ldrd,     e_special2d,  null,  null,   e_special3d,
-            lbd,        lhd,       lwld,    lwd,      lbud,         lhud,  lwrd,   lwud,
-            sbd,        shd,       swld,    swd,      sdld,         sdrd,  swrd,   cached,
-            lld,        lwc1d,     lwc2d,   prefd,    lldd,         ldc1d, ldc2d,  ldd,
-            scd,        swc1d,     swc2d,   null,     scdd,         sdc1d, sdc2d,  sdd
+            e_speciald, e_regimmd, jd,      jald,     beqd,         bned,    blezd,  bgtzd,
+            addid,      addiud,    sltid,   sltiud,   andid,        orid,    xorid,  luid,
+            e_cop0d,    e_cop1d,   e_cop2d, e_cop1xd, beqld,        bneld,   blezld, bgtzld,
+            daddid,     daddiud,   opc3_2d, opc3_3d,  e_special2d,  null,    null,   e_special3d,
+            lbd,        lhd,       opc4_2d, lwd,      lbud,         lhud,    opc4_6d,lwud,
+            sbd,        shd,       opc5_2d, swd,      opc5_4d,      opc5_5d, opc5_6d,cached,
+            lld,        lwc1d,     opc6_2d, prefd,    lldd,         ldc1d,   opc6_6d,ldd,
+            scd,        swc1d,     opc7_2d, null,     scdd,         sdc1d,   opc7_6d,sdd
     )
 
     private val dcCache = dictionary<ULong, AMipsInstruction>(0x100000)

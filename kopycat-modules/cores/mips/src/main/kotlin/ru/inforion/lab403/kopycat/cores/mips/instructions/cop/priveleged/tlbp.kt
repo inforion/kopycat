@@ -25,9 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cop.priveleged
 
-import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.MipsCPU
-import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mmu.TLBEntry32
-import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mmu.TLBEntry64
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.mips.instructions.Code19bitInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -43,21 +41,13 @@ class tlbp(core: MipsCore,
     override val mnem = "tlbp"
 
     override fun execute() {
-        index = -1
-        val match = when (core.cpu.mode) {
-            MipsCPU.Mode.R32 -> TLBEntry32(-1, pageMask, entryHi, entryLo0, entryLo1)
-            MipsCPU.Mode.R64 -> TLBEntry64(-1, pageMask, entryHi, entryLo0, entryLo1, core.SEGBITS!!)
-        }
-
-        val mask = match.VPN2 and match.Mask.inv()
-        for (i in 0 until core.mmu.tlbEntries) {
-            val TLB = core.mmu.readTlbEntry(i)
-            val cond1 = (TLB.VPN2 and TLB.Mask.inv()) == mask
-            val cond2 = TLB.G == 1u || TLB.ASID == match.ASID
-            if (cond1 && cond2)
-                index = i
+        val tlb = core.mmu.tlbFindForAddress(entryHi)
+        if (tlb == null) {
+            cop0.regs.Index.P = true
+        } else {
+            cop0.regs.Index.P = false
+            cop0.regs.Index.index = tlb.index.ulong_z
         }
 //        log.severe { "${core.cpu.pc.hex8} -> $mnem $index" }
     }
 }
-

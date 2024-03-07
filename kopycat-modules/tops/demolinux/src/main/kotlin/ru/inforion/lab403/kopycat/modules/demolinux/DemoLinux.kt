@@ -25,7 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.modules.demolinux
 
-import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
@@ -44,12 +45,12 @@ import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.EDXFeatures
 import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.ProcType
 import ru.inforion.lab403.kopycat.experimental.common.ExternalDisk
 import ru.inforion.lab403.kopycat.experimental.common.PacketSourceData
-import ru.inforion.lab403.kopycat.experimental.common.classResourcePath
+import ru.inforion.lab403.kopycat.cores.base.classResourcePath
 import ru.inforion.lab403.kopycat.experimental.common.parsePacketSourceData
+import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedTracer
+import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedUtils
+import ru.inforion.lab403.kopycat.runtime.abi.x64AbiSystemV
 import ru.inforion.lab403.kopycat.experimental.linux.biosless.BioslessDevice
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.abi.x64AbiSystemV
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.queued.x86funQueuedTracer
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.queued.x86funQueuedUtils
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
@@ -127,8 +128,8 @@ class DemoLinux(
     val dbg = if (x32dbg) x86Debugger(this, "dbg") else x64Debugger(this, "dbg", BUS64)
     private val trc = ComponentTracer<x86Core>(this, "trc")
 
-    val queueApi = x86funQueuedUtils(x64AbiSystemV(atom2758.x86))
-    private val queueTracer = x86funQueuedTracer(this, "q-trc-demolinux", queueApi)
+    val queueApi = FunQueuedUtils(x64AbiSystemV(atom2758.x86))
+    private val queueTracer = FunQueuedTracer<x86Core>(this, "q-trc-demolinux", queueApi)
 
     val demoLinuxTracer = DemoLinuxTracer(this, "trc-demolinux")
 

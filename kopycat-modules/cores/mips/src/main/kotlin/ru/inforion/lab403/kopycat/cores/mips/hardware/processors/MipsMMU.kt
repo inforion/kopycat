@@ -28,15 +28,20 @@
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.optional.emptyOpt
+import ru.inforion.lab403.common.optional.opt
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.mips.Microarchitecture
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
-import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mmu.ATLBEntry
+import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mmu.TLBEntry
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mmu.TLBEntry32
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mmu.TLBEntry64
+import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.CPRBank
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import ru.inforion.lab403.kopycat.serializer.loadValue
 
 /**
  * Stub for MIPS address translation.
@@ -56,202 +61,281 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
 
     // if PageMask is not implemented, we think that it is written with the encoding for 4kB page
 
-
-    private val TLB : Array<ATLBEntry> = when (mips.cpu.mode) {
-        MipsCPU.Mode.R32 -> Array(tlbEntries) { TLBEntry32() }
-        MipsCPU.Mode.R64 -> Array(tlbEntries) { TLBEntry64() }
+    private val TLB : Array<TLBEntry> = when (mips.cpu.mode) {
+        MipsCPU.Mode.R32 -> Array(tlbEntries) { TLBEntry32.create(mips) }
+        MipsCPU.Mode.R64 -> Array(tlbEntries) { TLBEntry64.create(mips) }
     }
 
-    private var currentTlbIndex = 0
+    private var randomTlbIdx = mips.cop.regs.Wired.value.int
 
     fun getFreeTlbIndex(): Int {
-        if (currentTlbIndex == tlbEntries) {
-            currentTlbIndex = mips.cop.regs.Wired.value.int
+        if (randomTlbIdx == 0 || randomTlbIdx == tlbEntries) {
+            randomTlbIdx = mips.cop.regs.Wired.value[15..0].int
         }
-        return currentTlbIndex++
+        return randomTlbIdx++
     }
 
-    fun writeTlbEntry(index: Int, pageMask: ULong, entryHi: ULong, entryLo0: UInt, entryLo1: UInt): ATLBEntry {
+    fun writeTlbEntry(index: Int, pageMask: ULong, entryHi: ULong, entryLo0: UInt, entryLo1: UInt): TLBEntry {
+        val entry = TLBEntry(
+            index,
+            pageMask,
+            entryHi,
+            entryLo0,
+            entryLo1,
+            mips.cop.regs.MMID.mmid,
+            mips.cop.regs.Config4.ae,
+            if (mips.is64bit) mips.segmask.opt else emptyOpt(),
+        )
+        TLB[index] = entry
+        return entry
+    }
+
+    fun writeTlbEntry(index: Int, vAddress: ULong, pAddress: ULong, size: Int): TLBEntry {
         val entry = when (mips.cpu.mode) {
-            MipsCPU.Mode.R32 -> TLBEntry32(index, pageMask, entryHi, entryLo0, entryLo1)
-            MipsCPU.Mode.R64 -> TLBEntry64(
+            MipsCPU.Mode.R32 -> TLBEntry32.create(
+                mips,
                 index,
-                pageMask,
-                entryHi,
-                entryLo0,
-                entryLo1,
-                VPN2border = (core as MipsCore).SEGBITS!!
+                vAddress,
+                pAddress,
+                size,
+            )
+            MipsCPU.Mode.R64 -> TLBEntry64.create(
+                mips,
+                index,
+                vAddress,
+                pAddress,
+                size,
             )
         }
         TLB[index] = entry
         return entry
     }
 
-    fun writeTlbEntry(index: Int, vAddress: ULong, pAddress: ULong, size: Int): ATLBEntry {
-        val entry = when (mips.cpu.mode) {
-            MipsCPU.Mode.R32 -> TLBEntry32.createTlbEntry(index, vAddress, pAddress, size, mips.PABITS)
-            MipsCPU.Mode.R64 -> TLBEntry64.createTlbEntry(index, vAddress, pAddress, size, mips.PABITS, mips.SEGBITS!!)
-        }
-        TLB[index] = entry
-        return entry
+    fun readTlbEntry(index: Int): TLBEntry = TLB[index]
+
+    private fun adex(ea: ULong, access: AccessAction) = when (access) {
+        AccessAction.LOAD, AccessAction.FETCH -> MipsHardwareException.AdEL(mips.pc, ea)
+        AccessAction.STORE -> MipsHardwareException.AdES(mips.pc, ea)
     }
 
-    fun readTlbEntry(index: Int): ATLBEntry = TLB[index]
+    private fun isAMMapped(ea: ULong, access: AccessAction, am: ULong, eu: Boolean) = if (mips.cop.regs.Status.ERL) {
+        if (eu) {
+            false
+        } else {
+            // KM
+            ((0x7000_0000 shl am.int) < 0)
+        }
+    } else when (CPRBank.ProcessorMode.fromKSU(mips.cop.regs.Status)) {
+        CPRBank.ProcessorMode.Kernel -> ((0x7000_0000 shl am.int) < 0)
+        CPRBank.ProcessorMode.Supervisor -> {
+            val mask = 0xc038_0000
+            if ((mask shl am.int) < 0) {
+                throw adex(ea, access)
+            }
+            (((mask shl 8) shl am.int) < 0)
+        }
+        else -> {
+            val mask = 0xe418_0000
+            if ((mask shl am.int) < 0) {
+                throw adex(ea, access)
+            }
+            (((mask shl 8) shl am.int) < 0)
+        }
+    }
 
-    fun translate64(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong {
-        // unmapped kseg0 и kseg1
-        if (
-            ea in 0xFFFF_FFFF_8000_0000u..0xFFFF_FFFF_9FFF_FFFFu ||
-            ea in 0xFFFF_FFFF_A000_0000u..0xFFFF_FFFF_BFFF_FFFFu
-        )
-            return ea and 0x0000_0000_1FFF_FFFFu
+    private fun getSegPhysicalAddress(
+        ea: ULong,
+        access: AccessAction,
+        am: ULong,
+        eu: Boolean,
+        segmask: ULong,
+        physicalBase: ULong,
+    ) = if (isAMMapped(ea, access, am, eu)) {
+        tlbFindAddress(ea, access)
+    } else {
+        physicalBase or (ea and segmask)
+    }
 
-        val shiftedPabits = 1uL shl mips.PABITS
-        if (
-            ea in 0xB800_0000_0000_0000u until 0xB800_0000_0000_0000u + shiftedPabits ||
-            ea in 0xB000_0000_0000_0000u until 0xB000_0000_0000_0000u + shiftedPabits ||
-            ea in 0xA800_0000_0000_0000u until 0xA800_0000_0000_0000u + shiftedPabits ||
-            ea in 0xA000_0000_0000_0000u until 0xA000_0000_0000_0000u + shiftedPabits ||
-            ea in 0x9800_0000_0000_0000u until 0x9800_0000_0000_0000u + shiftedPabits ||
-            ea in 0x9000_0000_0000_0000u until 0x9000_0000_0000_0000u + shiftedPabits ||
-            ea in 0x8800_0000_0000_0000u until 0x8800_0000_0000_0000u + shiftedPabits ||
-            ea in 0x8000_0000_0000_0000u until 0x8000_0000_0000_0000u + shiftedPabits
-        )
-            return ea and (0x0000_0000_0000_0000u + shiftedPabits - 1u)
+    private fun getSegctlPhysicalAddress(
+        ea: ULong,
+        access: AccessAction,
+        segctl: CPRBank.SEGCTL_CFG,
+        segmask: ULong,
+    ) = getSegPhysicalAddress(
+        ea,
+        access,
+        segctl.AM,
+        segctl.EN.truth,
+        segmask,
+        (segctl.PA shl 29) and segmask.inv(),
+    )
 
-        var pAddr = 0u
-        var found = false
-        val pfn: UInt
-        val v: UInt
-        val d: UInt
+    fun tlbFindForAddress(ea: ULong): TLBEntry? {
+        val mmid = if (mips.cop.regs.Config5.mi) {
+            mips.cop.regs.MMID.mmid
+        } else {
+            mips.cop.regs.EntryHi.ASID
+        }
 
-        val entryHiASID = mips.cop.regs.EntryHi.value[7..0].uint
-        // p. 48 PRA.
-        for (i in TLB.indices) {
-            val invMask = inv(TLB[i].Mask)
-            val vpn = TLB[i].VPN2 and invMask
-            val eaPage = ea[31..13] and invMask
-            val isGlobal = TLB[i].G == 1u
+        for (tlb in TLB) {
+            val mask = tlb.pageMask or ubitMask64(13)
+            var wanted = ea and mask.inv()
+            val vpn = tlb.VPN2 and mask.inv()
 
-            val isIdEquals = TLB[i].ASID == entryHiASID.ulong_z
-            if ((vpn == eaPage) && (isGlobal || isIdEquals)) {
+            if (mips.cpu.mode == MipsCPU.Mode.R64) {
+                wanted = wanted and mips.segmask
+            }
 
-                val evenOddBit = when (TLB[i].Mask) {
-                    0b0000000000000000uL -> 12
-                    0b0000000000000011uL -> 14
-                    0b0000000000001111uL -> 16
-                    0b0000000000111111uL -> 18
-                    0b0000000011111111uL -> 20
-                    0b0000001111111111uL -> 22
-                    0b0000111111111111uL -> 24
-                    0b0011111111111111uL -> 26
-                    0b1111111111111111uL -> 28
-                    else -> error("Wrong TLB[$i] mask=${TLB[i].Mask}")
-                }
-                if (ea[evenOddBit] == 0uL) {
-                    pfn = TLB[i].PFN0
-                    v = TLB[i].V0
-                    d = TLB[i].D0
-                } else {
-                    pfn = TLB[i].PFN1
-                    v = TLB[i].V1
-                    d = TLB[i].D1
-                }
-                if (v == 0u)
-                    throw MipsHardwareException.TLBInvalid(LorS, core.pc, ea)
-                if (d == 0u && LorS == AccessAction.STORE)
-                    throw MipsHardwareException.TLBModified(core.pc, ea)
-
-//                if (found) {
-//                    throw GeneralException("[${core.pc.hex8}] Double MMU TLB match for ${ea.hex8}")
-//                }
-
-                val msb = mips.PABITS - 1 - 12
-                val lsb = evenOddBit - 12
-                val page = pfn[msb..lsb]
-                val offset = ea[evenOddBit - 1..0].uint
-
-                pAddr = (page shl evenOddBit) or offset
-                found = true
-                break
+            if ((tlb.G.truth || tlb.ASID(mips.cop.regs.Config5.mi) == mmid) && vpn == wanted && !tlb.EHINV) {
+                return tlb
             }
         }
 
-        if (!found)
-            throw MipsHardwareException.TLBMiss(LorS, core.pc, ea)
-
-        return pAddr.ulong_z
+        return null
     }
 
-    fun translate32(ea: ULong, ss: Int, size: Int,  LorS: AccessAction): ULong {
-        if (ea in 0x8000_0000u..0x9FFF_FFFFu || ea in 0xA000_0000u..0xBFFF_FFFFu)
-            return ea and 0x1FFF_FFFFu
+    // R4K
+    private fun tlbFindAddress(ea: ULong, access: AccessAction): ULong {
+        val tlb = tlbFindForAddress(ea) ?: throw MipsHardwareException.TLBMiss(access, mips.pc, ea)
 
-        var pAddr = 0u
-        var found = false
-        val pfn: UInt
-        val v: UInt
-        val d: UInt
+        val mask = tlb.pageMask or ubitMask64(13)
+        val n = ea and mask and (mask ushr 1).inv()
 
-        val entryHiASID = mips.cop.regs.EntryHi.value[7..0].uint
+        if ((n.untruth || tlb.V1.untruth) && (n.truth || tlb.V0.untruth)) {
+            throw MipsHardwareException.TLBInvalid(access, mips.pc, ea)
+        }
 
-        for (i in TLB.indices) {
-            val invMask = inv(TLB[i].Mask)
-            val vpn = TLB[i].VPN2 and invMask
-            val eaPage = ea[31..13].uint and invMask.uint
-            val isGlobal = TLB[i].G == 1u
-            val isIdEquals = TLB[i].ASID.uint == entryHiASID
-            if ((vpn.uint == eaPage) && (isGlobal || isIdEquals)) {
-
-                val evenOddBit = when (TLB[i].Mask.uint) {
-                    0b0000000000000000u -> 12
-                    0b0000000000000011u -> 14
-                    0b0000000000001111u -> 16
-                    0b0000000000111111u -> 18
-                    0b0000000011111111u -> 20
-                    0b0000001111111111u -> 22
-                    0b0000111111111111u -> 24
-                    0b0011111111111111u -> 26
-                    0b1111111111111111u -> 28
-                    else -> error("Wrong TLB[$i] mask=${TLB[i].Mask}")
-                }
-                if (ea[evenOddBit] == 0uL) {
-                    pfn = TLB[i].PFN0
-                    v = TLB[i].V0
-                    d = TLB[i].D0
-                } else {
-                    pfn = TLB[i].PFN1
-                    v = TLB[i].V1
-                    d = TLB[i].D1
-                }
-                if (v == 0u)
-                    throw MipsHardwareException.TLBInvalid(LorS, core.pc, ea)
-                if (d == 0u && LorS == AccessAction.STORE)
-                    throw MipsHardwareException.TLBModified(core.pc, ea)
-
-//                if (found) {
-//                    throw GeneralException("[${core.pc.hex8}] Double MMU TLB match for ${ea.hex8}")
-//                }
-
-                val msb = mips.PABITS - 1 - 12
-                val lsb = evenOddBit - 12
-                val page = pfn[msb..lsb]
-                val offset = ea[evenOddBit - 1..0].uint
-
-                pAddr = (page shl evenOddBit) or offset
-                found = true
-                break
+        if (access == AccessAction.FETCH && (n.truth && tlb.XI1.truth || n.untruth && tlb.XI0.truth)) {
+            if (mips.cop.regs.PageGrain.IEC) {
+                throw MipsHardwareException.TLBXI(mips.pc, ea)
+            } else {
+                throw MipsHardwareException.TLBInvalid(access, mips.pc, ea)
             }
         }
 
-        if (!found)
-            throw MipsHardwareException.TLBMiss(LorS, core.pc, ea)
+        if (access == AccessAction.LOAD && (n.truth && tlb.RI1.truth || n.untruth && tlb.RI0.truth)) {
+            if (mips.cop.regs.PageGrain.IEC) {
+                throw MipsHardwareException.TLBRI(mips.pc, ea)
+            } else {
+                throw MipsHardwareException.TLBInvalid(access, mips.pc, ea)
+            }
+        }
 
-        return pAddr.ulong_z
+        return if (access != AccessAction.STORE || (n.truth && tlb.D1.truth || n.untruth && tlb.D0.truth)) {
+            if (n.truth) {
+                tlb.PFN1
+            } else {
+                tlb.PFN0
+            } or (ea and (mask ushr 1))
+        } else {
+            throw MipsHardwareException.TLBModified(mips.pc, ea)
+        }
     }
-    override fun translate(ea: ULong, ss: Int, size: Int,  LorS: AccessAction): ULong = when (mips.cpu.mode) {
-        MipsCPU.Mode.R32 -> translate32(ea, ss, size, LorS)
-        MipsCPU.Mode.R64 -> translate64(ea, ss, size, LorS)
+
+    private fun ULong.signextIf64Bit() = if (mips.is64bit) {
+        this signext 31
+    } else {
+        this
+    }
+
+    private val kseg1 = 0xA000_0000uL.signextIf64Bit()
+    private val kseg2 = 0xC000_0000uL.signextIf64Bit()
+    private val kseg3 = 0xE000_0000uL.signextIf64Bit()
+
+    override fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong {
+        return if (ea <= 0x7FFF_FFFFuL) {
+            // useg
+            getSegctlPhysicalAddress(
+                ea,
+                LorS,
+                if (ea >= 0x4000_0000uL) {
+                    mips.cop.regs.SegCtl2.cfgLo
+                } else {
+                    mips.cop.regs.SegCtl2.cfgHi
+                },
+                0x3FFF_FFFFuL,
+            )
+        } else if (mips.cpu.mode == MipsCPU.Mode.R64 && ea < 0x4000_0000_0000_0000uL) {
+            // xuseg
+            if (mips.cop.regs.Status.UX && ea <= 0x3FFF_FFFF_FFFF_FFFFuL and mips.segmask) {
+                tlbFindAddress(ea, LorS)
+            } else {
+                throw adex(ea, LorS)
+            }
+        } else if (mips.cpu.mode == MipsCPU.Mode.R64 && ea < 0x8000_0000_0000_0000uL) {
+            // xsseg
+            // TODO: check permissions
+            if (mips.cop.regs.Status.SX && ea <= 0x7FFF_FFFF_FFFF_FFFFuL and mips.segmask) {
+                tlbFindAddress(ea, LorS)
+            } else {
+                throw adex(ea, LorS)
+            }
+        } else if (mips.cpu.mode == MipsCPU.Mode.R64 && ea < 0xC000_0000_0000_0000uL) {
+            // xkphys
+
+            val pamask = when {
+                mips.cop.regs.Config3.LPA && mips.cop.regs.PageGrain.ELPA -> ubitMask64(mips.PABITS - 1 .. 0)
+                mips.is64bit -> ubitMask64(35..0)
+                else -> ubitMask64(31..0)
+            }
+
+            if (ea and 0x07FF_FFFF_FFFF_FFFFuL <= pamask) {
+                val am = if (mips.cop.regs.SegCtl2.XR[ea[61..59].int] != 0uL) {
+                    mips.cop.regs.SegCtl1.XAM
+                } else {
+                    0uL
+                }
+
+                val permitted = when (am) {
+                    0uL, 1uL, 6uL -> mips.cop.regs.Status.KX
+                    2uL, 5uL -> mips.cop.regs.Status.SX
+                    else -> mips.cop.regs.Status.UX
+                }
+
+                if (permitted) {
+                    getSegPhysicalAddress(ea, LorS, am, false, pamask, 0uL)
+                } else {
+                    throw adex(ea, LorS)
+                }
+            } else {
+                throw adex(ea, LorS)
+            }
+        } else if (mips.cpu.mode == MipsCPU.Mode.R64 && ea < 0xFFFF_FFFF_8000_0000uL) {
+            // xkseg
+            // TODO: check permissions
+            if (mips.cop.regs.Status.KX && ea <= 0xFFFF_FFFF_7FFF_FFFFuL and mips.segmask) {
+                tlbFindAddress(ea, LorS)
+            } else {
+                throw adex(ea, LorS)
+            }
+        } else if (ea < kseg1) {
+            // kseg0
+            getSegctlPhysicalAddress(ea, LorS, mips.cop.regs.SegCtl1.cfgHi, 0x1FFF_FFFFuL)
+        } else if (ea < kseg2) {
+            // kseg1
+            getSegctlPhysicalAddress(ea, LorS, mips.cop.regs.SegCtl1.cfgLo, 0x1FFF_FFFFuL)
+        } else if (ea < kseg3) {
+            // kseg2
+            getSegctlPhysicalAddress(ea, LorS, mips.cop.regs.SegCtl0.cfgHi, 0x1FFF_FFFFuL)
+        } else {
+            // kseg3
+            if (mips.microarchitecture == Microarchitecture.cnMips &&
+                ea in 0xFFFF_FFFF_FFFF_8000uL..0xFFFF_FFFF_FFFF_BFFFuL) {
+                // CVMSEG
+
+                val enabled = when (CPRBank.ProcessorMode.fromKSU(mips.cop.regs.Status)) {
+                    CPRBank.ProcessorMode.Kernel -> mips.cop.regs.CvmMemCtl?.CVMSEGENAK
+                    CPRBank.ProcessorMode.Supervisor -> mips.cop.regs.CvmMemCtl?.CVMSEGENAS
+                    CPRBank.ProcessorMode.User -> mips.cop.regs.CvmMemCtl?.CVMSEGENAU
+                    else -> false
+                }
+
+                if (enabled == true) {
+                    return ea
+                }
+            }
+            getSegctlPhysicalAddress(ea, LorS, mips.cop.regs.SegCtl0.cfgLo, 0x1FFF_FFFFuL)
+        }
     }
 
     fun invalidateCache() {
@@ -262,15 +346,29 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
         invalidateCache()
     }
 
-    override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-        return mapOf("name" to name, "TLB" to TLB.map { tlbEntry -> tlbEntry.serialize(ctxt) })
-    }
+    override fun serialize(ctxt: GenericSerializer) = mapOf(
+        "TLB" to TLB.map { it.serialize(ctxt) },
+        "randomTlbIdx" to randomTlbIdx,
+    )
 
     // TODO: make checked cast
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-        (snapshot["TLB"] as ArrayList<Map<String, String>>).forEachIndexed { i, map ->
-            TLB[i] = ATLBEntry.createFromSnapshot(ctxt, map)
+        randomTlbIdx = loadValue(snapshot, "randomTlbIdx") { 0 }
+
+        val snapshotTlbs = snapshot["TLB"] as ArrayList<Map<String, Any>>
+        TLB.indices.forEach { i ->
+            val tlb = snapshotTlbs[i]
+            TLB[i] = TLBEntry(
+                loadValue<Int>(tlb, "index"),
+                loadValue<ULong>(tlb, "pageMask"),
+                loadValue<ULong>(tlb, "entryHi"),
+                loadValue<UInt>(tlb, "entryLo0"),
+                loadValue<UInt>(tlb, "entryLo1"),
+                loadValue<ULong>(tlb, "mmid"),
+                loadValue<Boolean>(tlb, "ae"),
+                if (mips.is64bit) mips.segmask.opt else emptyOpt(),
+            )
         }
     }
 }

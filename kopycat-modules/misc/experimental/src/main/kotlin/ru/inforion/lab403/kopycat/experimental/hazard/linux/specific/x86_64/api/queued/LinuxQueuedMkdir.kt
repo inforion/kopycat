@@ -27,27 +27,28 @@ package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api
 
 import org.jetbrains.kotlin.backend.common.push
 import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.readAvailableBytes
-import ru.inforion.lab403.kopycat.experimental.common.capturable.Capturable
-import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces.LinuxVfsRWCapturableApi
-import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces.LinuxFilpCapturableApi
-import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.interfaces.LinuxSysFilesystem2CapturableApi
+import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.kopycat.auxiliary.capturable.Capturable
+import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedUtils
+import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedUtilsData
 import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.data.interfaces.LinuxThreadInfo
+import ru.inforion.lab403.kopycat.experimental.linux.api.interfaces.LinuxSysMkdirCapturableApi
 import ru.inforion.lab403.kopycat.experimental.linux.common.LinuxReturn
-import ru.inforion.lab403.kopycat.experimental.linux.common.buildLinuxFileControl
 import ru.inforion.lab403.kopycat.experimental.linux.common.toLinuxReturn
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.queued.x86funQueuedUtils
-import ru.inforion.lab403.kopycat.experimental.x86.funUtils.queued.x86funQueuedUtilsData
-import ru.inforion.lab403.kopycat.interfaces.inq
-import java.io.File
+import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
 class LinuxQueuedMkdir<T>(
     val raw: T,
-    val queued: x86funQueuedUtils,
+    val queued: FunQueuedUtils,
     val path: String,
     val threadInfoBlock: () -> LinuxThreadInfo?
-) where T : LinuxSysFilesystem2CapturableApi {
+) where T : LinuxSysMkdirCapturableApi {
+    companion object {
+        @Transient
+        val log = logger(INFO)
+    }
+
     val availablePc = setOf(raw.PTR_SYS_MKDIR)
 
     fun start() {
@@ -56,9 +57,10 @@ class LinuxQueuedMkdir<T>(
 
     private fun mkdir() {
         queued.functionsQueue.push(
-            x86funQueuedUtilsData(
+            FunQueuedUtilsData(
                 isReadyToCall = {
-                    x86.isRing0 && !x86.cpu.flags.ifq && threadInfoBlock() != null
+                    // TODO: crutch
+                    (core as x86Core).isRing0 && !(core as x86Core).cpu.flags.ifq && threadInfoBlock() != null
                 },
                 capturable = {
                     object : Capturable<Unit> {
@@ -74,7 +76,7 @@ class LinuxQueuedMkdir<T>(
                         }
 
                         override fun body() {
-                            x86.pc = raw.PTR_SYS_MKDIR
+                            abi.call(raw.PTR_SYS_MKDIR)
                         }
 
                         override fun destroy() {
@@ -86,7 +88,7 @@ class LinuxQueuedMkdir<T>(
                                 is LinuxReturn.Success -> {}
 
                                 else -> {
-                                    println("ERROR: mkdir result = 0x${filePointer.rawValue.hex}")
+                                    log.severe { "mkdir result = 0x${filePointer.rawValue.hex}" }
                                 }
                             }
 

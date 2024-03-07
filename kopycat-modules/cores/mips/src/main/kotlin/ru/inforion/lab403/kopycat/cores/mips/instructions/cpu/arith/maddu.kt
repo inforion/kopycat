@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.mips.instructions.RdRsRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -41,9 +42,9 @@ class maddu(
     override val mnem = "maddu"
 
     override fun execute() {
-        val v1 = (hi shl 32) or lo
-        val v2 = v1 + vrs * vrt
-        hi = v2[63..32]
-        lo = v2[31..0]
+        val v1 = (hi[31..0] shl 32) or lo[31..0]
+        val v2 = v1 + vrs[31..0] * vrt[31..0]
+        hi = v2[63..32] signext 31
+        lo = v2[31..0] signext 31
     }
 }

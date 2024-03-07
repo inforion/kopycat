@@ -46,32 +46,9 @@ class lwl(core: MipsCore,
     override val mnem = "lwl"
 
     override fun execute() {
-        // I hate mips...
-        val dataword = vrt
-
-        val vAddr = address
-
-        val byte = (vAddr[1..0] xor core.cpu.bigEndianCPU.bext(2)).int
-
-        vrt = if (core.is32bit) {
-            // Can't use operand value because to specific handler required
-            val memword = core.inl(vAddr and 0xFFFFFFFCu)
-
-            val hi = memword[8 * byte + 7..0]
-            val lo = dataword[23 - 8 * byte..0]
-            hi.shl(24 - 8 * byte) or lo         // temp
-
-        } else {
-            // throw IllegalStateException("lwl is not implemented for 64bit regs")
-            // TODO: test this!!!!!!
-            val word = (vAddr[2] xor core.cpu.bigEndianCPU.ulong_z).int
-
-            val memdoubleword = core.inq(vAddr and 0xFFFF_FFFF_FFFF_FFFCu)
-
-            val hi = memdoubleword[(31 + 32 * word - 8 * byte)..32 * word]
-            val lo = dataword[23 - 8 * byte .. 0]
-            val temp = hi.shl(24 - 8 * byte) or lo
-            temp.signext(31)
-        }
+        val byte = (address[1..0] xor core.cpu.bigEndianCPU.bext(2)).int
+        val hi = core.inl(address clr 1..0) shl (24 - 8 * byte)
+        val lo = vrt[23 - 8 * byte .. 0]
+        vrt = (hi or lo) signext 31
     }
 }
