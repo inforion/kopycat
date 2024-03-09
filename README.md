@@ -16,7 +16,7 @@ Main features are:
 
 This project contains CPU cores: ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86, and MCUs: CortexM0, STM32F0xx, MSP430x44x. 
 
-You can download prebuild JAR-files modules via the link: https://kopy.cat/download
+You can download prebuild JAR-files modules via the link: https://kopycat.ru/download
 
 ## Videos
 
