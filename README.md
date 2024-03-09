@@ -1,4 +1,5 @@
-<img src="https://kopy.cat/static/media/big_logo.169d84fb.png" width="384">
+<img src="https://github.com/inforion/kopycat/assets/55213322/98846b70-cd79-4253-a7f0-29d8905b61e1" width="384">
+
 
 Kopycat is a multi-processor architectures system and user-level (with VEOS module) emulator.
 
