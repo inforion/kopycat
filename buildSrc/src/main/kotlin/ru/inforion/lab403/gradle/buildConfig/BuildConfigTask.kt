@@ -41,6 +41,12 @@ import java.io.File
 open class BuildConfigTask : DefaultTask() {
     companion object {
         const val TASK_IDENTIFIER = "createKopycatConfig"
+
+        private fun getKcTopClassFromFull(full: String): String = full.split(".").run {
+            getOrElse(this.size - 1) {
+                throw IllegalStateException("Unable to find -1 part of the top class full name '$this'")
+            }
+        }
     }
 
     @Internal
@@ -68,16 +74,6 @@ open class BuildConfigTask : DefaultTask() {
             .split(".").run {
                 getOrElse(this.size - 2) {
                     throw IllegalStateException("Unable to find -2 part of the top class full name '$this'")
-                }
-            }
-    }
-
-    @get:Internal
-    val kcTopClass by lazy {
-        kcFullTopClass
-            .split(".").run {
-                getOrElse(this.size - 1) {
-                    throw IllegalStateException("Unable to find -1 part of the top class full name '$this'")
                 }
             }
     }
@@ -111,7 +107,12 @@ open class BuildConfigTask : DefaultTask() {
 
     fun addConfig(closure: Closure<BuildConfigData>) {
         val nonameString = defaults.unsetArgument()
-        val data = BuildConfigData(nonameString, "", defaults.starter())
+        val data = BuildConfigData(
+            fullTopClass = kcFullTopClass,
+            name = nonameString,
+            description = "",
+            starterClass = defaults.starter(),
+        )
         closure.resolveStrategy = Closure.DELEGATE_FIRST
         closure.delegate = data
         closure.call()
@@ -160,9 +161,10 @@ open class BuildConfigTask : DefaultTask() {
             arguments["-rd"] = defaults.resourcesDir()
             arguments["-is"] = defaults.initScript()
             arguments["-lf"] = defaults.logFilePath(data.name)
+            arguments["-hf"] = defaults.historyFilePath()
         }
 
-        arguments["-n"] = kcTopClass
+        arguments["-n"] = getKcTopClassFromFull(data.fullTopClass)
         arguments["-y"] = kcModuleLibraries
         arguments["-l"] = kcLibraryDirectory
         if (data.kcConstructorArgumentsString.isNotEmpty()) {
@@ -207,7 +209,7 @@ open class BuildConfigTask : DefaultTask() {
     /**
      * Copies IDEA configs into the acceptable IDEA directory
      */
-    private fun intellijPostCopy( ) {
+    private fun intellijPostCopy() {
         val intelliJRunDir = File(rootProjectDir.path, ".idea/runConfigurations")
         intelliJRunDir.dirCheckOrCreate()
 

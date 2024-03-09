@@ -244,8 +244,28 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
         else -> Unimplemented(core)
     }
 
-    private val  laid = when (core.microarchitecture) {
-        Microarchitecture.cnMips -> CvmRdBase(core, DWORD, ::lai)
+    private val  laxd = when (core.microarchitecture) {
+        Microarchitecture.cnMips -> InstructionTable(
+            10..6,
+            *Array(32) {
+                when (it) {
+                    0x12 -> CvmRdBaseRt(core, DWORD, ::laa)
+                    0x13 -> CvmRdBaseRt(core, QWORD, ::laa)
+                    0x16 -> CvmRdBaseRt(core, DWORD, ::law)
+                    0x17 -> CvmRdBaseRt(core, QWORD, ::law)
+                    0x02 -> CvmRdBase(core, DWORD, ::lai)
+                    0x03 -> CvmRdBase(core, QWORD, ::lai)
+                    0x06 -> CvmRdBase(core, DWORD, ::lad)
+                    0x07 -> CvmRdBase(core, QWORD, ::lad)
+                    0x0a -> CvmRdBase(core, DWORD, ::las)
+                    0x0b -> CvmRdBase(core, QWORD, ::las)
+                    0x0e -> CvmRdBase(core, DWORD, ::lac)
+                    0x0f -> CvmRdBase(core, QWORD, ::lac)
+                    0x1d -> CvmRdBase(core, DWORD, ::zcbt)
+                    else -> Unimplemented(core)
+                }
+            },
+        )
         else -> Unimplemented(core)
     }
 
@@ -756,7 +776,7 @@ class Mips32SystemDecoder(core: MipsCore): Serializable {
             maddd,  maddud, muld,   dmuld,  msubd, msubud, null,    null,
             null,   null,   null,   null,   null,  null,   null,    null,
             null,   null,   null,   null,   null,  null,   null,    null,
-            saad,   saadd,  null,   null,   null,  null,   null,    laid,
+            saad,   saadd,  null,   null,   null,  null,   null,    laxd,
             clzd,   clod,   null,   null,   dclzd, null,   null,    null,
             baddud, null,   seqd,   sned,   popd,  dpopd,  seqid,   sneid,
             null,   null,   cinsd,  cinsd,  null,  null,   null,    null,

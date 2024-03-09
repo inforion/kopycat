@@ -30,7 +30,6 @@ import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.dynamicAbsoluteFiel
 import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.dynamicOffsetField
 import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.offsetField
 import ru.inforion.lab403.kopycat.cores.base.common.Module
-import ru.inforion.lab403.kopycat.experimental.fields.common.*
 import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IMemoryRef
 import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
 import ru.inforion.lab403.kopycat.modules.BUS32

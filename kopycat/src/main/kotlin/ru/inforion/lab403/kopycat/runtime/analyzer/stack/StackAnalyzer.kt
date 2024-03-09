@@ -26,11 +26,8 @@
 package ru.inforion.lab403.kopycat.runtime.analyzer.stack
 
 import ru.inforion.lab403.common.extensions.hex16
-import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
-import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
-import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 import java.util.*
 import kotlin.math.max
@@ -147,8 +144,13 @@ open class StackAnalyzer(
 
     override fun serialize(ctxt: GenericSerializer): Map<String, Any> = super.serialize(ctxt) + storeValues(
         "spToData" to spToData.mapValues { (_, v) -> v.serialize() },
-        "previousData" to previousData.serialize(),
-    )
+    ) + if (::previousData.isInitialized) {
+        storeValues(
+            "previousData" to previousData.serialize(),
+        )
+    } else {
+        mapOf()
+    }
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)

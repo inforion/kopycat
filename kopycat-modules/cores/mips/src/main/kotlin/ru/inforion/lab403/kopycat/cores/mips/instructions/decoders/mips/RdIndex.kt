@@ -29,7 +29,6 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
 import ru.inforion.lab403.kopycat.cores.mips.instructions.decoders.ADecoder
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
@@ -39,13 +38,13 @@ import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class RdIndex(
     core: MipsCore,
-    val construct: (MipsCore, ULong, MipsRegister, MipsImmediate,  MipsRegister) -> AMipsInstruction
+    val construct: (MipsCore, ULong, MipsRegister, MipsRegister,  MipsRegister) -> AMipsInstruction
 ) : ADecoder(core) {
     override fun decode(data: ULong): AMipsInstruction {
         val rd = data[15..11].int
-        val index = data[20..16]
+        val index = data[20..16].int
         val base = data[25..21].int
         // It seems like base is used only for getting a corresponding gpr reg
-        return construct(core, data, gpr(rd), imm(index), gpr(base))
+        return construct(core, data, gpr(rd), gpr(index), gpr(base))
     }
 }

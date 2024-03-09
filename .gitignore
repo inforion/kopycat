@@ -50,5 +50,8 @@ resources/
 *.log
 
 *.kate-swp
+.m2
+/*.tar*
 
-
+.gradle-cache
+*_PACKING

@@ -118,28 +118,33 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
         AccessAction.STORE -> MipsHardwareException.AdES(mips.pc, ea)
     }
 
-    private fun isAMMapped(ea: ULong, access: AccessAction, am: ULong, eu: Boolean) = if (mips.cop.regs.Status.ERL) {
+    private fun isAccessModeMapped(ea: ULong, access: AccessAction, am: ULong, eu: Boolean) = if (mips.cop.regs.Status.ERL) {
         if (eu) {
             false
         } else {
-            // KM
+            // Kernel mode
             ((0x7000_0000 shl am.int) < 0)
         }
-    } else when (CPRBank.ProcessorMode.fromKSU(mips.cop.regs.Status)) {
-        CPRBank.ProcessorMode.Kernel -> ((0x7000_0000 shl am.int) < 0)
-        CPRBank.ProcessorMode.Supervisor -> {
-            val mask = 0xc038_0000
-            if ((mask shl am.int) < 0) {
-                throw adex(ea, access)
+    } else if (mips.cop.regs.Status.EXL /* || mips.cop.regs.Status.ERL */) {
+        // Effective KSU = 0; kernel mode
+        ((0x7000_0000 shl am.int) < 0)
+    } else {
+        when (CPRBank.ProcessorMode.fromKSU(mips.cop.regs.Status)) {
+            CPRBank.ProcessorMode.Kernel -> ((0x7000_0000 shl am.int) < 0)
+            CPRBank.ProcessorMode.Supervisor -> {
+                val mask = 0xc038_0000.int
+                if ((mask shl am.int) < 0) {
+                    throw adex(ea, access)
+                }
+                (((mask shl 8) shl am.int) < 0)
             }
-            (((mask shl 8) shl am.int) < 0)
-        }
-        else -> {
-            val mask = 0xe418_0000
-            if ((mask shl am.int) < 0) {
-                throw adex(ea, access)
+            else -> {
+                val mask = 0xe418_0000.int
+                if ((mask shl am.int) < 0) {
+                    throw adex(ea, access)
+                }
+                (((mask shl 8) shl am.int) < 0)
             }
-            (((mask shl 8) shl am.int) < 0)
         }
     }
 
@@ -150,7 +155,7 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
         eu: Boolean,
         segmask: ULong,
         physicalBase: ULong,
-    ) = if (isAMMapped(ea, access, am, eu)) {
+    ) = if (isAccessModeMapped(ea, access, am, eu)) {
         tlbFindAddress(ea, access)
     } else {
         physicalBase or (ea and segmask)
@@ -323,11 +328,16 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
                 ea in 0xFFFF_FFFF_FFFF_8000uL..0xFFFF_FFFF_FFFF_BFFFuL) {
                 // CVMSEG
 
-                val enabled = when (CPRBank.ProcessorMode.fromKSU(mips.cop.regs.Status)) {
-                    CPRBank.ProcessorMode.Kernel -> mips.cop.regs.CvmMemCtl?.CVMSEGENAK
-                    CPRBank.ProcessorMode.Supervisor -> mips.cop.regs.CvmMemCtl?.CVMSEGENAS
-                    CPRBank.ProcessorMode.User -> mips.cop.regs.CvmMemCtl?.CVMSEGENAU
-                    else -> false
+                val enabled = if (mips.cop.regs.Status.EXL || mips.cop.regs.Status.ERL) {
+                    // Effective KSU = 0; kernel mode
+                    mips.cop.regs.CvmMemCtl?.CVMSEGENAK
+                } else {
+                    when (CPRBank.ProcessorMode.fromKSU(mips.cop.regs.Status)) {
+                        CPRBank.ProcessorMode.Kernel -> mips.cop.regs.CvmMemCtl?.CVMSEGENAK
+                        CPRBank.ProcessorMode.Supervisor -> mips.cop.regs.CvmMemCtl?.CVMSEGENAS
+                        CPRBank.ProcessorMode.User -> mips.cop.regs.CvmMemCtl?.CVMSEGENAU
+                        else -> false
+                    }
                 }
 
                 if (enabled == true) {

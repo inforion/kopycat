@@ -23,7 +23,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.experimental.delegateFields.delegates
+package ru.inforion.lab403.kopycat.experimental.fields.delegates
 
 import org.junit.Before
 import org.junit.Test

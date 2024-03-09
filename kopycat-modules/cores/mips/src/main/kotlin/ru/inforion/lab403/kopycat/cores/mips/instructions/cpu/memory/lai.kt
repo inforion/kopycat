@@ -26,7 +26,8 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.signext
-import ru.inforion.lab403.kopycat.cores.mips.instructions.FtOffsetInsn
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.mips.instructions.RdBaseRtInsn
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsDisplacement
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -37,12 +38,17 @@ class lai(
     data: ULong,
     rd: MipsRegister,
     base: MipsDisplacement,
-) : FtOffsetInsn(core, data, Type.VOID, rd, base) {
-    override val mnem = "lai"
+) : RdBaseRtInsn(core, data, Type.VOID, rd, base) {
+    private val d = base.dtyp == Datatype.QWORD
+    override val mnem = "lai" + if (d) "d" else ""
 
     override fun execute() {
         val savedMemword = memword
-        memword += 1uL
-        vrt = savedMemword signext 31
+        memword++
+        vrd = if (d) {
+            savedMemword
+        } else {
+            savedMemword signext 31
+        }
     }
 }

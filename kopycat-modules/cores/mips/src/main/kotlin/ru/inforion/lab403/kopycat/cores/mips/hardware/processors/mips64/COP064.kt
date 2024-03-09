@@ -34,6 +34,7 @@ import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException.*
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ACOP0
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import kotlin.math.max
 
 /**
  * System Control Coprocessor
@@ -50,7 +51,7 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
     }
 
     override fun processInterrupts() {
-        // TODO: COP0 timer
+        val countCompareInterrupt = super.processCountCompare()
 
         // Vol III chapter 6 p.80
         // An interrupt is only taken when all of the following are true:
@@ -64,23 +65,40 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
                 TODO("EIC")
             }
 
-            (pending(true) ?: return).run {
-                pending = false
-                inService = true
-                regs.Cause.IP7_0 = 0uL.set(cause)
+            val unmaskedCountCompareCause = if (countCompareInterrupt) {
+                val cause = countCompareCause
+                if (cause != null && regs.Status.IM7_0[cause].truth) {
+                    cause
+                } else {
+                    null
+                }
+            } else {
+                null
             }
 
-            val unmaskedCauses = regs.Cause.IP7_0 and regs.Status.IM7_0
-            if (unmaskedCauses.truth) {
-                val highestPriorityCause = (7 - ((0..7).firstOrNull { unmaskedCauses[7 - it].truth } ?: -1))
-                handleException(
-                    INT(
-                        core.pc,
-                        if (highestPriorityCause > 7) 0 else highestPriorityCause, // probably highest priority cause
-                        0, // TODO: EIC
-                    )
-                )
+            val unmaskedPendingInterrupt = pending(true) { regs.Status.IM7_0[it.cause].truth }
+            if (unmaskedPendingInterrupt?.cause == null && unmaskedCountCompareCause == null) {
+                regs.Cause.value = 0uL
+                return
             }
+
+            val highestPriorityCause = max(
+                unmaskedPendingInterrupt?.cause ?: -1,
+                unmaskedCountCompareCause ?: -1
+            )
+
+            if (highestPriorityCause == unmaskedCountCompareCause) {
+                regs.Cause.value = 0uL
+                raiseCountCompareCause()
+            } else {
+                unmaskedPendingInterrupt?.apply {
+                    pending = false
+                    inService = true
+                }
+                regs.Cause.IP7_0 = 0uL set highestPriorityCause
+            }
+
+            handleException(INT(core.pc, highestPriorityCause, 0 /* TODO: EIC */))
         }
     }
 
@@ -94,7 +112,7 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
 
         // See MIPS® Architecture For Programmers
         // p. 101 Vol. III: MIPS64® Privileged Resource Architecture
-        log.info { "Exception, pc=0x${core.pc.hex}; $exception" }
+        //log.info { "Exception, pc=0x${core.pc.hex}; $exception" }
 
         if (exception is MemoryAccessError) {
             throw exception
@@ -239,7 +257,7 @@ class COP064(core: MipsCore, name: String) : ACOP0(core, name) {
         val PC = cat(vectorBase[63..30], offset, 29)
         core.cpu.branchCntrl.setIp(PC)
 
-        log.info { "New PC: ${PC.hex16}" }
+        //log.info { "New PC: ${PC.hex16}" }
         return null
     }
 }

@@ -791,6 +791,9 @@ open class Module(
          * {EN}
          */
         override fun store(ea: ULong, data: ByteArray, ss: Int, onError: HardwareErrorHandler?) {
+            if (data.isEmpty()) {
+                return
+            }
             val offset = (ea - start).int
             content.position(offset)
             content.put(data)
@@ -820,6 +823,9 @@ open class Module(
         fun write(ea: ULong, stream: InputStream) {
             val offset = (ea - start).int
             val count = stream.readBufferData(content, offset)
+            if (count == 0) {
+                return
+            }
             val endEa = ea + count - 1u
             (ea until endEa step pageSize.long_z).forEach {
                 val pageOffset = it - start

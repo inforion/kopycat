@@ -42,7 +42,7 @@ import java.util.logging.Level.*
 
 @Suppress("unused", "PropertyName", "ClassName")
 
-abstract class PciAbstract constructor(
+abstract class PciAbstract(
     parent: Module,
     name: String,
     vendorId: Int,
@@ -96,6 +96,14 @@ abstract class PciAbstract constructor(
     ) : ByteAccessRegister(ports.pci, reg.ulong_z, datatype, name, level = level) {
         internal var sizeRequested = false
         internal var base: ULong = 0u
+        // Align to power of two
+        private val alignedSize = range.takeHighestOneBit().let { highestOne ->
+            if (range == highestOne) {
+                range
+            } else {
+                highestOne shl 1
+            }
+        }
 
         private val configBitsCount = when (area) {
             PCI_MEM_AREA -> 4
@@ -132,14 +140,14 @@ abstract class PciAbstract constructor(
             .insert(locationType.ulong_z, 2..1)
             .insert(0, 3)
 
-        internal fun map() = ports.mapper.mapOffset(this@PCI_BAR.name, base, range, area, index)
+        internal fun map() = ports.mapper.mapOffset(this@PCI_BAR.name, base, alignedSize, area, index)
 
         internal fun unmap() = ports.mapper.unmap(this@PCI_BAR.name, area, index)
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
             data = if (sizeRequested) {
                 sizeRequested = false
-                setConfigBits(-range.ulong_z)
+                setConfigBits(-alignedSize.ulong_z)
             } else {
                 setConfigBits(base)
             }

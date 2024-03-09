@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.decoders
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.sure
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.mips.enums.Designation
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.ProcType
@@ -49,7 +50,9 @@ abstract class ADecoder(val core: MipsCore): ITableEntry {
         return core.cpu.regs[realId].toOperand()
     }
 
-    protected fun cpr(id: Int, sel: Int) = core.cop.regs[CPRBank.index(id, sel)].toOperand()
+    protected fun cpr(id: Int, sel: Int) = runCatching {
+        core.cop.regs[CPRBank.index(id, sel)].toOperand()
+    }.getOrNull().sure { "Register with id = $id, sel = $sel not found!" }
 
     protected fun fpr(id: Int) = core.fpu.regs[id].toOperand()
     protected fun fcr(id: Int) = core.fpu.cntrls[id].toOperand()

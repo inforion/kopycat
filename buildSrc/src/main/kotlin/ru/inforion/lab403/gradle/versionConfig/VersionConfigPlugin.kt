@@ -47,43 +47,43 @@ class VersionConfigPlugin : Plugin<Project> {
     }
 
     override fun apply(project: Project) {
-        val versionConfig = project.extensions.create(
-                VersionConfigExtension.extensionIdentifier,
-                VersionConfigExtension::class.java)
+        // val versionConfig = project.extensions.create(
+        //         VersionConfigExtension.extensionIdentifier,
+        //         VersionConfigExtension::class.java)
 
-        project.afterEvaluate { prj ->
+        // project.afterEvaluate { prj ->
 
-            // Check and post-configure extensions
-            versionConfig.configure(prj)
+        //     // Check and post-configure extensions
+        //     versionConfig.configure(prj)
 
-            prj.logger.debug(versionConfig.toString())
+        //     prj.logger.debug(versionConfig.toString())
 
-            val repo = openRepository(versionConfig.repositoryDirectory)
+        //     val repo = openRepository(versionConfig.repositoryDirectory)
 
-            val abbrev = repo.config.getInt("core", "abbrev", versionConfig.gitAbbrevLength)
-            if (abbrev != versionConfig.gitAbbrevLength) {
-                prj.logger.lifecycle("Repository 'core.abbrev=$abbrev' differ VersionConfig.abbrev -> use 'core.abbrev'")
-            }
+        //     val abbrev = repo.config.getInt("core", "abbrev", versionConfig.gitAbbrevLength)
+        //     if (abbrev != versionConfig.gitAbbrevLength) {
+        //         prj.logger.lifecycle("Repository 'core.abbrev=$abbrev' differ VersionConfig.abbrev -> use 'core.abbrev'")
+        //     }
 
-            val revision = repo.getGitRepositoryRevHash(versionConfig.gitRevisionRef, abbrev)
+        //     val revision = repo.getGitRepositoryRevHash(versionConfig.gitRevisionRef, abbrev)
 
-            versionConfig
-                    .processResources
-                    .filesMatching(versionConfig.searchPattern) {
-                        val buildInfo = mapOf(
-                                "initialized" to true,
-                                "name" to project.name,
-                                "version" to project.version,
-                                "revision" to revision,
-                                "timestamp" to versionConfig.formattedDatetime(),
-                                "build" to versionConfig.buildNumber)
-                        it.expand(buildInfo)
-                        val data = it.open().reader().readText()
-                        prj.logger.lifecycle("Build information data: ${data.lines()}")
-                    }
+        //     versionConfig
+        //             .processResources
+        //             .filesMatching(versionConfig.searchPattern) {
+        //                 val buildInfo = mapOf(
+        //                         "initialized" to true,
+        //                         "name" to project.name,
+        //                         "version" to project.version,
+        //                         "revision" to revision,
+        //                         "timestamp" to versionConfig.formattedDatetime(),
+        //                         "build" to versionConfig.buildNumber)
+        //                 it.expand(buildInfo)
+        //                 val data = it.open().reader().readText()
+        //                 prj.logger.lifecycle("Build information data: ${data.lines()}")
+        //             }
 
-            // Force to re-run processResources
-            versionConfig.processResources.outputs.upToDateWhen { false }
-        }
+        //     // Force to re-run processResources
+        //     versionConfig.processResources.outputs.upToDateWhen { false }
+        // }
     }
 }

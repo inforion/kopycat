@@ -42,6 +42,7 @@ import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.interfaces.IOnlyAlias
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import java.io.DataInputStream
+import java.io.EOFException
 import java.io.File
 import java.lang.Exception
 import java.math.BigInteger
@@ -335,7 +336,16 @@ class Serializer<T : ISerializable> constructor(
                     pos += dis.skip(page.int - pos)
                     val len = minOf(fixedPageSize.long_s, output.limit() - pos)
                     cachedData = ByteArray(len.int)
-                    dis.readFully(cachedData, 0, len.int)
+
+                    try { dis.readFully(cachedData, 0, len.int) }
+                    catch (e: EOFException) {
+                        log.severe {
+                            "[$name] Unable to restore page at 0x${page.hex} with size 0x${pageSize.hex}. " +
+                                    "Broken snapshot?"
+                        }
+                        throw e;
+                    }
+
                     pos += len
                     cacheEntry[index] = cachedData
                 }
