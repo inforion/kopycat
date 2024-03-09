@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.demolinux
 
+import ru.inforion.lab403.common.extensions.toFile
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.INFO
@@ -70,7 +71,6 @@ import java.io.RandomAccessFile
 import java.util.logging.Level
 import kotlin.io.path.Path
 import kotlin.io.path.div
-import kotlin.io.path.exists
 import kotlin.io.path.invariantSeparatorsPathString
 
 
@@ -88,8 +88,8 @@ class DemoLinux(
      */
     x32dbg: Boolean = false,
 
-    bzImageName: String = "vmlinuz",
-    initRdName: String = "initramfs.img",
+    bzImageName: String = "bzImage",
+    initRdName: String = "rootfs.cpio",
 
     /**
      * E1000 packet source string.
@@ -135,20 +135,30 @@ class DemoLinux(
 
     val fintek8250 = Fintek8250(this, "Fintek_8250")
 
+    private val diskPathList = listOf(
+        "disks/demo.bin",
+        (Path(Kopycat.resourceDir) / "demo/demo.hda3").invariantSeparatorsPathString,
+        (Path(Kopycat.resourceDir) / "demo/demo.bin").invariantSeparatorsPathString,
+        (Path(Kopycat.resourceDir) / resourceRootPath / "binaries/demo.hda3").invariantSeparatorsPathString
+    )
+
+    private val diskPathOrNull = diskPathList
+                                        .map { it.toFile() }
+                                        .find { it.exists() }
+
     @DontAutoSerialize
-    val disk = (Path(Kopycat.resourceDir) / resourceRootPath / "binaries/disk").let { path ->
-        if (!path.exists()) {
-            log.warning { "No disk at ${path} found. No disk will be connected" }
-            null
-        } else {
-            RandomAccessFile(path.invariantSeparatorsPathString, "rw").let {
-                ExternalDisk(
-                    this,
-                    "disk_external",
-                    it,
-                )
-            }
+    val disk = diskPathOrNull?.let { path ->
+        ExternalDisk(
+            this,
+            "disk_external",
+            RandomAccessFile(path, "rw"),
+        )
+    } ?: let { 
+        log.warning {
+            val diskPaths = diskPathList.joinToString("\n") { "- $it" }
+            "No disk at found. No disk will be connected. Searched in:\n$diskPaths"
         }
+        null 
     }
 
     private val zerodisk = RAM(

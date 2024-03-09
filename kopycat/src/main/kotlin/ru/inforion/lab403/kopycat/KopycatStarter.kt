@@ -107,6 +107,7 @@ object KopycatStarter {
         opts.loggingLevel?.loggerConfigure()
         opts.loggingFile?.let { Path(it) }?.also { path ->
             if (!path.parent.isDirectory()) {
+                log.severe { "Log file path ${path.parent} was created" }
                 path.parent.createDirectories()
             }
 
@@ -140,6 +141,15 @@ object KopycatStarter {
                 } else {
                     log.severe { "Initial script at path ${it.path} does not exist" }
                     null
+                }
+            }
+
+        val historyFilePath = opts.historyFile
+            ?.let { Path(Kopycat.getWorkingDir(it)) }
+            ?.also { path ->
+                if (!path.parent.isDirectory()) {
+                    log.severe { "History command path ${path.parent} was created" }
+                    path.parent.createDirectories()
                 }
             }
 
@@ -211,7 +221,8 @@ object KopycatStarter {
 
             REPL.create(
                 this,
-                initScript
+                initScript,
+                historyFilePath
             )
         } otherwise {
             log.warning { "No valid console have been detected" }

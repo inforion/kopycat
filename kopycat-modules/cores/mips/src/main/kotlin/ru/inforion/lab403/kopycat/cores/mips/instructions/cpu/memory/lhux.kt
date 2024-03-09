@@ -26,11 +26,9 @@
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.memory
 
 import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.instructions.AMipsInstruction
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsImmediate
 import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
 import ru.inforion.lab403.kopycat.interfaces.read
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
@@ -47,22 +45,21 @@ class lhux(
     core: MipsCore,
     data: ULong,
     private val rd: MipsRegister,
-    private val index: MipsImmediate,
+    private val index: MipsRegister,
     private val basereg: MipsRegister
-) : AMipsInstruction(core, data, Type.VOID, rd, index) {
+) : AMipsInstruction(core, data, Type.VOID, rd, index, basereg) {
 
     override val mnem = "lhux"
 
     override fun execute() {
-        val idx = index.value.int
-        val vAddr = core.cpu.regs[idx].value + basereg.value(core)
+        val vAddr = index.value(core) + basereg.value(core)
         if (!core.dspExtension)
             throw MipsHardwareException.DSPDis(core.pc)
         if (vAddr[0] != 0uL && core.cop.regs.CvmCtl?.REPUN != true) {
             throw MipsHardwareException.AdEL(core.pc, vAddr)
         }
 
-        // nno signext
+        // no signext
         val memword = core.read(Datatype.WORD, vAddr)
         rd.value(core, memword)
     }

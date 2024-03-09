@@ -193,8 +193,23 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
     val BadVAddr = COP0Register("BadVAddr", 8, dtype = core.cpu.BIT_DEPTH)
     val Count = COP0Register("Count", 9)
 
+    inner class CVMCOUNT : COP0Register("CvmCount", 9, 6, dtype = QWORD) {
+        override var value: ULong
+            get() = Count.value
+            set(value) {
+                Count.value = value
+            }
+    }
+
+    val CvmCount = if (core.microarchitecture == Microarchitecture.cnMips) {
+        CVMCOUNT()
+    } else {
+        null
+    }
+
     inner class CVMCTL : COP0Register("CvmCtl", 9, 7) {
         var FUSE_START by bitOf(31)
+        var NOMUL by bitOf(27)
         var REPUN by bitOf(14)
         var USEUN by bitOf(12)
         var LE by bitOf(1)
@@ -265,6 +280,12 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
     }
 
     val Compare = COMPARE()
+
+    val CvmPowerCtl = if (core.microarchitecture == Microarchitecture.cnMips) {
+        COP0Register("CvmPowerCtl", 11, 6)
+    } else {
+        null
+    }
 
     inner class CVMMEMCTL : COP0Register("CvmMemCtl", 11, 7) {
         /** Size of local memory in cache blocks  */
@@ -630,7 +651,11 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
     val DEPC0 = COP0Register("DEPC0", 24, 0, dtype = core.cpu.BIT_DEPTH)    // EJTAG Specification
     val DEPC6 = COP0Register("DEPC6", 24, 6, dtype = core.cpu.BIT_DEPTH)
 
-    val PerfCnt = COP0Register("PerfCnt", 25)
+    val perfCnt = Array(4) {
+        COP0Register("PerfCnt${it}Control", 25, it * 2) to
+                COP0Register("PerfCnt${it}Counter", 25, it * 2 + 1)
+    }
+
     val ErrCtl = COP0Register("ErrCtl", 26)
 
     val CacheErr0 = COP0Register("CacheErr0", 27, 0)
@@ -656,4 +681,7 @@ class CPRBank(val core: MipsCore) : ARegistersBankNG<MipsCore>(
     val ErrorEPC = COP0Register("ErrorEPC", 30, dtype = core.cpu.BIT_DEPTH)
 
     val DESAVE = COP0Register("DESAVE", 31)
+    val KScratch = Array(6) {
+        COP0Register("KScratch$it", 31, it + 2)
+    }
 }

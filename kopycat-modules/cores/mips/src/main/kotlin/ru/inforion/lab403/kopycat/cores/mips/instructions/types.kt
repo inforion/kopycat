@@ -465,6 +465,28 @@ abstract class FtOffsetInsn(
     var dft : ULong by DoubleRegister(1)
 }
 
+abstract class RdBaseRtInsn(
+    core: MipsCore,
+    data: ULong,
+    type: Type,
+    val rd: MipsRegister,
+    val base: MipsDisplacement,
+    val rt: MipsRegister? = null,
+) : AMipsInstruction(core, data, type, *(arrayOf(rd, base) + if (rt != null) arrayOf(rt) else arrayOf())) {
+    inline var vrd: ULong
+        get() = rd.value(core)
+        set(value) = rd.value(core, value)
+    inline var vrt: ULong
+        get() = rt?.value(core) ?: 0uL
+        set(value) {
+            rt?.value(core, value)
+        }
+    inline var memword: ULong
+        get() = base.value(core)
+        set(value) = base.value(core, value)
+    inline val address: ULong get() = base.effectiveAddress(core)
+}
+
 @Deprecated("Same as FtOffsetInsn", replaceWith = ReplaceWith("FtOffsetInsn"))
 abstract class RtOffsetInsn(
         core: MipsCore,

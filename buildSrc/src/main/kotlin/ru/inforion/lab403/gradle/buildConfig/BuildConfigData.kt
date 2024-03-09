@@ -29,6 +29,11 @@ import org.gradle.api.tasks.Input
 
 data class BuildConfigData(
     /**
+     * Overrides kcFullTopClass from the task
+     */
+    @Input var fullTopClass: String,
+
+    /**
      * Configuration name
      */
     @Input var name: String,

@@ -51,7 +51,7 @@ class SparseRAM(
     @DontAutoSerialize
     override val ports = Ports()
 
-    inner class Holder : Module(this@SparseRAM, "holder") {
+    private inner class Holder : Module(this@SparseRAM, "holder") {
         inner class Ports : ModulePorts(this) {
             val mem = Slave("mem", BUS64)
         }
@@ -78,6 +78,7 @@ class SparseRAM(
             return super.serialize(ctxt) + mapOf("regions" to regions.keys.toList())
         }
 
+        @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
             val regs = snapshot["regions"] as List<Long>
             regs.forEach { getOrPut(it.ulong) }
@@ -87,23 +88,81 @@ class SparseRAM(
 
     private val holder = Holder()
 
-    val area = object : Area(ports.mem, 0uL, ramSize - 1u, "SparseArea") {
+    inner class SparseArea(name: String) : Area(ports.mem, 0uL, ramSize - 1u, name) {
 
-        override fun fetch(ea: ULong, ss: Int, size: Int) = read(ea, ss, size)
+        private fun isCrossRegion(ea: ULong, size: Int) = size != 0 && ea / regionSize != (ea + size - 1u) / regionSize
 
-        override fun read(ea: ULong, ss: Int, size: Int): ULong = holder.get(ea)?.read(ea, ss, size) ?: 0uL
-
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            if (value == 0uL && holder.get(ea) == null) {
+        private fun putBytesFastPath(ea: ULong, data: ByteArray) {
+            if (holder.get(ea) == null && data.all { it.int_s == 0 }) {
                 // Already zero, do not create memory
                 return
             }
 
-            val entry = holder.getOrPut(ea)
-            entry.write(ea, ss, size, value)
+            holder.getOrPut(ea).store(ea, data)
+        }
+
+        fun putBytes(ea: ULong, data: ByteArray) {
+            val size = data.size
+            if (!isCrossRegion(ea, size)) {
+                // Single holder is affected; fast path
+                putBytesFastPath(ea, data)
+            } else {
+                var curAddr = ea
+                var curDataOfft = 0
+                while (curAddr < ea + size) {
+                    val nextRegion = ((curAddr / regionSize) + 1uL) * regionSize
+                    val pieceSize = min((nextRegion - curAddr).int, data.size - curDataOfft)
+                    putBytesFastPath(curAddr, data.sliceArray(curDataOfft until curDataOfft + pieceSize))
+                    curAddr += pieceSize
+                    curDataOfft += pieceSize
+                }
+            }
+        }
+
+        private fun getBytesFastPath(ea: ULong, size: Int) = holder.get(ea)?.load(ea, size) ?: ByteArray(size)
+
+        fun getBytes(ea: ULong, size: Int): ByteArray {
+            return if (!isCrossRegion(ea, size)) {
+                // Fast path
+                getBytesFastPath(ea, size)
+            } else {
+                val data = ByteArray(size)
+                var curAddr = ea
+                var curDataOfft = 0
+                while (curAddr < ea + size) {
+                    val nextRegion = ((curAddr / regionSize) + 1uL) * regionSize
+                    val pieceSize = min((nextRegion - curAddr).int, size - curDataOfft)
+                    data.putArray(curDataOfft, getBytesFastPath(curAddr, pieceSize))
+                    curAddr += pieceSize
+                    curDataOfft += pieceSize
+                }
+                data
+            }
+        }
+
+        override fun fetch(ea: ULong, ss: Int, size: Int) = read(ea, ss, size)
+
+        override fun read(ea: ULong, ss: Int, size: Int) = if (!isCrossRegion(ea, size)) {
+            holder.get(ea)?.read(ea, ss, size) ?: 0uL
+        } else {
+            getBytes(ea, size).getUInt(0, size, endian)
+        }
+
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+            if (!isCrossRegion(ea, size)) {
+                if (value == 0uL && holder.get(ea) == null) {
+                    // Not cross-region; already zero, do not create memory
+                    return
+                }
+                holder.getOrPut(ea).write(ea, ss, size, value)
+            } else {
+                putBytes(ea, value.pack(size, endian))
+            }
         }
 
     }
+
+    val area = SparseArea("SparseArea")
 
     /**
      * {RU}
@@ -118,15 +177,5 @@ class SparseRAM(
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) = holder.deserialize(ctxt, snapshot)
 
-    fun put(addr: ULong, data: ByteArray) {
-        var curAddr = addr
-        var curDataOfft = 0
-        while (curAddr < addr + data.size.ulong_z) {
-            val mem = holder.getOrPut(curAddr)
-            val size = min((mem.start + mem.size - curAddr).int, data.size - curDataOfft)
-            mem.store(curAddr, data.sliceArray(curDataOfft until curDataOfft + size))
-            curAddr += size
-            curDataOfft += size
-        }
-    }
+    fun put(addr: ULong, data: ByteArray) = area.putBytes(addr, data)
 }

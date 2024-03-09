@@ -100,6 +100,9 @@ class Options : ApplicationOptions("kopycat", "virtualization platform") {
     val initScript: String? by variable("-is", "--init-script",
         "Run initial script\n")
 
+    val historyFile: String? by variable("-hf", "--history-file",
+        "Add history file\n")
+
     val scriptDir: String? by variable("-sd", "--script-dir",
         "Runtime scripts directory path (default path for kc.runScript)")
 

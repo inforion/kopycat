@@ -67,39 +67,52 @@ class ExternalDisk(
     }
 
     // SATA reads one byte at a time, no need to implement anything but single byte reads and writes
-    @Suppress("unused")
-    private val extDiskArea = object : Area(ports.mem, 0uL, size, "area") {
-        private fun readByteFromDisk(ea: ULong): ULong {
-            f.seek(ea.long)
-            return f.readByte().ulong_z
-        }
-
-        override fun read(ea: ULong, ss: Int, size: Int) = if (sparseOverlay?.hasMemoryForAddress(ea) == true) {
-            sparseOverlay.area.read(ea, ss, size)
-        } else {
-            readByteFromDisk(ea)
-        }
-
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            if (sparseOverlay != null) {
-                if (!sparseOverlay.hasMemoryForAddress(ea)) {
-                    val start = (ea / regionSize) * regionSize
-                    for (addr in start until start + regionSize) {
-                        sparseOverlay.area.write(addr, ss, 1, readByteFromDisk(addr))
-                    }
+    init {
+        object : Area(ports.mem, "area") {
+            private fun readByteFromDisk(ea: ULong): ULong {
+                return synchronized(f) {
+                    f.seek(ea.long)
+                    f.readByte().ulong_z
                 }
-
-                sparseOverlay.area.write(ea, ss, size, value)
-                return
             }
 
-            f.seek(ea.long)
-            when (size) {
-                // Datatype.QWORD.bytes -> f.writeLong(value.long)
-                // Datatype.DWORD.bytes -> f.writeInt(value.int)
-                // Datatype.WORD.bytes -> f.writeShort((value and 0xFFFFuL).int)
-                Datatype.BYTE.bytes -> f.writeByte((value and 0xFFuL).int)
-                else -> throw MemoryAccessError(core.pc, ea, AccessAction.LOAD, "Unsupported write size $size bytes")
+            override fun read(ea: ULong, ss: Int, size: Int) = if (sparseOverlay?.hasMemoryForAddress(ea) == true) {
+                sparseOverlay.area.read(ea, ss, size)
+            } else {
+                readByteFromDisk(ea)
+            }
+
+            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
+                if (sparseOverlay != null) {
+                    if (!sparseOverlay.hasMemoryForAddress(ea)) {
+                        val start = (ea / regionSize) * regionSize
+                        sparseOverlay.area.store(
+                            start,
+                            synchronized(f) {
+                                f.seek(start.long)
+                                val b = ByteArray(regionSize.int)
+                                val count = f.read(b)
+                                if (count == -1) {
+                                    byteArrayOf()
+                                } else {
+                                    b.copyOfRange(0, count)
+                                }
+                            },
+                        )
+                    }
+
+                    sparseOverlay.area.write(ea, ss, size, value)
+                    return
+                }
+
+                f.seek(ea.long)
+                when (size) {
+                    // Datatype.QWORD.bytes -> f.writeLong(value.long)
+                    // Datatype.DWORD.bytes -> f.writeInt(value.int)
+                    // Datatype.WORD.bytes -> f.writeShort((value and 0xFFFFuL).int)
+                    Datatype.BYTE.bytes -> f.writeByte((value and 0xFFuL).int)
+                    else -> throw MemoryAccessError(core.pc, ea, AccessAction.LOAD, "Unsupported write size $size bytes")
+                }
             }
         }
     }

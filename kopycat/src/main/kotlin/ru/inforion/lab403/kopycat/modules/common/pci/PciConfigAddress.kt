@@ -51,8 +51,8 @@ data class PciConfigAddress constructor(
             value[PCI_BDF_ENA_BIT].truth
         )
 
-        fun fromOffset(offset: ULong) = fromBusFuncDeviceReg(offset ushr 4)
-     }
+        fun fromOffset(offset: ULong) = fromBusFuncDeviceReg(offset ushr 8)
+    }
 
     /**
      * Bus:Device.Function (BDF) Notation
@@ -65,7 +65,7 @@ data class PciConfigAddress constructor(
     /**
      * Prefix to place bus
      */
-    val offset get() = (bdf shl 4) + reg
+    val offset get() = (bdf shl 8) + reg
 
     override fun toString() = "PCI[bus=$bus device=$device func=$func reg=0x${reg.hex}]"
 }

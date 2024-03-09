@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.interactive
 
+import org.jline.reader.LineReader
 import org.jline.reader.LineReaderBuilder
 import org.jline.reader.UserInterruptException
 import org.jline.terminal.TerminalBuilder
@@ -34,6 +35,7 @@ import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.consoles.AConsole
 import java.io.File
+import java.nio.file.Path
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
 import kotlin.concurrent.withLock
@@ -41,12 +43,17 @@ import kotlin.concurrent.withLock
 
 class REPL private constructor(
     private var console: AConsole,
-    private var initScript: File? = null
+    private var initScript: File? = null,
+    private val historyFilePath: Path? = null,
 ) {
     val repl = thread(false, name = "REPL") {
         console.sure { "Console wasn't set but REPL thread started!" }.run {
             val terminal = TerminalBuilder.terminal()
             val reader = LineReaderBuilder.builder()
+                .variable(
+                    LineReader.HISTORY_FILE,
+                    historyFilePath
+                )
                 .terminal(terminal)
                 .completer(completer)
                 .build()
@@ -115,14 +122,14 @@ class REPL private constructor(
             throw IllegalStateException("REPL does not exist")
         }
 
-        fun getOrCreate(console: AConsole, script: File? = null): REPL = instance ?: let {
-            create(console, script)
+        fun getOrCreate(console: AConsole, script: File? = null, historyFilePath: Path): REPL = instance ?: let {
+            create(console, script, historyFilePath)
         }
 
-        fun create(console: AConsole, script: File? = null): REPL = if (instance != null) {
+        fun create(console: AConsole, script: File? = null, historyFilePath: Path?): REPL = if (instance != null) {
             throw IllegalStateException("REPL has been already created")
         } else {
-            REPL(console, script).also {
+            REPL(console, script, historyFilePath).also {
                 instance = it
                 it.repl.start()
             }

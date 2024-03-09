@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.logging.WARNING
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
@@ -44,7 +44,7 @@ import ru.inforion.lab403.kopycat.serializer.loadValue
 
 abstract class ACOP0(core: MipsCore, name: String) : ACOP<ACOP0, MipsCore>(core, name) {
     companion object {
-        @Transient val log = logger(WARNING)
+        @Transient val log = logger(INFO)
     }
 
     val cntrls = RSVDBank()

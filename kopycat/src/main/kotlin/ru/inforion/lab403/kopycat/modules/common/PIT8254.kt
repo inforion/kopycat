@@ -43,7 +43,7 @@ import java.util.logging.Level
 @Suppress("MemberVisibilityCanBePrivate", "PropertyName")
 class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.FINE)
+        @Transient val log = logger(Level.INFO)
 
         const val CHANNEL_COUNT = 3
 

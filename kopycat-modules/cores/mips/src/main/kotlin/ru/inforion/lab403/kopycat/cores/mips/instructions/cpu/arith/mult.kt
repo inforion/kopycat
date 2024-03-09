@@ -52,7 +52,6 @@ class mult(
         } else {
             hi = v1[63..32].signext(31)
             lo = v1[31..0].signext(31)
-            log.severe { "$mnem executed; may be UNPREDICTABLE for mips64" }
         }
 
     }

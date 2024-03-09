@@ -83,6 +83,9 @@ class BuildConfigDefaults(
     fun logFilePath(configName: String): String =
         File(rootProjectDir, "temp/log-$kcPackageName-$configName.log").absolutePath
 
+    fun historyFilePath(): String =
+        File(rootProjectDir, "temp/$kcPackageName.history").absolutePath
+
     fun unsetArgument(): String = "__!!!_UNSET_ARGUMENT_!!!__"
     fun deleteArgument(): String = "__!!!_DELETE_ARGUMENT_!!!__"
 }

@@ -28,9 +28,6 @@
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.extensions.clr
-import ru.inforion.lab403.common.extensions.get
-import ru.inforion.lab403.common.extensions.set
 import ru.inforion.lab403.kopycat.cores.arm.enums.*
 import ru.inforion.lab403.kopycat.cores.arm.enums.Condition.*
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
@@ -58,13 +55,7 @@ abstract class AARMCPU(
     inner class Ports : ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>.Ports() {
         override val mem = object : Master("armmem", busSize) {
             private fun ULong.maybeSwap(size: Int) = if (arm.cpu.BigEndian()) {
-                when (size) {
-                    1 -> this
-                    2 -> this.swap16()
-                    4 -> this.swap32()
-                    8 -> this.swap64()
-                    else -> TODO("Byte swap of size $size")
-                }
+                swap(size)
             } else {
                 this
             }
