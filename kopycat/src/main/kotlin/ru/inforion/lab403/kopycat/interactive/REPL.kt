@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.interactive
 import org.jline.reader.LineReader
 import org.jline.reader.LineReaderBuilder
 import org.jline.reader.UserInterruptException
+import org.jline.reader.impl.DefaultParser
 import org.jline.terminal.TerminalBuilder
 import ru.inforion.lab403.common.extensions.ifItNotNull
 import ru.inforion.lab403.common.extensions.sure
@@ -56,7 +57,12 @@ class REPL private constructor(
                 )
                 .terminal(terminal)
                 .completer(completer)
+                .parser(parser ?: DefaultParser())
                 .build()
+
+            reader.option(LineReader.Option.DISABLE_EVENT_EXPANSION, true)
+            reader.unsetOpt(LineReader.Option.INSERT_TAB)
+            reader.autosuggestion = LineReader.SuggestionType.COMPLETER
 
             // TODO: if file exist
             try {

@@ -27,13 +27,13 @@ package ru.inforion.lab403.gradle.buildConfig
 
 import groovy.lang.Closure
 import org.gradle.api.DefaultTask
-import org.gradle.api.tasks.Copy
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import ru.inforion.lab403.common.extensions.div
 import ru.inforion.lab403.common.extensions.removeIf
-import ru.inforion.lab403.gradle.buildConfig.scriptgen.*
+import ru.inforion.lab403.gradle.buildConfig.creator.*
+import ru.inforion.lab403.gradle.buildConfig.creator.scriptgen.ScriptGeneratorData
 import ru.inforion.lab403.gradle.common.*
 import java.io.File
 
@@ -126,17 +126,6 @@ open class BuildConfigTask : DefaultTask() {
     }
 
     /**
-     * Check does the file/directory exist.
-     * If not, show the log message and create the directory
-     */
-    private fun File.dirCheckOrCreate() {
-        if (!exists()) {
-            logger.info("[BuildConfig] '$configDirPath' does not exist. Creating.")
-            mkdirs()
-        }
-    }
-
-    /**
      * Java classpath for the generated scripts
      */
     private fun getRuntimeClasspath() = project
@@ -207,53 +196,49 @@ open class BuildConfigTask : DefaultTask() {
     }
 
     /**
-     * Copies IDEA configs into the acceptable IDEA directory
-     */
-    private fun intellijPostCopy() {
-        val intelliJRunDir = File(rootProjectDir.path, ".idea/runConfigurations")
-        intelliJRunDir.dirCheckOrCreate()
-
-        File(configDirPath, "intellij").listFiles()?.forEach {
-            it.copyTo(File(intelliJRunDir, it.name), true)
-            logger.info("[BuildConfig] Copied '$it' into '$intelliJRunDir'")
-        }
-    }
-
-    /**
      * Task itself
      */
     @TaskAction
     fun createKopycatConfig() {
         configDirPath.dirCheckOrCreate()
 
+        val runtimeClasspath = getRuntimeClasspath()
+        val parentProjectFiles = generateSequence(project) { it.parent }
+            .map { it.name }
+            .toList()
+
         for (data in dataList) {
             val genData = ScriptGeneratorData(
                 data.name,
                 data.description,
-                getRuntimeClasspath(),
+                runtimeClasspath,
                 data.starterClass,
                 rootProjectDir.path,
                 "${project.path}:buildKopycatModule",
-                kcPackageName
+                kcPackageName,
+                parentProjectFiles
             )
 
             val args = prepareArguments(data)
 
             listOf(
-                BashScriptGenerator(genData),
-                PowerShellScriptGenerator(genData),
-                IntelliJScriptGenerator(genData),
-            ).forEach { generator ->
+                BashScriptCreator(genData),
+                PowerShellScriptCreator(genData),
+                IntelliJScriptCreator(genData),
+            ).forEach { creator ->
+                val generator = creator.generator
                 generator.arguments.putAll(args)
 
+                creator.preHook()
                 val text = generator.generate()
+
                 val innerConfigDirPath = File(configDirPath, generator.dirName())
                 innerConfigDirPath.dirCheckOrCreate()
-                File(innerConfigDirPath, generator.fileName())
-                    .writeText(text)
+                val config = File(innerConfigDirPath, generator.fileName())
+                    .apply { writeText(text) }
+
+                creator.postHook(config, logger)
             }
         }
-
-        intellijPostCopy()
     }
 }

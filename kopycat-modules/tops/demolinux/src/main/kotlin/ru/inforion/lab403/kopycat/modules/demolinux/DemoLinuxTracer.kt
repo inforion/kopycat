@@ -25,23 +25,27 @@
  */
 package ru.inforion.lab403.kopycat.modules.demolinux
 
+import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ATracer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
+import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.data.Linux0301File
 import ru.inforion.lab403.kopycat.experimental.runtime.DataUtils
 import ru.inforion.lab403.kopycat.experimental.tracer.TracerUtils
 import ru.inforion.lab403.kopycat.runtime.abi.x64AbiSystemV
 import ru.inforion.lab403.kopycat.experimental.tracer.TracerBypassUtils
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
+import ru.inforion.lab403.kopycat.modules.demolinux.linux.Linux040302Top
+import kotlin.io.path.invariantSeparatorsPathString
 
 class DemoLinuxTracer(parent: Module?, name: String) : ATracer<x86Core>(parent, name) {
     @DontAutoSerialize
     val x86 by lazy { core as x86Core }
 
-//    @DontAutoSerialize
-//    val linux by lazy { LinuxTODO(x86) }
+    @DontAutoSerialize
+    val linux by lazy { Linux040302Top(x86) }
 
     @DontAutoSerialize
     val abi by lazy { x64AbiSystemV(x86) }

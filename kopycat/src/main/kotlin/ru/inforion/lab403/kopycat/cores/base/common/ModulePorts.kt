@@ -37,7 +37,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.EXCE
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.LOGGING
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.ConnectionError
 import ru.inforion.lab403.kopycat.cores.base.exceptions.CrossPageAccessException
@@ -46,6 +45,7 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
 import ru.inforion.lab403.kopycat.modules.BUS32
 import java.io.Serializable
+import java.nio.ByteOrder
 
 /**
  * {EN}
@@ -365,24 +365,24 @@ open class ModulePorts(val module: Module) {
             return found.fetch(ss, size)
         }
 
-        private fun fetchSupportedSize(ea: ULong, ss: Int, size: Int) = when (size) {
+        private fun fetchSupportedSize(ea: ULong, ss: Int, size: Int, swap: Boolean) = when (size) {
             WORD.bytes,
             FWORD.bytes,
             DWORD.bytes,
             WORD.bytes,
-            BYTE.bytes -> readInternal(ea, ss, size)
+            BYTE.bytes -> readInternal(ea, ss, size, swap)
             3 -> {
-                readInternal(ea, ss, WORD.bytes) or
-                        (readInternal(ea + WORD.bytes, ss, BYTE.bytes) shl WORD.bits)
+                readInternal(ea, ss, WORD.bytes, swap) or
+                        (readInternal(ea + WORD.bytes, ss, BYTE.bytes, swap) shl WORD.bits)
             }
             5 -> {
-                readInternal(ea, ss, DWORD.bytes) or
-                        (readInternal(ea + DWORD.bytes, ss, BYTE.bytes) shl DWORD.bits)
+                readInternal(ea, ss, DWORD.bytes, swap) or
+                        (readInternal(ea + DWORD.bytes, ss, BYTE.bytes, swap) shl DWORD.bits)
             }
             7 -> {
-                readInternal(ea, ss, DWORD.bytes) or
-                        (readInternal(ea + DWORD.bytes, ss, WORD.bytes) shl DWORD.bits) or
-                        (readInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes) shl (DWORD.bits + WORD.bits))
+                readInternal(ea, ss, DWORD.bytes, swap) or
+                        (readInternal(ea + DWORD.bytes, ss, WORD.bytes, swap) shl DWORD.bits) or
+                        (readInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes, swap) shl (DWORD.bits + WORD.bits))
             }
             else -> throw GeneralException("Unreachable size: $size")
         }
@@ -395,12 +395,19 @@ open class ModulePorts(val module: Module) {
             val firstSize = (nextPage - ea).int
             val secondSize = size - firstSize
 
-            fetchSupportedSize(ea, ss, firstSize) or (
-                    fetchSupportedSize(nextPage, ss, secondSize) shl (firstSize * BYTE_BITS)
+            val bigEndian = ex.order == ByteOrder.BIG_ENDIAN
+            val result = fetchSupportedSize(ea, ss, firstSize, bigEndian) or (
+                    fetchSupportedSize(nextPage, ss, secondSize, bigEndian) shl (firstSize * BYTE_BITS)
             )
+
+            if (bigEndian) {
+                result.swap(size)
+            } else {
+                result
+            }
         }
 
-        private fun readInternal(ea: ULong, ss: Int, size: Int): ULong {
+        private fun readInternal(ea: ULong, ss: Int, size: Int, swap: Boolean = false): ULong {
             val found = find(this, ea, ss, size, LOAD, 0u) ?: return when (onError) {
                 EXCEPTION ->
                     throw MemoryAccessError(ULONG_MAX, ea, LOAD, "Nothing connected at $ss:${ea.hex16} port $this")
@@ -410,27 +417,36 @@ open class ModulePorts(val module: Module) {
                 }
                 else -> 0u
             }
-            return found.read(ss, size)
+            return found.read(ss, size).run {
+                if (swap) {
+                    swap(size)
+                } else {
+                    this
+                }
+            }
         }
 
-        private fun readSupportedSize(ea: ULong, ss: Int, size: Int) = when (size) {
+        private fun readSupportedSize(ea: ULong, ss: Int, size: Int, swap: Boolean) = when (size) {
             WORD.bytes,
-            FWORD.bytes,
             DWORD.bytes,
             WORD.bytes,
-            BYTE.bytes -> readInternal(ea, ss, size)
+            BYTE.bytes -> readInternal(ea, ss, size, swap)
             3 -> {
-                readInternal(ea, ss, WORD.bytes) or
-                (readInternal(ea + WORD.bytes, ss, BYTE.bytes) shl WORD.bits)
+                readInternal(ea, ss, WORD.bytes, swap) or
+                (readInternal(ea + WORD.bytes, ss, BYTE.bytes, swap) shl WORD.bits)
             }
             5 -> {
-                readInternal(ea, ss, DWORD.bytes) or
-                (readInternal(ea + DWORD.bytes, ss, BYTE.bytes) shl DWORD.bits)
+                readInternal(ea, ss, DWORD.bytes, swap) or
+                (readInternal(ea + DWORD.bytes, ss, BYTE.bytes, swap) shl DWORD.bits)
+            }
+            6 -> {
+                readInternal(ea, ss, DWORD.bytes, swap) or
+                (readInternal(ea + DWORD.bytes, ss, WORD.bytes, swap) shl DWORD.bits)
             }
             7 -> {
-                readInternal(ea, ss, DWORD.bytes) or
-                (readInternal(ea + DWORD.bytes, ss, WORD.bytes) shl DWORD.bits) or
-                (readInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes) shl (DWORD.bits + WORD.bits))
+                readInternal(ea, ss, DWORD.bytes, swap) or
+                (readInternal(ea + DWORD.bytes, ss, WORD.bytes, swap) shl DWORD.bits) or
+                (readInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes, swap) shl (DWORD.bits + WORD.bits))
             }
             else -> throw GeneralException("Unreachable size: $size")
         }
@@ -443,40 +459,62 @@ open class ModulePorts(val module: Module) {
             val firstSize = (nextPage - ea).int
             val secondSize = size - firstSize
 
-            readSupportedSize(ea, ss, firstSize) or (
-                    readSupportedSize(nextPage, ss, secondSize) shl (firstSize * BYTE_BITS)
+            val bigEndian = ex.order == ByteOrder.BIG_ENDIAN
+            val result = readSupportedSize(ea, ss, firstSize, bigEndian) or (
+                    readSupportedSize(nextPage, ss, secondSize, bigEndian) shl (firstSize * BYTE_BITS)
             )
+
+            if (bigEndian) {
+                result.swap(size)
+            } else {
+                result
+            }
         }
 
-        private fun writeInternal(ea: ULong, ss: Int, size: Int, value: ULong) {
-            val found = find(this, ea, ss, size, STORE, value) ?: return when (onError) {
+        private fun writeInternal(ea: ULong, ss: Int, size: Int, value: ULong, swap: Boolean = false) {
+            val swapped = if (swap) {
+                value.swap(size)
+            } else {
+                value
+            }
+
+            val found = find(this, ea, ss, size, STORE, swapped) ?: return when (onError) {
                 EXCEPTION ->
                     throw MemoryAccessError(ULONG_MAX, ea, STORE, "Nothing connected at $ss:${ea.hex16} port $this")
                 LOGGING ->
-                    log.severe { "STORE ignored ea=$ss:${ea.hex16} port=$this value=0x${value.hex16}" }
+                    log.severe { "STORE ignored ea=$ss:${ea.hex16} port=$this value=0x${swapped.hex16}" }
                 else -> return
             }
-            found.write(ss, size, value)
+            found.write(ss, size, swapped)
         }
 
-        private fun writeSupportedSize(ea: ULong, ss: Int, size: Int, value: ULong) = when (size) {
+        private fun writeSupportedSize(ea: ULong, ss: Int, size: Int, value: ULong, swap: Boolean) = when (size) {
             WORD.bytes,
-            FWORD.bytes,
             DWORD.bytes,
             WORD.bytes,
-            BYTE.bytes -> writeInternal(ea, ss, size, value)
+            BYTE.bytes -> writeInternal(ea, ss, size, value, swap)
             3 -> {
-                writeInternal(ea, ss, WORD.bytes, value)
-                writeInternal(ea + WORD.bytes, ss, BYTE.bytes, value ushr WORD.bits)
+                writeInternal(ea, ss, WORD.bytes, value, swap)
+                writeInternal(ea + WORD.bytes, ss, BYTE.bytes, value ushr WORD.bits, swap)
             }
             5 -> {
-                writeInternal(ea, ss, DWORD.bytes, value)
-                writeInternal(ea + DWORD.bytes, ss, BYTE.bytes, value ushr DWORD.bits)
+                writeInternal(ea, ss, DWORD.bytes, value, swap)
+                writeInternal(ea + DWORD.bytes, ss, BYTE.bytes, value ushr DWORD.bits, swap)
+            }
+            6 -> {
+                writeInternal(ea, ss, DWORD.bytes, value, swap)
+                writeInternal(ea + DWORD.bytes, ss, WORD.bytes, value ushr DWORD.bits, swap)
             }
             7 -> {
-                writeInternal(ea, ss, DWORD.bytes, value)
-                writeInternal(ea + DWORD.bytes, ss, WORD.bytes, value ushr DWORD.bits)
-                writeInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes, value ushr (DWORD.bits + WORD.bits))
+                writeInternal(ea, ss, DWORD.bytes, value, swap)
+                writeInternal(ea + DWORD.bytes, ss, WORD.bytes, value ushr DWORD.bits, swap)
+                writeInternal(
+                    ea + DWORD.bytes + WORD.bytes,
+                    ss,
+                    BYTE.bytes,
+                    value ushr (DWORD.bits + WORD.bits),
+                    swap,
+                )
             }
             else -> throw GeneralException("Unreachable size: $size")
         }
@@ -489,8 +527,14 @@ open class ModulePorts(val module: Module) {
             val firstSize = (nextPage - ea).int
             val secondSize = size - firstSize
 
-            writeSupportedSize(ea, ss, firstSize, value)
-            writeSupportedSize(nextPage, ss, secondSize, value ushr (firstSize * BYTE_BITS))
+            val bigEndian = ex.order == ByteOrder.BIG_ENDIAN
+            val swapped = if (bigEndian) {
+                value.swap(size)
+            } else {
+                value
+            }
+            writeSupportedSize(ea, ss, firstSize, swapped, bigEndian)
+            writeSupportedSize(nextPage, ss, secondSize, swapped ushr (firstSize * BYTE_BITS), bigEndian)
         }
     }
 

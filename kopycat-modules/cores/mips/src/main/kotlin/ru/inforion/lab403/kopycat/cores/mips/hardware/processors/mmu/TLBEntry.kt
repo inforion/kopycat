@@ -30,6 +30,7 @@ import ru.inforion.lab403.common.optional.Optional
 import ru.inforion.lab403.common.optional.emptyOpt
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.interfaces.ICoreUnit
+import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 
 class TLBEntry(
     val index: Int,
@@ -80,6 +81,24 @@ class TLBEntry(
     val XI0 = entryLo0[62]
     val RI1 = entryLo1[63]
     val RI0 = entryLo0[63]
+
+    fun isValidForAddress(core: MipsCore, addr: ULong): Boolean {
+        val wantedMMId = if (core.cop.regs.Config5.mi) {
+            core.cop.regs.MMID.mmid
+        } else {
+            core.cop.regs.EntryHi.ASID
+        }
+
+        val mask = pageMask or ubitMask64(13)
+        var wanted = addr and mask.inv()
+        val vpn = VPN2 and mask.inv()
+
+        if (core.is64bit) {
+            wanted = wanted and core.segmask
+        }
+
+        return (G.truth || ASID(core.cop.regs.Config5.mi) == wantedMMId) && vpn == wanted && !EHINV
+    }
 
     override fun toString() =
         "%s(%04X Lo0=%s Lo1=%s Hi=%s PM=%s Mask=%s VPN2=%s PFN0=%s PFN1=%s)"

@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.experimental.common
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
+import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -80,8 +81,20 @@ class SparseRAM(
 
         @Suppress("UNCHECKED_CAST")
         override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            val regs = snapshot["regions"] as List<Long>
-            regs.forEach { getOrPut(it.ulong) }
+            val regs = (snapshot["regions"] as List<Long>).map { it.ulong }.toSet()
+
+            // Delete regions not present in snapshot
+            val excessive = (regions.keys.toSet() - regs)
+            if (excessive.isNotEmpty()) {
+                reconnect {
+                    excessive.forEach { baseAddr ->
+                        @OptIn(ExperimentalWarning::class)
+                        regions.remove(baseAddr)?.remove()
+                    }
+                }
+            }
+
+            regs.forEach(::getOrPut) // Create missing regions
             super.deserialize(ctxt, snapshot)
         }
     }

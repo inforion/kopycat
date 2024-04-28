@@ -29,8 +29,15 @@ import ru.inforion.lab403.common.extensions.ULONG_MAX
 import ru.inforion.lab403.common.extensions.hex16
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import java.nio.ByteOrder
 
-class CrossPageAccessException(where: ULong, val address: ULong, val mask: ULong, message: String? = null) :
+class CrossPageAccessException(
+    where: ULong,
+    val address: ULong,
+    val mask: ULong,
+    message: String? = null,
+    val order: ByteOrder = ByteOrder.LITTLE_ENDIAN,
+) :
     HardwareException(AccessAction.LOAD, where, message) {
 
     override fun toString(): String {

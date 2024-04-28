@@ -23,32 +23,26 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.gradle.buildConfig.scriptgen
+package ru.inforion.lab403.kopycat.cores.mips.config
 
-interface IScriptGenerator {
-    val name: String
-    val description: String
+import ru.inforion.lab403.kopycat.cores.base.bit
+import ru.inforion.lab403.kopycat.cores.base.field
+import ru.inforion.lab403.kopycat.interfaces.IValuable
 
-    val classpathStr: String
-    val arguments: LinkedHashMap<String, String?>
+data class Config2(override var data: ULong = 0uL) : IValuable {
+    /** This bit is reserved to indicate that a Config3 register is present */
+    var M by bit(31)
 
-    val starterClass: String
+    /** Implementation-specific tertiary cache control or status bits */
+    var TU by field(30..28)
 
-    /**
-     * Generates startup script
-     */
-    fun generate(): String
+    var TS by field(27..24)
+    var TL by field(23..20)
+    var TA by field(19..16)
 
-    /**
-     * Returns the file name
-     */
-    fun fileName(): String;
-
-    /**
-     * Returns the inner directory name
-     *
-     * If the config root directory is $ROOT_CONFIG, config should be placed into
-     * `$ROOT_CONFIG/$dirName/$fileName`
-     */
-    fun dirName(): String;
+    /** Implementation-specific secondary cache control or status bits */
+    var SU by field(15..12)
+    var SS by field(11..8)
+    var SL by field(7..4)
+    var SA by field(3..0)
 }

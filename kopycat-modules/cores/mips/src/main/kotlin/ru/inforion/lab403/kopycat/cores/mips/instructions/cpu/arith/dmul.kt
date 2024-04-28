@@ -25,6 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.arith
 
+import ru.inforion.lab403.common.extensions.bigint
 import ru.inforion.lab403.common.extensions.long
 import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInstruction.Type.VOID
@@ -45,7 +46,7 @@ class dmul(
 
     override fun execute() {
         if (core.is64bit) {
-            vrd = (vrs.long * vrt.long).ulong
+            vrd = (vrs.long.bigint * vrt.long.bigint).ulong
         } else {
             throw MipsHardwareException.RI(core.pc)
         }

@@ -65,8 +65,13 @@ import ru.inforion.lab403.kopycat.modules.common.pci.pci_bus
 import ru.inforion.lab403.kopycat.modules.cores.x64Debugger
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.cores.x86Debugger
+import ru.inforion.lab403.kopycat.modules.demolinux.linux.Linux040302Top
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
+import ru.inforion.lab403.kopycat.modules.tracer.DynamicTracer
+import ru.inforion.lab403.kopycat.runtime.analyzer.stack.StackAnalyzer
+import ru.inforion.lab403.kopycat.runtime.analyzer.stack.tracer
+import ru.inforion.lab403.kopycat.runtime.analyzer.stack.x86StackAnalyzerCore
 import java.io.RandomAccessFile
 import java.util.logging.Level
 import kotlin.io.path.Path
@@ -96,6 +101,12 @@ class DemoLinux(
      * The format `host:port`. Example: `127.0.0.1:30000`
      */
     packetSource: String? = null,
+
+
+    /**
+     * Use tracer for network hooking
+     */
+    val strictExecution: Boolean = false,
 ) : BioslessDevice(parent, name) {
     companion object {
         @Transient
@@ -118,6 +129,7 @@ class DemoLinux(
             "noibrs noibpb nopti nospectre_v2 nospectre_v1 l1tf=off nospec_store_bypass_disable " +
             "no_stf_barrier mds=off tsx=on tsx_async_abort=off mitigations=off" +
             "\u0000"
+
     override val ramdisk: ByteArray = Resource(resourceRootPath / "binaries/$initRdName").readBytes()
 
     // Allow large bzImages
@@ -127,6 +139,9 @@ class DemoLinux(
 
     val dbg = if (x32dbg) x86Debugger(this, "dbg") else x64Debugger(this, "dbg", BUS64)
     private val trc = ComponentTracer<x86Core>(this, "trc")
+
+    @DontAutoSerialize
+    val dynamicTracer = DynamicTracer<x86Core>(this, "this-dyna")
 
     val queueApi = FunQueuedUtils(x64AbiSystemV(atom2758.x86))
     private val queueTracer = FunQueuedTracer<x86Core>(this, "q-trc-demolinux", queueApi)
@@ -166,6 +181,15 @@ class DemoLinux(
         "zerodisk",
         0x1_0000
     )
+
+    @DontAutoSerialize
+    val linux by lazy { Linux040302Top(atom2758.x86) }
+
+    val stackAnalyzer = StackAnalyzer(x86StackAnalyzerCore(atom2758.x86.cpu), captureAll = false) {
+        set(0, 0xFFFF_FFFF_FFFF_FFFFuL .. 0x1000_0000_0000_0000uL)
+        set(3, 0x0FFF_FFFF_FFFF_FFFFuL .. 0x0000_0000_0000_0000uL)
+    }
+    val stackAnalyzerTracer = stackAnalyzer.tracer<x86Core>(this, "stack-analyzer-trc")
 
     private val memoryLayout = buildMemoryLayout()
 
@@ -251,13 +275,25 @@ class DemoLinux(
         )
 
         buses.connect(trc.ports.trace, dbg.ports.trace)
-        trc.addTracer(queueTracer)
+
+
+        if (!strictExecution) {
+            log.warning { "Using tracers and PIT" }
+            trc.addTracer(queueTracer)
+            trc.addTracer(stackAnalyzerTracer)
+            trc.addTracer(dynamicTracer)
+            trc.addTracer(demoLinuxTracer)
+        } else {
+            // No tracers
+            // No context switching
+            atom2758.pit.irqEnabled = false
+        }
 
         memoryLayout.forEach {
             it.second.connect(buses.mem, it.first)
         }
 
-        trc.addTracer(demoLinuxTracer)
+        
         log.info { "[DEMO TOP] Loading bzImage: $bzImageName" }
         log.info { "[DEMO TOP] Loading initRd : $initRdName" }
 

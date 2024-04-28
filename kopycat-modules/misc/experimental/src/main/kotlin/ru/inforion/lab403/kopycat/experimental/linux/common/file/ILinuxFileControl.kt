@@ -23,31 +23,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
+package ru.inforion.lab403.kopycat.experimental.linux.common.file
 
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.kopycat.cores.mips.instructions.RsOffsetInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
-import ru.inforion.lab403.kopycat.modules.cores.MipsCore
-
-/**
- *
- * BGEZALL rs, offset
- */
-class bgezall(
-        core: MipsCore,
-        data: ULong,
-        rs: MipsRegister,
-        off: MipsNear) : RsOffsetInsn(core, data, Type.COND_CALL, rs, off) {
-
-    override val mnem = "bgezall"
-
-    override fun execute() {
-        core.cpu.branchCntrl.validate()
-        vra = eaAfterBranch
-        if (core.is32bit && vrs.int >= 0 || !core.is32bit && vrs.long >= 0L) core.cpu.branchCntrl.schedule(address)
-        else core.cpu.branchCntrl.jump(eaAfterBranch)
-    }
+interface ILinuxFileControl {
+    val RDONLY: Int
+    val WRONLY: Int
+    val CREAT: Int
+    val TRUNC: Int
+    val DSYNC: Int
+    val DIRECT: Int
+    val LARGEFILE: Int
+    val DIRECTORY: Int
+    val NOFOLLOW: Int
+    val CLOEXEC: Int
 }

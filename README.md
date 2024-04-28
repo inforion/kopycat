@@ -1,6 +1,5 @@
 <img src="https://github.com/inforion/kopycat/assets/55213322/98846b70-cd79-4253-a7f0-29d8905b61e1" width="384">
 
-
 Kopycat is a multi-processor architectures system and user-level (with VEOS module) emulator.
 
 ## Description
@@ -881,4 +880,4 @@ Similar example for `VirtARM` with Linux is shown in the source `misc/examples/m
         Python > 
         ```
        
-        NOTE: In this case we have not added any data into RAM and have not set PC. You could do it inside `Testbench` 
+        NOTE: In this case we have not added any data into RAM and have not set PC. You could do it inside `Testbench`

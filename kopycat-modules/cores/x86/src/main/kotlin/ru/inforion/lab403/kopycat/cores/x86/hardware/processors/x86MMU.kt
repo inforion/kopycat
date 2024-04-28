@@ -486,7 +486,7 @@ US RW P - Description
         return desc
     }
 
-    private fun PMVirtual2Linear(vAddr: ULong, ssr: ARegistersBankNG<x86Core>.Register): ULong {
+    fun PMVirtual2Linear(vAddr: ULong, ssr: ARegistersBankNG<x86Core>.Register): ULong {
         var desc = cache[ssr.id]
         if (!desc.isValid) {
             if (ssr.value > gdtr.limit) return when {
@@ -515,6 +515,7 @@ US RW P - Description
                 SSR.GS.id -> x86.config.gs_base + vAddr
                 else -> vAddr
             }
+            x86.is32bit -> (vAddr + desc.base)[31..0]
             else -> vAddr + desc.base
         }
     }
@@ -703,14 +704,14 @@ US RW P - Description
      * WARNING: The second translation is crucial when access among
      *          two pages in one request - a really weird thing may happen!
      */
-    private fun PMLinear2Physical(vAddr: ULong, size: Int, LorS: AccessAction, privilege: Boolean): ULong {
+    fun PMLinear2Physical(vAddr: ULong, size: Int, LorS: AccessAction, privilege: Boolean): ULong {
         if (!x86.cpu.cregs.cr0.pg)
             return vAddr
 
         return if (x86.cpu.cregs.cr4.pae) x64Translate(vAddr, size, LorS, privilege) else x86Translate(vAddr, size, LorS, privilege)
     }
 
-    private fun RMSegment2Linear(vAddr: ULong, ssr: ARegistersBankNG<x86Core>.Register): ULong = (ssr.value shl 4) + vAddr
+    fun RMSegment2Linear(vAddr: ULong, ssr: ARegistersBankNG<x86Core>.Register): ULong = (ssr.value shl 4) + vAddr
 
     override fun translate(ea: ULong, ss: Int, size: Int,  LorS: AccessAction): ULong {
         return if (ss != UNDEF) {

@@ -25,11 +25,16 @@
  */
 package ru.inforion.lab403.kopycat
 
+import org.joda.time.format.DateTimeFormat
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.reflection.type
+import ru.inforion.lab403.kopycat.consoles.kotlin.CustomArgumentCompleter
+import ru.inforion.lab403.kopycat.consoles.kotlin.completers.KopycatBptClrCompleter
+import ru.inforion.lab403.kopycat.consoles.kotlin.completers.KopycatLoadCompleter
+import ru.inforion.lab403.kopycat.consoles.kotlin.completers.KopycatRunScriptCompleter
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.AGenericDebugger
 import ru.inforion.lab403.kopycat.cores.base.AGenericTracer
@@ -420,6 +425,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
         )
     }
 
+    @CustomArgumentCompleter(KopycatRunScriptCompleter::class)
     fun runScript(filename: String) {
         val file = (Path(scriptDir) / Path(filename.addExtension(".kts"))).toFile()
         if (file.exists()) {
@@ -444,6 +450,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
         serializer = Serializer(top, false).deserialize(file)
     }
 
+    @CustomArgumentCompleter(KopycatLoadCompleter::class)
     fun load(path: String? = null) {
         checkTopPresented()
         checkNotRunning("load")
@@ -458,6 +465,59 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
                 deserialize(file)
             }
         }
+    }
+
+    private fun Array<String?>.formatTableRow(widths: Array<Int>) = buildString {
+        this@formatTableRow.forEachIndexed { i, cell ->
+            append("| ")
+
+            val cellStringLength = if (cell != null) {
+                append(cell)
+                cell.length
+            } else {
+                0
+            }
+
+            (cellStringLength..widths[i]).forEach { _ -> append(' ') }
+        }
+        append("|")
+    }
+
+    @Suppress("unused")
+    fun snapshots() {
+        val snapshotsDirFile = snapshotsDir.toFile()
+        val dateFormatter = DateTimeFormat.forPattern("dd.MM.yyyy HH:mm:ss")
+
+        val header: Array<String?> = arrayOf("filename", "time", "description")
+
+        val rows = snapshotsDir.listdir {
+            it.extension == snapshotFileExtension && it.isFile
+        }.mapNotNull { snapshot ->
+            Serializer.getMetaInfo(snapshot.path)?.let { meta ->
+                arrayOf(
+                    snapshot.relativeTo(snapshotsDirFile).path,
+                    dateFormatter.print(meta.timestamp),
+                    meta.comment,
+                )
+            }
+        }
+
+        if (rows.isEmpty()) {
+            return
+        }
+
+        val widths = header.map { it?.length ?: 0 }.toTypedArray()
+        rows.forEach { row ->
+            row.forEachIndexed { column, cell ->
+                if (cell != null) {
+                    widths[column] = maxOf(widths[column], cell.length)
+                }
+            }
+        }
+
+        println(header.formatTableRow(widths))
+        println(widths.map { "-" * it }.toTypedArray<String?>().formatTableRow(widths))
+        rows.forEach { row -> println(row.formatTableRow(widths)) }
     }
 
     override fun close() {
@@ -527,6 +587,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
     override fun halt() = debugger.halt()
 
     override fun bptSet(bpType: BreakpointType, address: ULong, comment: String?) = debugger.bptSet(bpType, address)
+    @CustomArgumentCompleter(KopycatBptClrCompleter::class)
     override fun bptClr(address: ULong) = debugger.bptClr(address)
 
     override fun dbgLoad(address: ULong, size: Int) = debugger.dbgLoad(address, size)

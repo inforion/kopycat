@@ -37,7 +37,7 @@ dependencies {
     implementation group: 'com.github.oshi', name: 'oshi-core', version: '3.13.0'
 
     implementation group: 'org.reflections', name: 'reflections', version: '0.10.2'
-    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.8'
+    implementation group: 'org.apache.commons', name: 'commons-text', version: '1.11.0'
 
     implementation group: 'com.github.inforion.common', name: 'extensions', version: '0.4.7'
     implementation group: 'com.github.inforion.common', name: 'gson-json', version: '0.4.7'

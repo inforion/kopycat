@@ -23,35 +23,20 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
+package ru.inforion.lab403.kopycat.consoles.kotlin.completers
 
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.common.extensions.long_s
-import ru.inforion.lab403.kopycat.cores.mips.instructions.RsOffsetInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
-import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import org.jline.reader.ParsedLine
+import ru.inforion.lab403.common.extensions.toFile
+import ru.inforion.lab403.kopycat.Kopycat
+import ru.inforion.lab403.kopycat.consoles.kotlin.ICustomArgumentCompleter
 
-/**
- *
- * BLTZL rs, offset
- */
-class bltzl(
-        core: MipsCore,
-        data: ULong,
-        rs: MipsRegister,
-        off: MipsNear) : RsOffsetInsn(core, data, Type.COND_JUMP, rs, off) {
-
-    override val mnem = "bltzl"
-
-    override fun execute() {
-        core.cpu.branchCntrl.validate()
-        val vrsTemp = if (core.is32bit) vrs.int.long_s else vrs.long
-        if (vrsTemp < 0L) {
-            core.cpu.branchCntrl.schedule(address)
-        } else {
-            core.cpu.branchCntrl.jump(eaAfterBranch)
-        }
-    }
+internal class KopycatRunScriptCompleter : ICustomArgumentCompleter {
+    override fun complete(
+        line: ParsedLine?,
+        kopycat: Kopycat,
+    ) = (
+        Common.completeRelativeFileList("script", Kopycat.scriptDir.toFile()) {
+            it.extension == "kts"
+        } ?: emptySequence()
+    ).asIterable()
 }

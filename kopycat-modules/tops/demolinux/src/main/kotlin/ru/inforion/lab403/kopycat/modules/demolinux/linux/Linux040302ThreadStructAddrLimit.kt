@@ -23,15 +23,30 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.experimental.linux.common
+package ru.inforion.lab403.kopycat.modules.demolinux.linux
 
-import org.junit.Test
-import kotlin.test.assertEquals
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.auxiliary.fields.common.OffsetData
+import ru.inforion.lab403.kopycat.auxiliary.fields.common.OffsetField
+import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
+import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.data.interfaces.LinuxThreadInfo
+import ru.inforion.lab403.kopycat.interfaces.IReadWrite
 
-class LinuxFileControlKtTest {
-    @Test
-    fun buildLinuxFileControl() {
-        val result = buildLinuxFileControl { DIRECT; CLOEXEC; LARGEFILE }
-        assertEquals( LinuxFileControl.DIRECT.code or LinuxFileControl.CLOEXEC.code or LinuxFileControl.LARGEFILE.code, result)
+class Linux040302ThreadStructAddrLimit(offsetable: IOffsetable): LinuxThreadInfo {
+    constructor(memory: IReadWrite, baseAddress: ULong) :
+            this(OffsetData(memory, baseAddress))
+
+    private val _offsetable = offsetable
+
+    inner class Raw {
+        val addrLimit = OffsetField(_offsetable, "addr_limit", 0x0uL, Datatype.QWORD)
     }
+
+    val _raw = Raw()
+
+    override var addrLimit: ULong
+        get() = _raw.addrLimit.data
+        set(value) {
+            _raw.addrLimit.data = value
+        }
 }

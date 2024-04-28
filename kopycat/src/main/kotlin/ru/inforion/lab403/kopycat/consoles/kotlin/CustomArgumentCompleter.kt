@@ -23,14 +23,10 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.gradle.buildConfig.scriptgen
+package ru.inforion.lab403.kopycat.consoles.kotlin
 
-data class ScriptGeneratorData(
-    val name: String,
-    val description: String,
-    val classpath: Iterable<String>,
-    val starterClass: String,
-    val projectDir: String,
-    val gradleBuildTask: String,
-    val kcPackageName: String,
+import kotlin.reflect.KClass
+
+annotation class CustomArgumentCompleter(
+    @Suppress("unused") val completer: KClass<out ICustomArgumentCompleter>
 )

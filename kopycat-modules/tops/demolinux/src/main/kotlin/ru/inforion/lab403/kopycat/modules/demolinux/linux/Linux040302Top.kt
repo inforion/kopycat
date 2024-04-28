@@ -23,35 +23,16 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
+package ru.inforion.lab403.kopycat.modules.demolinux.linux
 
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.common.extensions.long_s
-import ru.inforion.lab403.kopycat.cores.mips.instructions.RsOffsetInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
-import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.x86.enums.SSR
+import ru.inforion.lab403.kopycat.runtime.abi.x64AbiSystemV
+import ru.inforion.lab403.kopycat.interfaces.read
+import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-/**
- *
- * BLTZL rs, offset
- */
-class bltzl(
-        core: MipsCore,
-        data: ULong,
-        rs: MipsRegister,
-        off: MipsNear) : RsOffsetInsn(core, data, Type.COND_JUMP, rs, off) {
 
-    override val mnem = "bltzl"
-
-    override fun execute() {
-        core.cpu.branchCntrl.validate()
-        val vrsTemp = if (core.is32bit) vrs.int.long_s else vrs.long
-        if (vrsTemp < 0L) {
-            core.cpu.branchCntrl.schedule(address)
-        } else {
-            core.cpu.branchCntrl.jump(eaAfterBranch)
-        }
-    }
+class Linux040302Top(private val x86: x86Core) {
+    val abi = x64AbiSystemV(x86)
+    val raw = Linux040302Raw(abi)
 }

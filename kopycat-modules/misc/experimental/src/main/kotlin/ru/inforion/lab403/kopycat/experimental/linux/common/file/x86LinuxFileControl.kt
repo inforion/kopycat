@@ -23,31 +23,17 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
+package ru.inforion.lab403.kopycat.experimental.linux.common.file
 
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.kopycat.cores.mips.instructions.RsOffsetInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
-import ru.inforion.lab403.kopycat.modules.cores.MipsCore
-
-/**
- *
- * BGEZALL rs, offset
- */
-class bgezall(
-        core: MipsCore,
-        data: ULong,
-        rs: MipsRegister,
-        off: MipsNear) : RsOffsetInsn(core, data, Type.COND_CALL, rs, off) {
-
-    override val mnem = "bgezall"
-
-    override fun execute() {
-        core.cpu.branchCntrl.validate()
-        vra = eaAfterBranch
-        if (core.is32bit && vrs.int >= 0 || !core.is32bit && vrs.long >= 0L) core.cpu.branchCntrl.schedule(address)
-        else core.cpu.branchCntrl.jump(eaAfterBranch)
-    }
+class x86LinuxFileControl : ILinuxFileControl {
+    override val RDONLY: Int = 0
+    override val WRONLY: Int = 1
+    override val CREAT: Int = 0x40
+    override val TRUNC: Int = 0x200
+    override val DSYNC: Int = 0x1000
+    override val DIRECT: Int = 0x4000
+    override val LARGEFILE: Int = 0x8000
+    override val DIRECTORY: Int = 0x1_0000
+    override val NOFOLLOW: Int = 0x2_0000
+    override val CLOEXEC: Int = 0x8_0000
 }

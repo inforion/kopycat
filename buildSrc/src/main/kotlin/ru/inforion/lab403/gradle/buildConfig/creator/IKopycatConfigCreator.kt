@@ -23,35 +23,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.kopycat.cores.mips.instructions.cpu.branch
+package ru.inforion.lab403.gradle.buildConfig.creator
 
-import ru.inforion.lab403.common.extensions.int
-import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.common.extensions.long_s
-import ru.inforion.lab403.kopycat.cores.mips.instructions.RsOffsetInsn
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsNear
-import ru.inforion.lab403.kopycat.cores.mips.operands.MipsRegister
-import ru.inforion.lab403.kopycat.modules.cores.MipsCore
+import org.gradle.api.logging.Logger
+import ru.inforion.lab403.gradle.buildConfig.creator.scriptgen.IScriptGenerator
+import java.io.File
 
 /**
- *
- * BLTZL rs, offset
+ * Wrapper for generator with pre- and post-logic
  */
-class bltzl(
-        core: MipsCore,
-        data: ULong,
-        rs: MipsRegister,
-        off: MipsNear) : RsOffsetInsn(core, data, Type.COND_JUMP, rs, off) {
+interface IKopycatConfigCreator{
+    val generator: IScriptGenerator
 
-    override val mnem = "bltzl"
+    /**
+     * Preliminary generator-specific logic
+     */
+    fun preHook(logger: Logger? = null) {}
 
-    override fun execute() {
-        core.cpu.branchCntrl.validate()
-        val vrsTemp = if (core.is32bit) vrs.int.long_s else vrs.long
-        if (vrsTemp < 0L) {
-            core.cpu.branchCntrl.schedule(address)
-        } else {
-            core.cpu.branchCntrl.jump(eaAfterBranch)
-        }
-    }
+    /**
+     * Finalizing generator-specific logic
+     */
+    fun postHook(
+        configFile: File,
+        logger: Logger? = null,
+    ) {}
 }

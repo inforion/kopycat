@@ -37,7 +37,7 @@ import ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.data
 import ru.inforion.lab403.kopycat.experimental.linux.api.interfaces.LinuxFilpCapturableApi
 import ru.inforion.lab403.kopycat.experimental.linux.api.interfaces.LinuxVfsRWCapturableApi
 import ru.inforion.lab403.kopycat.experimental.linux.common.LinuxReturn
-import ru.inforion.lab403.kopycat.experimental.linux.common.buildLinuxFileControl
+import ru.inforion.lab403.kopycat.experimental.linux.common.file.ILinuxFileControl
 import ru.inforion.lab403.kopycat.experimental.linux.common.toLinuxReturn
 import ru.inforion.lab403.kopycat.interfaces.inq
 import java.io.File
@@ -45,6 +45,7 @@ import java.io.File
 class LinuxQueuedFilesystemWrite<T>(
     val raw: T,
     val queued: FunQueuedUtils,
+    val control: ILinuxFileControl,
     val sourcePath: String,
     val destinationPath: String,
     val bucketSize: Int = 1024,
@@ -77,7 +78,7 @@ class LinuxQueuedFilesystemWrite<T>(
                         val threadInfo = KernelThreadInfoHolder(threadInfoBlock)
                         val filpOpen = raw.filpOpenCapturable(
                             destinationPath,
-                            buildLinuxFileControl { WRONLY; CREAT; TRUNC },
+                            control.run { WRONLY or CREAT or TRUNC },
                             0b111_111_111
                         )
 

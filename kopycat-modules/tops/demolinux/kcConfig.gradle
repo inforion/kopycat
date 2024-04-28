@@ -14,4 +14,26 @@ createKopycatConfig {
         ]
 //            withConnectionInfo = true
     }
+
+    addConfig {
+        name = "default-x32"
+        description = "The default x32 configuration for DemoLinux"
+        kcConstructorArguments = [
+                "tty"         : defaults.osDefaultTty(),
+                "x32dbg"      : "true",
+        ]
+    }
+
+    addConfig {
+        name = "default-vmlinuz"
+        description = "The default vmlinuz configuration for DemoLinux"
+        kcConstructorArguments = [
+                "tty"         : defaults.osDefaultTty(),
+                "x32dbg"      : "false",
+                "bzImageName" : "vmlinuz",
+                "initRdName"  : "initramfs.img",
+//                "packetSource": "127.0.0.1:3000",
+        ]
+//            withConnectionInfo = true
+    }
 }

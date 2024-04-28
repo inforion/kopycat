@@ -23,7 +23,7 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.gradle.buildConfig.scriptgen
+package ru.inforion.lab403.gradle.buildConfig.creator.scriptgen
 
 /**
  * Generates bash KOPYCAT startup script
@@ -33,6 +33,7 @@ class BashScriptGenerator(
 ) : IScriptGenerator {
     override val name: String = data.name
     override val description: String = data.description
+    override val projectDir: String = data.projectDir
     override val starterClass: String = data.starterClass
 
     override val classpathStr by lazy { data.classpath.joinToString(":") }

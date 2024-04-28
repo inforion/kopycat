@@ -23,21 +23,28 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
  *
  */
-package ru.inforion.lab403.gradle.buildConfig.scriptgen
+package ru.inforion.lab403.gradle.buildConfig.creator.scriptgen
 
 /**
  * Generates powershell KOPYCAT startup script
  */
-class IntelliJScriptGenerator(
-    val data: ScriptGeneratorData
+open class IntelliJScriptGenerator(
+    val data: ScriptGeneratorData,
 ) : IScriptGenerator {
     override val name: String = data.name
     override val description: String = data.description
+    override val projectDir: String = data.projectDir
     override val starterClass: String = data.starterClass
 
     override val classpathStr by lazy { data.classpath.joinToString(";") }
 
     override val arguments = linkedMapOf<String, String?>()
+
+    val ijModuleName by lazy {
+        data.parentProjectFiles
+            .reversed()
+            .joinToString(".") + ".main"
+    }
 
     val gradleBuildTaskPath by lazy {
         data.gradleBuildTask.split(":").run {
@@ -54,7 +61,7 @@ class IntelliJScriptGenerator(
   <configuration default="false" name="kopycat-gen-${data.kcPackageName} $name" type="JetRunConfigurationType" folderName="kopycat-gen">
     <output_file path="./temp/${data.kcPackageName}-$name-kc-last" is_save="true" />
     <option name="MAIN_CLASS_NAME" value="$starterClass" />
-    <module name="kopycat-private.kopycat.main" />
+    <module name="$ijModuleName" />
     <option name="PROGRAM_PARAMETERS" value="$argumentsStr" />
     <shortenClasspath name="NONE" />
     <option name="VM_PARAMETERS" value="-server -Xms2G -Xmx8G -XX:+UseParallelGC" />

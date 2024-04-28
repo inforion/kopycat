@@ -394,8 +394,7 @@ internal class BusCache(private val myBus: Bus): Serializable {
     private inline fun findArea(source: MasterPort, ea: ULong, LorS: AccessAction, value: ULong): Entry? {
         var result: Entry? = null
 
-        for (k in cachedAreas.indices) {
-            val it = cachedAreas[k]
+        for (it in cachedAreas) {
             if (ea <= it.endAddress) {
                 if (ea >= it.startAddress) {
                     val relativeAddress = ea - it.portOffset
@@ -423,14 +422,14 @@ internal class BusCache(private val myBus: Bus): Serializable {
         val regs = cachedRegs[ea] ?: return null
         var result: Entry? = null
 
-        for (k in regs.indices) {
-            val it = regs[k]
+        for (it in regs) {
             val relativeAddress = ea - it.portOffset
             if (beforeAction(source, relativeAddress, it.register, LorS, value)) {
-                if (result != null)
+                if (result != null) {
                     throw MemoryAccessError(ULONG_MAX, ea, LorS,
                         "More then one register in address ${ea.hex8}" +
-                                    "\n${result.rw} and ${it.register}")
+                                "\n${result.rw} and ${it.register}")
+                }
                 with(entry) {
                     rw = it.register
                     offset = relativeAddress

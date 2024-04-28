@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.consoles
 
 import org.jline.reader.Candidate
 import org.jline.reader.Completer
+import org.jline.reader.impl.DefaultParser
 import org.jline.reader.impl.completer.AggregateCompleter
 import org.jline.reader.impl.completer.StringsCompleter
 import org.jline.utils.AttributedString
@@ -34,8 +35,11 @@ import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.proposal.kotlinScriptEngine
 import ru.inforion.lab403.common.reflection.stringify
 import ru.inforion.lab403.kopycat.Kopycat
+import ru.inforion.lab403.kopycat.consoles.kotlin.CustomArgumentCompleter
 import javax.script.ScriptContext.ENGINE_SCOPE
 import javax.script.ScriptEngine
+import kotlin.reflect.full.createInstance
+import kotlin.reflect.full.findAnnotation
 
 
 class Kotlin(val kopycat: Kopycat) : AConsole("Kotlin") {
@@ -99,7 +103,41 @@ class Kotlin(val kopycat: Kopycat) : AConsole("Kotlin") {
 
                     engine.runCatching { eval(domain) }.onSuccess { obj ->
                         if (obj != null) {
-                            val members = obj::class.members.filter { it.name.startsWith(name) }
+                            val trimmedName = name.trim()
+                            if (trimmedName.contains("(")) {
+                                val parenthesis = trimmedName.indexOf("(")
+                                val withoutParenthesis = trimmedName.substring(0, parenthesis)
+                                val afterParenthesis = trimmedName.substring(parenthesis + 1)
+
+                                obj::class.members
+                                    .filter { it.name == withoutParenthesis }
+                                    .firstNotNullOfOrNull {
+                                        it.findAnnotation<CustomArgumentCompleter>()
+                                    }
+                                    ?.let { annotation ->
+                                        candidates.clear()
+                                        candidates.addAll(
+                                            annotation.completer.createInstance().complete(line, kopycat)
+                                                .filter {
+                                                    it.value().startsWith(afterParenthesis)
+                                                }
+                                                .map {
+                                                    Candidate(
+                                                        "$domain.$name${it.value().substring(trimmedName.length - parenthesis - 1)}",
+                                                        it.displ(),
+                                                        it.group(),
+                                                        it.descr(),
+                                                        it.suffix(),
+                                                        it.key(),
+                                                        it.complete(),
+                                                    )
+                                                }
+                                        )
+                                        return@Completer
+                                    }
+                            }
+
+                            val members = obj::class.members.filter { it.name.startsWith(trimmedName) }
                             val result = if (members.size < 10) {
                                 members.map { candidate(it.name, domain, it.stringify()) }
                             } else {
@@ -113,4 +151,13 @@ class Kotlin(val kopycat: Kopycat) : AConsole("Kotlin") {
                 }
             }
     )
+
+    override val parser = object : DefaultParser() {
+        override fun isDelimiterChar(buffer: CharSequence, pos: Int) = ",?:)".contains(buffer[pos])
+
+        init {
+            escapeChars = charArrayOf()
+            eofOnUnclosedBracket(Bracket.CURLY)
+        }
+    }
 }

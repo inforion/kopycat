@@ -34,6 +34,7 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
+import ru.inforion.lab403.kopycat.cores.base.exceptions.CrossPageAccessException
 import ru.inforion.lab403.kopycat.cores.mips.Microarchitecture
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mmu.TLBEntry
@@ -42,6 +43,7 @@ import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mmu.TLBEntry64
 import ru.inforion.lab403.kopycat.cores.mips.hardware.registers.CPRBank
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.serializer.loadValue
+import java.nio.ByteOrder
 
 /**
  * Stub for MIPS address translation.
@@ -150,24 +152,40 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
 
     private fun getSegPhysicalAddress(
         ea: ULong,
+        size: Int,
         access: AccessAction,
         am: ULong,
         eu: Boolean,
         segmask: ULong,
         physicalBase: ULong,
     ) = if (isAccessModeMapped(ea, access, am, eu)) {
-        tlbFindAddress(ea, access)
+        tlbFindAddress(ea, size, access)
     } else {
+        val boundary = segmask + 1uL
+        if (ea / boundary != (ea + size - 1u) / boundary) {
+            throw CrossPageAccessException(
+                core.pc,
+                ea,
+                segmask.inv(),
+                order = if (mips.cpu.bigEndianCPU.truth) {
+                    ByteOrder.BIG_ENDIAN
+                } else {
+                    ByteOrder.LITTLE_ENDIAN
+                },
+            )
+        }
         physicalBase or (ea and segmask)
     }
 
     private fun getSegctlPhysicalAddress(
         ea: ULong,
+        size: Int,
         access: AccessAction,
         segctl: CPRBank.SEGCTL_CFG,
         segmask: ULong,
     ) = getSegPhysicalAddress(
         ea,
+        size,
         access,
         segctl.AM,
         segctl.EN.truth,
@@ -175,42 +193,39 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
         (segctl.PA shl 29) and segmask.inv(),
     )
 
-    fun tlbFindForAddress(ea: ULong): TLBEntry? {
-        val mmid = if (mips.cop.regs.Config5.mi) {
-            mips.cop.regs.MMID.mmid
-        } else {
-            mips.cop.regs.EntryHi.ASID
-        }
-
-        for (tlb in TLB) {
-            val mask = tlb.pageMask or ubitMask64(13)
-            var wanted = ea and mask.inv()
-            val vpn = tlb.VPN2 and mask.inv()
-
-            if (mips.cpu.mode == MipsCPU.Mode.R64) {
-                wanted = wanted and mips.segmask
-            }
-
-            if ((tlb.G.truth || tlb.ASID(mips.cop.regs.Config5.mi) == mmid) && vpn == wanted && !tlb.EHINV) {
-                return tlb
-            }
-        }
-
-        return null
-    }
+    fun tlbFindForAddress(ea: ULong) = TLB.find { it.isValidForAddress(mips, ea) }
 
     // R4K
-    private fun tlbFindAddress(ea: ULong, access: AccessAction): ULong {
+    private fun tlbFindAddress(ea: ULong, size: Int, access: AccessAction): ULong {
         val tlb = tlbFindForAddress(ea) ?: throw MipsHardwareException.TLBMiss(access, mips.pc, ea)
-
         val mask = tlb.pageMask or ubitMask64(13)
-        val n = ea and mask and (mask ushr 1).inv()
 
-        if ((n.untruth || tlb.V1.untruth) && (n.truth || tlb.V0.untruth)) {
+        val highestMaskBit = 63 - mask.countLeadingZeroBits()
+        val n = ea[highestMaskBit].truth
+
+        if (size > 1) {
+            val end = ea + size - 1uL
+            val nEnd = end[highestMaskBit].truth
+
+            if (!tlb.isValidForAddress(mips, end) || n != nEnd) {
+                throw CrossPageAccessException(
+                    core.pc,
+                    ea,
+                    (mask clr highestMaskBit).inv(),
+                    order = if (mips.cpu.bigEndianCPU.truth) {
+                        ByteOrder.BIG_ENDIAN
+                    } else {
+                        ByteOrder.LITTLE_ENDIAN
+                    },
+                )
+            }
+        }
+
+        if ((!n || tlb.V1.untruth) && (n || tlb.V0.untruth)) {
             throw MipsHardwareException.TLBInvalid(access, mips.pc, ea)
         }
 
-        if (access == AccessAction.FETCH && (n.truth && tlb.XI1.truth || n.untruth && tlb.XI0.truth)) {
+        if (access == AccessAction.FETCH && (n && tlb.XI1.truth || !n && tlb.XI0.truth)) {
             if (mips.cop.regs.PageGrain.IEC) {
                 throw MipsHardwareException.TLBXI(mips.pc, ea)
             } else {
@@ -218,7 +233,7 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
             }
         }
 
-        if (access == AccessAction.LOAD && (n.truth && tlb.RI1.truth || n.untruth && tlb.RI0.truth)) {
+        if (access == AccessAction.LOAD && (n && tlb.RI1.truth || !n && tlb.RI0.truth)) {
             if (mips.cop.regs.PageGrain.IEC) {
                 throw MipsHardwareException.TLBRI(mips.pc, ea)
             } else {
@@ -226,8 +241,8 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
             }
         }
 
-        return if (access != AccessAction.STORE || (n.truth && tlb.D1.truth || n.untruth && tlb.D0.truth)) {
-            if (n.truth) {
+        return if (access != AccessAction.STORE || (n && tlb.D1.truth || !n && tlb.D0.truth)) {
+            if (n) {
                 tlb.PFN1
             } else {
                 tlb.PFN0
@@ -252,6 +267,7 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
             // useg
             getSegctlPhysicalAddress(
                 ea,
+                size,
                 LorS,
                 if (ea >= 0x4000_0000uL) {
                     mips.cop.regs.SegCtl2.cfgLo
@@ -260,22 +276,22 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
                 },
                 0x3FFF_FFFFuL,
             )
-        } else if (mips.cpu.mode == MipsCPU.Mode.R64 && ea < 0x4000_0000_0000_0000uL) {
+        } else if (mips.is64bit && ea < 0x4000_0000_0000_0000uL) {
             // xuseg
             if (mips.cop.regs.Status.UX && ea <= 0x3FFF_FFFF_FFFF_FFFFuL and mips.segmask) {
-                tlbFindAddress(ea, LorS)
+                tlbFindAddress(ea, size, LorS)
             } else {
                 throw adex(ea, LorS)
             }
-        } else if (mips.cpu.mode == MipsCPU.Mode.R64 && ea < 0x8000_0000_0000_0000uL) {
+        } else if (mips.is64bit && ea < 0x8000_0000_0000_0000uL) {
             // xsseg
             // TODO: check permissions
             if (mips.cop.regs.Status.SX && ea <= 0x7FFF_FFFF_FFFF_FFFFuL and mips.segmask) {
-                tlbFindAddress(ea, LorS)
+                tlbFindAddress(ea, size, LorS)
             } else {
                 throw adex(ea, LorS)
             }
-        } else if (mips.cpu.mode == MipsCPU.Mode.R64 && ea < 0xC000_0000_0000_0000uL) {
+        } else if (mips.is64bit && ea < 0xC000_0000_0000_0000uL) {
             // xkphys
 
             val pamask = when {
@@ -298,30 +314,30 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
                 }
 
                 if (permitted) {
-                    getSegPhysicalAddress(ea, LorS, am, false, pamask, 0uL)
+                    getSegPhysicalAddress(ea, size, LorS, am, false, pamask, 0uL)
                 } else {
                     throw adex(ea, LorS)
                 }
             } else {
                 throw adex(ea, LorS)
             }
-        } else if (mips.cpu.mode == MipsCPU.Mode.R64 && ea < 0xFFFF_FFFF_8000_0000uL) {
+        } else if (mips.is64bit && ea < 0xFFFF_FFFF_8000_0000uL) {
             // xkseg
             // TODO: check permissions
             if (mips.cop.regs.Status.KX && ea <= 0xFFFF_FFFF_7FFF_FFFFuL and mips.segmask) {
-                tlbFindAddress(ea, LorS)
+                tlbFindAddress(ea, size, LorS)
             } else {
                 throw adex(ea, LorS)
             }
         } else if (ea < kseg1) {
             // kseg0
-            getSegctlPhysicalAddress(ea, LorS, mips.cop.regs.SegCtl1.cfgHi, 0x1FFF_FFFFuL)
+            getSegctlPhysicalAddress(ea, size, LorS, mips.cop.regs.SegCtl1.cfgHi, 0x1FFF_FFFFuL)
         } else if (ea < kseg2) {
             // kseg1
-            getSegctlPhysicalAddress(ea, LorS, mips.cop.regs.SegCtl1.cfgLo, 0x1FFF_FFFFuL)
+            getSegctlPhysicalAddress(ea, size, LorS, mips.cop.regs.SegCtl1.cfgLo, 0x1FFF_FFFFuL)
         } else if (ea < kseg3) {
             // kseg2
-            getSegctlPhysicalAddress(ea, LorS, mips.cop.regs.SegCtl0.cfgHi, 0x1FFF_FFFFuL)
+            getSegctlPhysicalAddress(ea, size, LorS, mips.cop.regs.SegCtl0.cfgHi, 0x1FFF_FFFFuL)
         } else {
             // kseg3
             if (mips.microarchitecture == Microarchitecture.cnMips &&
@@ -344,7 +360,7 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
                     return ea
                 }
             }
-            getSegctlPhysicalAddress(ea, LorS, mips.cop.regs.SegCtl0.cfgLo, 0x1FFF_FFFFuL)
+            getSegctlPhysicalAddress(ea, size, LorS, mips.cop.regs.SegCtl0.cfgLo, 0x1FFF_FFFFuL)
         }
     }
 

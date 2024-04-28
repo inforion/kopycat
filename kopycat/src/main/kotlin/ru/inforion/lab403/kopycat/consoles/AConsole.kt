@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.consoles
 
 import org.jline.reader.Completer
+import org.jline.reader.Parser
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import java.util.concurrent.LinkedBlockingQueue
@@ -141,6 +142,7 @@ abstract class AConsole(name: String): Thread(name) {
     }
 
     open val completer: Completer? = null
+    open val parser: Parser? = null
 
     init {
         start()

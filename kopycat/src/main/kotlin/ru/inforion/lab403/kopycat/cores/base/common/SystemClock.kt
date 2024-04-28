@@ -83,14 +83,12 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
 
         triggered.clear()
 
-        for (k in timers.indices) {
-            val timer = timers[k]
+        timers.forEach { timer ->
             if (timer.enabled && timer.isTriggered(totalCycles))
                 triggered.add(timer)
         }
 
-        for (k in triggered.indices)
-            triggered[k].trigger()
+        triggered.forEach { timer -> timer.trigger() }
     }
 
     /**
@@ -107,14 +105,15 @@ class SystemClock constructor(val core: AGenericCore, val frequency: Long, overr
         while (core.cpu.halted) {
             // for performance sake
             var cyclesLeft = Double.MAX_VALUE
-            for (k in timers.indices) {
-                val timer = timers[k]
+
+            timers.forEach { timer ->
                 if (timer.enabled) {
                     val newLeftCycles = timer.cyclesLeft(totalCycles)
                     if (newLeftCycles < cyclesLeft)
                         cyclesLeft = newLeftCycles
                 }
             }
+
             updateAndTrigger(cyclesLeft)
         }
     }
