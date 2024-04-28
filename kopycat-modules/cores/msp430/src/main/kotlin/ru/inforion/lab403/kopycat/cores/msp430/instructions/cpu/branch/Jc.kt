@@ -2,15 +2,15 @@
  *
  * This file is part of Kopycat emulator software.
  *
- * Copyright (C) 2022 INFORION, LLC
+ * Copyright (C) 2023 INFORION, LLC
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2 of the License, or
  * (at your option) any later version.
- * 
- * Non-free licenses may also be purchased from INFORION, LLC, 
- * for users who do not want their programs protected by the GPL. 
+ *
+ * Non-free licenses may also be purchased from INFORION, LLC,
+ * for users who do not want their programs protected by the GPL.
  * Contact us for details kopycat@inforion.ru
  *
  * This program is distributed in the hope that it will be useful,
