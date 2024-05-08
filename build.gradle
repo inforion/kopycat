@@ -4,7 +4,7 @@ plugins {
 }
 
 ext {
-    kotlin_extensions_version = "0.4.7"
+    kotlin_extensions_version = "0.4.8"
     kotlin_version = "1.7.21"
 }
 
