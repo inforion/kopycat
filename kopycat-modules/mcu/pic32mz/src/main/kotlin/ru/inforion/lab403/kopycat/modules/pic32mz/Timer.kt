@@ -34,14 +34,13 @@ import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.PIN
 
 
 class Timer(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem")
-        val irq = Master("irq", PIN)
-        val osc = Slave("osc", PIN)
+        val mem = Port("mem")
+        val irq = Port("irq")
+        val osc = Port("osc")
     }
 
     // Example how to get another module ... not a good way :\ ports better?

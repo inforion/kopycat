@@ -39,9 +39,9 @@ class Fist(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int,
     override fun executeFPUInstruction() {
         val data = op2.extValue(core)
         when (op1.dtyp) {
-            Datatype.WORD -> op1.value(core, data.longDouble(core.fpu.fwr.FPUControlWord).short.ulong_z)
-            Datatype.DWORD -> op1.value(core, data.longDouble(core.fpu.fwr.FPUControlWord).int.ulong_z)
-            Datatype.QWORD -> op1.value(core, data.longDouble(core.fpu.fwr.FPUControlWord).long.ulong)
+            Datatype.WORD -> op1.value(core, data.longDouble(core.fpu.softfloat).short.ulong_z)
+            Datatype.DWORD -> op1.value(core, data.longDouble(core.fpu.softfloat).int.ulong_z)
+            Datatype.QWORD -> op1.value(core, data.longDouble(core.fpu.softfloat).long.ulong)
             else -> throw NotImplementedError("Invalid int type")
         }
         core.fpu.pop(popCount)

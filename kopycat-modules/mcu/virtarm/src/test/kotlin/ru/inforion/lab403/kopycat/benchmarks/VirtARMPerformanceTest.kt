@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.benchmarks
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
@@ -40,13 +40,13 @@ class VirtARMPerformanceTest {
 
     @Test
     fun ubootPerformanceFast() {
-        PerformanceTester(0xAFFCC7C0u) { VirtARM(null, "top") }.run(3, 1)
+        PerformanceTester(0xAFFCC7C0u) { VirtARM(null, "top") }.use { it.run(3, 1) }
     }
 
     @Test
     fun linuxPerformance() {
         val tester = PerformanceTester(-1uL, 150_000_000u) { VirtARM(null, "top") }
-        tester.stopWhenTerminalReceive(tester.top.term.socat!!.pty1, "buildroot login:").run(1, 0)
+        tester.stopWhenTerminalReceive(tester.top.term.port, "buildroot login:").use { it.run(1, 0) }
 //        val top = VirtARM(null, "top")
 //        val kopycat = Kopycat(null).apply { open(top, false, GDBServer(6666, true, false)) }
 //        kopycat.bptSet(0xC001FEA8, "rx")

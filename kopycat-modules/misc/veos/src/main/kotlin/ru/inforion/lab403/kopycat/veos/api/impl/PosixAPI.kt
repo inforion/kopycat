@@ -31,7 +31,6 @@ package ru.inforion.lab403.kopycat.veos.api.impl
 
 import gnu.getopt.Getopt
 import gnu.getopt.LongOpt
-import org.jetbrains.kotlin.util.capitalizeDecapitalize.toLowerCaseAsciiOnly
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
@@ -175,6 +174,15 @@ class PosixAPI(os: VEOS<*>) : API(os) {
             return retval(str1.compareTo(str2).ulong_z)
         }
     }
+
+    private fun String.toLowerCaseAsciiOnly(): String {
+        val builder = StringBuilder(length)
+        for (c in this) {
+            builder.append(if (c in 'A'..'Z') c.lowercaseChar() else c)
+        }
+        return builder.toString()
+    }
+
     // 4.4BSD, POSIX.1-2001
     // https://linux.die.net/man/3/strncasecmp
     val strncasecmp = object : APIFunction("strncasecmp") {

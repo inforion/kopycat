@@ -52,25 +52,6 @@ abstract class AARMCPU(
         //includes the Virtualization Extensions
         val haveVirtExt: Boolean = false
 ) : ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>(arm, name) {
-    inner class Ports : ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>.Ports() {
-        override val mem = object : Master("armmem", busSize) {
-            private fun ULong.maybeSwap(size: Int) = if (arm.cpu.BigEndian()) {
-                swap(size)
-            } else {
-                this
-            }
-
-            // Swapping data only (setend be): not overriding fetch
-            override fun read(ea: ULong, ss: Int, size: Int) =
-                super.read(ea, ss, size).maybeSwap(size)
-
-            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
-                super.write(ea, ss, size, value.maybeSwap(size))
-        }
-    }
-
-    override val ports: ACPU<AARMCPU, AARMCore, AARMInstruction, GPR>.Ports = Ports()
-
     // TODO: index <-> reg is ambiguous
     override fun reg(index: Int): ULong = regs.read(index)
     override fun reg(index: Int, value: ULong) = regs.write(index, value)

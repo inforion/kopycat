@@ -79,6 +79,17 @@ class x86OperandStream(core: x86Core, stream: IMemoryStream): ADecodable(core), 
         return x86Far(address, ss)
     }
 
-    fun near(prefixes: Prefixes) = x86Near(prefixes.opsize, readImm(prefixes.opsize), prefixes)
-    fun near8(prefixes: Prefixes) = x86Near(Datatype.BYTE, read(Datatype.BYTE), prefixes)
+    fun near(prefixes: Prefixes, opcodeLen: Int = 1) = x86Near(
+        prefixes.opsize,
+        readImm(prefixes.opsize),
+        prefixes,
+        opcodeLen + prefixes.opsize.bytes.coerceAtMost(4),
+    )
+
+    fun near8(prefixes: Prefixes, opcodeLen: Int = 1) = x86Near(
+        Datatype.BYTE,
+        read(Datatype.BYTE),
+        prefixes,
+        opcodeLen + 1,
+    )
 }

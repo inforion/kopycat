@@ -32,11 +32,11 @@ import ru.inforion.lab403.kopycat.serializer.MetaInfo
 class KopycatClient(host: String, port: Int, retries: Int = 10) {
     private val client = Krest(host, port, "kopycat", retries = retries)
 
-    fun bus(designator: String, name: String, size: String): String =
-            client.post("bus", mapOf("name" to name, "size" to size), "designator" to designator)
+    fun bus(designator: String, name: String): String =
+            client.post("bus", mapOf("name" to name), "designator" to designator)
 
-    fun port(designator: String, name: String, type: String, size: String): String =
-            client.post("port", mapOf("name" to name, "type" to type, "size" to size), "designator" to designator)
+    fun port(designator: String, name: String, type: String): String =
+            client.post("port", mapOf("name" to name, "type" to type), "designator" to designator)
 
     fun connect(designator: String, src: String, dst: String, offset: Int = 0): Unit =
             client.post("connect", arrayOf(src, dst, offset), "designator" to designator)
@@ -63,7 +63,7 @@ class KopycatClient(host: String, port: Int, retries: Int = 10) {
     fun save(name: String, comment: String? = null) = client.post<Boolean>(
             "save", null, "name" to name, "comment" to comment)
 
-    fun load(name: String) = client.post<Boolean>("load", null, "name" to name)
+    fun load(name: String) = client.post<Unit>("load", null, "name" to name)
     fun reset() = client.post<Unit>("reset")
     fun close() = client.post<Unit>("close")
     fun exit() = client.post<Unit>("exit")

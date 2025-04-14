@@ -80,9 +80,15 @@ object x86utils {
         require(prefs.addrsize != WORD || dtyp != QWORD) { "Wrong mode" }
         require(dtyp != BYTE) { "Byte push isn't allowed" }
 
-        // Do not subtract right away; write() may cause page fault
-        core.write(sp.value - dtyp.bytes.uint, core.cpu.sregs.ss.id, dtyp.bytes, value)
-        sp.value -= dtyp.bytes.uint
+        val oldsp = sp.value
+        sp.value -= dtyp.bytes.uint // sp.value applies mask, so subtract it first
+        try {
+            core.write(sp.value, core.cpu.sregs.ss.id, dtyp.bytes, value)
+        } catch (ex: Throwable) {
+            // restore sp in case of page faults
+            sp.value = oldsp
+            throw ex
+        }
     }
 
     fun pop(core: x86Core, dtyp: Datatype, prefs: Prefixes, offset: ULong = 0u, isSSR: Boolean = false): ULong {

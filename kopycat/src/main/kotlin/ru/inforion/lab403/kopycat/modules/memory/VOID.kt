@@ -33,7 +33,7 @@ class VOID(parent: Module, name: String, val size: ULong): Module(parent, name) 
     constructor(parent: Module, name: String, size: Int) : this(parent, name, size.ulong_z)
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", this@VOID.size)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

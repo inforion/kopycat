@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.peripheral
 
 import ru.inforion.lab403.common.extensions.get
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.cores.base.abstracts.APIC
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -35,15 +36,11 @@ import ru.inforion.lab403.kopycat.cores.ppc.enums.eIrq
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_Embedded
 import ru.inforion.lab403.kopycat.cores.ppc.operands.systems.PPCRegister_e500v2
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-
-
  
 class PIC(parent: Module, name: String) : APIC(parent, name) {
-
-
     inner class Ports : ModulePorts(this) {
         //val mem = Slave("mem", 0x400)
-        val irq = Slave("irq", eIrq.count)
+        val irq = Port("irq")
     }
 
     override val ports = Ports()
@@ -136,7 +133,12 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
     }
 
-    private val interrupts = Interrupts(ports.irq, "IRQ", *Array(eIrq.count) { Interrupt(it) })
+    private val interrupts = Interrupts(
+        ports.irq,
+        "IRQ",
+        eIrq.count.ulong_z - 1u,
+        *Array(eIrq.count) { Interrupt(it) },
+    )
 
     fun emitInterrupt(irq: Int) {
         interrupts[eIrq.toIndex(irq)].enabled = true

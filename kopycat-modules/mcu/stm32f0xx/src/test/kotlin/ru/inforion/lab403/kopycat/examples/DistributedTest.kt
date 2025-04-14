@@ -25,29 +25,32 @@
  */
 package ru.inforion.lab403.kopycat.examples
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.swarm.parallelize
 import ru.inforion.lab403.common.swarm.threadsSwarm
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.modules.examples.stm32f042_example
+import java.io.Serializable
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 
 
 class DistributedTest {
+    @JvmInline
+    private value class ULongWrapper(val data: ULong) : Serializable
+
     @Test
     fun stm32DistributedTest() {
         threadsSwarm(2) { swarm ->
-            val device = stm32f042_example(null, "top", "example:gpiox_led")
-
             val result = listOf(10, 20, 30).parallelize(swarm).map {
-                val kopycat = Kopycat(null).apply { open(device, null, false) }
+                val device = stm32f042_example(null, "top", "example:gpiox_led", 0, 0)
+                Kopycat(null).apply { open(device, null, false) }.use { kopycat ->
+                    repeat(it * 2048) { kopycat.step() }
 
-                repeat(it * 2048) { kopycat.step() }
-
-                kopycat.top.core.pc to kopycat.hasException()
+                    ULongWrapper(kopycat.top.core.pc) to kopycat.hasException()
+                }
             }
-            val uniquePC = result.map { it.first }.toSet().size
+            val uniquePC = result.map { it.first.data }.toSet().size
             val hasException = result.any { it.second }
 
             assertFalse(hasException)

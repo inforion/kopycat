@@ -37,7 +37,7 @@ class Fchs(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<
     override val mnem = "fchs"
 
     override fun executeFPUInstruction() {
-        val value = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+        val value = op1.extValue(core).longDouble(core.fpu.softfloat)
         core.fpu.fwr.FPUStatusWord.c1 = false
         op1.extValue(core, (-value).ieee754AsUnsigned())
     }

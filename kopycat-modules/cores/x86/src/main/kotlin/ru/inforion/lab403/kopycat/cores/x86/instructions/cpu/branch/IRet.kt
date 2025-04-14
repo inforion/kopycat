@@ -224,7 +224,7 @@ class IRet(core: x86Core, opcode: ByteArray, prefs: Prefixes):
         val vm = core.cpu.flags.eflags.vm
 
         if (!pe) realAddressingMode()
-        else if (core.cpu.x86.config.efer[x86CPU.LME].untruth /* docs: IA32_EFER.LMA = 0 */) {
+        else if (runCatching { core.cpu.x86.config.efer }.getOrDefault(0uL)[x86CPU.LME].untruth /* docs: IA32_EFER.LMA = 0 */) {
             if (vm) returnFromVirtual8086Mode()
             else protectedMode()
         } else {

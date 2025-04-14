@@ -25,17 +25,17 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.extensions.unaryMinus
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.x86.config.Generation
 import ru.inforion.lab403.kopycat.cores.x86.exceptions.x86HardwareException
-import ru.inforion.lab403.kopycat.cores.x86.operands.x86Register
+import ru.inforion.lab403.kopycat.cores.x86.instructions.X86CommonTests.relativeJumpDecodeTestInner
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 
@@ -4402,6 +4402,8 @@ class X86InstructionsTest16: AX86InstructionTest() {
     // TEST IRET INSTRUCTION
 
     @Test fun iretTest1() {
+        x86.cpu.cregs.cr0.pe = false
+
         val instructionPushFlag = "push AX"
         gprRegisters(eax = 0x887u)
         execute(-1uL) { assemble(instructionPushFlag) }
@@ -4417,10 +4419,13 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "iret "
         execute { assemble(instruction) }
         assertAssembly(instruction)
+        assertNull(x86.cpu.exception)
         assertFlagRegisters(pf = true, sf = true, of = true, cf = true)
     }
 
     @Test fun iretTest2() {
+        x86.cpu.cregs.cr0.pe = false
+
         val instructionPushFlag = "push AX"
         gprRegisters(eax = 0x887u)
         execute(-1uL) { assemble(instructionPushFlag) }
@@ -4436,6 +4441,9 @@ class X86InstructionsTest16: AX86InstructionTest() {
         val instruction = "iret "
         execute { assemble(instruction) }
         assertAssembly(instruction)
+        assertNull(x86.cpu.exception)
         assertFlagRegisters(pf = true, sf = true, of = true, cf = true)
     }
+
+    @Test fun relativeJumpDecodeTest() = relativeJumpDecodeTestInner()
 }

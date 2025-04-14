@@ -29,8 +29,9 @@ package ru.inforion.lab403.kopycat.modules.p2020
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINEST
+import ru.inforion.lab403.common.logging.SEVERE
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.base.SlavePort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -40,7 +41,6 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.interfaces.IValuable
 import ru.inforion.lab403.kopycat.modules.*
-import java.util.logging.Level
 
 
 class DUART(parent: Module, name: String) : Module(parent, name) {
@@ -51,11 +51,11 @@ class DUART(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val ctrl = Slave("ctrl", BUS32)
-        val tx1 = Master("tx1", BUS32)
-        val rx1 = Slave("rx1", BUS32)
-        val tx2 = Master("tx2", BUS32)
-        val rx2 = Slave("rx2", BUS32)
+        val ctrl = Port("ctrl")
+        val tx1 = Port("tx1")
+        val rx1 = Port("rx1")
+        val tx2 = Port("tx2")
+        val rx2 = Port("rx2")
     }
 
     override val ports = Ports()
@@ -277,13 +277,13 @@ class DUART(parent: Module, name: String) : Module(parent, name) {
     private fun readUART(i: Int) = if (i == 1) readUART1() else readUART2()
 
 
-    inner class TERMINAL_REQUEST_REG(val index: Int, port: SlavePort) : Register(
+    inner class TERMINAL_REQUEST_REG(val index: Int, port: Port) : Register(
         port,
         UART_SLAVE_BUS_REQUEST,
         DWORD,
         "TERMINAL_REQUEST_REG$index",
         readable = false,
-        level = Level.SEVERE
+        level = SEVERE
     ) {
         val buffer = mutableListOf<Char>()
 

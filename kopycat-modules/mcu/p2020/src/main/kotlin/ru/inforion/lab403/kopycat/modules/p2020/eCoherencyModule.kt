@@ -30,11 +30,9 @@ import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 
 /**
@@ -45,7 +43,7 @@ import ru.inforion.lab403.kopycat.modules.BUS32
 class eCoherencyModule(parent: Module, name: String) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
-        val ctrl = Slave("ctrl", BUS32)
+        val ctrl = Port("ctrl")
     }
 
     override val ports = Ports()

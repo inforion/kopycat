@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.mips.lighttpd
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
@@ -38,7 +38,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
-import kotlin.text.Charsets.ISO_8859_1
 
 
 
@@ -72,20 +71,21 @@ internal class MipsLighttpd {
     @Test
     fun lighttpdVeosTestVulnerability() {
         val top = constructTop()
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
 
         var socket: Socket? = null
         val data = "GET / HTTP/1.1\r\n${"Connection: keep-alive\r\n"*2} ${"a"*128}\r\n\r\n".bytes
-        kopycat.run { step, core ->
-            if (core.pc == fdeventPollAddress && socket == null) {
-                val tcpSocket = top.veos.network.socketByPort(80)
-                assertNotNull(tcpSocket)
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
+            kopycat.run { step, core ->
+                if (core.pc == fdeventPollAddress && socket == null) {
+                    val tcpSocket = top.veos.network.socketByPort(80)
+                    assertNotNull(tcpSocket)
 
-                socket = Socket("localhost", tcpSocket.address.port).also { it.outputStream.write(data) }
-                log.warning { "Don't worry about the following exception. It's expected" }
+                    socket = Socket("localhost", tcpSocket.address.port).also { it.outputStream.write(data) }
+                    log.warning { "Don't worry about the following exception. It's expected" }
+                }
+
+                step < maxStepsCount
             }
-
-            step < maxStepsCount
         }
         assertTrue { top.veos.state == VEOS.State.Exception }
         assertEquals(failAddress, top.core.pc)
@@ -94,32 +94,33 @@ internal class MipsLighttpd {
     @Test
     fun lighttpdVeosTestGet() {
         val top = constructTop()
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
 
         var socket: Socket? = null
         val data = "GET / HTTP/1.0\r\n\r\n".bytes
         var found = false
-        kopycat.run { step, core ->
-            if (core.pc == fdeventPollAddress && socket == null) {
-                val tcpSocket = top.veos.network.socketByPort(80)
-                assertNotNull(tcpSocket)
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
+            kopycat.run { step, core ->
+                if (core.pc == fdeventPollAddress && socket == null) {
+                    val tcpSocket = top.veos.network.socketByPort(80)
+                    assertNotNull(tcpSocket)
 
-                socket = Socket("localhost", tcpSocket.address.port)
-                log.info { "Send data to $socket" }
+                    socket = Socket("localhost", tcpSocket.address.port)
+                    log.info { "Send data to $socket" }
 
-                socket!!.outputStream.write(data)
-            }
-            if (socket != null) {
-                val inputStream = socket!!.inputStream
-                if (inputStream.available() > 1000) { // To receive body of response
-                    val response = inputStream.readNBytes(inputStream.available()).string
-                    log.info { response }
-                    assertTrue { response.startsWith(httpOk) }
-                    found = true
+                    socket!!.outputStream.write(data)
                 }
-            }
+                if (socket != null) {
+                    val inputStream = socket!!.inputStream
+                    if (inputStream.available() > 1000) { // To receive body of response
+                        val response = inputStream.readNBytes(inputStream.available()).string
+                        log.info { response }
+                        assertTrue { response.startsWith(httpOk) }
+                        found = true
+                    }
+                }
 
-            step < maxStepsCount && !found
+                step < maxStepsCount && !found
+            }
         }
         assertTrue { found }
     }
@@ -128,33 +129,34 @@ internal class MipsLighttpd {
     fun lighttpdVeosTestSnapshot() {
         val tempDir = createTempDir()
         val top = constructTop()
-        val kopycat = Kopycat(null).also {
+        Kopycat(null).also {
             it.setSnapshotsDirectory(tempDir.absolutePath)
             it.open(top, null, false)
+        }.use { kopycat ->
+            val server = PseudoSocketFile(80)
+            top.veos.network.addVirtualSocket("server", server)
+
+            kopycat.run { step, core ->
+                step < maxStepsCount && core.pc != fdeventPollAddress
+            }
+
+            assertEquals(fdeventPollAddress, kopycat.pcRead())
+            assertFalse { kopycat.hasException() }
+
+            kopycat.save()
+            kopycat.restore()
+
+            val acceptor =
+                (top.veos.network.getVirtualSocketByName("server") as PseudoSocketFile).control.acceptor(1234)
+            acceptor.control.append("GET / HTTP/1.0\r\n\r\n".bytes)
+
+            kopycat.run { step, core ->
+                step < maxStepsCount && core.pc != connectionCloseAddress
+            }
+
+            assertEquals(connectionCloseAddress, kopycat.pcRead())
+            assertFalse { kopycat.hasException() }
+            assertTrue { acceptor.control.get().string.startsWith(httpOk) } // TODO: bug: too early access
         }
-
-        val server = PseudoSocketFile(80)
-        top.veos.network.addVirtualSocket("server", server)
-
-        kopycat.run { step, core ->
-            step < maxStepsCount && core.pc != fdeventPollAddress
-        }
-
-        assertEquals(fdeventPollAddress, kopycat.pcRead())
-        assertFalse { kopycat.hasException() }
-
-        kopycat.save()
-        kopycat.restore()
-
-        val acceptor = (top.veos.network.getVirtualSocketByName("server") as PseudoSocketFile).control.acceptor(1234)
-        acceptor.control.append("GET / HTTP/1.0\r\n\r\n".bytes)
-
-        kopycat.run { step, core ->
-            step < maxStepsCount && core.pc != connectionCloseAddress
-        }
-
-        assertEquals(connectionCloseAddress, kopycat.pcRead())
-        assertFalse { kopycat.hasException() }
-        assertTrue { acceptor.control.get().string.startsWith(httpOk) } // TODO: bug: too early access
     }
 }

@@ -49,8 +49,7 @@ typealias Area = Module.Area
 typealias Bus = ModuleBuses.Bus
 
 typealias APort = ModulePorts.APort
-typealias MasterPort = ModulePorts.Master
-typealias SlavePort = ModulePorts.Slave
+typealias Port = ModulePorts.Port
 typealias TranslatorPort = ModulePorts.Translator
 typealias ProxyPort = ModulePorts.Proxy
 

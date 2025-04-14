@@ -35,7 +35,7 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.utils.lazyTransient
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ATerminal
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -81,7 +81,7 @@ open class UartTerminal(
         /**
          * {RU}Terminal slave/UART master{RU}
          */
-        val term_s = Slave("term_s", UART_MASTER_BUS_SIZE)
+        val term_s = Port("term_s")
 
         /**
          * {RU}
@@ -90,7 +90,7 @@ open class UartTerminal(
          * Должен быть обязательно подключен, если основному устройству нужно подтверждение отправки данных
          * {RU}
          */
-        val term_m = Master("term_m", UART_SLAVE_BUS_SIZE, IGNORE)
+        val term_m = Port("term_m", IGNORE)
     }
 
     final override val ports = Ports()
@@ -133,8 +133,8 @@ open class UartTerminal(
         private val logBufferTx by lazy { LoggingBuffer(name, "send", core) }
         private val logBufferRx by lazy { LoggingBuffer(name, "recv", core) }
 
-        override fun beforeRead(from: MasterPort, ea: ULong) = terminalReceiveEnabled
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = terminalTransmitEnabled
+        override fun beforeRead(from: Port, ea: ULong, size: Int) = terminalReceiveEnabled
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) = terminalTransmitEnabled
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
             val byte = rxBuffer.poll(1, ioRegisterTimeout).firstOrNull()

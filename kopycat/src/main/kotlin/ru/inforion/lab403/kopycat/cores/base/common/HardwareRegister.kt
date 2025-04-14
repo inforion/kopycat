@@ -25,11 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.Bus
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.modules.PIN
 
 /**
  * {RU}
@@ -59,7 +57,7 @@ import ru.inforion.lab403.kopycat.modules.PIN
  */
 open class HardwareRegister(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val io = Slave("io", PIN)
+        val io = Port("io")
     }
 
     final override val ports = Ports()

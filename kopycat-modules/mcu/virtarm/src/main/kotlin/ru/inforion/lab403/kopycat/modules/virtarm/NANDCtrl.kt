@@ -25,14 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.modules.virtarm
 
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.*
-import java.util.logging.Level
 
 
 
@@ -45,8 +43,8 @@ class NANDCtrl(parent: Module, name: String) : Module(parent, name) {
     // bit[1]       - CLE, Command Latch Enable
     // bit[0]       - ALE, Address Latch Enable
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("inp", BUS02)
-        val nand = Master("outp", NAND_BUS_SIZE)
+        val mem = Port("inp")
+        val nand = Port("outp")
     }
 
     override val ports = Ports()

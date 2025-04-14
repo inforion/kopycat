@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.inv
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
@@ -35,13 +36,12 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.PCI_ECAM_BUS_INDEX
 import ru.inforion.lab403.kopycat.cores.base.extensions.mapOffset
 import ru.inforion.lab403.kopycat.modules.PCI_ECAM_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.PCI_MEM_AREA
-import java.util.logging.Level.CONFIG
 
 class BUNIT(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val msg = Slave("msg", MESSAGE_PORT_SIZE)
+        val msg = Port("msg")
 
-        val mapper = Master("mapper")
+        val mapper = Port("mapper")
     }
 
     override val ports = Ports()

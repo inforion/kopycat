@@ -29,8 +29,9 @@ import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.base.SlavePort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
@@ -38,7 +39,6 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.mapOffset
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
-import java.util.logging.Level.WARNING
 
 @Suppress("unused", "PropertyName", "ClassName")
 class i82551(parent: Module, name: String) : PciDevice(
@@ -65,14 +65,14 @@ class i82551(parent: Module, name: String) : PciDevice(
         const val FLASH_BUS_INDEX = 2
     }
 
-    val mapper = ports.Master("mapper")
+    val mapper = ports.Port("mapper")
 
-    val mem = ports.Slave("mem", 0x40)
-    val io = ports.Slave("io", 0x40)
+    val mem = ports.Port("mem")
+    val io = ports.Port("io")
 
-    val spi = ports.Master("spi", PIN)
+    val spi = ports.Port("spi")
 
-    inner class EEPROM_CONTROL_REG(port: SlavePort, address: ULong, name: String) : Register(port, address, WORD, name) {
+    inner class EEPROM_CONTROL_REG(port: Port, address: ULong, name: String) : Register(port, address, WORD, name) {
         override fun read(ea: ULong, ss: Int, size: Int): ULong = spi.read(ea - address, ss, size)
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = spi.write(ea - address, ss, size, value)
     }
@@ -173,7 +173,7 @@ class i82551(parent: Module, name: String) : PciDevice(
     30-31    Reserved
      */
     @Suppress("MemberVisibilityCanBePrivate")
-    inner class CSR_MDI_CR(port: SlavePort, address: ULong, name: String) : Register(port, address, DWORD, name) {
+    inner class CSR_MDI_CR(port: Port, address: ULong, name: String) : Register(port, address, DWORD, name) {
         var IE by bit(29)  // 29
         var R by bit(28)  // 28
         var Opcode by field(27..26)  // 27..26

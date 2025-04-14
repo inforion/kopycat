@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.gdbstub.messages.basic
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
+import ru.inforion.lab403.kopycat.cores.base.enums.GDBBreakpointType
 import ru.inforion.lab403.kopycat.gdbstub.parser.Packet
 import ru.inforion.lab403.kopycat.gdbstub.messages.AbstractMessage
 
@@ -41,8 +41,8 @@ internal abstract class BreakpointMessage : AbstractMessage() {
             val setReset = params[1]
 
             return when (setReset) {
-                "S" -> SetBreakpointMessage(address, 1, BreakpointType.SOFTWARE)
-                "C" -> ClearBreakpointMessage(address, 1, BreakpointType.SOFTWARE)
+                "S" -> SetBreakpointMessage(address, 1, GDBBreakpointType.SOFTWARE.access)
+                "C" -> ClearBreakpointMessage(address, 1, GDBBreakpointType.SOFTWARE.access)
                 else -> error("Unknown last argument for deprecated breakpoint packet: [$packet]")
             }
         }

@@ -26,11 +26,14 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AFPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.FWRBank
 import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.LongDouble
 import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.longDouble
+import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.softfloat.RoundingMode
+import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.softfloat.SoftFloat
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import java.math.BigInteger
@@ -46,11 +49,23 @@ class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name), IAutoSeria
 //    val cwr = CWRBank(core)
 //    val swr = SWRBank(core)
 
+    @DontAutoSerialize
+    val softfloat = object : SoftFloat() {
+        override val roundingMode get() = when (fwr.FPUControlWord.rc) {
+            FWRBank.RoundControl.RoundToNearestEven -> RoundingMode.RoundNearEven
+            FWRBank.RoundControl.RoundTowardsNegative -> RoundingMode.RoundMin
+            FWRBank.RoundControl.RoundTowardsPositive -> RoundingMode.RoundMax
+            FWRBank.RoundControl.RoundTowardZero -> RoundingMode.RoundMinMag
+        }
+        override val f80RoundingPrecision get() = fwr.FPUControlWord.pc
+        override val exceptionFlags = null
+    }
+
     /** Returns st([i]) */
     fun st(i: Int): BigInteger = stack[(fwr.FPUStatusWord.top.int + i) % 8]
 
     /** Returns st([i]) */
-    fun stld(i: Int) = st(i).longDouble(fwr.FPUControlWord)
+    fun stld(i: Int) = st(i).longDouble(softfloat)
 
     /** Sets st([i]) = [v] */
     fun st(i: Int, v: BigInteger) {
@@ -107,7 +122,7 @@ class x86FPU(core: x86Core, name: String): AFPU<x86Core>(core, name), IAutoSeria
 //            fwr.FPUTagWord[fwr.FPUStatusWord.top.int] = FWRBank.TagValue.Special
         } //else {
             stack[fwr.FPUStatusWord.top.int] = v
-            fwr.FPUTagWord[fwr.FPUStatusWord.top.int] = if (v.longDouble(fwr.FPUControlWord).isZero()) {
+            fwr.FPUTagWord[fwr.FPUStatusWord.top.int] = if (v.longDouble(softfloat).isZero) {
                 FWRBank.TagValue.Zero
             } else {
                 FWRBank.TagValue.Valid

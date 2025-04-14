@@ -25,23 +25,20 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions
 
-import org.junit.After
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.kopycat.interfaces.*
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.LOAD
-import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.STORE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
-import ru.inforion.lab403.kopycat.modules.BUS30
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import java.nio.ByteOrder.LITTLE_ENDIAN
+import kotlin.test.assertEquals
+import kotlin.test.assertIs
 import kotlin.test.assertTrue
 
 
@@ -58,7 +55,7 @@ class MipsInstructionsTest : Module(null, "top") {
     )
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS30)
+        val mem = Bus("mem")
     }
 
     override val buses = Buses()
@@ -66,6 +63,7 @@ class MipsInstructionsTest : Module(null, "top") {
 
     init {
         mips.ports.mem.connect(buses.mem)
+        mips.cop.regs.Status.default = 0uL
         ram0.ports.mem.connect(buses.mem, 0u)
         initializeAndResetAsTopInstance()
     }
@@ -82,13 +80,13 @@ class MipsInstructionsTest : Module(null, "top") {
     }
 
     private fun assertAssembly(expected: String) =
-        Assert.assertEquals("Unexpected disassembly view!", expected, mips.cpu.insn.toString())
+        assertEquals(expected, mips.cpu.insn.toString(), "Unexpected disassembly view!")
 
     private fun assertRegister(num: Int, expected: ULong, actual: ULong, type: String = "GPR") =
-        Assert.assertEquals(
-            "${mips.cpu.insn} -> $type $num error: 0x${expected.hex8} != 0x${actual.hex8}",
+        assertEquals(
             expected,
-            actual
+            actual,
+            "${mips.cpu.insn} -> $type $num error: 0x${expected.hex8} != 0x${actual.hex8}",
         )
 
     private fun assertRegisters(
@@ -173,10 +171,10 @@ class MipsInstructionsTest : Module(null, "top") {
     }
 
     private fun assertSpecialRegister(num: Int, expected: ULong, actual: ULong, type: String = "SRVC") =
-        Assert.assertEquals(
-            "${mips.cpu.insn} -> $type $num error: 0x${expected.hex8} != 0x${actual.hex8}",
+        assertEquals(
             expected,
-            actual
+            actual,
+            "${mips.cpu.insn} -> $type $num error: 0x${expected.hex8} != 0x${actual.hex8}",
         )
 
     private fun specialRegs(hi: ULong = 0u, lo: ULong = 0u, status: ULong = 0u) {
@@ -196,7 +194,7 @@ class MipsInstructionsTest : Module(null, "top") {
 
     private fun assertMemory(address: ULong, expected: ULong, dtyp: Datatype) {
         val actual = load(address, dtyp)
-        Assert.assertEquals("Memory 0x${address.hex8} error: $expected != $actual", expected, actual)
+        assertEquals(expected, actual, "Memory 0x${address.hex8} error: $expected != $actual")
     }
 
     private fun assertDelaySlot(offset: UInt = 0u, isBranch: Boolean) {
@@ -210,7 +208,7 @@ class MipsInstructionsTest : Module(null, "top") {
             specialRegs(hi = 0x1F57_AC90u, lo = 0x2F56_AB21u)
             regs(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
             execute { rsRt(OPCODE.Madd, 29, 3) }
-            assertAssembly("madd \$zero, \$sp, \$v1")
+            assertAssembly("madd \$r0, \$sp, \$v1")
             assertSpecialRegisters(hi = 0x2A46_DAAEu, lo = 0xE3E4_D6B7u)
             assertRegisters(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
         }
@@ -460,19 +458,20 @@ class MipsInstructionsTest : Module(null, "top") {
                 .ulong_z
         )
 
-    @Before
+    @BeforeEach
     fun resetTest() {
         mips.reset()
         mips.cpu.pc = startAddress
     }
 
-    @After
+    @AfterEach
     fun checkPC() {
         // standard exception vector address 0x80000180
         val expected = if (mips.cpu.exception == null) startAddress + size else 0x80000180uL
-        Assert.assertEquals(
+        assertEquals(
+            expected,
+            mips.cpu.pc,
             "Program counter error: ${(startAddress + size).hex8} != ${mips.cpu.pc.hex8}",
-            expected, mips.cpu.pc
         )
     }
 
@@ -890,7 +889,7 @@ class MipsInstructionsTest : Module(null, "top") {
         regs()
         specialRegs(status = 0x0024_F44Bu)
         execute { rt(OPCODE.Di, 0) }
-        assertAssembly("di \$zero")
+        assertAssembly("di \$r0")
         assertRegisters(zero = 0u)
         assertSpecialRegisters(status = 0x0024_F44Au)
     }
@@ -899,7 +898,7 @@ class MipsInstructionsTest : Module(null, "top") {
     fun divTestPositive() {
         regs(t0 = 0x1_4FCBu, t1 = 0x6u)
         execute { rsRt(OPCODE.Div, 8, 9) }
-        assertAssembly("div \$zero, \$t0, \$t1")
+        assertAssembly("div \$r0, \$t0, \$t1")
         assertSpecialRegisters(hi = 0x1u, lo = 0x37F7u)
         assertRegisters(t0 = 0x1_4FCBu, t1 = 0x6u)
     }
@@ -908,7 +907,7 @@ class MipsInstructionsTest : Module(null, "top") {
     fun divTestNegative() {
         regs(t0 = 0xFFFE_B035u, t1 = 0x6u)
         execute { rsRt(OPCODE.Div, 8, 9) }
-        assertAssembly("div \$zero, \$t0, \$t1")
+        assertAssembly("div \$r0, \$t0, \$t1")
         assertSpecialRegisters(hi = 0xFFFF_FFFFu, lo = 0xFFFF_C809u)
         assertRegisters(t0 = 0xFFFE_B035u, t1 = 0x6u)
     }
@@ -917,7 +916,7 @@ class MipsInstructionsTest : Module(null, "top") {
     fun divuTestPositive() {
         regs(t0 = 0x1_4FCBu, t1 = 0x6u)
         execute { rsRt(OPCODE.Divu, 8, 9) }
-        assertAssembly("divu \$zero, \$t0, \$t1")
+        assertAssembly("divu \$r0, \$t0, \$t1")
         assertSpecialRegisters(hi = 0x1u, lo = 0x37F7u)
         assertRegisters(t0 = 0x1_4FCBu, t1 = 0x6u)
     }
@@ -926,7 +925,7 @@ class MipsInstructionsTest : Module(null, "top") {
     fun divuTestNegative() {
         regs(t0 = 0xFFFE_B035u, t1 = 0x6u)
         execute { rsRt(OPCODE.Divu, 8, 9) }
-        assertAssembly("divu \$zero, \$t0, \$t1")
+        assertAssembly("divu \$r0, \$t0, \$t1")
         assertSpecialRegisters(hi = 0x3u, lo = 0x2AAA_72B3u)
         assertRegisters(t0 = 0xFFFE_B035u, t1 = 0x6u)
     }
@@ -943,7 +942,7 @@ class MipsInstructionsTest : Module(null, "top") {
         regs()
         specialRegs(status = 0x0024_F44Au)
         execute { rt(OPCODE.Ei, 0) }
-        assertAssembly("ei \$zero")
+        assertAssembly("ei \$r0")
         assertRegisters(zero = 0u)
         assertSpecialRegisters(status = 0x0024_F44Bu)
     }
@@ -1063,7 +1062,7 @@ class MipsInstructionsTest : Module(null, "top") {
     @Test
     fun lhTestError() {
         execute(offset = -4) { rtBaseOffset(OPCODE.Lh, 29, 5, 0xFFu) }
-        assertTrue { (mips.cpu.exception as? MemoryAccessError)?.LorS == LOAD }
+        assertIs<MipsHardwareException.AdEL>(mips.cpu.exception)
     }
 
     @Test
@@ -1078,7 +1077,7 @@ class MipsInstructionsTest : Module(null, "top") {
     @Test
     fun lhuTestError() {
         execute(offset = -4) { rtBaseOffset(OPCODE.Lhu, 29, 5, 0xFFu) }
-        assertTrue { (mips.cpu.exception as? MemoryAccessError)?.LorS == LOAD }
+        assertIs<MipsHardwareException.AdEL>(mips.cpu.exception)
     }
 
     @Test
@@ -1102,7 +1101,7 @@ class MipsInstructionsTest : Module(null, "top") {
     @Test
     fun lwTestError() {
         execute(offset = -4) { rtBaseOffset(OPCODE.Lh, 29, 5, 0xFFFDu) }
-        assertTrue { (mips.cpu.exception as? MemoryAccessError)?.LorS == LOAD }
+        assertIs<MipsHardwareException.AdEL>(mips.cpu.exception)
     }
 
     @Test
@@ -1137,7 +1136,7 @@ class MipsInstructionsTest : Module(null, "top") {
         specialRegs(hi = 0x1F57_AC90u, lo = 0x2F56_AB21u)
         regs(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
         execute { rsRt(OPCODE.Madd, 29, 3) }
-        assertAssembly("madd \$zero, \$sp, \$v1")
+        assertAssembly("madd \$r0, \$sp, \$v1")
         assertSpecialRegisters(hi = 0x2A46_DAAEu, lo = 0xE3E4_D6B7u)
         assertRegisters(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
     }
@@ -1147,7 +1146,7 @@ class MipsInstructionsTest : Module(null, "top") {
         specialRegs(hi = 0x1F57_AC90u, lo = 0x2F56_AB21u)
         regs(sp = 0x8856_FE53u, v1 = 0x4563_D752u)
         execute { rsRt(OPCODE.Madd, 29, 3) }
-        assertAssembly("madd \$zero, \$sp, \$v1")
+        assertAssembly("madd \$r0, \$sp, \$v1")
         assertSpecialRegisters(hi = 0xFEE8_741Bu, lo = 0xA3E4_D6B7u)
         assertRegisters(sp = 0x8856_FE53u, v1 = 0x4563_D752u)
     }
@@ -1157,7 +1156,7 @@ class MipsInstructionsTest : Module(null, "top") {
         specialRegs(hi = 0x1F57_AC90u, lo = 0x2F56_AB21u)
         regs(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
         execute { rsRt(OPCODE.Maddu, 29, 3) }
-        assertAssembly("maddu \$zero, \$sp, \$v1")
+        assertAssembly("maddu \$r0, \$sp, \$v1")
         assertSpecialRegisters(hi = 0x2A46_DAAEu, lo = 0xE3E4_D6B7u)
         assertRegisters(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
     }
@@ -1167,7 +1166,7 @@ class MipsInstructionsTest : Module(null, "top") {
         specialRegs(hi = 0x1F57_AC90u, lo = 0x2F56_AB21u)
         regs(sp = 0x8856_FE53u, v1 = 0xF563_D752u)
         execute { rsRt(OPCODE.Maddu, 29, 3) }
-        assertAssembly("maddu \$zero, \$sp, \$v1")
+        assertAssembly("maddu \$r0, \$sp, \$v1")
         assertSpecialRegisters(hi = 0xA208_1A46u, lo = 0xB3E4_D6B7u)
         assertRegisters(sp = 0x8856_FE53u, v1 = 0xF563_D752u)
     }
@@ -1223,7 +1222,7 @@ class MipsInstructionsTest : Module(null, "top") {
         specialRegs(hi = 0xFF93_E1D7u, lo = 0x58BA_5631u)
         regs(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
         execute { rsRt(OPCODE.Msub, 29, 3) }
-        assertAssembly("msub \$zero, \$sp, \$v1")
+        assertAssembly("msub \$r0, \$sp, \$v1")
         assertSpecialRegisters(hi = 0xF4A4_B3B8u, lo = 0xA42C_2A9Bu)
         assertRegisters(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
     }
@@ -1233,7 +1232,7 @@ class MipsInstructionsTest : Module(null, "top") {
         specialRegs(hi = 0xFF93_E1D7u, lo = 0x58BA_5631u)
         regs(sp = 0x8856_FE53u, v1 = 0x4563_D752u)
         execute { rsRt(OPCODE.Msub, 29, 3) }
-        assertAssembly("msub \$zero, \$sp, \$v1")
+        assertAssembly("msub \$r0, \$sp, \$v1")
         assertSpecialRegisters(hi = 0x2003_1A4Bu, lo = 0xE42C_2A9Bu)
         assertRegisters(sp = 0x8856_FE53u, v1 = 0x4563_D752u)
     }
@@ -1243,7 +1242,7 @@ class MipsInstructionsTest : Module(null, "top") {
         specialRegs(hi = 0xFF93_E1D7u, lo = 0x58BA_5631u)
         regs(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
         execute { rsRt(OPCODE.Msubu, 29, 3) }
-        assertAssembly("msubu \$zero, \$sp, \$v1")
+        assertAssembly("msubu \$r0, \$sp, \$v1")
         assertSpecialRegisters(hi = 0xF4A4_B3B8u, lo = 0xA42C_2A9Bu)
         assertRegisters(sp = 0x2856_FE53u, v1 = 0x4563_D752u)
     }
@@ -1253,7 +1252,7 @@ class MipsInstructionsTest : Module(null, "top") {
         specialRegs(hi = 0xFF93_E1D7u, lo = 0x58BA_5631u)
         regs(sp = 0x8856_FE53u, v1 = 0xF563_D752u)
         execute { rsRt(OPCODE.Msubu, 29, 3) }
-        assertAssembly("msubu \$zero, \$sp, \$v1")
+        assertAssembly("msubu \$r0, \$sp, \$v1")
         assertSpecialRegisters(hi = 0x7CE3_7420u, lo = 0xD42C_2A9Bu)
         assertRegisters(sp = 0x8856_FE53u, v1 = 0xF563_D752u)
     }
@@ -1290,7 +1289,7 @@ class MipsInstructionsTest : Module(null, "top") {
     fun multTestNegative() {
         regs(a2 = 0xF563_D752u, k1 = 0xC45A_09FFu)
         execute { rsRt(OPCODE.Mult, 27, 6) }
-        assertAssembly("mult \$zero, \$k1, \$a2")
+        assertAssembly("mult \$r0, \$k1, \$a2")
         assertSpecialRegisters(hi = 0x278_DE38u, lo = 0x6BD9_5CAEu)
         assertRegisters(a2 = 0xF563_D752u, k1 = 0xC45A_09FFu)
     }
@@ -1299,7 +1298,7 @@ class MipsInstructionsTest : Module(null, "top") {
     fun multTestPositive() {
         regs(a2 = 0x2563_D752u, k1 = 0x745A_09FFu)
         execute { rsRt(OPCODE.Mult, 27, 6) }
-        assertAssembly("mult \$zero, \$k1, \$a2")
+        assertAssembly("mult \$r0, \$k1, \$a2")
         assertSpecialRegisters(hi = 0x10FE_6420u, lo = 0x9BD9_5CAEu)
         assertRegisters(a2 = 0x2563_D752u, k1 = 0x745A_09FFu)
     }
@@ -1308,7 +1307,7 @@ class MipsInstructionsTest : Module(null, "top") {
     fun multuTestNegative() {
         regs(a2 = 0xF563_D752u, k1 = 0xC45A_09FFu)
         execute { rsRt(OPCODE.Multu, 27, 6) }
-        assertAssembly("multu \$zero, \$k1, \$a2")
+        assertAssembly("multu \$r0, \$k1, \$a2")
         assertSpecialRegisters(hi = 0xBC36_BF89u, lo = 0x6BD9_5CAEu)
         assertRegisters(a2 = 0xF563_D752u, k1 = 0xC45A_09FFu)
     }
@@ -1317,7 +1316,7 @@ class MipsInstructionsTest : Module(null, "top") {
     fun multuTestPositive() {
         regs(a2 = 0x2563_D752u, k1 = 0x745A_09FFu)
         execute { rsRt(OPCODE.Multu, 27, 6) }
-        assertAssembly("multu \$zero, \$k1, \$a2")
+        assertAssembly("multu \$r0, \$k1, \$a2")
         assertSpecialRegisters(hi = 0x10FE_6420u, lo = 0x9BD9_5CAEu)
         assertRegisters(a2 = 0x2563_D752u, k1 = 0x745A_09FFu)
     }
@@ -1413,7 +1412,7 @@ class MipsInstructionsTest : Module(null, "top") {
     @Test
     fun shTestError() {
         execute(offset = -4) { rtBaseOffset(OPCODE.Sh, 29, 5, 0xFFu) }
-        assertTrue { (mips.cpu.exception as? MemoryAccessError)?.LorS == STORE }
+        assertIs<MipsHardwareException.AdES>(mips.cpu.exception)
     }
 
     @Test
@@ -1605,7 +1604,7 @@ class MipsInstructionsTest : Module(null, "top") {
     @Test
     fun swTestError() {
         execute(offset = -4) { rtBaseOffset(OPCODE.Sw, 29, 5, 0xFFu) }
-        assertTrue { (mips.cpu.exception as? MemoryAccessError)?.LorS == STORE }
+        assertIs<MipsHardwareException.AdES>(mips.cpu.exception)
     }
 
     @Test

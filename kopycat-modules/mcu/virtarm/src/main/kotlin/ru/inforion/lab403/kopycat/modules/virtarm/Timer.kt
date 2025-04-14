@@ -29,7 +29,6 @@ package ru.inforion.lab403.kopycat.modules.virtarm
 
 import ru.inforion.lab403.common.extensions.mask
 import ru.inforion.lab403.common.extensions.truth
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
@@ -39,7 +38,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
-import ru.inforion.lab403.kopycat.modules.PIN
 import ru.inforion.lab403.kopycat.serializer.storeValues
 
 class Timer(parent: Module, name: String, private val divider: Long) : Module(parent, name) {
@@ -48,8 +46,8 @@ class Timer(parent: Module, name: String, private val divider: Long) : Module(pa
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x14)
-        val irq = Master("irq", PIN)
+        val mem = Port("mem")
+        val irq = Port("irq")
     }
 
     override val ports = Ports()

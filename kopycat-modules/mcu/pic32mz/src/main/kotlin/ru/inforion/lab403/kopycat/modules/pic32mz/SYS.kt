@@ -31,7 +31,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 
 class SYS(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem")
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

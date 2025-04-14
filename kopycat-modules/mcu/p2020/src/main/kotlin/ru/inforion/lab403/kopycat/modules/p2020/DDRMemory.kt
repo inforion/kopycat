@@ -28,9 +28,6 @@ package ru.inforion.lab403.kopycat.modules.p2020
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.modules.BUS31
-import ru.inforion.lab403.kopycat.modules.BUS32
 import java.nio.ByteOrder
 
 
@@ -42,7 +39,7 @@ class DDRMemory(
 ) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
-        val inp = Slave("in", BUS31)
+        val inp = Port("in")
     }
 
     override val ports = Ports()

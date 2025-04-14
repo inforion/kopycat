@@ -25,11 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores.device
 
-import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.modules.memory.RAM
+import java.nio.ByteOrder
 
 class TestDevice(parent: Module?, name: String): Module(parent, name) {
     inner class Buses : ModuleBuses(this) { val mem = Bus("mem") }
@@ -38,10 +38,13 @@ class TestDevice(parent: Module?, name: String): Module(parent, name) {
     private val dbg = TestDebugger(this, "Test Debugger")
     override val ports = Ports()
     override val buses = Buses()
-    private val sram = RAM(this, "sram", 0x1000_0000)
+    private val sram = RAM(this, "sram", 0x1000_0000).apply {
+        endian = ByteOrder.BIG_ENDIAN
+    }
     init {
         testCore.ports.mem.connect(buses.mem)
         dbg.ports.reader.connect(testCore.buses.mem)
+        dbg.ports.breakpoint.connect(testCore.buses.mem)
         ports.mem.connect(buses.mem)
         sram.ports.mem.connect(buses.mem)
     }

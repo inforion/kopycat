@@ -29,7 +29,6 @@ import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
-import ru.inforion.lab403.kopycat.modules.BUS12
 import ru.inforion.lab403.kopycat.modules.common.pci.PciHost
 
 
@@ -38,7 +37,7 @@ class PCI(parent: Module, name: String): PciHost(parent, name) {
         @Transient val log = logger(FINER)
     }
 
-    val mmcr = ports.Slave("mmcr", BUS12)
+    val mmcr = ports.Port("mmcr")
 
     val HBCTL = Register(mmcr, 0x60u, WORD, "HBCTL")
     val HBTGTIRQCTL = Register(mmcr, 0x62u, WORD, "HBTGTIRQCTL")

@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.elfloader
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import kotlin.test.assertTrue
 
 internal class ElfAccessTest {

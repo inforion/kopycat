@@ -30,7 +30,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.library.types.Resource
-import ru.inforion.lab403.kopycat.modules.BUS30
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.modules.memory.ROM
 import ru.inforion.lab403.kopycat.interfaces.*
@@ -42,11 +41,11 @@ class MemoryChip(
 ): Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Proxy("mem", BUS30)
+        val mem = Proxy("mem")
     }
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS30)
+        val mem = Bus("mem")
     }
 
     override val ports = Ports()

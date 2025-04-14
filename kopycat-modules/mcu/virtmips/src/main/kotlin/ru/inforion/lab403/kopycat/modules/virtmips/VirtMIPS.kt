@@ -62,7 +62,6 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 import ru.inforion.lab403.kopycat.cores.mips.enums.GPR
 import ru.inforion.lab403.kopycat.cores.mips.enums.InstructionSet
 import ru.inforion.lab403.kopycat.library.types.Resource
-import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.modules.cores.MipsDebugger
 import java.io.InputStream
@@ -101,7 +100,7 @@ class VirtMIPS(
     )
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS32)
+        val mem = Bus("mem")
     }
 
     override val buses = Buses()

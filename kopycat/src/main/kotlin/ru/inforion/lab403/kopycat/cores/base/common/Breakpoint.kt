@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.cores.base.common
 
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Access.*
-import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Type.*
 import java.io.Serializable
 
 
@@ -37,8 +36,9 @@ import java.io.Serializable
  * Программные и аппаратные точки останова для процесса отладки.
  *
  *
- * @property ea Адрес точки останова
+ * @property range Интервал адресов точки останова
  * @property access Тип активации точки доступа
+ * @property comment необязательный комментарий
  * @property onBreak Обработчик срабатывания точки останова
  * {RU}
  *
@@ -46,16 +46,22 @@ import java.io.Serializable
  * Class for breakpoint
  * Software and hardware breakpoint for debug purposes
  *
- * @property ea breakpoint address
+ * @property range breakpoint address range
  * @property access breakpoint activation access type
+ * @property comment optional comment
  * @property onBreak function to process on breakpoint activation
  * {EN}
  */
-data class Breakpoint(val ea: ULong, val access: Access, val onBreak: ((ea: ULong) -> Unit)?): Serializable {
+data class Breakpoint(
+    val range: ULongRange,
+    val access: Access,
+    val comment: String? = null,
+    val onBreak: ((ea: ULong) -> Unit)?
+): Serializable {
 
     /**
      * {RU}
-     * Класс-перечисление "Тип доступа"  точки останова
+     * Класс-перечисление "Тип доступа" точки останова
      *
      * @property flags битовые флаги разрешений
      * @property READ активация на чтение
@@ -92,32 +98,6 @@ data class Breakpoint(val ea: ULong, val access: Access, val onBreak: ((ea: ULon
 
     /**
      * {RU}
-     * Класс-перечисление Тип точки останова
-     *
-     * @property flags битовые флаги типа
-     * @property SOFTWARE программная точка останова
-     * @property HARDWARE аппаратная точка останова
-     * @property ANY программная и аппаратная точка останова
-     * {RU}
-     *
-     * {EN}
-     * Enum class for breakpoint type
-     *
-     * @property flags bit flags
-     * @property SOFTWARE software breakpoint type
-     * @property HARDWARE hardware breakpoint type
-     * @property ANY software or hardware breakpoint type
-     * {EN}
-     */
-    @Deprecated("Should not be used now because all breakpoint in Debugger are HARDWARE")
-    enum class Type(val flags: Int) {
-        SOFTWARE(0x01),
-        HARDWARE(0x02),
-        ANY(SOFTWARE.flags or HARDWARE.flags);
-    }
-
-    /**
-     * {RU}
      * Проверка характеристик точки останова
      *
      * @param bpAccess тип доступа
@@ -144,5 +124,9 @@ data class Breakpoint(val ea: ULong, val access: Access, val onBreak: ((ea: ULon
      * @return object string representation
      * {EN}
      */
-    override fun toString() = "Breakpoint[0x${ea.hex8}, $access]"
+    override fun toString() = if (comment == null) {
+        "Breakpoint[0x${range.hex8}, $access]"
+    } else {
+        "Breakpoint[0x${range.hex8}, $access, $comment]"
+    }
 }

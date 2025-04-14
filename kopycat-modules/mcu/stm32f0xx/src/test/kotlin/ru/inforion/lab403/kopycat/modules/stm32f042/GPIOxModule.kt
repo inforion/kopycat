@@ -33,7 +33,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.modules.BUS04
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 class GPIOxModule(val register: GPIOx.RegisterType) : Module(null, "GPIOx_test_module") {
     companion object {
@@ -48,9 +47,9 @@ class GPIOxModule(val register: GPIOx.RegisterType) : Module(null, "GPIOx_test_m
 
     class SimpleControllerTestModule(parent: Module?) : Module(parent, "controller_test_module") {
         inner class Ports : ModulePorts(this) {
-            val mem = Master("mem", BUS32)
-            val pin_input = Master("pin_input", BUS04)
-            val pin_output = Slave("pin_output", BUS04)
+            val mem = Port("mem")
+            val pin_input = Port("pin_input")
+            val pin_output = Port("pin_output")
         }
 
         override val ports = Ports()
@@ -59,7 +58,7 @@ class GPIOxModule(val register: GPIOx.RegisterType) : Module(null, "GPIOx_test_m
     val controller = SimpleControllerTestModule(this)
     val gpio = GPIOx(this, "gpio", 1)
 
-    val pins = object : Area(controller.ports.pin_output, "GPIO_INPUT", ACCESS.I_W) {
+    val pins = object : Area(controller.ports.pin_output, 0u, BUS04 - 1u, "GPIO_INPUT", ACCESS.I_W) {
         override fun fetch(ea: ULong, ss: Int, size: Int): ULong = TODO("not implemented... never be")
         override fun read(ea: ULong, ss: Int, size: Int): ULong = 0uL
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {

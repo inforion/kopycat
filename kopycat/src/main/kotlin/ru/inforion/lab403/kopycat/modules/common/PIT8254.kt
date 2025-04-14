@@ -26,6 +26,8 @@
 package ru.inforion.lab403.kopycat.modules.common
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -34,16 +36,14 @@ import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
-import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.common.PIT8254.READBACK_TYPE.*
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.loadValue
-import java.util.logging.Level
 
 @Suppress("MemberVisibilityCanBePrivate", "PropertyName")
 class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
 
         const val CHANNEL_COUNT = 3
 
@@ -52,8 +52,8 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
     }
 
     inner class Ports : ModulePorts(this) {
-        val irq = Master("irq", 1)
-        val io = Slave("io", BUS16)
+        val irq = Port("irq")
+        val io = Port("io")
     }
 
     override val ports = Ports()
@@ -66,7 +66,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
 
     enum class READBACK_TYPE { Count, Status, StatusThenCount, None }
 
-    inner class PITxCNT_STA(port: SlavePort, val id: Int) : Register(port, 0x0040uL + id.uint, Datatype.BYTE, "PIT${id}CNT_STA") {
+    inner class PITxCNT_STA(port: Port, val id: Int) : Register(port, 0x0040uL + id.uint, Datatype.BYTE, "PIT${id}CNT_STA") {
         // Fields for read
         var OUTPUT by bit(7)
         var NULL_CNT by bit(6)
@@ -132,7 +132,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
             }
             // Timer enabled for emulator core if at least one LATCHED value configured
             timer.enabled = PIT_CNT_STA.any { it.LATCHED != 0uL }
-            log.write(Level.FINE)
+            log.write(FINE)
         }
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
@@ -212,7 +212,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
 
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL CTR_RW_LATCH=$CTR_RW_LATCH CTR_MODE=$CTR_MODE BCD=$BCD]"
 
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) =
                 value[CTR_SEL_RANGE] != 3uL && value[CTR_CMD_RANGE] != 0uL
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
@@ -231,7 +231,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL CTR_CMD=$CTR_CMD]"
 
         // When this address (Port 0043h) is written with bits 7–6 != 11b and bits 5–4 = 00b, the PITCNTLAT register is addressed
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) =
                 value[CTR_SEL_RANGE] != 3uL && value[CTR_CMD_RANGE] == 0uL
 
         // Reads of this register (PITCNTLAT) return an undefined value
@@ -254,7 +254,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL LCNT=$LCNT LSTAT=$LSTAT CNT2=$CNT2 CNT1=$CNT1 CNT0=$CNT0]"
 
         // When this address (Port 0043h) is written with bits 7–6 = 11b, the PITRDBACK register is addressed
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[CTR_SEL_RANGE] == 3uL
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) = value[CTR_SEL_RANGE] == 3uL
 
         // Reads of this register (PITRDBACK) return an undefined value
         override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u
@@ -287,7 +287,7 @@ class PIT8254(parent: Module, name: String, var divider: ULong = 1uL) : Module(p
     }
 
 
-    inner class NSC_CLASS : Register(ports.io, 0x61u, Datatype.BYTE, "NSC", 0x20u, level = Level.FINE) {
+    inner class NSC_CLASS : Register(ports.io, 0x61u, Datatype.BYTE, "NSC", 0x20u, level = FINE) {
         var T2S by bit(5)
         var RTS by bit(4)
         var SDE by bit(1)

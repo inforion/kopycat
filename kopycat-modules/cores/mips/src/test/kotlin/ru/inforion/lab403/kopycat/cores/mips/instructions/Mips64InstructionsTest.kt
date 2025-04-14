@@ -25,10 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.instructions
 
-import org.junit.After
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -39,6 +38,7 @@ import ru.inforion.lab403.kopycat.interfaces.write
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import java.nio.ByteOrder
+import kotlin.test.assertEquals
 
 class Mips64InstructionsTest : Module(null, "Mips64Test") {
 
@@ -49,14 +49,14 @@ class Mips64InstructionsTest : Module(null, "Mips64Test") {
         1.0,
         1,
         0x00000000u, // random PRId
-        64,
-        64,
+        63,
+        63,
         ArchitectureRevision = 2,
         Config0Preset = 0x4000uL // 14 bit to 1
     )
 
     inner class Buses : ModuleBuses(this) {
-        val mips64_mem = Bus("mips64_mem", mips64.PASIZE)
+        val mips64_mem = Bus("mips64_mem")
     }
 
     @DontAutoSerialize
@@ -65,7 +65,7 @@ class Mips64InstructionsTest : Module(null, "Mips64Test") {
 
     init {
         mips64.ports.mem.connect(buses.mips64_mem)
-        ram0.ports.mem.connect(buses.mips64_mem, 0xFFFF_FFFF_0000_0000u)
+        ram0.ports.mem.connect(buses.mips64_mem, 0u)
         initializeAndResetAsTopInstance()
     }
 
@@ -81,13 +81,13 @@ class Mips64InstructionsTest : Module(null, "Mips64Test") {
     }
 
     private fun assertAssembly(expected: String) =
-        Assert.assertEquals("Unexpected disassembly view!", expected, mips64.cpu.insn.toString())
+        assertEquals(expected, mips64.cpu.insn.toString(), "Unexpected disassembly view!")
 
     private fun assertRegister(num: Int, expected: ULong, actual: ULong, type: String = "GPR") =
-        Assert.assertEquals(
-            "${mips64.cpu.insn} -> $type $num error: 0x${expected.hex8} != 0x${actual.hex8}",
+        assertEquals(
             expected,
-            actual
+            actual,
+            "${mips64.cpu.insn} -> $type $num error: 0x${expected.hex8} != 0x${actual.hex8}",
         )
 
     private fun assertRegisters(
@@ -172,10 +172,10 @@ class Mips64InstructionsTest : Module(null, "Mips64Test") {
     }
 
     private fun assertSpecialRegister(num: Int, expected: ULong, actual: ULong, type: String = "SRVC") =
-        Assert.assertEquals(
-            "${mips64.cpu.insn} -> $type $num error: 0x${expected.hex8} != 0x${actual.hex8}",
+        assertEquals(
             expected,
-            actual
+            actual,
+            "${mips64.cpu.insn} -> $type $num error: 0x${expected.hex8} != 0x${actual.hex8}",
         )
 
     private fun specialRegs(hi: ULong = 0u, lo: ULong = 0u, status: ULong = 0u) {
@@ -195,7 +195,7 @@ class Mips64InstructionsTest : Module(null, "Mips64Test") {
 
     private fun assertMemory(address: ULong, expected: ULong, dtyp: Datatype) {
         val actual = load(address, dtyp)
-        Assert.assertEquals("Memory 0x${address.hex8} error: $expected != $actual", expected, actual)
+        assertEquals(expected, actual, "Memory 0x${address.hex8} error: $expected != $actual")
     }
 
     private fun assertDelaySlot(offset: UInt = 0u, isBranch: Boolean) {
@@ -380,7 +380,7 @@ class Mips64InstructionsTest : Module(null, "Mips64Test") {
                 .ulong_z
         )
 
-    @Before
+    @BeforeEach
     fun resetTest() {
         mips64.reset()
         mips64.cpu.pc = startAddress
@@ -388,13 +388,14 @@ class Mips64InstructionsTest : Module(null, "Mips64Test") {
         mips64.cop.regs.Status.EXL = false
     }
 
-    @After
+    @AfterEach
     fun checkPC() {
         // standard exception vector address 0x80000180
         val expected = if (mips64.cpu.exception == null) startAddress + size else 0x80000180uL
-        Assert.assertEquals(
+        assertEquals(
+            expected,
+            mips64.cpu.pc,
             "Program counter error: ${(startAddress + size).hex8} != ${mips64.cpu.pc.hex8}",
-            expected, mips64.cpu.pc
         )
     }
 

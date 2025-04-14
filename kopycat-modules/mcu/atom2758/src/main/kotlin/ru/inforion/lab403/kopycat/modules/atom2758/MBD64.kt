@@ -26,16 +26,14 @@
 package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
-import java.util.logging.Level
-import java.util.logging.Level.*
 
 class MBD64(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val msg = Slave("msg", MESSAGE_PORT_SIZE)
+        val msg = Port("msg")
     }
 
     override val ports = Ports()
@@ -51,5 +49,5 @@ class MBD64(parent: Module, name: String) : Module(parent, name) {
     private val REG_11C = object : Register(ports.msg, 0x11Cu, WORD, "REG_11C", level = CONFIG) {
         override fun read(ea: ULong, ss: Int, size: Int): ULong = 0x1000u
     }
-    private val REG_28 = Register(ports.msg, 0x28u, WORD, "REG_28", level = CONFIG);
+    private val REG_28 = Register(ports.msg, 0x28u, WORD, "REG_28", level = CONFIG)
 }

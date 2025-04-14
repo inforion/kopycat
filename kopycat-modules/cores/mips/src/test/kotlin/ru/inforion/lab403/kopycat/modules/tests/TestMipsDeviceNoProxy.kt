@@ -29,7 +29,6 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.library.types.Resource
-import ru.inforion.lab403.kopycat.modules.BUS30
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.modules.cores.MipsDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
@@ -77,7 +76,7 @@ class TestMipsDeviceNoProxy(parent: Module?, name: String, val fwMode: Int, fake
     */
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS30)
+        val mem = Bus("mem")
     }
 
     override val buses = Buses()

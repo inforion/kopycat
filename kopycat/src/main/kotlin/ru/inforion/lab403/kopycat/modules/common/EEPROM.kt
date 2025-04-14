@@ -59,7 +59,7 @@ class EEPROM(parent: Module, name: String, stream: InputStream? = null): Module(
 
     inner class Ports : ModulePorts(this) {
         // Bitwise SPI
-        val spi = Slave("spi", PIN)
+        val spi = Port("spi")
     }
 
     override val ports = Ports()

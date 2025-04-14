@@ -39,7 +39,7 @@ class Signals(parent: Module, name: String, val size: ULong, val value: ULong) :
     }
 
     inner class Ports : ModulePorts(this) {
-        val wires = Slave("wires", this@Signals.size)
+        val wires = Port("wires")
     }
 
     override val ports = Ports()

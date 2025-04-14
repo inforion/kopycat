@@ -31,6 +31,7 @@ import ru.inforion.lab403.common.utils.DynamicClassLoader
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.library.exceptions.ResourceGzipError
 import java.io.*
+import java.net.JarURLConnection
 import java.nio.file.Path
 import java.util.zip.GZIPInputStream
 import kotlin.io.path.*
@@ -64,6 +65,22 @@ class Resource(val path: Path) {
      * Path string with POSIX-like separators
      */
     val pathString: String = path.invariantSeparatorsPathString
+
+    fun jarFileListing() = sequence {
+        val e1 = DynamicClassLoader.getResources(pathString)
+        while (e1.hasMoreElements()) {
+            val e2 = (e1.nextElement().openConnection() as? JarURLConnection)?.jarFile?.entries()
+            while (e2?.hasMoreElements() == true) {
+                val entry = e2.nextElement()
+                if (entry.name.startsWith(pathString)) {
+                    val relativeName = entry.name.substring(pathString.length + 1)
+                    if (relativeName.isNotEmpty()) {
+                        yield(relativeName)
+                    }
+                }
+            }
+        }
+    }
 
     fun openStream(): InputStream {
         return let {

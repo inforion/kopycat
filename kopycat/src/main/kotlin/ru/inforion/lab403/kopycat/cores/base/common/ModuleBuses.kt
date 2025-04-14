@@ -26,23 +26,21 @@
 package ru.inforion.lab403.kopycat.cores.base.common
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.ProxyPort
-import ru.inforion.lab403.kopycat.cores.base.SlavePort
 import ru.inforion.lab403.kopycat.cores.base.TranslatorPort
 import ru.inforion.lab403.kopycat.cores.base.common.Module.Companion.log
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.APort
 import ru.inforion.lab403.kopycat.cores.base.exceptions.ConnectionError
-import ru.inforion.lab403.kopycat.modules.BUS32
 import java.io.Serializable
-import kotlin.collections.set
+import java.nio.ByteOrder
 
 /**
  * {RU}
  * Класс, который является контейнером шин [ModuleBuses.Bus] в каждом модуле. Контейнером является [HashMap],
  * в качестве ключа используется имя порта [ModuleBuses.Bus.name], а значением сама шина [ModuleBuses.Bus]
  * Экземпляр класса [ModuleBuses] есть у любого из модулей [Module], по умолчанию в нем не содержится ни одной шины.
- * Для того, чтобы добавить в какой либо класс модулей шины следует реализовать следующую конструкцию при реализации класса:
+ * Чтобы добавить в какой-либо класс, следует реализовать следующую конструкцию при реализации класса:
  * ```
  * inner class Buses : ModuleBuses(this) {
  *     val mem = Bus("mem")
@@ -63,40 +61,8 @@ open class ModuleBuses(val module: Module) {
 
     /**
      * {RU}
-     * Класс, описывающий, с какой стороны порта к нему подключена текущая шина. Могут быть следующие варианты:
-     * наружной стороной к шине [ConnectionType.OUTER] - для портов всех типов
-     * внутренней стороной к шине [ConnectionType.INNER] - только для [ModulePorts.Proxy].
-     * В примере порт является прокси портом, который принадлежит модулю MODULE_1,
-     * BUS_1 имеет внутреннее подключение, BUS_2 наружное подключение.
-     * ```
-     *  __________________<-- MODULE_1
-     * |   BUS_1         |    BUS_2
-     * | ----------------|||----------------
-     * |_________________|ProxyPort
-     * ```
-     * {RU}
-     */
-    enum class ConnectionType { INNER, OUTER }
-
-    private fun validatePortConnection(port: APort) {
-        when (port) {
-            is ProxyPort -> when (module) {
-                port.module -> ConnectionError.on(port.hasInnerConnection) { "Port $this has inner connection already" }
-                port.module.parent -> ConnectionError.on(port.hasOuterConnection) { "Port $this has outer connection already" }
-                else -> ConnectionError.raise { "Buses of module $module can't connect port $port of other module!" }
-            }
-            else -> {
-                ConnectionError.on(port.module.parent != module) { "Bus '$this' of module '$module' can't be connected to port $port of other module!" }
-                ConnectionError.on(port.hasOuterConnection) { "Port $port has outer connection already to ${port.outerConnections}!" }
-            }
-        }
-    }
-
-    /**
-     * {RU}
      * Этот метод используется для соединения двух портов при помощи текущей [ModuleBuses].
-     * При подключении будет создана новая шина для соединения этих двух портов. Перед подключением осуществляется
-     * проверка двух портов при помощи метода [ModuleBuses.validatePortConnection]
+     * При подключении будет создана новая шина для соединения этих двух портов.
      *
      * ВНИМАНИЕ: Нельзя соединять напрямую два порта разного размера (разной ширины бит). Для этого необходимо
      * использовать промежуточную шину и к ней подключить оба порта.
@@ -104,32 +70,23 @@ open class ModuleBuses(val module: Module) {
      * @param base первый порт для подключения
      * @param port второй порт для подключения
      * @param offset смещение, при подключении к шине ВТОРОГО порта [port]
+     * @param endian порядок байтов
      *
      * @return шина, которая была создана при подключении
      * {RU}
      */
-    fun connect(base: APort, port: APort, offset: ULong = 0u): Bus {
+    fun connect(base: APort, port: APort, offset: ULong = 0u, endian: ByteOrder = ByteOrder.LITTLE_ENDIAN): Bus {
         ConnectionError.on(base === port) { "Connected ports are pointing to the same object!" }
-
-        validatePortConnection(base)
-        validatePortConnection(port)
-
-        // Ограничение введено в силу того, что при таком соединении неясно какого размера должна быть шина
-        // Шина может быть размером как базовый порт, так и подключаемый порт
-        ConnectionError.on(base.size != port.size) {
-            "Connected ports ($base and $port) has different size [${base.size} != ${port.size}] - can't determine size!\n" +
-                    "Use fixed-size bus in the buses override instead"
-        }
 
         val hasNameSimple = base.name in container
         val name = if (hasNameSimple) "${base.name}<->${port.name}" else base.name
 
         log.fine { "Creating virtual bus to connect port $base and $port" }
 
-        val bus = Bus(name, base.size)
+        val bus = Bus(name)
 
-        base.connect(bus, 0u)
-        port.connect(bus, offset)
+        base.connect(bus, 0u, endian)
+        port.connect(bus, offset, endian)
 
         return bus
     }
@@ -151,6 +108,10 @@ open class ModuleBuses(val module: Module) {
         return bases.indices.map { connect(bases[it], ports[it], offset) }.toTypedArray()
     }
 
+    internal fun disconnect(bus: Bus) {
+        container.remove(bus.name)
+    }
+
     /**
      * {RU}
      * Методы [resolveSlaves] и [resolveProxies] используются для создания кэша примитивов и разрешения прокси портов
@@ -170,11 +131,10 @@ open class ModuleBuses(val module: Module) {
     /**
      * {EN}Bus to port connection (there is also port to bus connection in [ModulePorts]){EN}
      */
-    internal data class Connection<T: APort>(
-            val port: T,
-            val offset: ULong,
-            val type: ConnectionType
-    ): Serializable
+    internal data class Connection<T: APort>(val port: T, val offset: ULong, val endian: ByteOrder): Serializable {
+        override fun equals(other: Any?) = other is Connection<*> && port === other.port && offset == other.offset
+        override fun hashCode() = 31 * port.hashCode() + offset.hashCode()
+    }
 
     internal fun <T: APort>connections() = mutableListOf<Connection<T>>()
 
@@ -184,10 +144,9 @@ open class ModuleBuses(val module: Module) {
      *
      * @param count количество шин
      * @param prefix префикс для каждой шины
-     * @param size размер адресного пространства каждой шины
      * {RU}
      */
-    fun buses(count: Int, prefix: String, size: ULong = BUS32) = Array(count) { Bus("$prefix$it", size) }
+    fun buses(count: Int, prefix: String) = Array(count) { Bus("$prefix$it") }
 
     class BusDefinitionError(message: String) : Exception(message)
 
@@ -197,24 +156,21 @@ open class ModuleBuses(val module: Module) {
      * По своей сути аналогична шинам в реальном железе.
      *
      * @param name имя шины (должно совпадать с именем переменной, в случае, если задается из кода)
-     * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
      * {RU}
      */
-    inner class Bus constructor(val name: String, val size: ULong = BUS32): Serializable {
-        constructor(name: String, size: Int) : this(name, size.ulong_z)
-
+    inner class Bus internal constructor(val name: String, internal val dummy: Boolean = false): Serializable {
         val module = this@ModuleBuses.module
 
-        private val masters = connections<MasterPort>()
-        internal val slaves = connections<SlavePort>()
+        constructor(name: String) : this(name, false)
+
+        internal val ports = connections<Port>()
         internal val proxies = connections<ProxyPort>()
         internal val translators = connections<TranslatorPort>()
 
         internal val cache = BusCache(this)
 
         override fun toString(): String {
-            val size = if (size < 0xFFFFu) size.hex4 else "===="
-            return "$module:$name[Bx$size]"
+            return "$module:$name[Bus]"
         }
 
         private fun indent(): String {
@@ -225,41 +181,41 @@ open class ModuleBuses(val module: Module) {
         /**
          * {EN}
          * Method called when [port] connected to [this] bus with specified [offset].
-         * Bus adds specified [port] to one of containers [proxies], [masters], [slaves], [translators]
+         * Bus adds specified [port] to one of containers [proxies], [translators]
          *
          * @param port connecting port
          * @param offset connection offset
-         * @param type connection type [INNER or OUTER]
+         * @param endian endianness
          * {EN}
          *
          * {RU}
          * Метод вызывается при событии подсоединения порта [port] к текущей шине по заданному смещению [offset].
          * Метод производит логгирование события подключения и добавляет текущий порт в один из своих контейнеров:
-         * [proxies], [masters], [slaves], [translators] - для проки портов, мастер-портов, слэйв-портов и
+         * [proxies], [translators] - для проки портов, мастер-портов, слэйв-портов и
          * трансляторов соответственно.
          *
          * @param port порт, который осуществил подключение к шине
          * @param offset смещение, по которому осуществляется подключение
-         * @param type тип подключения - порт может быть подключен либо с внутренней стороны, либо с внешней.
+         * @param endian порядок байтов
          * {RU}
          */
-        internal fun onPortConnected(port: APort, offset: ULong, type: ConnectionType) {
-            log.fine { "${indent()}Connect: %-30s to %-30s at %08X as %6s".format(port, this, offset.long, type) }
+        internal fun onPortConnected(port: APort, offset: ULong, endian: ByteOrder) {
+            log.fine { "${indent()}Connect: %-30s to %-30s at %08X as %6s".format(port, this, offset.long) }
 
             when (port) {
                 is ProxyPort -> {
                     ConnectionError.on(offset != 0uL) {
                         "Proxy ports ($port) must be connected without offset (${offset.hex8})!"
                     }
-                    proxies.add(Connection(port, offset, type))
+                    proxies.add(Connection(port, offset, endian))
                 }
-                is MasterPort -> {
-//                    if (port.hasOuterConnection)
-//                        throw ConnectionError("Master port ($port) can't be connected twice!")
-                    masters.add(Connection(port, offset, type))
+                is Port -> ports.add(Connection(port, offset, endian))
+                is TranslatorPort -> {
+                    ConnectionError.on(offset != 0uL) {
+                        "Translator ports ($port) must be connected without offset (${offset.hex8})!"
+                    }
+                    translators.add(Connection(port, offset, endian))
                 }
-                is SlavePort -> slaves.add(Connection(port, offset, type))
-                is TranslatorPort -> translators.add(Connection(port, offset, type))
             }
 
             port.module.onPortConnected(port, this, offset)
@@ -278,8 +234,7 @@ open class ModuleBuses(val module: Module) {
 
             val wasDisconnected = when (port) {
                 is ProxyPort -> proxies.removeIf { it.port == port && it.offset == offset }
-                is MasterPort -> masters.removeIf { it.port == port && it.offset == offset }
-                is SlavePort -> slaves.removeIf { it.port == port && it.offset == offset }
+                is Port -> ports.removeIf { it.port == port && it.offset == offset }
                 is TranslatorPort -> translators.removeIf { it.port == port && it.offset == offset }
                 else -> throw ConnectionError("Unknown port type $port for disconnect from bus $this")
             }
@@ -294,7 +249,6 @@ open class ModuleBuses(val module: Module) {
         }
 
         init {
-            errorIf(size <= 0u) { "$this -> wrong bus size $size should be > 0" }
             errorIf(name in Module.RESERVED_NAMES) { "$this -> bad bus name '$name'" }
             errorIf(name in container) { "$this -> bus name '$name' is duplicated in module $module" }
             container[name] = this@Bus

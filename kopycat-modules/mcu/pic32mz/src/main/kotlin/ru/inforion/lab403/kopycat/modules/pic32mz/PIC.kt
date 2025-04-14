@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.pic32mz
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
@@ -35,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.field
-import java.util.logging.Level
 import kotlin.properties.Delegates
 
 @Suppress("PrivatePropertyName", "PropertyName", "unused")
@@ -45,14 +45,14 @@ import kotlin.properties.Delegates
  */
 class PIC(parent: Module, name: String) : APIC(parent, name) {
     companion object {
-        @Transient val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
 
         const val INTERRUPT_COUNT = 214
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem")
-        val irq = Slave("irq", INTERRUPT_COUNT)
+        val mem = Port("mem")
+        val irq = Port("irq")
     }
 
     override val ports = Ports()
@@ -213,7 +213,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
     private val IPC_TABLE = Array(INTERRUPT_COUNT / 4 + 1) { IPCx(it) }
     private val OFF_TABLE = Array(INTERRUPT_COUNT) { OFF(it) }
 
-    val interrupts = Interrupts(ports.irq, "IRQ",
+    val interrupts = Interrupts(ports.irq, "IRQ", INTERRUPT_COUNT.ulong_z - 1u,
             Interrupt(1, "_CORE_SOFTWARE_0_VECTOR"),
             Interrupt(2, "_CORE_SOFTWARE_1_VECTOR"),
 

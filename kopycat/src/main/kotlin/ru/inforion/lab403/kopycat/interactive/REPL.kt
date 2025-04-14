@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.interactive
 
 import org.jline.reader.LineReader
 import org.jline.reader.LineReaderBuilder
+import org.jline.reader.PrintAboveWriter
 import org.jline.reader.UserInterruptException
 import org.jline.reader.impl.DefaultParser
 import org.jline.terminal.TerminalBuilder
@@ -36,6 +37,8 @@ import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.consoles.AConsole
 import java.io.File
+import java.io.PrintWriter
+import java.io.Writer
 import java.nio.file.Path
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.thread
@@ -46,6 +49,7 @@ class REPL private constructor(
     private var console: AConsole,
     private var initScript: File? = null,
     private val historyFilePath: Path? = null,
+    private val onWriterAvailable: (PrintWriter) -> Unit = { },
 ) {
     val repl = thread(false, name = "REPL") {
         console.sure { "Console wasn't set but REPL thread started!" }.run {
@@ -74,6 +78,7 @@ class REPL private constructor(
                 log.severe { "${e.message}" }
             }
 
+            onWriterAvailable(PrintWriter(PrintAboveWriter(reader), false))
             while (working) {
                 try {
                     reader.readLine("$name > ")
@@ -128,14 +133,22 @@ class REPL private constructor(
             throw IllegalStateException("REPL does not exist")
         }
 
-        fun getOrCreate(console: AConsole, script: File? = null, historyFilePath: Path): REPL = instance ?: let {
-            create(console, script, historyFilePath)
-        }
+        fun getOrCreate(
+            console: AConsole,
+            script: File? = null,
+            historyFilePath: Path,
+            onWriterAvailable: (Writer) -> Unit = { },
+        ) = instance ?: create(console, script, historyFilePath, onWriterAvailable)
 
-        fun create(console: AConsole, script: File? = null, historyFilePath: Path?): REPL = if (instance != null) {
+        fun create(
+            console: AConsole,
+            script: File? = null,
+            historyFilePath: Path?,
+            onWriterAvailable: (Writer) -> Unit = { },
+        ) = if (instance != null) {
             throw IllegalStateException("REPL has been already created")
         } else {
-            REPL(console, script, historyFilePath).also {
+            REPL(console, script, historyFilePath, onWriterAvailable).also {
                 instance = it
                 it.repl.start()
             }

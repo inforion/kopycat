@@ -1,13 +1,13 @@
 FROM openjdk:11
 
 RUN apt-get update -y --allow-releaseinfo-change && \
-    apt-get install -y bash sed git socat picocom && \
+    apt-get install -y bash sed git socat && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /opt/kopycat
 
 COPY . /opt/kopycat/
-COPY settings.generic.gradle ./settings.gradle
+COPY settings.generic.gradle.kts ./settings.gradle.kts
 
 RUN echo "Copying m2 (if exists)..." && \
     if [ -d ./.m2 ]; then mv -v ./.m2 /root/.m2; fi && \

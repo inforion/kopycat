@@ -37,8 +37,6 @@ import ru.inforion.lab403.kopycat.cores.mips.Microarchitecture
 import ru.inforion.lab403.kopycat.cores.mips.enums.MipsCallingConvention
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.*
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.mips64.COP064
-import ru.inforion.lab403.kopycat.modules.BUS32
-import ru.inforion.lab403.kopycat.modules.BUS64
 
 /**
  * @param frequency частота ядра (используется при вычислении прошедшего времени в [SystemClock])
@@ -112,8 +110,6 @@ class MipsCore constructor(
     val is64bit get() = cpu.mode == MipsCPU.Mode.R64
 
     val PASIZE = 1uL shl PABITS // if (is32bit) 1uL shl PABITS else 0xFFFFFFFFFFFFFFFFuL
-    // always 32 bit if mips32
-    val VASIZE = if (is32bit) BUS32 else BUS64
 
     override val fpu = MipsFPU(this, "fpu", dtype = fpuDtype)
 
@@ -124,10 +120,10 @@ class MipsCore constructor(
     }
 
     override val mmu = when {
-        mmuTlbEntries != null -> MipsMMU(this, "mmu", PASIZE, mmuTlbEntries)
+        mmuTlbEntries != null -> MipsMMU(this, "mmu", mmuTlbEntries)
         // p. 263 PRA
-        Config1Preset.truth -> MipsMMU(this, "mmu", PASIZE, Config1Preset[30..25].int + 1)
-        else -> MipsMMU(this, "mmu", PASIZE)
+        Config1Preset.truth -> MipsMMU(this, "mmu", Config1Preset[30..25].int + 1)
+        else -> MipsMMU(this, "mmu")
     }
 
     // See MIPS PRA Chapter 3 "MIPS64 and microMIPS64 Operating Modes"
@@ -140,12 +136,12 @@ class MipsCore constructor(
     val dspModule = if (dspExtension) DSPModule(this, "DSP Module") else null
 
     inner class Buses : ModuleBuses(this) {
-        val physical = Bus("physical", PASIZE)
-        val virtual = Bus("virtual", VASIZE)
+        val physical = Bus("physical")
+        val virtual = Bus("virtual")
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Proxy("mem", PASIZE)
+        val mem = Proxy("mem")
     }
 
     override val buses = Buses()

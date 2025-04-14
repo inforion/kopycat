@@ -26,13 +26,8 @@
 package ru.inforion.lab403.kopycat.interactive.protocols
 
 import io.javalin.Javalin
-import io.javalin.core.plugin.Plugin
+import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.common.extensions.div
-import ru.inforion.lab403.common.extensions.hex16
-import ru.inforion.lab403.common.extensions.hexlify
-import ru.inforion.lab403.common.extensions.unhexlify
-import ru.inforion.lab403.common.javalin.applyRoutes
 import ru.inforion.lab403.common.javalin.getAny
 import ru.inforion.lab403.common.javalin.postAny
 import ru.inforion.lab403.common.javalin.postVoid
@@ -47,7 +42,7 @@ import ru.inforion.lab403.kopycat.library.builders.text.create
 import ru.inforion.lab403.kopycat.serializer.Serializer
 import java.math.BigInteger
 
-class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList<Module>): Plugin {
+class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList<Module>) {
     companion object {
         val log = logger(FINE)
     }
@@ -61,7 +56,7 @@ class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList
 
     val name = "kopycat"
 
-    override fun apply(app: Javalin) = app.applyRoutes {
+    fun apply(app: Javalin) = app.apply {
         /**
          * {RU}
          * Пример тела и параметров запроса для bus
@@ -279,7 +274,10 @@ class KopycatRestProtocol(private val kopycat: Kopycat, val modules: MutableList
             val path = it.header("path")
             log.finer { "getSnapshotMetaInfo(path=$path)" }
             require(path != null) { "Snapshot path must be specified!" }
-            Serializer.getMetaInfo(kopycat.snapshotsDir / path) ?: error("Snapshot has no meta info!")
+
+            Serializer.getMetaInfo(
+                (kopycat.snapshotsDir / path).addExtension(".zip")
+            ) ?: error("Snapshot has no meta info!")
         }
     }
 }

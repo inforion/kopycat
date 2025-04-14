@@ -27,6 +27,7 @@ package ru.inforion.lab403.kopycat.modules.cores.device.hardware
 
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.plus
+import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.common.extensions.ulongByHex
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACPU
@@ -61,7 +62,7 @@ class TestCPU(val testCore: TestCore, name: String): ACPU<TestCPU, TestCore, Tes
 
         val opcode = core.read(Datatype.DWORD, ea, 0)
 
-        insn = when (opcode) {
+        insn = when (opcode.uint) {
             INSN.ADD -> Add(calc)
             INSN.MOV -> Mov(calc)
             INSN.MUL -> Mul(calc)
@@ -73,7 +74,7 @@ class TestCPU(val testCore: TestCore, name: String): ACPU<TestCPU, TestCore, Tes
 
     override fun execute(): Int {
         insn.execute()
-        regs.pc.value = regs.pc.value + insn.size
+        regs.pc.value += insn.size
         return 1
     }
 

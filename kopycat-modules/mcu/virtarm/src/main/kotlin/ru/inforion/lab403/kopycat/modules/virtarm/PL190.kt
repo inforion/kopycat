@@ -48,8 +48,8 @@ class PL190(parent: Module, name: String) : APIC(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val irq = Slave("irq", INTERRUPT_COUNT)
-        val mem = Slave("mem", 0x1000)
+        val irq = Port("irq")
+        val mem = Port("mem")
     }
 
     override val ports = Ports()
@@ -78,7 +78,12 @@ class PL190(parent: Module, name: String) : APIC(parent, name) {
         )
     }
 
-    val interrupts = Interrupts(ports.irq,  "IRQ", *Array(INTERRUPT_COUNT) { Interrupt(it, "IRQ$it")})
+    val interrupts = Interrupts(
+        ports.irq,
+        "IRQ",
+        INTERRUPT_COUNT.ulong_z - 1u,
+        *Array(INTERRUPT_COUNT) { Interrupt(it, "IRQ$it")},
+    )
 
     /**
      * See 2.1.6

@@ -39,8 +39,8 @@ fun <T: APort> T.pci_connect(pci: Bus, bus: Int, device: Int, func: Int) =
 
 fun <T : APort> T.pci_disconnect(pci: Bus) = disconnect(pci)
 
-fun ModuleBuses.pci_bus(prefix: String) = Bus(prefix, BUS32)
+fun ModuleBuses.pci_bus(prefix: String) = Bus(prefix)
 
-fun ModulePorts.pci_master(prefix: String) = Master(prefix, BUS32)
-fun ModulePorts.pci_proxy(prefix: String) = Proxy(prefix, BUS32)
-fun ModulePorts.pci_slave(prefix: String) = Slave(prefix, BUS16)
+fun ModulePorts.pci_master(prefix: String) = Port(prefix)
+fun ModulePorts.pci_proxy(prefix: String) = Proxy(prefix)
+fun ModulePorts.pci_slave(prefix: String) = Port(prefix)

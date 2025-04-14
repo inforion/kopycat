@@ -44,28 +44,24 @@ import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86FPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86MMU
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
-import ru.inforion.lab403.kopycat.modules.BUS16
-import ru.inforion.lab403.kopycat.modules.BUS32
 
-class x86Core constructor(
+class x86Core(
     parent: Module,
     name: String,
     frequency: Long,
     val generation: Generation,
     ipc: Double,
     val useMMU: Boolean = true,
-    val virtualBusSize: ULong = BUS32,
-    val physicalBusSize: ULong = BUS32
 ): ACore<x86Core, x86CPU, x86COP>(parent, name, frequency, ipc), IAutoSerializable {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Proxy("mem", physicalBusSize)
-        val io = Master("io", BUS16)
+        val mem = Proxy("mem")
+        val io = Port("io")
     }
 
     inner class Buses : ModuleBuses(this) {
-        val physical = Bus("physical", physicalBusSize)
-        val virtual = Bus("virtual", virtualBusSize)
+        val physical = Bus("physical")
+        val virtual = Bus("virtual")
     }
 
     @DontAutoSerialize
@@ -74,7 +70,7 @@ class x86Core constructor(
     @DontAutoSerialize
     override val buses = Buses()
 
-    override val cpu = x86CPU(this, "cpu", virtualBusSize)
+    override val cpu = x86CPU(this, "cpu")
     override val cop = x86COP(this, "cop")
     override val mmu = x86MMU(this, "mmu")
     override val fpu = x86FPU(this, "fpu")

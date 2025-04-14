@@ -75,7 +75,8 @@ java `
   `
   "$starterClass" `
   `
-$argumentsStr
+$argumentsStr `
+  💲args
 """.replace("💲", "${'$'}")
     }
 

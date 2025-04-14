@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.modules.cortexm0
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.set
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.ALL
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
@@ -37,7 +38,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
-import java.util.logging.Level
 
 @Suppress("unused", "PrivatePropertyName")
 
@@ -51,9 +51,9 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x400)
-        val irq = Slave("irq", INTERRUPT_COUNT)
-        val exc = Slave("exc", EXCEPTION_COUNT)
+        val mem = Port("mem")
+        val irq = Port("irq")
+        val exc = Port("exc")
     }
 
     override val ports = Ports()
@@ -70,13 +70,17 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
             }
     }
 
-    private val exceptions = Interrupts(ports.exc, "EXCEPTIONS",
-            Exception(1, "RESET"),
-            Exception(2, "NMI"),
-            Exception(3, "Hard Fault"),
-            Exception(11, "SVCall"),
-            Exception(14, "PendSV"),
-            Exception(15, "SysTick"))
+    private val exceptions = Interrupts(
+        ports.exc,
+        "EXCEPTIONS",
+        EXCEPTION_COUNT.ulong_z - 1u,
+        Exception(1, "RESET"),
+        Exception(2, "NMI"),
+        Exception(3, "Hard Fault"),
+        Exception(11, "SVCall"),
+        Exception(14, "PendSV"),
+        Exception(15, "SysTick"),
+    )
 
     private fun Interrupts<Exception>.enableAll() {
         this[1].enabled = true
@@ -132,7 +136,12 @@ class NVIC(parent: Module, name: String) : APIC(parent, name) {
             }.int
     }
 
-    private val interrupts = Interrupts(ports.irq, "IRQ", *Array(INTERRUPT_COUNT) { NVICInterrupt(it) })
+    private val interrupts = Interrupts(
+        ports.irq,
+        "IRQ",
+        INTERRUPT_COUNT.ulong_z - 1u,
+        *Array(INTERRUPT_COUNT) { NVICInterrupt(it) },
+    )
 
     /**
      * Interrupt set-enable register

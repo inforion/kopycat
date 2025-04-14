@@ -28,7 +28,7 @@ package ru.inforion.lab403.kopycat.modules.common.pci
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
-import ru.inforion.lab403.kopycat.cores.base.SlavePort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -47,14 +47,14 @@ open class PciHost constructor(parent: Module, name: String): Module(parent, nam
     }
 
     inner class Ports : ModulePorts(this) {
-        val io = Slave("io", BUS16)
+        val io = Port("io")
 
         val pci = pci_master("pci")
     }
 
     final override val ports = Ports()
 
-    protected inner class PCI_CFG_ADR_REG(port: SlavePort, address: ULong, name: String) :
+    protected inner class PCI_CFG_ADR_REG(port: Port, address: ULong, name: String) :
             ByteAccessRegister(port, address, DWORD, name) {
 
         val enabled by bit(PCI_BDF_ENA_BIT)
@@ -69,7 +69,7 @@ open class PciHost constructor(parent: Module, name: String): Module(parent, nam
 //        }
     }
 
-    protected inner class PCI_CFG_DAT_REG(port: SlavePort, address: ULong, name: String) :
+    protected inner class PCI_CFG_DAT_REG(port: Port, address: ULong, name: String) :
             ByteAccessRegister(port, address, DWORD, name) {
 
         // TODO: may be last two bits of reg should be 0 from I/O port

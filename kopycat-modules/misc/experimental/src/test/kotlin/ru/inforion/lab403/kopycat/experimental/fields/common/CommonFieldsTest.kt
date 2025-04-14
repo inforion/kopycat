@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.experimental.fields.common
 
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.experimental.fields.FieldsTopFixture
 import kotlin.test.assertEquals
@@ -34,7 +34,7 @@ import kotlin.test.assertEquals
 class CommonFieldsTest : Module(null, "Module Buses Test") {
     val top = FieldsTopFixture()
 
-    @Before
+    @BeforeEach
     fun beforeTest() {
         top.reset()
         top.ramPrepared.reset()

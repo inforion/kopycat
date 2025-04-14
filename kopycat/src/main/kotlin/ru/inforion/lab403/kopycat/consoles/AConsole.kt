@@ -25,7 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.consoles
 
+import org.jline.reader.Candidate
 import org.jline.reader.Completer
+import org.jline.reader.LineReader
+import org.jline.reader.ParsedLine
 import org.jline.reader.Parser
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
@@ -38,22 +41,31 @@ abstract class AConsole(name: String): Thread(name) {
         @Transient val log = logger(INFO)
     }
 
-    enum class RequestType { EVAL, EXECUTE }
+    sealed class ARequest
+    sealed class AResult
 
-    data class Request(val type: RequestType, val data: String)
+    data class EvalRequest(val data: String) : ARequest()
+    data class ExecRequest(val data: String) : ARequest()
+    data class CompleteRequest(
+        val reader: LineReader?,
+        val line: ParsedLine?,
+        val candidates: MutableList<Candidate>,
+    ) : ARequest()
 
-    data class Result(val status: Int, val message: String?)
+    data class Result(val status: Int, val message: String?) : AResult()
+    data object CompleteResult : AResult()
 
     private val measureInterval = 5 // seconds
 
     private val qInit = LinkedBlockingQueue<Boolean>(1)
-    private val qInput = LinkedBlockingQueue<Request>(1)
+    private val qInput = LinkedBlockingQueue<ARequest>(1)
     private val qOutput = LinkedBlockingQueue<Result>(2)
+    private val qCompleteOutput = LinkedBlockingQueue<CompleteResult>(1)
 
     fun reconfigure(): Boolean = onReconfigure()
 
     fun eval(expression: String): Result {
-        qInput.put(Request(RequestType.EVAL, expression))
+        qInput.put(EvalRequest(expression))
         return qOutput.take()
     }
 
@@ -61,12 +73,18 @@ abstract class AConsole(name: String): Thread(name) {
      * Чтобы использовать REPL внутри REPL-а
      */
     fun evalNoTake(expression: String) {
-        qInput.put(Request(RequestType.EVAL, expression))
+        qInput.put(EvalRequest(expression))
     }
 
     fun execute(statement: String): Result {
-        qInput.put(Request(RequestType.EXECUTE, statement))
+        qInput.put(ExecRequest(statement))
         return qOutput.take()
+    }
+
+    /** Beware of race conditions! */
+    protected fun complete(reader: LineReader?, line: ParsedLine?, candidates: MutableList<Candidate>): CompleteResult {
+        qInput.put(CompleteRequest(reader, line, candidates))
+        return qCompleteOutput.take()
     }
 
     fun initialized(): Boolean {
@@ -85,6 +103,11 @@ abstract class AConsole(name: String): Thread(name) {
     protected abstract fun onInitialize(): Boolean
     protected abstract fun onEval(statement: String): Boolean
     protected abstract fun onExecute(statement: String): Result
+    protected open fun onComplete(
+        reader: LineReader?,
+        line: ParsedLine?,
+        candidates: MutableList<Candidate>,
+    ) = Unit
 
     final override fun run() {
         var hostTime = 0L
@@ -104,8 +127,8 @@ abstract class AConsole(name: String): Thread(name) {
                 val request = qInput.poll(1000, TimeUnit.MILLISECONDS)
                 if (request != null) {
                     try {
-                        when (request.type) {
-                            RequestType.EVAL -> {
+                        when (request) {
+                            is EvalRequest -> {
                                 log.fine { "Evaluate command line: ${request.data}" }
                                 val status = onEval(request.data)
                                 if (!qOutput.isEmpty()) {
@@ -114,7 +137,7 @@ abstract class AConsole(name: String): Thread(name) {
                                     qOutput.put(Result(if (status) 0 else -1, null))
                                 }
                             }
-                            RequestType.EXECUTE -> {
+                            is ExecRequest -> {
                                 log.fine { "Execute command line: ${request.data}" }
                                 val result = onExecute(request.data)
                                 if (!qOutput.isEmpty()) {
@@ -123,15 +146,31 @@ abstract class AConsole(name: String): Thread(name) {
                                     qOutput.put(Result(0, result.toString()))
                                 }
                             }
+                            is CompleteRequest -> {
+                                onComplete(request.reader, request.line, request.candidates)
+                                if (!qCompleteOutput.isEmpty()) {
+                                    log.warning { "qCompleteOutput is not empty" }
+                                } else {
+                                    qCompleteOutput.put(CompleteResult)
+                                }
+                            }
                         }
                     } catch (error: Exception) {
                         // TODO: Make configurable print stack trace
                         // log.severe { "Unexpected exception occurred during command execution..." }
                         // error.logStackTrace(log)
-                        if (!qOutput.isEmpty()) {
-                            log.warning { "qOutput is not empty" }
-                        } else {
-                            qOutput.put(Result(-1, error.toString()))
+
+                        when (request) {
+                            is EvalRequest, is ExecRequest -> if (!qOutput.isEmpty()) {
+                                log.warning { "qOutput is not empty" }
+                            } else {
+                                qOutput.put(Result(-1, error.toString()))
+                            }
+                            is CompleteRequest -> if (!qOutput.isEmpty()) {
+                                log.warning { "qCompleteOutput is not empty" }
+                            } else {
+                                qCompleteOutput.put(CompleteResult)
+                            }
                         }
                     }
                 }

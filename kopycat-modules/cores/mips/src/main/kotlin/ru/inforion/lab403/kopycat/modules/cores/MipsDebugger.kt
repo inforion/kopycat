@@ -31,18 +31,18 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Endian
 import ru.inforion.lab403.kopycat.cores.mips.enums.InstructionSet
 import ru.inforion.lab403.kopycat.cores.mips.hardware.processors.MipsCPU
 import ru.inforion.lab403.kopycat.modules.BUS32
 import java.math.BigInteger
+import java.nio.ByteOrder
 
 
 class MipsDebugger(
     parent: Module,
     name: String,
     dbgAreaSize: ULong = BUS32,
-    val endian: Endian = Endian.LITTLE,
+    val endian: ByteOrder = ByteOrder.LITTLE_ENDIAN,
 ) : Debugger(parent, name, dbgAreaSize = dbgAreaSize) {
     companion object {
         @Transient
@@ -63,10 +63,10 @@ class MipsDebugger(
     override fun ident() : String = "mips"
 
     override fun target(): String = when (mips.cpu.mode) {
-        MipsCPU.Mode.R32 -> super.target()
+        MipsCPU.Mode.R32 -> "empty.xml"
         MipsCPU.Mode.R64 -> when (endian) {
-            Endian.LITTLE -> super.target()
-            Endian.BIG -> "mips64-linux.xml"
+            ByteOrder.LITTLE_ENDIAN -> "empty.xml"
+            else -> "mips64-linux.xml"
         }
     }
 
@@ -84,7 +84,7 @@ class MipsDebugger(
         else -> mips.cpu.regs.read(index).bigint
     }.let {
         when (endian) {
-            Endian.BIG -> when (mips.cpu.mode) {
+            ByteOrder.BIG_ENDIAN -> when (mips.cpu.mode) {
                 MipsCPU.Mode.R32 -> it.swap32()
                 MipsCPU.Mode.R64 -> it.swap64()
             }
@@ -94,7 +94,7 @@ class MipsDebugger(
 
     override fun regWrite(index: Int, value: BigInteger) {
         val dataToWrite = when (endian) {
-            Endian.BIG -> when (mips.cpu.mode) {
+            ByteOrder.BIG_ENDIAN -> when (mips.cpu.mode) {
                 MipsCPU.Mode.R32 -> value.ulong.swap32()
                 MipsCPU.Mode.R64 -> value.ulong.swap64()
             }

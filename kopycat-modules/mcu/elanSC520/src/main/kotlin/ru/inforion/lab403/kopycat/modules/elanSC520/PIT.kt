@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -34,11 +35,9 @@ import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
-import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.elanSC520.PIT.READBACK_TYPE.*
 import ru.inforion.lab403.kopycat.serializer.loadEnum
 import ru.inforion.lab403.kopycat.serializer.loadValue
-import java.util.logging.Level.FINE
 
 @Suppress("MemberVisibilityCanBePrivate", "PropertyName")
 class PIT(parent: Module, name: String) : Module(parent, name) {
@@ -52,8 +51,8 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val irq = Master("irq", INTERRUPT_COUNT)
-        val io = Slave("io", BUS16.ulong)
+        val irq = Port("irq")
+        val io = Port("io")
     }
 
     override val ports = Ports()
@@ -64,7 +63,7 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
 
     enum class READBACK_TYPE { Count, Status, StatusThenCount, None }
 
-    inner class PITxCNT_STA(port: SlavePort, val id: Int) : Register(port, 0x0040uL + id.uint, BYTE, "PIT${id}CNT_STA") {
+    inner class PITxCNT_STA(port: Port, val id: Int) : Register(port, 0x0040uL + id.uint, BYTE, "PIT${id}CNT_STA") {
         // Fields for read
         var OUTPUT by bit(7)
         var NULL_CNT by bit(6)
@@ -190,7 +189,7 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
 
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL CTR_RW_LATCH=$CTR_RW_LATCH CTR_MODE=$CTR_MODE BCD=$BCD]"
 
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) =
                 value[CTR_SEL_RANGE] != 3uL && value[CTR_CMD_RANGE] != 0uL
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
@@ -209,7 +208,7 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL CTR_CMD=$CTR_CMD]"
 
         // When this address (Port 0043h) is written with bits 7–6 != 11b and bits 5–4 = 00b, the PITCNTLAT register is addressed
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) =
                 value[CTR_SEL_RANGE] != 3uL && value[CTR_CMD_RANGE] == 0uL
 
         // Reads of this register (PITCNTLAT) return an undefined value
@@ -233,7 +232,7 @@ class PIT(parent: Module, name: String) : Module(parent, name) {
         override fun stringify(): String = "${super.stringify()} [CTR_SEL=$CTR_SEL LCNT=$LCNT LSTAT=$LSTAT CNT2=$CNT2 CNT1=$CNT1 CNT0=$CNT0]"
 
         // When this address (Port 0043h) is written with bits 7–6 = 11b, the PITRDBACK register is addressed
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[CTR_SEL_RANGE] == 3uL
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) = value[CTR_SEL_RANGE] == 3uL
 
         // Reads of this register (PITRDBACK) return an undefined value
         override fun read(ea: ULong, ss: Int, size: Int): ULong = 0u

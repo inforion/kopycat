@@ -42,7 +42,7 @@ import java.io.File
 
 @Suppress("UNCHECKED_CAST")
 inline fun <T: Task>Project.getTaskByNameOrNull(name: String): T? {
-    val task = tasks.getByName(name) ?: return null
+    val task = runCatching { tasks.getByName(name) }.getOrNull() ?: return null
     return task as T
 }
 

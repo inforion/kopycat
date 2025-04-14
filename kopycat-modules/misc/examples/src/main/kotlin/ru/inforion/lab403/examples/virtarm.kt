@@ -31,6 +31,7 @@ import ru.inforion.lab403.common.extensions.unhexlify
 import ru.inforion.lab403.kopycat.auxiliary.NANDPart
 import ru.inforion.lab403.kopycat.cores.arm.hardware.processors.AARMCPU
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
+import ru.inforion.lab403.kopycat.modules.terminals.UartNetworkTerminal
 import ru.inforion.lab403.kopycat.modules.virtarm.VirtARM
 import java.io.ByteArrayInputStream
 
@@ -38,7 +39,9 @@ object virtarm {
     @JvmStatic
     fun main(args: Array<String>) {
         // Create clean virtual ARM device on ARM1176JZS core
-        val top = VirtARM.clean(null, "top", "socat:").also { it.initializeAndResetAsTopInstance() }
+        val top = VirtARM.clean(null, "top", UartNetworkTerminal.DEFAULT_PORT).also {
+            it.initializeAndResetAsTopInstance()
+        }
 
         // Bootloader and Kernel is RAM and has memory interface:
         // - store to write block into memory

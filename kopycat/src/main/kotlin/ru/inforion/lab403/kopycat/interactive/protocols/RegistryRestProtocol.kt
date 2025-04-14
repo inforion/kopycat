@@ -28,12 +28,8 @@
 package ru.inforion.lab403.kopycat.interactive.protocols
 
 import io.javalin.Javalin
-import io.javalin.core.plugin.Plugin
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.javalin.applyRoutes
-import ru.inforion.lab403.common.javalin.deleteVoid
-import ru.inforion.lab403.common.javalin.getAny
-import ru.inforion.lab403.common.javalin.postAny
+import ru.inforion.lab403.common.javalin.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
@@ -41,7 +37,7 @@ import ru.inforion.lab403.kopycat.library.builders.text.ModuleConfig
 import ru.inforion.lab403.kopycat.library.builders.text.PluginConfig
 import ru.inforion.lab403.kopycat.library.types.LibraryInfo
 
-class RegistryRestProtocol(private val registry: ModuleLibraryRegistry?, val modules: MutableList<Module>): Plugin {
+class RegistryRestProtocol(private val registry: ModuleLibraryRegistry?, val modules: MutableList<Module>) {
     companion object {
         val log = logger()
     }
@@ -91,8 +87,7 @@ class RegistryRestProtocol(private val registry: ModuleLibraryRegistry?, val mod
         }
     }
 
-    override fun apply(app: Javalin) = app.applyRoutes {
-
+    fun apply(app: Javalin) = app.apply {
         getAny("$name/getAvailableTopModules") {
             registryOrThrow.getAvailableTopModules().getContentInfo()
         }
@@ -179,7 +174,7 @@ class RegistryRestProtocol(private val registry: ModuleLibraryRegistry?, val mod
             val parentName = it.header("parent")
             val module = it.bodyAsClass(ModuleConfig::class.java)
             val parent = if (parentName == null) null else modules.find { m -> m.name == parentName }
-                    .sure { "Parent module '$parentName' not found in already instantiated modules in REST" }
+                .sure { "Parent module '$parentName' not found in already instantiated modules in REST" }
             module.create(registryOrThrow, parent).also { modules.add(it) }.name
         }
     }

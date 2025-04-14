@@ -57,8 +57,7 @@ import java.nio.ByteOrder
  *
  * Stub for MIPS address translation
  */
-class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int = 32) :
-        AddressTranslator(parent, name, widthOut = widthOut) {
+class MipsMMU(parent: Module, name: String, val tlbEntries: Int = 32) : AddressTranslator(parent, name) {
     val mips get() = parent as MipsCore
 
     // if PageMask is not implemented, we think that it is written with the encoding for 4kB page
@@ -377,7 +376,6 @@ class MipsMMU(parent: Module, name: String, widthOut: ULong, val tlbEntries: Int
         "randomTlbIdx" to randomTlbIdx,
     )
 
-    // TODO: make checked cast
     @Suppress("UNCHECKED_CAST")
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         randomTlbIdx = loadValue(snapshot, "randomTlbIdx") { 0 }

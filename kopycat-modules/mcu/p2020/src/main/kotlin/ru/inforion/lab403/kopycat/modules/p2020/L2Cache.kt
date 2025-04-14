@@ -36,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 
 
@@ -45,7 +44,7 @@ class L2Cache(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
         val inp get() = filter.ports.inp
         val outp  get() = filter.ports.outp
-        val ctrl = Slave("ctrl", BUS32)
+        val ctrl = Port("ctrl")
     }
 
     override val ports = Ports()
@@ -221,7 +220,7 @@ class L2Cache(parent: Module, name: String) : Module(parent, name) {
 
 
 
-    inner class Filter(parent: Module) : AddressTranslator(parent, "filter", BUS32) {
+    inner class Filter(parent: Module) : AddressTranslator(parent, "filter") {
         override fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong {
             if (!L2_Cache_L2CTL.L2E.truth || l2SRAMCount == 0)
                 return 0xFFFF_FFFFu // Stub - to avoid wrong access

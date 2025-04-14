@@ -28,6 +28,7 @@
 package ru.inforion.lab403.kopycat.cores.arm.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.enums.Mode
 import ru.inforion.lab403.kopycat.cores.arm.enums.StackPointer
@@ -38,14 +39,13 @@ import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
 import ru.inforion.lab403.kopycat.modules.cores.ARMv6MCore
-import java.util.logging.Level
 import kotlin.collections.set
 import ru.inforion.lab403.kopycat.interfaces.*
 
 
 class ARMv6MCPU(core: ARMv6MCore, name: String) : AARMCPU(core, name) {
     companion object {
-        @Transient val log = logger(Level.FINER)
+        @Transient val log = logger(FINER)
     }
 
     override fun CurrentMode(): Mode = CurrentMode

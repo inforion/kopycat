@@ -30,7 +30,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.like
-import ru.inforion.lab403.kopycat.modules.BUS07
 
 
 /**
@@ -41,7 +40,7 @@ import ru.inforion.lab403.kopycat.modules.BUS07
 abstract class I2CSimpleSlave(parent: Module, name: String, val address: ULong): Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", BUS07)
+        val mem = Port("mem")
     }
     override val ports = Ports()
 

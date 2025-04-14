@@ -29,7 +29,9 @@ package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.long
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.LogLevel
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -39,8 +41,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.PIN
-import java.util.logging.Level
 
 @Suppress("EnumEntryName", "PrivatePropertyName", "PropertyName")
 class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
@@ -70,10 +70,10 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
         }
     }
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x80)
-        val irq_ut = Master("irq_ut", PIN)  // Break, Update, Trigger and Commutation - only TIM1
-        val irq_cc = Master("irq_cc", PIN)  // Capture Compare
-        val drq = Master("drq", PIN)
+        val mem = Port("mem")
+        val irq_ut = Port("irq_ut")  // Break, Update, Trigger and Commutation - only TIM1
+        val irq_cc = Port("irq_cc")  // Capture Compare
+        val drq = Port("drq")
     }
     override val ports = Ports()
 
@@ -92,7 +92,7 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
             useDWORD: Boolean = false,
             writable: Boolean = true,
             readable: Boolean = true,
-            level: Level = Level.FINE
+            level: LogLevel = FINE
     ) : Register(ports.mem, register.offset, if (useDWORD) DWORD else WORD, register.name, default, writable, readable, level)
 
     private open inner class RegisterBaseWithShadow(
@@ -101,7 +101,7 @@ class TIMx(parent: Module, name: String, index: Int) : Module(parent, name) {
             useDWORD: Boolean = false,
             writable: Boolean = true,
             readable: Boolean = true,
-            level: Level = Level.FINE,
+            level: LogLevel = FINE,
             shadowRange: IntRange = if (useDWORD) 31..0 else 15..0
     ) : RegisterBase(register, default, useDWORD, writable, readable, level) {
         val first = shadowRange.first

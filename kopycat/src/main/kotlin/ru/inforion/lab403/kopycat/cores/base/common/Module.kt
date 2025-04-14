@@ -31,6 +31,8 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.intervalmap.Interval
 import ru.inforion.lab403.common.intervalmap.PriorityTreeIntervalMap
 import ru.inforion.lab403.common.logging.CONFIG
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.LogLevel
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.logging.logger.Logger
 import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
@@ -47,7 +49,6 @@ import ru.inforion.lab403.kopycat.settings
 import java.io.InputStream
 import java.nio.ByteOrder
 import java.util.*
-import java.util.logging.Level
 
 /**
  * {RU}
@@ -183,6 +184,7 @@ open class Module(
 
         return with(modules) {
             val hasWarnings = any { it.ports.hasWarnings(false) }
+            forEach { it.ports.createDummyBuses() }
             forEach { it.buses.resolveSlaves() }
             forEach { it.buses.resolveProxies() }
             hasWarnings
@@ -339,7 +341,7 @@ open class Module(
      * {EN}
      */
     abstract inner class Area constructor(
-        val port: SlavePort,
+        val port: Port,
         val start: ULong,
         val endInclusively: ULong,
         final override val name: String,
@@ -349,9 +351,6 @@ open class Module(
         val module = this@Module
 
         val size = endInclusively - start + 1u
-
-        constructor(port: SlavePort, name: String, access: ACCESS = ACCESS.R_W, verbose: Boolean = false) :
-                this(port, 0u, port.size - 1u, name, access, verbose)
 
         /**
          * {EN}
@@ -420,7 +419,7 @@ open class Module(
             check(pAddrStart == start) { "start: %08X != %08X".format(start, pAddrStart) }
         }
 
-        private fun beforeFetchOrRead(from: MasterPort, ea: ULong): Boolean {
+        private fun beforeFetchOrRead(ea: ULong): Boolean {
             if (verbose) log.config { "$name: [0x${core.cpu.pc.hex8}]  READ[$access] -> Read access to verbose area [${ea.hex8}]" }
             when (access.read) {
                 GRANT -> return true
@@ -433,7 +432,7 @@ open class Module(
             return false
         }
 
-        override fun beforeFetch(from: MasterPort, ea: ULong): Boolean = beforeFetchOrRead(from, ea)
+        override fun beforeFetch(from: Port, ea: ULong, size: Int): Boolean = beforeFetchOrRead(ea)
 
         /**
          * {RU}
@@ -442,6 +441,7 @@ open class Module(
          *
          * @param from Порт который инициировал запись
          * @param ea Адрес для проверки
+         * @param size Размер для проверки
          *
          * @return Доступность операции записи (true/false)
          * {RU}
@@ -452,11 +452,12 @@ open class Module(
          *
          * @param from port that requested write operation
          * @param ea address to check
+         * @param size size to check
          *
          * @return if true then write can be proceed
          * {EN}
          */
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean {
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean {
             if (verbose) log.config { "$name: [0x${core.cpu.pc.hex8}] WRITE[$access] -> Write access to verbose area [${ea.hex8}]" }
             when (access.write) {
                 GRANT -> return true
@@ -481,6 +482,7 @@ open class Module(
          *
          * @param from Порт, который инициировал чтение
          * @param ea Адрес для проверки
+         * @param size Размер для проверки
          * @return Доступность операции записи (true/false)
          * {RU}
          *
@@ -490,10 +492,11 @@ open class Module(
          *
          * @param from port that requested read operation
          * @param ea address to check
+         * @param size size to check
          * @return if true then read can be proceed else 0 should be returned
          * {EN}
          */
-        override fun beforeRead(from: MasterPort, ea: ULong) = beforeFetchOrRead(from, ea)
+        override fun beforeRead(from: Port, ea: ULong, size: Int) = beforeFetchOrRead(ea)
 
         override fun fetch(ea: ULong, ss: Int, size: Int): ULong =
             throw IllegalAccessException("Area isn't fetchable by default!")
@@ -508,8 +511,6 @@ open class Module(
 
         init {
             errorIf(start > endInclusively) { "$this -> area start > Area end: [${start.hex8} > ${endInclusively.hex8}]" }
-            errorIf(start >= port.size) { "$this -> area start >= port size [${start.hex8} >= ${port.size.hex8}]" }
-            errorIf(endInclusively >= port.size) { "$this -> area end >= port size [${endInclusively.hex8} >= ${port.size.hex8}]" }
 
             @Suppress("LeakingThis")
             port.add(this)
@@ -549,7 +550,7 @@ open class Module(
      * {EN}
      */
     open inner class Void(
-        port: SlavePort,
+        port: Port,
         start: ULong,
         endInclusively: ULong,
         name: String,
@@ -606,7 +607,7 @@ open class Module(
      * {EN}
      */
     inner class Memory(
-        port: SlavePort,
+        port: Port,
         start: ULong,
         endInclusively: ULong,
         name: String,
@@ -953,7 +954,7 @@ open class Module(
         // order in which regions added to mapping,
         // in fact it defines regions priority and required to deserialization
         val ord: Int,
-        val port: MasterPort,  // output port
+        val port: Port,  // output port
         val interval: Interval,
         val rights: Int,
         val translator: Translator
@@ -977,11 +978,12 @@ open class Module(
     }
 
     inner class MappingArea constructor(
-        port: SlavePort,
+        port: Port,
         name: String = "Mapping",
-        private val outputs: Map<Int, MasterPort>,
+        endInclusively: ULong,
+        private val outputs: Map<Int, Port>,
         val default: Int,
-    ) : Area(port, 0u, port.size - 1u, name) {
+    ) : Area(port, 0u, endInclusively, name) {
 
         private val map = PriorityTreeIntervalMap(name)
         private val initialOrd = 0
@@ -1068,10 +1070,11 @@ open class Module(
     }
 
     inner class Mapper constructor(
-        port: SlavePort,
+        port: Port,
         name: String = "Mapper",
+        endInclusively: ULong,
         private val areas: Map<Int, MappingArea>
-    ) : Area(port, 0u, port.size - 1u, name) {
+    ) : Area(port, 0u, endInclusively, name) {
         override fun fetch(ea: ULong, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
         override fun read(ea: ULong, ss: Int, size: Int) = throw IllegalAccessException("$name may not be read!")
 
@@ -1122,21 +1125,21 @@ open class Module(
      * @property default значение по умолчанию (по умолчанию, 0)
      * @property readable флаг возможности чтения по умолчанию (по умолчанию, true)
      * @property writable флаг возможности записи по умолчанию (по умолчанию, true)
-     * @property level уровен логгирования (по умолчанию, FINE)
+     * @property level уровень логгирования (по умолчанию, FINE)
      *
      * @property data значение регистра по умолчанию [default]
      * @property name имя регистра
      * {RU}
      */
-    open inner class Register constructor(
-        val port: SlavePort,
+    open inner class Register(
+        val port: Port,
         val address: ULong,
         val datatype: Datatype,
         name: String,
         val default: ULong = 0uL,
         val writable: Boolean = true,
         val readable: Boolean = true,
-        val level: Level = Level.FINE
+        val level: LogLevel = FINE,
     ) : IFetchReadWrite, IValuable, ICoreUnit {
         val module = this@Module
 
@@ -1197,9 +1200,9 @@ open class Module(
             data = loadValue<String>(snapshot, "data").ulongByHex
         }
 
-        fun Logger.read(level: Level) = log(level) { "[0x%08X] RD <- %s".format(core.cpu.pc.long, stringify()) }
+        fun Logger.read(level: LogLevel) = log(level) { "[0x%08X] RD <- %s".format(core.cpu.pc.long, stringify()) }
 
-        fun Logger.write(level: Level) = log(level) { "[0x%08X] WR -> %s".format(core.cpu.pc.long, stringify()) }
+        fun Logger.write(level: LogLevel) = log(level) { "[0x%08X] WR -> %s".format(core.cpu.pc.long, stringify()) }
 
         final override fun fetch(ea: ULong, ss: Int, size: Int) =
             throw IllegalAccessException("Register may not be executed")
@@ -1217,7 +1220,7 @@ open class Module(
          **/
         override fun read(ea: ULong, ss: Int, size: Int): ULong {
             log.read(level)
-            return data
+            return readInternal(ea, size)
         }
 
         /**
@@ -1231,29 +1234,65 @@ open class Module(
          * {RU}
          */
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            data = value
+            writeInternal(ea, size, value)
             log.write(level)
         }
 
-        final override fun beforeFetch(from: MasterPort, ea: ULong): Boolean = false
+        fun offset(ea: ULong) = ea - address
+
+        private fun range(ea: ULong, size: Int): IntRange {
+            val off = offset(ea).int
+            val lsb = off * 8
+            val msb = (off + size) * 8 - 1
+            return msb..lsb
+        }
+
+        private inline fun readInternal(ea: ULong, size: Int): ULong {
+            val datasize = datatype.bytes
+            if (ea == address && size == datasize) {
+                return data
+            }
+
+            require(ea + size <= address + datasize) {
+                "$name read out of range ea=${ea.hex8} size=$size address=${address.hex8} datasize=$datasize"
+            }
+
+            return data[range(ea, size)]
+        }
+
+        private inline fun writeInternal(ea: ULong, size: Int, value: ULong) {
+            val datasize = datatype.bytes
+            if (ea == address && size == datasize) {
+                data = value
+            }
+
+            require(ea + size <= address + datasize) {
+                "$name write out of range ea=${ea.hex8} size=$size address=${address.hex8} size=$datasize"
+            }
+            data = data.insert(value, range(ea, size))
+        }
+
+        final override fun beforeFetch(from: Port, ea: ULong, size: Int): Boolean = false
 
         /**
          * {RU}
          * Проверка возможности чтения из регистра
          *
-         * @param from порт порт который инициировал запись
+         * @param from порт, который инициировал запись
          * @param ea адрес (не используется)
+         * @param size размер (не используется)
          *
          * @return результат (true/false)
          * {RU}
          */
-        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = readable
+        override fun beforeRead(from: Port, ea: ULong, size: Int): Boolean = readable
 
         /**
          * {RU}
          * Проверка возможности записи в регистр
-         * @param from порт порт который инициировал запись
+         * @param from порт, который инициировал запись
          * @param ea адрес (не используется)
+         * @param size размер (не используется)
          * @return результат (true/false)
          * {RU}
          *
@@ -1262,17 +1301,13 @@ open class Module(
          * Note: data in register was changed temporary to new value to may possible use bit fields
          * {EN}
          */
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = writable
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean = writable
 
         private inline fun errorIf(condition: Boolean, message: () -> String) {
             if (condition) throw RegisterDefinitionError(message())
         }
 
         init {
-            errorIf(address >= port.size) {
-                "$this -> register address >= port size [${address.hex} >= ${port.size.hex}]"
-            }
-
             @Suppress("LeakingThis")
             port.add(this)
 
@@ -1285,207 +1320,16 @@ open class Module(
         }
     }
 
-    /**
-     * {RU}
-     * Регистр с возможностью доступа к каждому его байту по отдельности.
-     * Обычный регистр не дает возможности доступа по другим адресам за исключением базового адреса.
-     *
-     * Регистр представляет собой область памяти, описываемую адресом и типом данных.
-     *
-     * @param name произвольное имя объекта регистра
-     * @property port порт, связанный с регистром
-     * @property address адрес расположения регистра
-     * @property datatype тип данных регистра [Datatype]
-     * @property level уровен логгирования (по умолчанию, FINE)
-     * @property readable флаг возможности чтения по умолчанию (по умолчанию, true)
-     * @property writable флаг возможности записи по умолчанию (по умолчанию, true)
-     * @property default значение по умолчанию (по умолчанию, 0)
-     *
-     * @property data значение регистра по умолчанию [default]
-     * @property name имя регистра
-     * {RU}
-     **/
     open inner class ByteAccessRegister(
-        val port: SlavePort,
-        val address: ULong,
-        val datatype: Datatype,
+        port: Port,
+        address: ULong,
+        datatype: Datatype,
         name: String,
-        val default: ULong = 0u,
-        private val writable: Boolean = true,
-        private val readable: Boolean = true,
-        val level: Level = Level.FINE
-    ) : IReadWrite, IValuable, ICoreUnit {
-
-        private inner class Cell(address: ULong, name: String) : Register(port, address, BYTE, name) {
-            override fun read(ea: ULong, ss: Int, size: Int) =
-                this@ByteAccessRegister.read(ea, ss, size)
-            override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
-                this@ByteAccessRegister.write(ea, ss, size, value)
-
-            override fun beforeRead(from: MasterPort, ea: ULong) =
-                this@ByteAccessRegister.beforeRead(from, ea)
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
-                this@ByteAccessRegister.beforeWrite(from, ea, value)
-
-            override fun reset() {
-                val current = address
-                with (this@ByteAccessRegister) {
-                    if (current == address + datatype.bytes - 1u) reset()
-                }
-            }
-
-            override fun serialize(ctxt: GenericSerializer): Map<String, Any> {
-                data = readInternal(address, 0, datatype.bytes)
-                return super.serialize(ctxt)
-            }
-
-            override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-                super.deserialize(ctxt, snapshot)
-                writeInternal(address, 0, datatype.bytes, data)
-            }
-        }
-
-        private val cells = Array(datatype.bytes) { Cell(address + it.uint, "${name}_$it") }
-
-        final override var data: ULong = default
-
-        override val name: String = "$name@${address.hex}"
-
-        /**
-         * {RU}
-         * Строковое представление регистра.
-         * @return строковое представление регистра.
-         * {RU}
-         */
-        override fun toString(): String = "$port->$name"
-
-        override fun stringify(): String = "%s.%s %08X".format(this@Module.name, name, data.long)
-
-        private fun Logger.read(level: Level) = log(level) { "[0x%08X] RD <- %s".format(core.cpu.pc.long, stringify()) }
-
-        private fun Logger.write(level: Level) = log(level) { "[0x%08X] WR -> %s".format(core.cpu.pc.long, stringify()) }
-
-        /**
-         * {RU}Сброс регистра (очистка значения){RU}
-         */
-        override fun reset() {
-            super.reset()
-            data = default
-        }
-
-        /**
-         * {RU}
-         * Сохранение состояния (сериализация)
-         *
-         * @param ctxt контекст объекта-сериализатора
-         *
-         * @return отображение сохраняемых свойств объекта
-         * {RU}
-         */
-        override fun serialize(ctxt: GenericSerializer): Map<String, Any> = mapOf(
-            "pAddr" to address.hex8,
-            "data" to data.hex8
-        )
-
-        /**
-         * {RU}
-         * Восстановление состояния (десериализация)
-         * @param ctxt контекст объекта-сериализатора
-         * @param snapshot отображение восстанавливаемых свойств объекта
-         * {RU}
-         */
-        override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
-            val pAddrSnapshot = (snapshot["pAddr"] as String).ulongByHex
-
-            check(pAddrSnapshot == address) { "pAddr: %08X != %08X".format(address, pAddrSnapshot) }
-
-            data = (snapshot["data"] as String).ulongByHex
-        }
-
-        fun readInternal(ea: ULong, ss: Int, size: Int): ULong {
-            require(ea + size.uint <= address + datatype.bytes.uint) {
-                "$name read out of range ea=${ea.hex8} size=$size address=${address.hex8} datasize=${datatype.bytes}"
-            }
-            return data[range(ea, size)]
-        }
-
-        /**
-         * {RU}
-         * Чтение значения (только BYTE и DWORD)
-         *
-         * @param ea адрес
-         * @param ss адрес сегмента
-         * @param size размер данных для чтения
-         *
-         * @return вычитанное значение
-         * {RU}
-         */
-        override fun read(ea: ULong, ss: Int, size: Int): ULong {
-            log.read(level)
-            return readInternal(ea, ss, size)
-        }
-
-        fun writeInternal(ea: ULong, ss: Int, size: Int, value: ULong) {
-            require(ea + size.uint <= address + datatype.bytes.uint) {
-                "$name write out of range ea=${ea.hex8} size=$size address=${address.hex8} size=${datatype.bytes}"
-            }
-            data = data.insert(value, range(ea, size))
-        }
-
-        /**
-         * {RU}
-         * Запись значения в регистр (только BYTE и DWORD)
-         *
-         * @param ea адрес
-         * @param ss адрес сегмента
-         * @param size размер данных для чтения
-         * @param value значение для записи в регистр
-         * {RU}
-         */
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
-            writeInternal(ea, ss, size, value)
-            log.write(level)
-        }
-
-        /**
-         * {RU}
-         * Функция возвращает диапазон битов для чтения/записи в регистр в зависимости
-         * от начального адреса записи и текущего размера записи в регистр
-         *
-         * @param ea начальный адрес доступа к регистру (адрес выставленный на шину)
-         * @param size размер доступа к регистру
-         *
-         * @return bit range for read/modify register
-         * {RU}
-         *
-         * {EN}
-         * Returns bit range for read/write access to register depends on
-         * starting access address [ea] and size of current access [size]
-         *
-         * @param ea current access start address
-         * @param size size of current access
-         *
-         * @return bit range for read/modify register
-         * {EN}
-         */
-        private fun range(ea: ULong, size: Int): IntRange {
-            val off = offset(ea).int
-            val lsb = off * 8
-            val msb = (off + size) * 8 - 1
-            return msb..lsb
-        }
-
-        fun offset(ea: ULong) = ea - address
-
-        override fun beforeRead(from: MasterPort, ea: ULong) = readable
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = writable
-
-        override fun load(ea: ULong, size: Int, ss: Int, onError: HardwareErrorHandler?) =
-            throw IllegalAccessException("not implemented")
-
-        override fun store(ea: ULong, data: ByteArray, ss: Int, onError: HardwareErrorHandler?) =
-            throw IllegalAccessException("not implemented")
-    }
+        default: ULong = 0u,
+        writable: Boolean = true,
+        readable: Boolean = true,
+        level: LogLevel = FINE,
+    ) : Register(port, address, datatype, name, default, writable, readable, level)
 
     /**
      * {RU}
@@ -1555,7 +1399,7 @@ open class Module(
 
     }
 
-    open inner class ComplexRegister(port: SlavePort, vAddr: ULong, name: String, default: ULong = 0u) :
+    open inner class ComplexRegister(port: Port, vAddr: ULong, name: String, default: ULong = 0u) :
         Register(port, vAddr, DWORD, name, default) {
         // Result from reading SET, CLR, INV should be undefined but for debugging return data value 0
         val BASE get() = this

@@ -26,17 +26,14 @@
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
 import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
-import ru.inforion.lab403.kopycat.modules.BUS12
-import ru.inforion.lab403.kopycat.modules.BUS16
-import java.util.logging.Level.FINER
 
 
 class SCP(parent: Module, name: String, RSTLD: Int) : Module(parent, name) {
@@ -45,8 +42,8 @@ class SCP(parent: Module, name: String, RSTLD: Int) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mmcr = Slave("mmcr", BUS12.ulong)
-        val io = Slave("io", BUS16.ulong)
+        val mmcr = Port("mmcr")
+        val io = Port("io")
     }
 
     override val ports = Ports()

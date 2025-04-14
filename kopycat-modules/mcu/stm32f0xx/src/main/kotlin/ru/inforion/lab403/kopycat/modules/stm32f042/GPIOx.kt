@@ -26,15 +26,15 @@
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.LogLevel
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.modules.PIN
-import java.util.logging.Level
 
 
 @Suppress("PrivatePropertyName", "PropertyName")
@@ -42,7 +42,6 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
     companion object {
         @Transient private val log = logger(INFO)
         private enum class LockState { INIT, FIRST_WR, SECOND_WR, THIRD_WR, LOCKED }
-        const val PIN_COUNT = 16
     }
 
     enum class RegisterType(val offset: ULong) {
@@ -60,10 +59,10 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x80)
-        val irq = Master("irq", PIN)
-        val pin_input = Slave("pin_input", PIN_COUNT)
-        val pin_output = Master("pin_output", PIN_COUNT)
+        val mem = Port("mem")
+        val irq = Port("irq")
+        val pin_input = Port("pin_input")
+        val pin_output = Port("pin_output")
     }
 
     override val ports = Ports()
@@ -81,7 +80,7 @@ class GPIOx(parent: Module, name: String, val index: Int) : Module(parent, name)
             default: ULong = 0x0000_0000u,
             writable: Boolean = true,
             readable: Boolean = true,
-            level: Level = Level.FINER
+            level: LogLevel = FINER
     ) : Register(ports.mem, register.offset, DWORD, "GPIO${index}_${register.name}", default, writable, readable, level)
 
     private inline fun lowBitsEach(action: (Int) -> Unit) = (0..15).forEach(action)

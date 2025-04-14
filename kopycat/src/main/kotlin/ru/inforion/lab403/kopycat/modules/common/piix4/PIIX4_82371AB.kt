@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.modules.common.piix4
 
-
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.logging.SEVERE
 import ru.inforion.lab403.common.logging.logger
@@ -39,7 +38,7 @@ import ru.inforion.lab403.kopycat.modules.common.PIT8254
 import ru.inforion.lab403.kopycat.modules.common.RTC
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 
-class PIIX4_82371AB(parent: Module, name: String, val busSize: ULong, val picCause: Int? = null) : Module(parent, name) {
+class PIIX4_82371AB(parent: Module, name: String, val picCause: Int? = null) : Module(parent, name) {
 
     companion object {
         @Transient
@@ -47,12 +46,12 @@ class PIIX4_82371AB(parent: Module, name: String, val busSize: ULong, val picCau
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x3F7u)
-        val mem_proxy = Proxy("mem_proxy",  busSize)
+        val mem = Port("mem")
+        val mem_proxy = Proxy("mem_proxy")
     }
 
     inner class Buses : ModuleBuses(this) {
-        val sb_mem = Bus("sb_mem", busSize)
+        val sb_mem = Bus("sb_mem")
     }
 
     override val buses = Buses()

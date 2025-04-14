@@ -30,21 +30,22 @@ import ru.inforion.lab403.common.javalin.stopAndWait
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
+import kotlin.io.path.createTempDirectory
 import kotlin.test.assertTrue
 
 fun withKopycatRest(port: Int, block: (kopycat: Kopycat, modules: MutableList<Module>) -> Unit) {
     val restModules = mutableListOf<Module>()
-    val temp = createTempDir()
+    val temp = createTempDirectory().toFile()
     val kopycat = Kopycat(ModuleLibraryRegistry.create()).also { it.setSnapshotsDirectory(temp.absolutePath) }
     val kopycatProtocol = KopycatRestProtocol(kopycat, restModules)
     val registryProtocol = RegistryRestProtocol(kopycat.registry, restModules)
 
-    val server = JavalinServer(port, kopycatProtocol, registryProtocol)
+    val server = JavalinServer(port, kopycatProtocol::apply, registryProtocol::apply)
     try {
         block(kopycat, restModules)
     } finally {
         server.stopAndWait()
-        kopycat.exit()
+        kopycat.close()
         assertTrue(temp.deleteRecursively())
     }
 }

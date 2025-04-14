@@ -72,7 +72,7 @@ class SD(parent: Module,
     private fun allocate(size: Int): ByteBuffer = ByteBuffer.allocate(size).apply { order(ByteOrder.LITTLE_ENDIAN) }
 
     inner class Ports : ModulePorts(this) {
-        val sd = Slave("sd", SD_BUS_SIZE)
+        val sd = Port("sd")
     }
 
     override val ports = Ports()

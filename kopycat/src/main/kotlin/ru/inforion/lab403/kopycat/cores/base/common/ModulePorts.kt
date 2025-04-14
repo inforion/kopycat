@@ -26,10 +26,9 @@
 package ru.inforion.lab403.kopycat.cores.base.common
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.proposal.swapIfBE
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.annotations.ExperimentalWarning
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
-import ru.inforion.lab403.kopycat.cores.base.common.BusCache.Entry
 import ru.inforion.lab403.kopycat.cores.base.common.Module.Companion.RESERVED_NAMES
 import ru.inforion.lab403.kopycat.cores.base.common.Module.Companion.log
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses.Bus
@@ -38,12 +37,8 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts.ErrorAction.LOGG
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
-import ru.inforion.lab403.kopycat.cores.base.exceptions.ConnectionError
-import ru.inforion.lab403.kopycat.cores.base.exceptions.CrossPageAccessException
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
+import ru.inforion.lab403.kopycat.cores.base.exceptions.*
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
-import ru.inforion.lab403.kopycat.modules.BUS32
 import java.io.Serializable
 import java.nio.ByteOrder
 
@@ -85,7 +80,7 @@ open class ModulePorts(val module: Module) {
     /**
      * {RU}Перечисление для определения типа порта{RU}
      */
-    enum class Type { Master, Slave, Proxy, Translator, Channel }
+    enum class Type { Port, Proxy, Translator }
 
     /**
      * {RU}
@@ -93,56 +88,43 @@ open class ModulePorts(val module: Module) {
      *
      * @param count количество портов
      * @param prefix префикс для каждого порта
-     * @param size размер адресного пространства каждого порта
      * {RU}
      */
-    fun proxies(count: Int, prefix: String, size: ULong = BUS32) = Array(count) { Proxy("$prefix$it", size) }
+    fun proxies(count: Int, prefix: String) = Array(count) { Proxy("$prefix$it") }
 
     /**
      * {RU}
-     * Функция позволяет создать массив [Slave] портов
+     * Функция позволяет создать массив [Port] портов
      *
      * @param count количество портов
      * @param prefix префикс для каждого порта
-     * @param size размер адресного пространства каждого порта
      * {RU}
      */
-    fun slaves(count: Int, prefix: String, size: ULong = BUS32) = Array(count) { Slave("$prefix$it", size) }
+    fun ports(count: Int, prefix: String, onError: ErrorAction = EXCEPTION)
+            = Array(count) { Port("$prefix$it", onError) }
 
-    /**
-     * {RU}
-     * Функция позволяет создать массив [Master] портов
-     *
-     * @param count количество портов
-     * @param prefix префикс для каждого порта
-     * @param size размер адресного пространства каждого порта
-     * {RU}
-     */
-    fun masters(count: Int, prefix: String, size: ULong = BUS32, onError: ErrorAction = EXCEPTION)
-            = Array(count) { Master("$prefix$it", size, onError) }
+    internal fun createDummyBuses() = container.values.forEach {
+        if (it.connections.isEmpty()) {
+            it.createDummyConnection()
+        }
+    }
 
     internal fun hasWarnings(logging: Boolean) = container.values.map {
         var hasWarnings = false
-        if (it.hasOuterConnection) {
-            if (logging)
-                log.warning { "${it.type} port $it has no outer bus connection!" }
-            hasWarnings = true
-        }
-        if (it is Proxy && it.hasInnerConnection) {
-            if (logging)
-                log.warning { "${it.type} port $it has no inner bus connection!" }
+        if (it !is Port && !it.hasConnection) {
+            if (logging) {
+                log.warning { "${it.type} port $it has no connections!" }
+            }
             hasWarnings = true
         }
         hasWarnings
-    }.any()
+    }.any { it }
 
     /**
      * {EN}Port to bus connection (there is also similar class for bus to port connection in [ModuleBuses]){EN}
      */
     data class Connection(val bus: Bus, val offset: ULong): Serializable {
-        override fun toString(): String {
-            return super.toString() + offset.hex
-        }
+        override fun toString() = "$bus@${offset.hex}"
     }
 
     class PortDefinitionError(message: String) : Exception(message)
@@ -155,15 +137,13 @@ open class ModulePorts(val module: Module) {
      * К порту устройство может подключить различные области: [Module.Area], [Module.Register]
      *
      * @param name имя порта (должно совпадать с именем переменно!)
-     * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
-     * @param type тип порта ([Master], [Slave], [Proxy], [Translator])
+     * @param type тип порта ([Port], [Proxy], [Translator])
      * {RU}
      */
-    abstract inner class APort(val name: String, val size: ULong, val type: Type): Serializable {
+    abstract inner class APort(val name: String, val type: Type): Serializable {
         val module = this@ModulePorts.module
 
-        internal val outerConnections = mutableListOf<Connection>()
-
+        internal val connections = mutableListOf<Connection>()
         internal val registers = ArrayList<Module.Register>()
         internal val areas = ArrayList<Module.Area>()
 
@@ -193,6 +173,7 @@ open class ModulePorts(val module: Module) {
          *
          * @param bus - Bus to connect to.
          * @param offset - Value of offset of port connection to bus.
+         * @param endian - Bus endianness
          *
          * For example, if you call port.connect(bus, 0x8000_0000L), so port will be at offset at 0x8000_0000 on bus
          * {EN}
@@ -202,17 +183,14 @@ open class ModulePorts(val module: Module) {
          *
          * @param bus - Шина, с которой осуществляется соединение.
          * @param offset - Значение смещения, по которому будет присоединен текущий порт.
+         * @param endian - Порядок байтов порта
          *
          * Например, если вызвать метод port.connect(bus, 0x8000_0000L),
          * то порт будет находиться на шине со смещением 0x8000_0000
          * {RU}
          */
-        open fun connect(bus: Bus, offset: ULong = 0u) {
-            ConnectionError.on(bus.module == module) {
-                "\nCan't connect port $this to bus $bus because these bus and port belong to the same module '$module'" +
-                "\nSuch a connection is only possible if port is Proxy port but $this is '$type'"
-            }
-            connectOuter(bus, offset)
+        open fun connect(bus: Bus, offset: ULong = 0u, endian: ByteOrder = ByteOrder.LITTLE_ENDIAN) {
+            connectOuter(bus, offset, endian)
         }
 
         fun connect(vararg connection: Pair<Bus, ULong>) = connection.forEach { connect(it.first, it.second) }
@@ -226,21 +204,19 @@ open class ModulePorts(val module: Module) {
          * @param bus bus from which disconnect port
          * {EN}
          */
-        open fun disconnect(bus: Bus) {
-            outerConnections.filter { it.bus == bus }.forEach { disconnectOuter(it) }
+        fun disconnect(bus: Bus) {
+            connections.filter { it.bus == bus }.forEach { disconnect(it) }
         }
 
         /**
          * {RU}
-         * Свойство возвращает, подключен или нет порт к шине с внешней стороны
-         * (обычное и единственно-возможное подключение для всех портов, кроме [Proxy])
+         * Свойство возвращает, подключен или нет порт к шине
          *
-         * Именно с помощью этого свойства должно проверяться наличие подключения у всех типов портов кроме [Proxy],
-         * порт типа [Proxy] имеет еще одно подключение с внутренней стороны модуля, оно проверяется с помощью
-         * свойства [Proxy.hasInnerConnection]
+         * Именно с помощью этого свойства должно проверяться наличие подключения у всех типов портов.
          * {RU}
          */
-        val hasOuterConnection get() = outerConnections.isNotEmpty()
+        val hasConnection get() = connections.isNotEmpty() &&
+                connections.firstOrNull()?.bus?.dummy == false
 
         /**
          * {EN}
@@ -251,27 +227,30 @@ open class ModulePorts(val module: Module) {
          * @return connection [Connection] with specified index
          * {EN}
          */
-        fun connection(index: Int = 0) = outerConnections[index]
+        fun connection(index: Int = 0) = connections[index]
 
-        override fun toString(): String {
-            val sym = type.name[0]
-            return "$module:$name[${sym}x${size.hex}]"
-        }
+        override fun toString() = "$module:$name[${type.name}]"
 
-        protected fun connectOuter(bus: Bus, offset: ULong = 0u) {
-            val connection = outerConnections.find { it.bus == bus && it.offset == offset }
+        protected fun connectOuter(bus: Bus, offset: ULong = 0u, endian: ByteOrder = ByteOrder.LITTLE_ENDIAN) {
+            val connection = connections.find { it.bus == bus && it.offset == offset }
             ConnectionError.on(connection != null) {
                 "Port $this already has the same connection to $bus offset=${offset.hex}!"
             }
 
-            ConnectionError.on(offset + size > bus.size) {
-                "Port $this with size=0x${size.hex} offset=0x${offset.hex} extent bus $bus size=0x${bus.size.hex}!"
+            // connect
+            bus.onPortConnected(this, offset, endian)
+
+            val dummy = connections.find { it.bus.dummy }
+            connections.add(Connection(bus, offset))
+            if (dummy != null) {
+                disconnect(dummy)
+                dummy.bus.module.buses.disconnect(dummy.bus)
             }
+        }
 
-            // connect and validate
-            bus.onPortConnected(this, offset, ModuleBuses.ConnectionType.OUTER)
-
-            outerConnections.add(Connection(bus, offset))
+        internal fun createDummyConnection() {
+            val bus = module.buses.Bus("Dummy bus for $name", dummy = true)
+            connect(bus)
         }
 
         /**
@@ -281,8 +260,8 @@ open class ModulePorts(val module: Module) {
          * @param connection connection to remove
          * {EN}
          */
-        protected fun disconnectOuter(connection: Connection) {
-            outerConnections.remove(connection)
+        private fun disconnect(connection: Connection) {
+            connections.remove(connection)
             connection.bus.onPortDisconnect(this, connection.offset)
         }
 
@@ -291,7 +270,6 @@ open class ModulePorts(val module: Module) {
         }
 
         init {
-            errorIf(size <= 0u) { "$this -> wrong bus size $size > 0" }
             errorIf(name in RESERVED_NAMES) { "$this -> bad port name: $name" }
             errorIf(name in container) { "$this -> port name $name is duplicated in module $module" }
             container[name] = this@APort
@@ -306,15 +284,12 @@ open class ModulePorts(val module: Module) {
      * Этот порт инициирует операции чтения и записи данных.
      *
      * @param name имя порта (должно совпадать с именем переменной!)
-     * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
      * @param onError определяет действие порта в том случае, если не было найдено никакого примитива для заданного адреса
      * (по умолчанию выбрасывается исключение)
      * {RU}
      */
-    open inner class Master constructor(name: String, size: ULong = BUS32, val onError: ErrorAction = EXCEPTION) :
-            APort(name, size, Type.Master), IFetchReadWrite {
-        constructor(name: String, size: Int, onError: ErrorAction = EXCEPTION) : this(name, size.ulong_z, onError)
-
+    open inner class Port(name: String, val onError: ErrorAction = EXCEPTION) :
+            APort(name, Type.Port), IFetchReadWrite {
         /**
          * {RU}
          * Проверяет наличие примитива подключенного к указанному адресу [ea] и селектору [ss]
@@ -328,9 +303,17 @@ open class ModulePorts(val module: Module) {
          * {RU}
          */
         fun access(ea: ULong, ss: Int = 0, size: Int = 0, LorS: AccessAction = LOAD) =
-                find(this, ea, ss, size, LorS, 0u) != null
+                find(this, ea, ss, size, LorS, 0u, ByteOrder.LITTLE_ENDIAN) != null
 
-        fun moduleName(ea: ULong, ss: Int = 0) = find(this, ea, ss, 1, LOAD, 0u)?.toString()
+        fun moduleName(ea: ULong, ss: Int = 0) = find(
+            this,
+            ea,
+            ss,
+            1,
+            LOAD,
+            0u,
+            ByteOrder.LITTLE_ENDIAN,
+        )?.toString()
 
         /**
          * {RU}
@@ -341,74 +324,103 @@ open class ModulePorts(val module: Module) {
          * @param ss селектор сегмента
          * @param size размер запрашиваемой области
          * @param LorS действие
+         * @param value значение для beforeFetch/beforeRead/beforeWrite
+         * @param endian порядок байтов
          *
          * @return область для чтения/записи или null, если не найдено
          * {RU}
          */
-        internal fun find(source: MasterPort, ea: ULong, ss: Int, size: Int, LorS: AccessAction, value: ULong): Entry? {
-            val (bus, offset) = outerConnections.firstOrNull() ?: return null // exception will handle in outer function
-            return bus.cache.find(source, ea + offset, ss, size, LorS, value)
+        internal fun find(
+            source: Port,
+            ea: ULong,
+            ss: Int,
+            size: Int,
+            LorS: AccessAction,
+            value: ULong,
+            endian: ByteOrder,
+        ) = connections.firstNotNullOfOrNull {
+            it.bus.cache.find(source, ea + it.offset, ss, size, LorS, value, endian)
         }
 
-        override fun beforeFetch(from: MasterPort, ea: ULong): Boolean =
+        override fun beforeFetch(from: Port, ea: ULong, size: Int): Boolean =
                 throw IllegalAccessError("This method should not be called")
 
-        override fun beforeRead(from: MasterPort, ea: ULong): Boolean =
+        override fun beforeRead(from: Port, ea: ULong, size: Int): Boolean =
                 throw IllegalAccessError("This method should not be called")
 
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean =
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean =
                 throw IllegalAccessError("This method should not be called")
 
-        private fun fetchInternal(ea: ULong, ss: Int, size: Int): ULong {
-            val found = find(this, ea, ss, size, FETCH, 0u)
+        private fun fetchInternal(ea: ULong, ss: Int, size: Int, endian: ByteOrder = ByteOrder.LITTLE_ENDIAN): ULong {
+            val found = find(this, ea, ss, size, FETCH, 0u, endian)
                 ?: throw MemoryAccessError(ULONG_MAX, ea, FETCH, "Nothing connected at $ss:${ea.hex16} port $this")
-            return found.fetch(ss, size)
+            return found.fetch(ss, size).run {
+                if (found.cached.dstPort === this@Port) {
+                    this
+                } else {
+                    swapIfBE(found.endian, size)
+                }
+            }
         }
 
-        private fun fetchSupportedSize(ea: ULong, ss: Int, size: Int, swap: Boolean) = when (size) {
+        private inline fun readFetchSupportedSize(
+            ea: ULong,
+            ss: Int,
+            size: Int,
+            cpuEndian: ByteOrder,
+            crossinline readFn: (ULong, Int, Int, ByteOrder) -> ULong,
+        ) = when (size) {
             WORD.bytes,
-            FWORD.bytes,
             DWORD.bytes,
             WORD.bytes,
-            BYTE.bytes -> readInternal(ea, ss, size, swap)
+            BYTE.bytes -> readFn(ea, ss, size, cpuEndian)
             3 -> {
-                readInternal(ea, ss, WORD.bytes, swap) or
-                        (readInternal(ea + WORD.bytes, ss, BYTE.bytes, swap) shl WORD.bits)
+                readFn(ea, ss, WORD.bytes, cpuEndian) or
+                        ((readFn(ea + WORD.bytes, ss, BYTE.bytes, cpuEndian)) shl WORD.bits)
             }
             5 -> {
-                readInternal(ea, ss, DWORD.bytes, swap) or
-                        (readInternal(ea + DWORD.bytes, ss, BYTE.bytes, swap) shl DWORD.bits)
+                readFn(ea, ss, DWORD.bytes, cpuEndian) or
+                        (readFn(ea + DWORD.bytes, ss, BYTE.bytes, cpuEndian) shl DWORD.bits)
+            }
+            6 -> {
+                readFn(ea, ss, DWORD.bytes, cpuEndian) or
+                        (readFn(ea + DWORD.bytes, ss, WORD.bytes, cpuEndian) shl DWORD.bits)
             }
             7 -> {
-                readInternal(ea, ss, DWORD.bytes, swap) or
-                        (readInternal(ea + DWORD.bytes, ss, WORD.bytes, swap) shl DWORD.bits) or
-                        (readInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes, swap) shl (DWORD.bits + WORD.bits))
+                readFn(ea, ss, DWORD.bytes, cpuEndian) or
+                        (readFn(ea + DWORD.bytes, ss, WORD.bytes, cpuEndian) shl DWORD.bits) or
+                        (readFn(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes, cpuEndian) shl (DWORD.bits + WORD.bits))
             }
             else -> throw GeneralException("Unreachable size: $size")
         }
 
         override fun fetch(ea: ULong, ss: Int, size: Int) = try {
             fetchInternal(ea, ss, size)
-        }
-        catch (ex: CrossPageAccessException) {
+        } catch (ex: CrossPageAccessException) {
             val nextPage = (ea + size - 1u) and ex.mask
             val firstSize = (nextPage - ea).int
             val secondSize = size - firstSize
 
-            val bigEndian = ex.order == ByteOrder.BIG_ENDIAN
-            val result = fetchSupportedSize(ea, ss, firstSize, bigEndian) or (
-                    fetchSupportedSize(nextPage, ss, secondSize, bigEndian) shl (firstSize * BYTE_BITS)
-            )
+            val firstPage = readFetchSupportedSize(ea, ss, firstSize, ex.order, this::fetchInternal)
+            val secondPage = readFetchSupportedSize(nextPage, ss, secondSize, ex.order, this::fetchInternal)
+            (firstPage or (secondPage shl (firstSize * BYTE_BITS))).swapIfBE(ex.order, size)
+        } catch (ex: CrossPrimitiveAccessException) {
+            val result = ByteArray(size)
 
-            if (bigEndian) {
-                result.swap(size)
-            } else {
-                result
+            (0 until size).forEach {
+                result[it] = fetchInternal(ea + it, ss, 1).byte
             }
+
+            result.getUInt(0, size, ex.order)
         }
 
-        private fun readInternal(ea: ULong, ss: Int, size: Int, swap: Boolean = false): ULong {
-            val found = find(this, ea, ss, size, LOAD, 0u) ?: return when (onError) {
+        private fun readInternal(
+            ea: ULong,
+            ss: Int,
+            size: Int,
+            endian: ByteOrder = ByteOrder.LITTLE_ENDIAN,
+        ): ULong {
+            val found = find(this, ea, ss, size, LOAD, 0u, endian) ?: return when (onError) {
                 EXCEPTION ->
                     throw MemoryAccessError(ULONG_MAX, ea, LOAD, "Nothing connected at $ss:${ea.hex16} port $this")
                 LOGGING -> {
@@ -418,102 +430,80 @@ open class ModulePorts(val module: Module) {
                 else -> 0u
             }
             return found.read(ss, size).run {
-                if (swap) {
-                    swap(size)
-                } else {
+                if (found.cached.dstPort === this@Port) {
                     this
+                } else {
+                    swapIfBE(found.endian, size)
                 }
             }
         }
 
-        private fun readSupportedSize(ea: ULong, ss: Int, size: Int, swap: Boolean) = when (size) {
-            WORD.bytes,
-            DWORD.bytes,
-            WORD.bytes,
-            BYTE.bytes -> readInternal(ea, ss, size, swap)
-            3 -> {
-                readInternal(ea, ss, WORD.bytes, swap) or
-                (readInternal(ea + WORD.bytes, ss, BYTE.bytes, swap) shl WORD.bits)
-            }
-            5 -> {
-                readInternal(ea, ss, DWORD.bytes, swap) or
-                (readInternal(ea + DWORD.bytes, ss, BYTE.bytes, swap) shl DWORD.bits)
-            }
-            6 -> {
-                readInternal(ea, ss, DWORD.bytes, swap) or
-                (readInternal(ea + DWORD.bytes, ss, WORD.bytes, swap) shl DWORD.bits)
-            }
-            7 -> {
-                readInternal(ea, ss, DWORD.bytes, swap) or
-                (readInternal(ea + DWORD.bytes, ss, WORD.bytes, swap) shl DWORD.bits) or
-                (readInternal(ea + DWORD.bytes + WORD.bytes, ss, BYTE.bytes, swap) shl (DWORD.bits + WORD.bits))
-            }
-            else -> throw GeneralException("Unreachable size: $size")
-        }
-
         override fun read(ea: ULong, ss: Int, size: Int) = try {
-             readInternal(ea, ss, size)
-        }
-        catch (ex: CrossPageAccessException) {
+            readInternal(ea, ss, size)
+        } catch (ex: CrossPageAccessException) {
             val nextPage = (ea + size - 1u) and ex.mask
             val firstSize = (nextPage - ea).int
             val secondSize = size - firstSize
 
-            val bigEndian = ex.order == ByteOrder.BIG_ENDIAN
-            val result = readSupportedSize(ea, ss, firstSize, bigEndian) or (
-                    readSupportedSize(nextPage, ss, secondSize, bigEndian) shl (firstSize * BYTE_BITS)
-            )
-
-            if (bigEndian) {
-                result.swap(size)
-            } else {
-                result
-            }
+            val firstPage = readFetchSupportedSize(ea, ss, firstSize, ex.order, this::readInternal)
+            val secondPage = readFetchSupportedSize(nextPage, ss, secondSize, ex.order, this::readInternal)
+            (firstPage or (secondPage shl (firstSize * BYTE_BITS))).swapIfBE(ex.order, size)
+        } catch (ex: CrossPrimitiveAccessException) {
+            load(ea, size, ss).getUInt(0, size, ex.order)
         }
 
-        private fun writeInternal(ea: ULong, ss: Int, size: Int, value: ULong, swap: Boolean = false) {
-            val swapped = if (swap) {
-                value.swap(size)
-            } else {
-                value
-            }
-
-            val found = find(this, ea, ss, size, STORE, swapped) ?: return when (onError) {
+        private fun writeInternal(
+            ea: ULong,
+            ss: Int,
+            size: Int,
+            value: ULong,
+            endian: ByteOrder = ByteOrder.LITTLE_ENDIAN,
+        ) {
+            // No need to swap value yet
+            val found = find(this, ea, ss, size, STORE, value, endian) ?: return when (onError) {
                 EXCEPTION ->
                     throw MemoryAccessError(ULONG_MAX, ea, STORE, "Nothing connected at $ss:${ea.hex16} port $this")
                 LOGGING ->
-                    log.severe { "STORE ignored ea=$ss:${ea.hex16} port=$this value=0x${swapped.hex16}" }
+                    log.severe { "STORE ignored ea=$ss:${ea.hex16} port=$this value=0x${value.hex16}" }
                 else -> return
             }
-            found.write(ss, size, swapped)
+            found.write(
+                ss,
+                size,
+                if (found.cached.dstPort === this@Port) {
+                    value
+                } else {
+                    value.swapIfBE(found.endian, size)
+                }
+            )
         }
 
-        private fun writeSupportedSize(ea: ULong, ss: Int, size: Int, value: ULong, swap: Boolean) = when (size) {
+        private fun writeSupportedSize(ea: ULong, ss: Int, size: Int, value: ULong, cpuEndian: ByteOrder) = when (size) {
             WORD.bytes,
             DWORD.bytes,
             WORD.bytes,
-            BYTE.bytes -> writeInternal(ea, ss, size, value, swap)
+            BYTE.bytes -> writeInternal(ea, ss, size, value, cpuEndian)
             3 -> {
-                writeInternal(ea, ss, WORD.bytes, value, swap)
-                writeInternal(ea + WORD.bytes, ss, BYTE.bytes, value ushr WORD.bits, swap)
+                writeInternal(ea, ss, WORD.bytes, value, cpuEndian)
+                writeInternal(ea + WORD.bytes, ss, BYTE.bytes, value ushr WORD.bits, cpuEndian)
             }
             5 -> {
-                writeInternal(ea, ss, DWORD.bytes, value, swap)
-                writeInternal(ea + DWORD.bytes, ss, BYTE.bytes, value ushr DWORD.bits, swap)
+                writeInternal(ea, ss, DWORD.bytes, value, cpuEndian)
+                writeInternal(ea + DWORD.bytes, ss, BYTE.bytes, value ushr DWORD.bits, cpuEndian)
             }
             6 -> {
-                writeInternal(ea, ss, DWORD.bytes, value, swap)
-                writeInternal(ea + DWORD.bytes, ss, WORD.bytes, value ushr DWORD.bits, swap)
+                writeInternal(ea, ss, DWORD.bytes, value, cpuEndian)
+                writeInternal(ea + DWORD.bytes, ss, WORD.bytes, value ushr DWORD.bits, cpuEndian)
             }
             7 -> {
-                writeInternal(ea, ss, DWORD.bytes, value, swap)
-                writeInternal(ea + DWORD.bytes, ss, WORD.bytes, value ushr DWORD.bits, swap)
+                writeInternal(ea, ss, DWORD.bytes, value, cpuEndian)
+                writeInternal(ea + DWORD.bytes, ss, WORD.bytes, value ushr DWORD.bits, cpuEndian)
                 writeInternal(
                     ea + DWORD.bytes + WORD.bytes,
                     ss,
                     BYTE.bytes,
                     value ushr (DWORD.bits + WORD.bits),
-                    swap,
+                    cpuEndian,
                 )
             }
             else -> throw GeneralException("Unreachable size: $size")
@@ -521,40 +511,21 @@ open class ModulePorts(val module: Module) {
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = try {
             writeInternal(ea, ss, size, value)
-        }
-        catch (ex: CrossPageAccessException) {
+        } catch (ex: CrossPageAccessException) {
             val nextPage = (ea + size - 1u) and ex.mask
             val firstSize = (nextPage - ea).int
             val secondSize = size - firstSize
 
-            val bigEndian = ex.order == ByteOrder.BIG_ENDIAN
-            val swapped = if (bigEndian) {
-                value.swap(size)
-            } else {
-                value
-            }
-            writeSupportedSize(ea, ss, firstSize, swapped, bigEndian)
-            writeSupportedSize(nextPage, ss, secondSize, swapped ushr (firstSize * BYTE_BITS), bigEndian)
+            val swapped = value.swapIfBE(ex.order, size)
+            writeSupportedSize(ea, ss, firstSize, swapped, ex.order)
+            writeSupportedSize(nextPage, ss, secondSize, swapped ushr (firstSize * BYTE_BITS), ex.order)
+        } catch (ex: CrossPrimitiveAccessException) {
+            store(ea, value.pack(size, ex.order), ss)
         }
-    }
-
-    /**
-     * {RU}
-     * Порт используется для того, чтобы зарегистрировать на нем области,
-     * при обращении к которым будут вызваны соответствующие обработчики.
-     *
-     * Порт работает является пассивным, то есть выдает и записывает данные только по запросу извне.
-     *
-     * @param name имя порта (должно совпадать с именем переменной!)
-     * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
-     * {RU}
-     */
-    inner class Slave constructor(name: String, size: ULong = BUS32) : APort(name, size, Type.Slave) {
-        constructor(name: String, size: Int) : this(name, size.ulong_z)
 
         /**
          * {RU}
-         * Этот метод добавляет регистр [Module.Register] на текущей порт. После этого к текущему
+         * Этот метод добавляет регистр [Module.Register] на текущий порт. После этого к текущему
          * регистру можно будет получить доступ через этот порт.
          *
          * @param register регистр, который должен быть добавлен
@@ -599,56 +570,21 @@ open class ModulePorts(val module: Module) {
 
     /**
      * {RU}
-     * Порт используется для того, чтобы вытащить внутреннюю шину одного модуля во вне.
+     * Порт используется для того, чтобы соединить две шины
      *
      * Порт проксирует все области с внутренней шины на внешнюю шину и наоборот.
      * Фактически выступает соединителем двух шин.
      *
      * @param name имя порта (должно совпадать с именем переменной!)
-     * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
      * {RU}
      */
-    inner class Proxy constructor(name: String, size: ULong = BUS32) : APort(name, size, Type.Proxy) {
-        constructor(name: String, size: Int) : this(name, size.ulong_z)
-
-        var innerBus: Bus? = null
-            private set
-
-        override fun connect(bus: Bus, offset: ULong) {
-            // TODO: May be these checks should be in connectInner?
-            ConnectionError.on(offset != 0uL) { "Error in connection $bus to $this, proxy port connection offset should be 0" }
-            ConnectionError.on(bus.size != size) { "Size of inner bus $bus and port $this must be the same! [${bus.size.hex8} != ${size.hex8}]" }
-
-            if (bus.module == module) {
-                connectInner(bus)
-            } else {
-                connectOuter(bus)
+    inner class Proxy(name: String) : APort(name, Type.Proxy) {
+        override fun connect(bus: Bus, offset: ULong, endian: ByteOrder) {
+            ConnectionError.on(offset != 0uL) {
+                "Error in connection $bus to $this, proxy port connection offset should be 0"
             }
+            connectOuter(bus, endian = endian)
         }
-
-        override fun disconnect(bus: Bus) {
-            if (bus == innerBus) {
-                innerBus = null
-                bus.onPortDisconnect(this, 0u)
-            } else {
-                super.disconnect(bus)
-            }
-        }
-
-        private fun connectInner(bus: Bus) {
-            innerBus = bus
-            bus.onPortConnected(this, 0u, ModuleBuses.ConnectionType.INNER)
-        }
-
-        /**
-         * {RU}
-         * Свойство возвращает, подключен или нет [Proxy] порт к шине с внутренней стороны.
-         * Такое подключение возможно только для порта типа [Proxy]. Все остальные порты могут быть подключены
-         * к шине только с внешней стороны, для проверки этого подключения используется свойство общее для всех
-         * портов [APort.hasOuterConnection]. Порт [Proxy] может быть подключен и с внешней и с внутренней стороны.
-         * {RU}
-         */
-        val hasInnerConnection get() = innerBus != null
     }
 
     /**
@@ -656,15 +592,13 @@ open class ModulePorts(val module: Module) {
      * Специальный порт, используется для трансляции адресов.
      *
      * @param name имя порта (должно совпадать с именем переменной!)
-     * @param size максимальное количество доступных адресов порта (внимание это не ширина шины!)
      * {RU}
      */
     inner class Translator(
             name: String,
-            val master: Master,
-            size: ULong,
+            val master: Port,
             private val translator: AddressTranslator
-    ) : APort(name, size, Type.Translator) {
+    ) : APort(name, Type.Translator) {
         /**
          * {RU}
          * Метод используется для поиска примитивов сквозь сущность транслятора (от Slave-порта до Master-порта)
@@ -676,11 +610,19 @@ open class ModulePorts(val module: Module) {
          * @param size - количество байт, которые будут записаны или прочитаны в примитив
          * @param LorS - действие, которое будет совершено с найденным примитивом - чтение или запись
          * @param value - только для сохранение (значение, которое будет записано в регистр)
+         * @param endian - порядок байтов
          *
          * @return BusCache.Entry в случае, если был найден примитив по другую сторону прокси порта, null - в случае, если не найден
          * {RU}
          */
-        internal fun find(source: MasterPort, ea: ULong, ss: Int, size: Int, LorS: AccessAction, value: ULong) =
-                master.find(source, translator.translate(ea, ss, size, LorS), ss, size, LorS, value)
+        internal fun find(
+            source: Port,
+            ea: ULong,
+            ss: Int,
+            size: Int,
+            LorS: AccessAction,
+            value: ULong,
+            endian: ByteOrder,
+        ) = master.find(source, translator.translate(ea, ss, size, LorS), ss, size, LorS, value, endian)
     }
 }

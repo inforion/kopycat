@@ -33,7 +33,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
-import ru.inforion.lab403.kopycat.modules.BUS64
 import java.nio.ByteOrder
 import kotlin.math.min
 
@@ -46,7 +45,7 @@ class SparseRAM(
 ) : Module(parent, name), IAutoSerializable {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", ramSize)
+        val mem = Port("mem")
     }
 
     @DontAutoSerialize
@@ -54,7 +53,7 @@ class SparseRAM(
 
     private inner class Holder : Module(this@SparseRAM, "holder") {
         inner class Ports : ModulePorts(this) {
-            val mem = Slave("mem", BUS64)
+            val mem = Port("mem")
         }
 
         override val ports = Ports()
@@ -65,13 +64,24 @@ class SparseRAM(
 
         fun get(ea: ULong) = regions[aligned(ea)]
 
-        fun getOrPut(ea: ULong): Memory {
+        fun getOrPut(ea: ULong, useReconnect: Boolean = true): Memory {
             val base = aligned(ea)
 
-            return regions[base] ?: reconnect {
+            val reg = regions[base]
+            if (reg != null) {
+                return reg
+            }
+
+            val createMem = {
                 Memory(ports.mem, base, base + regionSize - 1u, "Region[${base.hex16}]", ACCESS.R_W).apply {
                     endian = this@SparseRAM.endian
                 }
+            }
+
+            return if (useReconnect) {
+                reconnect(createMem)
+            } else {
+                run(createMem)
             }.also { regions[base] = it }
         }
 
@@ -85,16 +95,23 @@ class SparseRAM(
 
             // Delete regions not present in snapshot
             val excessive = (regions.keys.toSet() - regs)
-            if (excessive.isNotEmpty()) {
+
+            if (excessive.isNotEmpty() || regs.isNotEmpty()) {
                 reconnect {
-                    excessive.forEach { baseAddr ->
-                        @OptIn(ExperimentalWarning::class)
-                        regions.remove(baseAddr)?.remove()
+                    if (excessive.isNotEmpty()) {
+                        excessive.forEach { baseAddr ->
+                            @OptIn(ExperimentalWarning::class)
+                            regions.remove(baseAddr)?.remove()
+                        }
+                    }
+
+                    if (regs.isNotEmpty()) {
+                        // Create missing regions
+                        regs.forEach { getOrPut(it, false) }
                     }
                 }
             }
 
-            regs.forEach(::getOrPut) // Create missing regions
             super.deserialize(ctxt, snapshot)
         }
     }

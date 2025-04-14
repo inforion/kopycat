@@ -32,9 +32,9 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 
-class Flash constructor(parent: Module, name: String): Module(parent, name) {
+class Flash(parent: Module, name: String): Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 16)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

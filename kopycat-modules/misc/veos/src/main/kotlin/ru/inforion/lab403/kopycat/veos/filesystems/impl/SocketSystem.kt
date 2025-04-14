@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems.impl
 
-import org.jetbrains.kotlin.utils.sure
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
@@ -58,7 +57,8 @@ class SocketSystem(val sys: System): IAutoSerializable {
         virtualSocketByName[name] = file
     }
 
-    fun getVirtualSocketByName(name: String) = virtualSocketByName[name].sure { "Unknown virtual socket with name '$name'" }
+    fun getVirtualSocketByName(name: String) = virtualSocketByName[name]
+        ?: throw AssertionError("Unknown virtual socket with name '$name'")
 
     fun socket(sock: Int) = sys.ioSystem.descriptor(sock) as? ISocketFile ?: throw IONotSocket(sock)
 

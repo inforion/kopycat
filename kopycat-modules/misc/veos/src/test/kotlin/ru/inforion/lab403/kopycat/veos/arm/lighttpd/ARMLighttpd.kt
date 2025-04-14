@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.arm.lighttpd
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
@@ -62,21 +62,22 @@ internal class ARMLighttpd {
                 executable,
                 "-D -f /etc/lighttpd/lightttpd.default.conf"
         )
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
         top.veos.conf.dynamicPortMapping = true
 
         var socket: Socket? = null
         val data = "GET / HTTP/1.1\r\n${"Connection: keep-alive\r\n"*2} ${"a"*128}\r\n\r\n".toByteArray(ISO_8859_1)
-        kopycat.run { step, core ->
-            if (core.pc == pollAddress && socket == null) {
-                val tcpSocket = top.veos.network.socketByPort(80)
-                assertNotNull(tcpSocket)
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
+            kopycat.run { step, core ->
+                if (core.pc == pollAddress && socket == null) {
+                    val tcpSocket = top.veos.network.socketByPort(80)
+                    assertNotNull(tcpSocket)
 
-                socket = Socket("localhost", tcpSocket.address.port).also { it.outputStream.write(data) }
-                log.warning { "Don't worry about the following exception. It's expected" }
+                    socket = Socket("localhost", tcpSocket.address.port).also { it.outputStream.write(data) }
+                    log.warning { "Don't worry about the following exception. It's expected" }
+                }
+
+                step < maxStepsCount
             }
-
-            step < maxStepsCount
         }
         assertTrue { top.veos.state == VEOS.State.Exception }
         assertEquals(failAddress, top.core.pc)
@@ -96,33 +97,33 @@ internal class ARMLighttpd {
         )
         top.veos.conf.dynamicPortMapping = true
 
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
-
         var socket: Socket? = null
         val data = "GET / HTTP/1.0\r\n\r\n".toByteArray(ISO_8859_1)
         var found = false
-        kopycat.run { step, core ->
-            if (core.pc == pollAddress && socket == null) {
-                val tcpSocket = top.veos.network.socketByPort(80)
-                assertNotNull(tcpSocket)
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
+            kopycat.run { step, core ->
+                if (core.pc == pollAddress && socket == null) {
+                    val tcpSocket = top.veos.network.socketByPort(80)
+                    assertNotNull(tcpSocket)
 
-                socket = Socket("localhost", tcpSocket.address.port)
-                log.info { "Send data to $socket" }
+                    socket = Socket("localhost", tcpSocket.address.port)
+                    log.info { "Send data to $socket" }
 
-                socket!!.outputStream.write(data)
-            }
-            if (socket != null) {
-                val inputStream = socket!!.inputStream
-                if (inputStream.available() > 1000) { // To receive body of response
-                    val response = String(inputStream.readNBytes(inputStream.available()), ISO_8859_1)
-                    log.info { response }
-                    assertTrue { response.startsWith(httpOk) }
-                    found = true
+                    socket!!.outputStream.write(data)
                 }
-            }
+                if (socket != null) {
+                    val inputStream = socket!!.inputStream
+                    if (inputStream.available() > 1000) { // To receive body of response
+                        val response = String(inputStream.readNBytes(inputStream.available()), ISO_8859_1)
+                        log.info { response }
+                        assertTrue { response.startsWith(httpOk) }
+                        found = true
+                    }
+                }
 
-            step < maxStepsCount && !found
+                step < maxStepsCount && !found
+            }
+            assertTrue { found }
         }
-        assertTrue { found }
     }
 }

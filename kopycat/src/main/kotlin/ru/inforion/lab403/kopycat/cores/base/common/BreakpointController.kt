@@ -25,8 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import ru.inforion.lab403.common.extensions.Dictionary
-import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.extensions.hex8
+import ru.inforion.lab403.common.extensions.plus
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import java.io.Serializable
@@ -36,13 +36,13 @@ import java.io.Serializable
  * Менеджер точек останова.
  *
  *
- * @property store хранилище-отображение точек останова (HashMap)
+ * @property store хранилище-отображение точек останова
  * {RU}
  *
  * {EN}
  * Manager of breakpoints
  *
- * @property store storage for breakpoints (HashMap)
+ * @property store storage for breakpoints
  * {EN}
  */
 class BreakpointController: Serializable {
@@ -50,7 +50,7 @@ class BreakpointController: Serializable {
         @Transient private val log = logger(FINE)
     }
 
-    private val store = Dictionary<ULong, Breakpoint>(0x1000)
+    private val store = mutableListOf<Breakpoint>()
 
     operator fun iterator() = store.iterator()
 
@@ -58,28 +58,36 @@ class BreakpointController: Serializable {
      * {RU}
      * Добавление новой точки останова
      *
-     * @param ea Адрес точки останова
-     * @param bpAccess Тип срабатывания точки останова
+     * @param range Адрес точки останова
+     * @param access Тип срабатывания точки останова
+     * @param comment необязательный комментарий
      * @param onBreak Функция-обработчик срабатывания точки останова
-     * @return добавлена или нет точка оставнова (true/false)
+     * @return добавлена или нет точка останова (true/false)
      * {RU}
      *
      * {EN}
      * Add new breakpoint to this BreakpointController
      *
-     * @param ea new breakpoint address
-     * @param bpAccess type of action to breakpoint access
+     * @param range new breakpoint address
+     * @param access type of action to breakpoint access
+     * @param comment optional comment
      * @param onBreak function to process breakpoint action
      * @return is success (true/false)
      * {EN}
      */
-    fun add(ea: ULong, bpAccess: Breakpoint.Access, onBreak: ((ea: ULong) -> Unit)? = null): Boolean {
-        if (ea in store) {
-            log.warning { "Breakpoint already setup here ea=0x${ea.hex}" }
+    fun add(
+        range: ULongRange,
+        access: Breakpoint.Access,
+        comment: String? = null,
+        onBreak: ((ea: ULong) -> Unit)? = null,
+    ): Boolean {
+        if (store.find { it.range.first == range.first } != null) {
+            log.warning { "Breakpoint already setup here range=0x${range.hex8}" }
             return false
         }
 
-        store[ea] = Breakpoint(ea, bpAccess, onBreak)
+        store.add(Breakpoint(range, access, comment, onBreak))
+        store.sortBy { it.range.first }
         return true
     }
 
@@ -96,55 +104,70 @@ class BreakpointController: Serializable {
      * @return is success (true/false)
      * {EN}
      */
-    fun remove(ea: ULong) = store.remove(ea) != null
+    fun remove(ea: ULong): Boolean {
+        for (bp in store.withIndex()) {
+            if (bp.value.range.first == ea) {
+                store.removeAt(bp.index)
+                return true
+            }
+        }
+        return false
+    }
 
-    fun oneshot(ea: ULong, bpAccess: Breakpoint.Access, onBreak: (ea: ULong) -> Unit) = add(ea, bpAccess) {
+    fun oneshot(
+        ea: ULong,
+        access: Breakpoint.Access,
+        comment: String? = null,
+        onBreak: (ea: ULong) -> Unit,
+    ) = add(ea..ea, access, comment = comment) {
+        onBreak(it)
+        remove(it)
+    }
+
+    fun oneshot(
+        range: ULongRange,
+        access: Breakpoint.Access,
+        comment: String? = null,
+        onBreak: (ea: ULong) -> Unit,
+    ) = add(range, access, comment = comment) {
         onBreak(it)
         remove(it)
     }
 
     /**
      * {RU}
-     * Проверка характеристик точки останова
-     *
-     * @param pAddr Физический адрес точки останова
-     * @param vAddr Виртуальный адрес точки останова (не используется)
-     * @param bpAccess Тип срабатывания точки останова
-     * @return is success (true/false)
-     * {RU}
-     *
-     * {EN}
-     * Check breakpoint characteristic
-     *
-     * @param pAddr address of breakpoint
-     * @param vAddr virtual address of breakpoint (it is not in use)
-     * @param bpAccess type of action to breakpoint access
-     * @return is success (true/false)
-     * {EN}
-     */
-    @Suppress("UNUSED_PARAMETER")
-    fun check(pAddr: ULong, vAddr: ULong, bpAccess: Breakpoint.Access): Boolean {
-        val bpt = lookup(pAddr)
-        if (bpt != null) return bpt.check(bpAccess)
-        return false
-    }
-
-    /**
-     * {RU}
-     * Получение точки останова из пула [BreakpointController] по адресу
+     * Получение и проверка точки останова из пула [BreakpointController] по адресу
      *
      * @param addr Адрес точки останова
+     * @param size Размер точки останова
+     * @param access Тип срабатывания точки останова
      * @return найдена или нет точка остановка по заданному адресу
      * {RU}
      *
      * {EN}
-     * Get breakpoint from [BreakpointController] store by address
+     * Gets and checks a breakpoint from [BreakpointController] store by address
      *
      * @param addr breakpoint address
+     * @param size breakpoint size
+     * @param access type of action to breakpoint access
      * @return found breakpoint or null is it not found.
      * {EN}
      */
-    fun lookup(addr: ULong) = store[addr]
+    fun lookup(addr: ULong, size: Int, access: Breakpoint.Access): Breakpoint? {
+        val range = addr until addr + size
+
+        for (bp in store) {
+            if (bp.range.first <= range.last) {
+                if (bp.range.last >= range.first && bp.check(access)) {
+                    return bp
+                }
+            } else {
+                break
+            }
+        }
+
+        return null
+    }
 
     /**
      * {EN}Delete all breakpoints from [BreakpointController]{EN}

@@ -27,11 +27,10 @@
 
 package ru.inforion.lab403.kopycat.modules.atom2758
 
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.modules.common.pci.PciAbstract
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
-import java.util.logging.Level.CONFIG
 
 class USB20(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F2C) {
     companion object {
@@ -39,7 +38,7 @@ class USB20(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F
         const val BUS_MEM_INDEX = 14
     }
 
-    val mem = ports.Slave("mem", BUS_SIZE)
+    val mem = ports.Port("mem")
 
     // QWORD?
     val MBAR = PCI_BAR(0x10, DWORD, "MBAR", BUS_SIZE, BRIDGE.MEMORY_AREA, BUS_MEM_INDEX, CONFIG)

@@ -29,7 +29,6 @@ package ru.inforion.lab403.kopycat.modules.common
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.SEVERE
-import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.bit
@@ -42,7 +41,6 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
-import java.util.logging.Level
 
 /**
  * Реализация микросхемы NS16550.
@@ -66,10 +64,10 @@ class NS16550(
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x100)
-        val tx = Master("tx", UART_MASTER_BUS_SIZE)
-        val rx = Slave("rx", UART_SLAVE_BUS_SIZE)
-        val irq = Master("irq", PIN)
+        val mem = Port("mem")
+        val tx = Port("tx")
+        val rx = Port("rx")
+        val irq = Port("irq")
     }
 
     override val ports = Ports()
@@ -480,7 +478,7 @@ class NS16550(
         Datatype.DWORD,
         "TERMINAL_REQUEST_REG",
         readable = false,
-        level = Level.SEVERE,
+        level = SEVERE,
     ) {
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (ss) {

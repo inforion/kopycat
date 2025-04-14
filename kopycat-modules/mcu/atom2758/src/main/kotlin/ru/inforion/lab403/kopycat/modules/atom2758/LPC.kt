@@ -27,15 +27,14 @@ package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.common.extensions.bzero
 import ru.inforion.lab403.common.extensions.clr
+import ru.inforion.lab403.common.logging.CONFIG
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.extensions.mapOffset
-import ru.inforion.lab403.kopycat.modules.common.pci.PciAbstract
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
-import java.util.logging.Level
-import java.util.logging.Level.CONFIG
 
 /**
  * **Intel Atom Processor E3800 Product Family**
@@ -45,7 +44,7 @@ import java.util.logging.Level.CONFIG
  */
 class LPC(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F38) {
     inner class SPEC_BAR(reg: Int, name: String, var range: Int, var area: Int, val bus: Int) :
-        PCI_CONF_FUNC_WR(reg, DWORD, name, 0u, Level.WARNING) {
+        PCI_CONF_FUNC_WR(reg, DWORD, name, 0u, WARNING) {
 
         val PREF by bit(3)
         val ADDRNG by bit(2)
@@ -61,7 +60,7 @@ class LPC(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x1F38
     }
 
     inner class RCRB_BAR(reg: Int, name: String, var range: Int, var area: Int, val bus: Int) :
-        PCI_CONF_FUNC_WR(reg, DWORD, name, 0u, Level.WARNING) {
+        PCI_CONF_FUNC_WR(reg, DWORD, name, 0u, WARNING) {
 
         val EN by bit(0)
 

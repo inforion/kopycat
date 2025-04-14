@@ -25,18 +25,44 @@
  */
 package ru.inforion.lab403.kopycat.consoles.kotlin.completers
 
+import org.apache.commons.text.StringEscapeUtils
+import org.jline.reader.Candidate
 import org.jline.reader.ParsedLine
 import ru.inforion.lab403.common.extensions.toFile
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.consoles.kotlin.ICustomArgumentCompleter
+import ru.inforion.lab403.kopycat.cores.base.classResourcePath
+import ru.inforion.lab403.kopycat.library.types.Resource
+import kotlin.io.path.div
 
 internal class KopycatRunScriptCompleter : ICustomArgumentCompleter {
     override fun complete(
         line: ParsedLine?,
         kopycat: Kopycat,
-    ) = (
-        Common.completeRelativeFileList("script", Kopycat.scriptDir.toFile()) {
-            it.extension == "kts"
-        } ?: emptySequence()
-    ).asIterable()
+    ): Iterable<Candidate> {
+        val scriptsInFS = (
+            Common.completeRelativeFileList("script file", Kopycat.scriptDir.toFile(), recursive = true) {
+                it.extension == "kts"
+            } ?: emptySequence()
+        ).toList()
+
+        // Is not empty only when loaded as a jar file
+        val scriptsInJar = Resource(
+            kopycat.top::class.classResourcePath / Kopycat.scriptResourceDir
+        ).jarFileListing().filter { jarScriptName ->
+            jarScriptName.endsWith(".kts") && scriptsInFS.firstOrNull { it.displ() == jarScriptName } == null
+        }.map {
+            Candidate(
+                "\"${StringEscapeUtils.escapeXSI(it)}\")",
+                it,
+                "script resource",
+                null,
+                null,
+                null,
+                true,
+            )
+        }
+
+        return scriptsInFS.asIterable() + scriptsInJar.asIterable()
+    }
 }

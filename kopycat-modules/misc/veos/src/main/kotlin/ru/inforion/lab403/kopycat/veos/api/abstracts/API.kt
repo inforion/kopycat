@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.veos.api.abstracts
 
-import org.jetbrains.kotlin.utils.addToStdlib.cast
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger

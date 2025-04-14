@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.modules.cores
 
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
-import ru.inforion.lab403.kopycat.cores.base.abstracts.ABI
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
@@ -37,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.ppc.exceptions.IPPCExceptionHolder
 import ru.inforion.lab403.kopycat.cores.ppc.hardware.processors.APPCMMU
 import ru.inforion.lab403.kopycat.cores.ppc.hardware.processors.PPCCOP
 import ru.inforion.lab403.kopycat.cores.ppc.hardware.processors.PPCCPU
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 
 abstract class PPCCore(
@@ -50,8 +48,8 @@ abstract class PPCCore(
 ) : ACore<PPCCore, PPCCPU, PPCCOP>(parent, name, frequency, 1.0) {
 
     inner class Buses : ModuleBuses(this) {
-        val physical = Bus("physical", BUS32)
-        val virtual = Bus("virtual", BUS32)
+        val physical = Bus("physical")
+        val virtual = Bus("virtual")
     }
 
     inner class Ports : ModulePorts(this) {

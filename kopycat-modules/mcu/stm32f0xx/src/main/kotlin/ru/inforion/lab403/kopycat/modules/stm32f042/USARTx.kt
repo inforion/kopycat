@@ -28,8 +28,7 @@
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.logging.INFO
-import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.logging.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -40,7 +39,6 @@ import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
-import java.util.logging.Level
 
 /**
  * {RU}
@@ -75,37 +73,37 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
         /**
          * Configuration registers port
          */
-        val mem = Slave("mem", 0x400)
+        val mem = Port("mem")
 
         /**
          * Interrupt request port pin on data transmitted
          */
-        val irq_tx = Master("irq_tx", PIN)
+        val irq_tx = Port("irq_tx")
 
         /**
          * Interrupt request port pin on data received
          */
-        val irq_rx = Master("irq_rx", PIN)
+        val irq_rx = Port("irq_rx")
 
         /**
          * DMA request on data transmitted
          */
-        val drq_tx = Master("drq_tx", PIN)
+        val drq_tx = Port("drq_tx")
 
         /**
          * DMA request on data received
          */
-        val drq_rx = Master("drq_rx", PIN)
+        val drq_rx = Port("drq_rx")
 
         /**
          * UART master / Terminal slave port
          */
-        val usart_m = Master("usart_m", UART_MASTER_BUS_SIZE)
+        val usart_m = Port("usart_m")
 
         /**
          * UART slave / Terminal master port
          */
-        val usart_s = Slave("usart_s", UART_SLAVE_BUS_SIZE)
+        val usart_s = Port("usart_s")
     }
 
     override val ports = Ports()
@@ -115,7 +113,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
             default: ULong = 0x0000_0000u,
             writable: Boolean = true,
             readable: Boolean = true,
-            level: Level = Level.FINE
+            level: LogLevel = FINE
     ) : Register(ports.mem, register.offset, DWORD, "USART${index}_${register.name}", default, writable, readable, level)
 
     private fun readParam(index: Int) = ports.usart_m.read(UART_MASTER_BUS_PARAM, index, 1)
@@ -139,7 +137,7 @@ class USARTx(parent: Module, name: String, val index: Int) : Module(parent, name
             DWORD,
             "TERMINAL_REQUEST_REG",
             readable = false,
-            level = Level.SEVERE) {
+            level = SEVERE) {
 
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (ss) {

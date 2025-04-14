@@ -25,13 +25,9 @@
  */
 package ru.inforion.lab403.kopycat.modules.p2020
 
-import ru.inforion.lab403.common.extensions.hex2
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.base.like
-import ru.inforion.lab403.kopycat.modules.BUS07
 
 /**
  * Created by shiftdj on 25.01.2021.
@@ -44,7 +40,7 @@ class I2CNAck(
 ): Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", BUS07)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

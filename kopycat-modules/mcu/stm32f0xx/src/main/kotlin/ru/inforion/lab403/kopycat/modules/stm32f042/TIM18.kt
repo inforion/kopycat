@@ -36,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.field
-import java.util.logging.Level
 
 
 class TIM18(parent: Module, name: String) : Module(parent, name) {
@@ -45,8 +44,8 @@ class TIM18(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem")
-        val irq = Master("irq")
+        val mem = Port("mem")
+        val irq = Port("irq")
     }
     override val ports = Ports()
 

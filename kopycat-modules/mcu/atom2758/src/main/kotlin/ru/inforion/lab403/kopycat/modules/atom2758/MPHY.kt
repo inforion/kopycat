@@ -37,7 +37,7 @@ class MPHY(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", BUS_SIZE)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

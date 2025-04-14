@@ -34,8 +34,8 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.hardware.processors.AARMCPU
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
-import ru.inforion.lab403.kopycat.cores.base.enums.Endian
 import java.math.BigInteger
+import java.nio.ByteOrder
 
 /**
  * {RU}
@@ -75,7 +75,7 @@ import java.math.BigInteger
 class ARMDebugger(
     parent: Module,
     name: String,
-    val endian: Endian = Endian.LITTLE,
+    val endian: ByteOrder = ByteOrder.LITTLE_ENDIAN,
     private val sendTargetXml: Boolean = false,
 ): Debugger(parent, name) {
 
@@ -117,13 +117,13 @@ class ARMDebugger(
                 0u
             }
         }
-        val dataToRead = if (endian == Endian.BIG) value.swap32() else value
+        val dataToRead = if (endian === ByteOrder.BIG_ENDIAN) value.swap32() else value
 //        log.warning { "Read ${dataToRead.hex8} from $index" }
         return dataToRead.bigint
     }
 
     override fun regWrite(index: Int, value: BigInteger) {
-        val dataToWrite = if (endian == Endian.BIG) value.ulong.swap32() else value.ulong
+        val dataToWrite = if (endian === ByteOrder.BIG_ENDIAN) value.ulong.swap32() else value.ulong
         when (index) {
             // GPR
             in 0..14 -> cpu.reg(index, dataToWrite)

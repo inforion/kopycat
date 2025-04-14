@@ -30,6 +30,7 @@ import ru.inforion.lab403.common.extensions.emptyString
 import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.ALL
+import ru.inforion.lab403.common.logging.SEVERE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -37,7 +38,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.modules.terminals.UartTerminal
 import java.util.concurrent.TimeoutException
-import java.util.logging.Level
 
 class BT(parent: Module, name: String) : Module(parent, name) {
 
@@ -84,11 +84,11 @@ class BT(parent: Module, name: String) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
 
-        val usart_m = Proxy("usart_m", UART_MASTER_BUS_SIZE)
-        val usart_s = Proxy("usart_s", UART_SLAVE_BUS_SIZE)
+        val usart_m = Proxy("usart_m")
+        val usart_s = Proxy("usart_s")
 
-        val bt_m = Master("bt_m", UART_MASTER_BUS_SIZE)
-        val bt_s = Slave("bt_s", UART_SLAVE_BUS_SIZE)
+        val bt_m = Port("bt_m")
+        val bt_s = Port("bt_s")
     }
 
     override val ports = Ports()
@@ -125,7 +125,7 @@ class BT(parent: Module, name: String) : Module(parent, name) {
             Datatype.DWORD,
             "TERMINAL_REQUEST_REG",
             readable = false,
-            level = Level.SEVERE
+            level = SEVERE
     ) {
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             when (ss) {

@@ -48,7 +48,7 @@ class RTC(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val io = Slave("io", BUS16)
+        val io = Port("io")
     }
 
     override val ports = Ports()

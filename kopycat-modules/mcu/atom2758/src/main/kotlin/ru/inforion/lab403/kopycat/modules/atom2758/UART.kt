@@ -28,26 +28,26 @@
 package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.FINEST
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
-import ru.inforion.lab403.kopycat.modules.BUS08
-import java.util.logging.Level
 
 @Suppress("PrivatePropertyName", "PropertyName")
 class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.FINE)
+        @Transient val log = logger(FINE)
 
         const val INTERRUPT_COUNT = 2
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem")
-        val mmcr = Slave("mmcr", BUS08)
-        val io = Slave("io", BUS08)
+        val mem = Port("mem")
+        val mmcr = Port("mmcr")
+        val io = Port("io")
     }
 
     override val ports = Ports()
@@ -56,8 +56,8 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
     private var isBaudRateConnected = false
 
     val UARTxTHR_RBR = object : Register(ports.io, 0x00F8u, BYTE, "UART${id}THR_RBR") {
-        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = !isBaudRateConnected
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = !isBaudRateConnected
+        override fun beforeRead(from: Port, ea: ULong, size: Int): Boolean = !isBaudRateConnected
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean = !isBaudRateConnected
 
         var THR by wfield(7..0)
         val RBR by rfield(7..0)
@@ -81,8 +81,8 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
     }
 
     val UARTxBCDL = object : Register(ports.io, 0x00F8u, BYTE, "UART${id}BCDL") {
-        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = isBaudRateConnected
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = isBaudRateConnected
+        override fun beforeRead(from: Port, ea: ULong, size: Int): Boolean = isBaudRateConnected
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean = isBaudRateConnected
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong = baudClockValue[7..0].ulong_z
 
@@ -92,8 +92,8 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
     }
 
     val UARTxBCDH = object : Register(ports.io, 0x00F9u, BYTE, "UART${id}BCDH") {
-        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = isBaudRateConnected
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = isBaudRateConnected
+        override fun beforeRead(from: Port, ea: ULong, size: Int): Boolean = isBaudRateConnected
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean = isBaudRateConnected
 
         override fun read(ea: ULong, ss: Int, size: Int): ULong = baudClockValue[15..8].ulong_z
 
@@ -102,9 +102,9 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
         }
     }
 
-    val UARTxINTENB = object : Register(ports.io, 0x00F9u, BYTE, "UART${id}INTENB", level = Level.FINEST) {
-        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = !isBaudRateConnected
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = !isBaudRateConnected
+    val UARTxINTENB = object : Register(ports.io, 0x00F9u, BYTE, "UART${id}INTENB", level = FINEST) {
+        override fun beforeRead(from: Port, ea: ULong, size: Int): Boolean = !isBaudRateConnected
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean = !isBaudRateConnected
 
         val Reserved by reserved(7..4)
         val EMSI by rwbit(3)
@@ -113,9 +113,9 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
         val ERDAI by rwbit(0)
     }
 
-    val UARTxINTID_FCR = Register(ports.io, 0x00FAu, BYTE, "UART${id}INTID_FCR", level = Level.FINEST)
+    val UARTxINTID_FCR = Register(ports.io, 0x00FAu, BYTE, "UART${id}INTID_FCR", level = FINEST)
 
-    val UARTxLCR = object : Register(ports.io, 0x00FBu, BYTE, "UART${id}LCR", level = Level.FINEST) {
+    val UARTxLCR = object : Register(ports.io, 0x00FBu, BYTE, "UART${id}LCR", level = FINEST) {
         val DLAB by rwbit(7)
         val SB by rwbit(6)
         val SP by rwbit(5)
@@ -131,7 +131,7 @@ class UART(parent: Module, name: String, val id: Int) : Module(parent, name) {
 
     val UARTxMCR = Register(ports.io, 0x00FCu, BYTE, "UART${id}MCR")
 
-    val UARTxLSR = object : Register(ports.io, 0x00FDu, BYTE, "UART${id}LSR", level = Level.FINEST) {
+    val UARTxLSR = object : Register(ports.io, 0x00FDu, BYTE, "UART${id}LSR", level = FINEST) {
         val ERR_IN_FIFO by rbit(7)
         var TEMT by rbit(6, initial = 1)
         var THRE by rbit(5, initial = 1)

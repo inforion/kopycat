@@ -31,10 +31,8 @@ import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 
 
@@ -42,7 +40,7 @@ class PIC(parent: Module, name: String) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
 //        val inp = Slave("in", BUS32)
-        val ctrl = Slave("ctrl", BUS32)
+        val ctrl = Port("ctrl")
     }
 
     override val ports = Ports()

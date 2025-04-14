@@ -30,152 +30,126 @@ import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
-import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.FWRBank
+import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.softfloat.SoftFloat
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import java.math.BigInteger
-import java.nio.file.Paths
-import kotlin.io.path.exists
+import java.nio.ByteOrder
+import kotlin.math.absoluteValue
 
-class LongDouble private constructor(private var buffer: ByteArray, private val cwr: FWRBank.CWR) {
+class LongDouble internal constructor(val high: UShort, val low: ULong, val sf: SoftFloat) : Comparable<LongDouble> {
     companion object {
         @Transient val log = logger(INFO)
 
-        init {
-            val paths = listOf(
-
-                "libs",
-            ).map {
-                Paths.get(it / System.mapLibraryName("longdouble"))
-            }.filter { it.exists() }
-
-            try {
-                paths.forEach {
-                    System.load(it.toAbsolutePath().toString())
-                    log.info { "LibLongDouble has been loaded from path: $it" }
-                }
-            } catch (_: UnsatisfiedLinkError) {
-                log.severe { "Unable to load LibLongDouble by path" }
-                // java.library.path for instruction tests is set in build.gradle
-                System.loadLibrary("longdouble")
-            }
-        }
-
-        fun zero(cwr: FWRBank.CWR) = LongDouble(loadZero(cwr.pc.cw, cwr.rc.cw), cwr)
-        fun log2_e(cwr: FWRBank.CWR) = LongDouble(loadLog2e(cwr.pc.cw, cwr.rc.cw), cwr)
-        fun log10_2(cwr: FWRBank.CWR) = LongDouble(loadLog102(cwr.pc.cw, cwr.rc.cw), cwr)
-        fun log2_10(cwr: FWRBank.CWR) = LongDouble(loadLog210(cwr.pc.cw, cwr.rc.cw), cwr)
-        fun loge_2(cwr: FWRBank.CWR) = LongDouble(loadLogE2(cwr.pc.cw, cwr.rc.cw), cwr)
-        fun one(cwr: FWRBank.CWR) = LongDouble(loadOne(cwr.pc.cw, cwr.rc.cw), cwr)
-        fun pi(cwr: FWRBank.CWR) = LongDouble(loadPi(cwr.pc.cw, cwr.rc.cw), cwr)
-
-        private fun ByteArray.pad(to: Int) = if (this.size < to) {
-            val padded = ByteArray(to)
-            copyInto(padded, to - size)
-            padded
-        } else this
-
-        @JvmStatic private external fun loadZero(pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun loadLog2e(pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun loadLog102(pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun loadLog210(pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun loadLogE2(pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun loadOne(pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun loadPi(pc: Int, rc: Int): ByteArray
-
-        @JvmStatic private external fun toShort(a: ByteArray, pc: Int, rc: Int): Short
-        @JvmStatic private external fun toInt(a: ByteArray, pc: Int, rc: Int): Int
-        @JvmStatic private external fun toLong(a: ByteArray, pc: Int, rc: Int): Long
-        @JvmStatic private external fun toFloat(a: ByteArray, pc: Int, rc: Int): Float
-        @JvmStatic private external fun toDouble(a: ByteArray, pc: Int, rc: Int): Double
-
-        @JvmStatic private external fun fromShort(a: Short, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun fromInt(a: Int, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun fromLong(a: Long, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun fromFloat(a: Float, pc: Int, rc: Int):  ByteArray
-        @JvmStatic private external fun fromDouble(a: Double, pc: Int, rc: Int): ByteArray
-
-        @JvmStatic private external fun add(a: ByteArray, b: ByteArray, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun sub(a: ByteArray, b: ByteArray, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun mul(a: ByteArray, b: ByteArray, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun div(a: ByteArray, b: ByteArray, pc: Int, rc: Int): ByteArray
-
-        @JvmStatic private external fun neg(a: ByteArray, pc: Int, rc: Int): ByteArray
-
-        @JvmStatic private external fun gt(a: ByteArray, b: ByteArray, pc: Int, rc: Int): Boolean
-        @JvmStatic private external fun lt(a: ByteArray, b: ByteArray, pc: Int, rc: Int): Boolean
-        @JvmStatic private external fun ge(a: ByteArray, b: ByteArray, pc: Int, rc: Int): Boolean
-        @JvmStatic private external fun le(a: ByteArray, b: ByteArray, pc: Int, rc: Int): Boolean
-
-        @JvmStatic private external fun roundToNearestInt(a: ByteArray, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun scale(a: ByteArray, b: ByteArray, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun abs(a: ByteArray, pc: Int, rc: Int): ByteArray
-        @JvmStatic private external fun sqrt(a: ByteArray, pc: Int, rc: Int): ByteArray
-
-        @JvmStatic private external fun isZero(a: ByteArray, pc: Int, rc: Int): Boolean
+        fun zero(sf: SoftFloat) = LongDouble(0u, 0u, sf)
+        fun log2_e(sf: SoftFloat) = LongDouble(0x3fffu, 0xb8aa3b295c17f0bcuL, sf)
+        fun log10_2(sf: SoftFloat) = LongDouble(0x3ffdu, 0x9a209a84fbcff799uL, sf)
+        fun log2_10(sf: SoftFloat) = LongDouble(0x4000u, 0xd49a784bcd1b8afeuL, sf)
+        fun loge_2(sf: SoftFloat) = LongDouble(0x3ffeu, 0xb17217f7d1cf79acuL, sf)
+        fun one(sf: SoftFloat) = LongDouble(0x3fffu, 0x8000000000000000uL, sf)
+        fun pi(sf: SoftFloat) = LongDouble(0x4000u, 0xc90fdaa22168c235uL, sf)
+        // fun nan(sf: SoftFloat) = LongDouble(SoftFloat.DEFAULT_NAN_F80_HIGH, SoftFloat.DEFAULT_NAN_F80_LOW, sf)
+        // fun infinity(sf: SoftFloat) = LongDouble(SoftFloat.FLOAT80_INFINITY_HIGH, SoftFloat.FLOAT80_INFINITY_LOW, sf)
     }
 
-    constructor(i: BigInteger, cwr: FWRBank.CWR) :
-            this((i mask 80..0).toByteArray().pad(10).reversedArray(), cwr)
-    constructor(a: Float, cwr: FWRBank.CWR) : this(fromFloat(a, cwr.pc.cw, cwr.rc.cw), cwr)
-    constructor(a: Double, cwr: FWRBank.CWR) : this(fromDouble(a, cwr.pc.cw, cwr.rc.cw), cwr)
-    constructor(a: Short, cwr: FWRBank.CWR) : this(fromShort(a, cwr.pc.cw, cwr.rc.cw), cwr)
-    constructor(a: Int, cwr: FWRBank.CWR) : this(fromInt(a, cwr.pc.cw, cwr.rc.cw), cwr)
-    constructor(a: Long, cwr: FWRBank.CWR) : this(fromLong(a, cwr.pc.cw, cwr.rc.cw), cwr)
-
-    operator fun plus(other: LongDouble) = LongDouble(add(buffer, other.buffer, cwr.pc.cw, cwr.rc.cw), cwr)
-    operator fun minus(other: LongDouble) = LongDouble(sub(buffer, other.buffer, cwr.pc.cw, cwr.rc.cw), cwr)
-    operator fun times(other: LongDouble) = LongDouble(mul(buffer, other.buffer, cwr.pc.cw, cwr.rc.cw), cwr)
-    operator fun div(other: LongDouble) = LongDouble(div(buffer, other.buffer, cwr.pc.cw, cwr.rc.cw), cwr)
-    operator fun unaryMinus() = LongDouble(neg(buffer, cwr.pc.cw, cwr.rc.cw), cwr)
-
-    operator fun compareTo(other: LongDouble): Int {
-        if (gt(buffer, other.buffer, cwr.pc.cw, cwr.rc.cw)) return 1
-        if (lt(buffer, other.buffer, cwr.pc.cw, cwr.rc.cw)) return -1
-        return 0
+    internal val sign by lazy { high ushr 15 != 0u }
+    internal val isSignalingNaN by lazy {
+        (high and 0x7FFFu).uint_z == 0x7FFFu &&
+                (low and 0x4000_0000_0000_0000uL) == 0uL &&
+                (low and 0x3FFF_FFFF_FFFF_FFFFuL) != 0uL
     }
 
-    fun ieee754AsUnsigned() = BigInteger(1, buffer.reversedArray())
-    val byteBuffer get() = buffer.reversedArray()
-    val byteBufferLe get() = buffer
-    fun isZero() = isZero(buffer, cwr.pc.cw, cwr.rc.cw)
-    val short get() = toShort(buffer, cwr.pc.cw, cwr.rc.cw)
-    val int get() = toInt(buffer, cwr.pc.cw, cwr.rc.cw)
-    val long get() = toLong(buffer, cwr.pc.cw, cwr.rc.cw)
-    val float get() = toFloat(buffer, cwr.pc.cw, cwr.rc.cw)
-    val double get() = toDouble(buffer, cwr.pc.cw, cwr.rc.cw)
+    internal val isNaN by lazy {
+        ((high and 0x7FFFu).uint_z == 0x7FFFu) &&
+                (low and 0x7FFF_FFFF_FFFF_FFFFuL) != 0uL
+    }
 
-    /** Rounds to nearest integer according to [FWRBank.CWR.rc] */
-    fun roundToNearestInt() = LongDouble(roundToNearestInt(buffer, cwr.pc.cw, cwr.rc.cw), cwr)
+    internal val isInvalid by lazy {
+        low and 0x8000_0000_0000_0000uL == 0uL &&
+                (high and 0x7FFFu).uint_z != 0u
+    }
 
-    /** Used by fscale */
-    fun scale(st1: LongDouble) = LongDouble(scale(buffer, st1.buffer, cwr.pc.cw, cwr.rc.cw), cwr)
+    constructor(a: BigInteger, sf: SoftFloat) : this(a[79..64].ushort, a[63..0].ulong, sf)
+    private constructor(a: LongDouble, sf: SoftFloat) : this(a.high, a.low, sf)
+    constructor(a: Float, sf: SoftFloat) : this(sf.floatToF80(a), sf)
+    constructor(a: Double, sf: SoftFloat) : this(sf.doubleToF80(a), sf)
+    constructor(a: Short, sf: SoftFloat) : this(a.int_s, sf)
+    constructor(a: Int, sf: SoftFloat) : this(
+        if (a == 0) {
+            zero(sf)
+        } else {
+            val abs = a.absoluteValue
+            val shiftCount = abs.countLeadingZeroBits() + 32
+            sf.packF80(a < 0, (0x403E - shiftCount).ushort, (abs.long_z shl shiftCount).ulong)
+        },
+        sf,
+    )
+    constructor(a: Long, sf: SoftFloat) : this(
+        if (a == 0L) {
+            sf.packF80(false, 0u, 0u)
+        } else {
+            val abs = a.absoluteValue
+            val shiftCount = abs.countLeadingZeroBits()
+            sf.packF80(a < 0, (0x403E - shiftCount).ushort, (abs shl shiftCount).ulong)
+        },
+        sf,
+    )
 
-    /** Returns absolute value */
-    fun abs() = LongDouble(abs(buffer, cwr.pc.cw, cwr.rc.cw), cwr)
+    operator fun plus(other: LongDouble) = LongDouble(sf.addF80M(this, other, false), sf)
+    operator fun minus(other: LongDouble) = LongDouble(sf.addF80M(this, other, true), sf)
+    operator fun times(other: LongDouble) = LongDouble(sf.mulF80M(this, other), sf)
+    operator fun div(other: LongDouble) = LongDouble(sf.divF80M(this, other), sf)
+    operator fun unaryMinus() = LongDouble(high xor 0x8000u, low, sf)
 
-    /** Square root */
-    fun sqrt() = LongDouble(sqrt(buffer, cwr.pc.cw, cwr.rc.cw), cwr)
+    override operator fun compareTo(other: LongDouble) = if (sf.eqF80(this, other)) {
+        0
+    } else if (sf.leF80(this, other)) {
+        -1
+    } else {
+        1
+    }
+
+    inline val byteArrayLe get() = ByteArray(10).also {
+        it.putUInt64(0, low, ByteOrder.LITTLE_ENDIAN)
+        it.putUInt16(8, high.ulong_z, ByteOrder.LITTLE_ENDIAN)
+    }
+
+    fun ieee754AsUnsigned() = BigInteger(1, byteArrayLe.reversedArray())
+    val isZero by lazy { (high and 0x7fffu).uint_z == 0u && low == 0uL}
+    val isInfinity by lazy {
+        (high and 0x7fffu) == SoftFloat.FLOAT80_INFINITY_HIGH &&
+                low == SoftFloat.FLOAT80_INFINITY_LOW
+    }
+
+    val short by lazy { int.short }
+    val int by lazy { sf.f80ToInt(this, true) }
+    val long by lazy { sf.f80ToLong(this, true) }
+    val float by lazy { sf.f80ToFloat(this) }
+    val double by lazy { sf.f80ToDouble(this) }
+
+    val roundedToNearestInt by lazy { sf.roundToNearestIntF80(this, true) }
+    fun fscale(st1: LongDouble) = sf.fscale(this, st1)
+    val abs by lazy { LongDouble(high and 0x7fffu, low, sf) }
+    val sqrt by lazy { sf.sqrtF80M(this) }
 
     override fun toString() = double.toString()
     override fun equals(other: Any?) = other is LongDouble && compareTo(other) == 0
-    override fun hashCode(): Int = buffer.hashCode()
+    override fun hashCode() = 31 * high.hashCode() + low.hashCode()
 }
 
 // Float to long double. -1.0 -> -1.0
-fun Float.longDouble(cwr: FWRBank.CWR) = LongDouble(this, cwr)
-fun Double.longDouble(cwr: FWRBank.CWR) = LongDouble(this, cwr)
+fun Float.longDouble(sf: SoftFloat) = LongDouble(this, sf)
+fun Double.longDouble(sf: SoftFloat) = LongDouble(this, sf)
 
 // Signed to long double. -1 -> -1.0
-fun Short.longDouble(cwr: FWRBank.CWR) = LongDouble(this, cwr)
-fun Int.longDouble(cwr: FWRBank.CWR) = LongDouble(this, cwr)
-fun Long.longDouble(cwr: FWRBank.CWR) = LongDouble(this, cwr)
+fun Short.longDouble(sf: SoftFloat) = LongDouble(this, sf)
+fun Int.longDouble(sf: SoftFloat) = LongDouble(this, sf)
+fun Long.longDouble(sf: SoftFloat) = LongDouble(this, sf)
 
-/** Converts **buffer** to long double */
-fun BigInteger.longDouble(cwr: FWRBank.CWR) = LongDouble(this, cwr)
+fun BigInteger.longDouble(sf: SoftFloat) = LongDouble(this, sf)
 
 /** Depending on the size of the operand, converts either float or double to long double */
-fun AOperand<x86Core>.longDouble(x86: x86Core, cwr: FWRBank.CWR) = when (this.dtyp) {
-    Datatype.DWORD -> value(x86).uint.ieee754().longDouble(cwr)
-    Datatype.QWORD -> value(x86).ieee754().longDouble(cwr)
+fun AOperand<x86Core>.longDouble(x86: x86Core, sf: SoftFloat) = when (this.dtyp) {
+    Datatype.DWORD -> value(x86).uint.ieee754().longDouble(sf)
+    Datatype.QWORD -> value(x86).ieee754().longDouble(sf)
     else -> throw RuntimeException("Wrong operand size")
 }

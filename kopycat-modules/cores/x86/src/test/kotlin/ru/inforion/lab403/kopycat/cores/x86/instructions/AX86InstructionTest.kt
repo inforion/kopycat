@@ -25,19 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions
 
-import org.junit.After
-import org.junit.Assert
-import org.junit.Before
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.interfaces.*
-import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import java.io.File
 import java.util.concurrent.TimeUnit
+import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
 
@@ -51,7 +50,7 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
     abstract val ram1: RAM
     inner class Buses : ModuleBuses(this) {
         val mem = Bus("mem")
-        val io = Bus("io", BUS16.ulong)
+        val io = Bus("io")
     }
     override val buses = Buses()
 
@@ -89,15 +88,20 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
     fun assertAssembly(expected: String) {
         val disasm = x86.cpu.insn.toString()
         val actual = disasm.split(whitespaces).drop(2).joinToString(" ").lowercase()
-        Assert.assertEquals("Unexpected disassembly view!", expected.lowercase(), actual)
+        assertEquals(expected.lowercase(), actual, "Unexpected disassembly view!")
     }
 
-    private fun assertRegister(num: Int, expected: ULong, actual: ULong, type: String = "GPR") =
-            Assert.assertEquals("${x86.cpu.insn} -> " +
-                    "$type $num error: 0x${expected.hex} != 0x${actual.hex}", expected, actual)
+    private fun assertRegister(num: Int, expected: ULong, actual: ULong, type: String = "GPR") = assertEquals(
+        expected,
+        actual,
+        "${x86.cpu.insn} -> $type $num error: 0x${expected.hex} != 0x${actual.hex}"
+    )
 
-    private fun assertFlag(name: String, expected: Boolean, actual: Boolean, type: String = "Flag") =
-            Assert.assertEquals("${x86.cpu.insn} -> $type $name error: $expected != $actual", expected, actual)
+    private fun assertFlag(name: String, expected: Boolean, actual: Boolean, type: String = "Flag") = assertEquals(
+        expected,
+        actual,
+        "${x86.cpu.insn} -> $type $name error: $expected != $actual"
+    )
 
     fun assertGPRRegisters(eax: ULong = 0u, ecx: ULong = 0u, edx: ULong = 0u, ebx: ULong = 0u,
                            esp: ULong = 0u, ebp: ULong = 0u, esi: ULong = 0u, edi: ULong = 0u) {
@@ -248,15 +252,15 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         assert(expected.length % 2 == 0)
         val size = expected.length / 2
         val actual = load(address, size)
-        Assert.assertEquals("Memory 0x${address.hex8} error: $expected != $actual", expected.uppercase(), actual)
+        assertEquals(expected.uppercase(), actual, "Memory 0x${address.hex8} error: $expected != $actual")
     }
 
     fun assertMemory(address: ULong, expected: ULong, dtyp: Datatype, io: Boolean = false) {
         val actual = load(address, dtyp, io)
-        Assert.assertEquals("Memory 0x${address.hex8} error: $expected != $actual", expected, actual)
+        assertEquals(expected, actual, "Memory 0x${address.hex8} error: $expected != $actual")
     }
 
-    @Before
+    @BeforeEach
     fun resetTest() {
         x86.reset()
         x86.cpu.cregs.cr0.pe = true
@@ -273,9 +277,12 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
         x86.cpu.regs.esp.value = 0x1000u
     }
 
-    @After
+    @AfterEach
     fun checkPC() {
-        Assert.assertEquals("Program counter error: ${size.hex8} != ${x86.cpu.regs.rip.value.hex8}",
-                size, x86.cpu.regs.rip.value)
+        assertEquals(
+            size,
+            x86.cpu.regs.rip.value,
+            "Program counter error: ${size.hex8} != ${x86.cpu.regs.rip.value.hex8}"
+        )
     }
 }

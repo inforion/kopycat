@@ -42,8 +42,8 @@ class Fst(core: x86Core, opcode: ByteArray, prefs: Prefixes, val popCount: Int, 
         op1.extValue(
             core,
             when (op1.dtyp) {
-                Datatype.DWORD -> value.longDouble(core.fpu.fwr.FPUControlWord).float.ieee754AsUnsigned().bigint
-                Datatype.QWORD -> value.longDouble(core.fpu.fwr.FPUControlWord).double.ieee754AsUnsigned().bigint
+                Datatype.DWORD -> value.longDouble(core.fpu.softfloat).float.ieee754AsUnsigned().bigint
+                Datatype.QWORD -> value.longDouble(core.fpu.softfloat).double.ieee754AsUnsigned().bigint
                 Datatype.FPU80 -> value
                 else -> throw GeneralException("Unknown type")
             }

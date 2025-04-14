@@ -26,12 +26,13 @@
 package ru.inforion.lab403.kopycat.gdbstub.messages.basic
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
+import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint
+import ru.inforion.lab403.kopycat.cores.base.enums.GDBBreakpointType
 import ru.inforion.lab403.kopycat.gdbstub.*
 import ru.inforion.lab403.kopycat.gdbstub.parser.Context
 import ru.inforion.lab403.kopycat.gdbstub.parser.Packet
 
-internal class ClearBreakpointMessage(val address: ULong, val count: Int, val type: BreakpointType) : BreakpointMessage() {
+internal class ClearBreakpointMessage(val address: ULong, val count: Int, val type: Breakpoint.Access) : BreakpointMessage() {
     companion object {
         // clear bp: z type,address,count
         fun parse(packet: Packet): ClearBreakpointMessage {
@@ -42,9 +43,11 @@ internal class ClearBreakpointMessage(val address: ULong, val count: Int, val ty
             val typeValue = params[0].intByHex
             val address = params[1].ulongByHex
             val count = params[2].intByHex
-            val type = convert<BreakpointType>(typeValue)
+            val type = GDBBreakpointType.entries.find { it.code == typeValue }
 
-            return ClearBreakpointMessage(address, count, type)
+            require(type != null) { "Unknown breakpoint type $typeValue" }
+
+            return ClearBreakpointMessage(address, count, type.access)
         }
     }
 

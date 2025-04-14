@@ -27,8 +27,7 @@ package ru.inforion.lab403.kopycat.cores.base.abstracts
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
-import ru.inforion.lab403.kopycat.cores.base.SlavePort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.extensions.IRQ_ENABLE_AREA
 import ru.inforion.lab403.kopycat.cores.base.extensions.IRQ_INSERVICE_AREA
@@ -50,10 +49,11 @@ abstract class APIC(parent: Module, name: String): Module(parent, name) {
      * {RU}
      **/
     inner class Interrupts<T: AInterrupt>(
-            port: SlavePort,
+            port: Port,
             name: String,
+            endInclusively: ULong,
             vararg args: T
-    ) : Area(port, 0u, port.size - 1u, name) {
+    ) : Area(port, 0u, endInclusively, name) {
 
         private val count = args.map { it.irq }.maxOrNull()?.inc() ?: 0
 
@@ -114,8 +114,8 @@ abstract class APIC(parent: Module, name: String): Module(parent, name) {
             }
         }
 
-        override fun beforeRead(from: MasterPort, ea: ULong): Boolean = table[ea.int] != null
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = table[ea.int] != null
+        override fun beforeRead(from: Port, ea: ULong, size: Int): Boolean = table[ea.int] != null
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean = table[ea.int] != null
 
         /**
          * {RU}

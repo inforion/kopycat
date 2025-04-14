@@ -28,16 +28,14 @@ package ru.inforion.lab403.kopycat.library.builders.text
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 
-class PortConfig(val name: String, val type: String, val size: String) {
+class PortConfig(val name: String, val type: String) {
 
     fun create(module: Module): ModulePorts.APort {
         val typeValue = moduleTextParser.getPortType(type)
-        val sizeValue = moduleTextParser.getBusPortSize(size)
         return when (typeValue) {
-            ModulePorts.Type.Master -> module.ports.Master(name, sizeValue)
-            ModulePorts.Type.Slave -> module.ports.Slave(name, sizeValue)
-            ModulePorts.Type.Proxy -> module.ports.Proxy(name, sizeValue)
-            else -> throw IllegalArgumentException("Only Master, Slave and Proxy can be created!")
+            ModulePorts.Type.Port -> module.ports.Port(name)
+            ModulePorts.Type.Proxy -> module.ports.Proxy(name)
+            else -> throw IllegalArgumentException("Only Port and Proxy can be created!")
         }
     }
 }

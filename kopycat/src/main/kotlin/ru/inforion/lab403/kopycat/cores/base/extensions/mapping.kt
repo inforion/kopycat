@@ -28,7 +28,7 @@
 package ru.inforion.lab403.kopycat.cores.base.extensions
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 
 const val BRIDGE_MEM_BUS_INDEX = 0xF0
@@ -89,7 +89,7 @@ inline fun cmdUnmap(area: Int, output: Int) =
 inline fun translationOffset(offset: ULong) = offset
 
 
-fun MasterPort.mapOffset(
+fun Port.mapOffset(
     name: String,
     from: ULong,
     size: Int,
@@ -112,9 +112,11 @@ fun MasterPort.mapOffset(
 }
 
 
-fun MasterPort.unmap(name: String, area: Int, output: Int): Boolean {
+fun Port.unmap(name: String, area: Int, output: Int): Boolean {
     if (area < 0 || output < 0) {
-        Module.log.severe { "Ignore unmapping of $name to area=$area output=$output size=0x${size.hex}" }
+        Module.log.severe {
+            "Ignore unmapping of $name to area=$area output=$output"
+        }
         return false
     }
 

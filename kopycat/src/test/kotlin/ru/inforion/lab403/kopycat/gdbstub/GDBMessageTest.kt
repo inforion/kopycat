@@ -25,24 +25,24 @@
  */
 package ru.inforion.lab403.kopycat.gdbstub
 
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.bytes
 import ru.inforion.lab403.common.extensions.hex2
 import ru.inforion.lab403.kopycat.gdbstub.parser.Packet
+import kotlin.test.assertEquals
 
 
 class GDBMessageTest {
     private fun msgTest(msg: String, expectedCRC: String) {
         val newCRC = msg.bytes.checksum().hex2
         val error = "GDBMessage CRCTest expected $expectedCRC, but got $newCRC for message $msg"
-        Assert.assertEquals(error, expectedCRC, newCRC)
+        assertEquals(expectedCRC, newCRC, error)
     }
 
     private fun buildMsgTest(msg: String, expectedMsg: String) {
         val newMsg = Packet.message(msg).toString()
         val error = "GDBMessage buildMessageTest expected $expectedMsg, but got $newMsg"
-        Assert.assertEquals(error, expectedMsg, newMsg)
+        assertEquals(expectedMsg, newMsg, error)
     }
 
     @Test fun crcTest() {

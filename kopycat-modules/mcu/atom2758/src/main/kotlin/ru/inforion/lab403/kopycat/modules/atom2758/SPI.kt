@@ -27,11 +27,10 @@
 
 package ru.inforion.lab403.kopycat.modules.atom2758
 
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
-import java.util.logging.Level.CONFIG
 
 class SPI(parent: Module, name: String) : Module(parent, name) {
 
@@ -41,7 +40,7 @@ class SPI(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", BUS_SIZE)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

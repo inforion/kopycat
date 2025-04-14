@@ -43,8 +43,8 @@ class Fld(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operand: AOp
             op2.extValue(core)
         } else {
             when (op2.dtyp) {
-                Datatype.DWORD -> op2.value(core).int.ieee754().longDouble(core.fpu.fwr.FPUControlWord).ieee754AsUnsigned()
-                Datatype.QWORD -> op2.value(core).ieee754().longDouble(core.fpu.fwr.FPUControlWord).ieee754AsUnsigned()
+                Datatype.DWORD -> op2.value(core).int.ieee754().longDouble(core.fpu.softfloat).ieee754AsUnsigned()
+                Datatype.QWORD -> op2.value(core).ieee754().longDouble(core.fpu.softfloat).ieee754AsUnsigned()
                 Datatype.FPU80 -> op2.extValue(core)
                 else -> throw GeneralException("Incorrect datatype")
             }

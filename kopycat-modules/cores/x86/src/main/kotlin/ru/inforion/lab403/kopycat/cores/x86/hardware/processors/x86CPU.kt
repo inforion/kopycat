@@ -42,8 +42,8 @@ import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 
 
-class x86CPU(val x86: x86Core, name: String, busSize: ULong = BUS32):
-    ACPU<x86CPU, x86Core, AX86Instruction, x86GPR>(x86, name, busSize), IAutoSerializable {
+class x86CPU(val x86: x86Core, name: String):
+    ACPU<x86CPU, x86Core, AX86Instruction, x86GPR>(x86, name), IAutoSerializable {
 
     companion object {
         const val EFER = 0xC0000080uL

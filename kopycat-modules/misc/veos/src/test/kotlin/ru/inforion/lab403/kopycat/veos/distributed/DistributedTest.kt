@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.distributed
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.getResourceUrl
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.modules.veos.ARMApplication
@@ -38,7 +38,7 @@ import kotlin.test.assertFalse
 class DistributedTest {
     // TODO: move to extension
     // Do not convert it into property - getResourceUrl is caller-sensitive
-    inline fun containingDirectory(filename: String): String = getResourceUrl(filename).toURI().resolve(".").path
+    private fun containingDirectory(filename: String): String = getResourceUrl(filename).toURI().resolve(".").path
 
     @Test
     fun ARMApplicationDistributedTest() {
@@ -46,20 +46,17 @@ class DistributedTest {
         val root = containingDirectory(executable)
 
         threadsSwarm(2) { swarm ->
-
-            val device = ARMApplication(null, "top", root, executable, "-S arm-linux-gnueabi-as")
-            Kopycat(null).apply { open(device, null, false) }
-
             val result = listOf("arm-linux-gnueabi-as", "arm-linux-gnueabi-objdump", "arm-linux-gnueabi-ranlib").parallelize(swarm).map {
+                val device = ARMApplication(null, "top", root, executable, "-S arm-linux-gnueabi-as")
 
-                val kopycat = Kopycat(null).apply { open(device, null, false) }
+                Kopycat(null).apply { open(device, null, false) }.use { kopycat ->
+                    // REVIEW: stack cleanup and api reinit causes memory leaks
+                    device.veos.loader.loadArguments(arrayOf(executable, "-S", it))
 
-                // REVIEW: stack cleanup and api reinit causes memory leaks
-                device.veos.loader.loadArguments(arrayOf(executable, "-S", it))
+                    kopycat.run { step, core -> true }
 
-                kopycat.run { step, core -> true }
-
-                kopycat.hasException() to (kopycat.top as ARMApplication).veos.state
+                    kopycat.hasException() to (kopycat.top as ARMApplication).veos.state
+                }
             }
 
             val veosExitFailed = result.any { it.second != VEOS.State.Exit }
@@ -69,5 +66,4 @@ class DistributedTest {
             assertFalse(hasException)
         }
     }
-
 }

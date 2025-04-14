@@ -35,21 +35,17 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.debug.impl.GCCSymbolTranslator.Companion.toGCCSymbolTranslator
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.library.types.Resource
-import ru.inforion.lab403.kopycat.modules.BUS32
-import ru.inforion.lab403.kopycat.modules.NAND_BUS_SIZE
-import ru.inforion.lab403.kopycat.modules.UART_MASTER_BUS_SIZE
-import ru.inforion.lab403.kopycat.modules.UART_SLAVE_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.common.NS16550
 import ru.inforion.lab403.kopycat.modules.cores.arm1176jzs.ARM1176JZS
 import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
-import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
+import ru.inforion.lab403.kopycat.modules.terminals.UartNetworkTerminal
 import java.io.InputStream
 
 class VirtARM(
     parent: Module?,
     name: String,
-    tty: String = defaultTerminal,
+    port: Int = defaultTerminal,
     bootloaderContent: InputStream = Resource(defaultBootloaderPath).openStream(),
     kernelContent: InputStream = Resource(defaultKernelPath).openStream(),
     filesystemContent: InputStream = Resource(defaultFilesystemPath).openStream(),
@@ -58,7 +54,7 @@ class VirtARM(
 ) : Module(parent, name) {
 
     companion object {
-        const val defaultTerminal = "socat:"
+        const val defaultTerminal = UartNetworkTerminal.DEFAULT_PORT
         const val defaultBootloaderPath = "binaries/u-boot.bin"
         const val defaultKernelPath = "binaries/uImage"
         const val defaultSymbolsPath = "binaries/System.map"
@@ -69,10 +65,10 @@ class VirtARM(
                 "bootm 1000000\n"
 
         // use static method because clean load most probably didn't require for Kopycat library manager loading
-        fun clean(parent: Module?, name: String, tty: String) = VirtARM(
+        fun clean(parent: Module?, name: String, port: Int) = VirtARM(
                 parent,
                 name,
-                tty = tty,
+                port = port,
                 bootloaderContent = emptyInputStream,
                 kernelContent = emptyInputStream,
                 filesystemContent = emptyInputStream,
@@ -83,7 +79,7 @@ class VirtARM(
     constructor(
             parent: Module?,
             name: String,
-            tty: String = defaultTerminal,
+            port: Int = defaultTerminal,
             bootloaderContentPath: String,
             kernelContentPath: String,
             filesystemContentPath: String,
@@ -92,7 +88,7 @@ class VirtARM(
     ) : this(
             parent,
             name,
-            tty,
+            port,
             bootloaderContentPath.toFileInputStream(),
             kernelContentPath.toFileInputStream(),
             filesystemContentPath.toFileInputStream(),
@@ -100,11 +96,11 @@ class VirtARM(
             bootloaderCmd)
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS32)
-        val irq = Bus("irq", BUS32)
-        val rx_bus = Bus("rx_bus", UART_SLAVE_BUS_SIZE)
-        val tx_bus = Bus("tx_bus", UART_MASTER_BUS_SIZE)
-        val nand = Bus("nand", NAND_BUS_SIZE)
+        val mem = Bus("mem")
+        val irq = Bus("irq")
+        val rx_bus = Bus("rx_bus")
+        val tx_bus = Bus("tx_bus")
+        val nand = Bus("nand")
     }
 
     override val buses = Buses()
@@ -136,7 +132,7 @@ class VirtARM(
     private val dbg = ARMDebugger(this, "dbg")
 
     val uart = NS16550(this, "serial", Datatype.DWORD)
-    val term = UartSerialTerminal(this, "term", tty)
+    val term = UartNetworkTerminal(this, "term", port)
 
     init {
         if (bootloaderCmd != null) {

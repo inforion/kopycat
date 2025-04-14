@@ -28,12 +28,12 @@ package ru.inforion.lab403.kopycat.modules.atom2758
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.common.extensions.int
+import ru.inforion.lab403.common.logging.CONFIG
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.modules.common.pci.PciBridge
-import java.util.logging.Level.CONFIG
-import java.util.logging.Level.FINE
 
 /**
  * Intel Atom Processor C2000 Product Family for Microserver
@@ -42,7 +42,7 @@ import java.util.logging.Level.FINE
 class CUNIT(parent: Module, name: String) : PciBridge(
     parent, name, 0x8086, 0x1F18, secondaryBusNumber = 1) {
 
-    val msg = ports.Master("msg", MESSAGE_BUS_SIZE)  // master access to whole bus
+    val msg = ports.Port("msg")  // master access to whole bus
 
     val CUNIT_MSG_DATA_REG = PCI_CONF_FUNC_WR(0xD4, DWORD, "CUNIT_MSG_DATA_REG", level = FINE)
     val CUNIT_MSG_CTRL_REG_EXT = PCI_CONF_FUNC_WR(0xD8, DWORD, "CUNIT_MSG_CTRL_REG_EXT", level = FINE)

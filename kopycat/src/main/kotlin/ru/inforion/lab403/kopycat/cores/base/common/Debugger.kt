@@ -27,7 +27,7 @@ package ru.inforion.lab403.kopycat.cores.base.common
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.*
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint.Access.*
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
@@ -36,14 +36,13 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Status.CORE_EXECUTED
 import ru.inforion.lab403.kopycat.cores.base.enums.Status.NOT_EXECUTED
 import ru.inforion.lab403.kopycat.cores.base.exceptions.BreakpointException
 import ru.inforion.lab403.kopycat.cores.base.extensions.*
-import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
 import ru.inforion.lab403.kopycat.interfaces.IDebugger
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.settings
 import java.math.BigInteger
 import java.util.concurrent.locks.ReentrantLock
 import kotlin.concurrent.withLock
-import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * {RU}
@@ -71,24 +70,23 @@ open class Debugger(
     }
 
     inner class Ports : ModulePorts(this) {
-        val breakpoint = Slave("breakpoint", dbgAreaSize)
-        val reader = Master("reader", dbgAreaSize)
-        val trace = Master("trace", TRACER_BUS_SIZE)
+        val breakpoint = Port("breakpoint")
+        val reader = Port("reader")
+        val trace = Port("trace")
     }
 
     final override val ports = Ports()
 
     val breakpoints = BreakpointController()
 
-    private inline fun checkHit(ea: ULong, access: Breakpoint.Access, block: (bpt: Breakpoint) -> Unit): Boolean {
+    private inline fun checkHit(ea: ULong, size: Int, access: Breakpoint.Access, block: (bpt: Breakpoint) -> Unit) {
         if (isRunning) {
-            val bpt = breakpoints.lookup(ea) ?: return false
-            if (bpt.check(access)) {
+            val bpt = breakpoints.lookup(ea, size, access) ?: return
+            if (access != EXEC || ea >= bpt.range.first) {
                 bpt.onBreak?.invoke(ea)
                 block(bpt)  // may raise exception do not rearrange!
             }
         }
-        return false
     }
 
     private val BRK_SPACE = object : Area(ports.breakpoint, 0u, dbgAreaSize - 1u, "BRK_SPACE", ACCESS.R_W, true) {
@@ -99,9 +97,26 @@ open class Debugger(
         // For fetch we should stop core before instruction execution but for read and write
         // instruction must be executed and then core stops. Reason of this is to make possible
         // pass breakpoint IDA Pro disassembler.
-        override fun beforeFetch(from: MasterPort, ea: ULong) = checkHit(ea, EXEC) { throw BreakpointException(it) }
-        override fun beforeRead(from: MasterPort, ea: ULong) = checkHit(ea, READ) { isRunning = false }
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = checkHit(ea, WRITE) { isRunning = false }
+        override fun beforeFetch(from: Port, ea: ULong, size: Int): Boolean {
+            checkHit(ea, size, EXEC) { throw BreakpointException(it) }
+            return false
+        }
+
+        override fun beforeRead(from: Port, ea: ULong, size: Int): Boolean {
+            checkHit(ea, size, READ) { bpt ->
+                log.fine { bpt }
+                isRunning = false
+            }
+            return false
+        }
+
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean {
+            checkHit(ea, size, WRITE) { bpt ->
+                log.fine { bpt }
+                isRunning = false
+            }
+            return false
+        }
     }
 
     private val lock = ReentrantLock()
@@ -199,7 +214,7 @@ open class Debugger(
         open fun step() = core.step().resume
 
         fun epilog() {
-            val deltaTimeMilliSec = Duration.milliseconds(currentTimeMillis - startTime)
+            val deltaTimeMilliSec = (currentTimeMillis - startTime).milliseconds
             if (deltaTimeMilliSec > settings.printEmulatorRateThreshold) {
                 val kips = steps / deltaTimeMilliSec.inWholeMilliseconds
                 log.fine { "Emulation executed %,d steps for %s [%,d KIPS]".format(steps, deltaTimeMilliSec, kips) }
@@ -344,22 +359,16 @@ open class Debugger(
      * {RU}
      * Установка точки останова (Breakpoint)
      *
-     * @param bpType тип точки останова (один из вариантов GDB_BPT.: HARDWARE/READ/WRITE/ACCESS/SOFTWARE)
-     * @param address адрес установки точки останова
+     * @param access тип точки останова
+     * @param range интервал адресов установки точки останова
      * @param comment необязательный комментарий
      *
      * @return результат установки точки останова (true/false)
      * {RU}
      */
-    final override fun bptSet(bpType: BreakpointType, address: ULong, comment: String?): Boolean {
-        log.finer { "Setup breakpoint at address=0x%08X".format(address.long) }
-        return when (bpType) {
-            BreakpointType.HARDWARE -> breakpoints.add(address, EXEC)
-            BreakpointType.READ -> breakpoints.add(address, READ)
-            BreakpointType.WRITE -> breakpoints.add(address, WRITE)
-            BreakpointType.ACCESS -> breakpoints.add(address, RW)
-            BreakpointType.SOFTWARE -> breakpoints.add(address, EXEC)
-        }
+    final override fun bptSet(access: Breakpoint.Access, range: ULongRange, comment: String?): Boolean {
+        log.finer { "Setup breakpoint at address=0x${range.hex8}" }
+        return breakpoints.add(range, access, comment)
     }
 
     /**

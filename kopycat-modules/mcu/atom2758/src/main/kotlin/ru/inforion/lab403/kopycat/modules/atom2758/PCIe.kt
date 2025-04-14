@@ -25,12 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.modules.atom2758
 
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
-import java.util.logging.Level.CONFIG
 
 class PCIe(parent: Module, name: String, deviceId: Int) : PciDevice(parent, name, 0x8086, deviceId) {
     val BAR_10 = PCI_BAR(0x10, DWORD, "BAR_10")

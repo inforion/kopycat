@@ -31,17 +31,15 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.msp430.hardware.processors.MSP430COP
 import ru.inforion.lab403.kopycat.cores.msp430.hardware.processors.MSP430CPU
-import ru.inforion.lab403.kopycat.modules.BUS16
-
 
 class MSP430Core constructor(parent: Module, name: String, frequency: Long):
         ACore<MSP430Core, MSP430CPU, MSP430COP>(parent, name, frequency, 1.0) {
 
     inner class Buses: ModuleBuses(this) {
-        val mem = Bus("mem", BUS16)
+        val mem = Bus("mem")
     }
     inner class Ports : ModulePorts(this) {
-        val mem = Proxy("mem", BUS16)
+        val mem = Proxy("mem")
     }
 
     override val buses = Buses()

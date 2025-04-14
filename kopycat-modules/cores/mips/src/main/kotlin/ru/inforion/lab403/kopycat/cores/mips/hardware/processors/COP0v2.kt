@@ -28,6 +28,7 @@
 package ru.inforion.lab403.kopycat.cores.mips.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
@@ -35,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.mips.enums.ExcCode
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException
 import ru.inforion.lab403.kopycat.cores.mips.exceptions.MipsHardwareException.*
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
-import java.util.logging.Level.INFO
 
 class COP0v2(core: MipsCore, name: String) : ACOP0(core, name) {
     companion object {

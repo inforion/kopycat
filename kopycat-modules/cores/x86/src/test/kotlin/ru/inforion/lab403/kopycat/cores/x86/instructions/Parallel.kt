@@ -25,13 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions
 
-import org.junit.Assert
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86FPU
 import ru.inforion.lab403.kopycat.interfaces.ine
 import unicorn.Unicorn
 import java.math.BigInteger
+import kotlin.test.assertEquals
 
 internal class Parallel(val test: AX86InstructionTest, private val unicorn: UnicornEmu) {
     /**
@@ -138,24 +138,24 @@ internal class Parallel(val test: AX86InstructionTest, private val unicorn: Unic
     }
 
     private fun assertRegister(name: String, u: ULong, kc: ULong) =
-        Assert.assertEquals(
-            "${test.x86.cpu.insn} -> $name mismatch: 0x${kc.hex} != 0x${u.hex}",
+        assertEquals(
             u,
             kc,
+            "${test.x86.cpu.insn} -> $name mismatch: 0x${kc.hex} != 0x${u.hex}",
         )
 
     private fun assertRegister(name: String, u: BigInteger, kc: BigInteger) =
-        Assert.assertEquals(
-            "${test.x86.cpu.insn} -> $name mismatch: 0x${kc.hex} != 0x${u.hex}",
+        assertEquals(
             u,
             kc,
+            "${test.x86.cpu.insn} -> $name mismatch: 0x${kc.hex} != 0x${u.hex}",
         )
 
     private fun assertFlag(name: String, u: Boolean, kc: Boolean) =
-        Assert.assertEquals(
-            "${test.x86.cpu.insn} -> flag $name mismatch: $kc != $u",
+        assertEquals(
             u,
             kc,
+            "${test.x86.cpu.insn} -> flag $name mismatch: $kc != $u",
         )
 
     fun assert(
@@ -231,10 +231,10 @@ internal class Parallel(val test: AX86InstructionTest, private val unicorn: Unic
         val expected = unicorn.ine(addr, size)
         val actual = test.core.ine(addr, size)
 
-        Assert.assertEquals(
-            "${test.x86.cpu.insn} -> memory mismatch: ${expected.hex} != ${actual.hex}",
+        assertEquals(
             expected,
             actual,
+            "${test.x86.cpu.insn} -> memory mismatch: ${expected.hex} != ${actual.hex}",
         )
     }
 

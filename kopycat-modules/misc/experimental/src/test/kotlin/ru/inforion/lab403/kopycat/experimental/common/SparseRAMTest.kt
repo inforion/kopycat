@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.experimental.common
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.hexlify
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.interfaces.inl

@@ -29,6 +29,7 @@ import ru.inforion.lab403.common.extensions.toFile
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.common.logging.INFO
+import ru.inforion.lab403.common.logging.SEVERE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
@@ -53,27 +54,24 @@ import ru.inforion.lab403.kopycat.runtime.funcall.FunQueuedUtils
 import ru.inforion.lab403.kopycat.runtime.abi.x64AbiSystemV
 import ru.inforion.lab403.kopycat.experimental.linux.biosless.BioslessDevice
 import ru.inforion.lab403.kopycat.library.types.Resource
-import ru.inforion.lab403.kopycat.modules.BUS16
-import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.BUS36
 import ru.inforion.lab403.kopycat.modules.BUS64
 import ru.inforion.lab403.kopycat.modules.atom2758.Atom2758
 import ru.inforion.lab403.kopycat.modules.atom2758.L_APIC
-import ru.inforion.lab403.kopycat.modules.atom2758.e1000.sources.EthernetOverTcpSource
-import ru.inforion.lab403.kopycat.modules.atom2758.sata.DiskInfo
+import ru.inforion.lab403.kopycat.modules.common.e1000.sources.EthernetOverTcpSource
+import ru.inforion.lab403.kopycat.modules.common.sata.DiskInfo
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_bus
 import ru.inforion.lab403.kopycat.modules.cores.x64Debugger
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.cores.x86Debugger
 import ru.inforion.lab403.kopycat.modules.demolinux.linux.Linux040302Top
 import ru.inforion.lab403.kopycat.modules.memory.RAM
-import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
+import ru.inforion.lab403.kopycat.modules.terminals.UartNetworkTerminal
 import ru.inforion.lab403.kopycat.modules.tracer.DynamicTracer
 import ru.inforion.lab403.kopycat.runtime.analyzer.stack.StackAnalyzer
 import ru.inforion.lab403.kopycat.runtime.analyzer.stack.tracer
 import ru.inforion.lab403.kopycat.runtime.analyzer.stack.x86StackAnalyzerCore
 import java.io.RandomAccessFile
-import java.util.logging.Level
 import kotlin.io.path.Path
 import kotlin.io.path.div
 import kotlin.io.path.invariantSeparatorsPathString
@@ -86,7 +84,7 @@ class DemoLinux(
     /**
      * Default CPU terminal on TX/RX bus
      */
-    tty: String? = null,
+    port: Int? = null,
 
     /**
      * Use x86Debugger
@@ -117,6 +115,13 @@ class DemoLinux(
         val resourceRootPath = this::class.classResourcePath
     }
 
+    inner class Ports : ModulePorts(this) {
+        val io = Port("io")
+    }
+
+    @DontAutoSerialize
+    override val ports = Ports()
+
     @DontAutoSerialize
     private val packetSourceData: PacketSourceData? = parsePacketSourceData(packetSource, Module.log)
 
@@ -135,7 +140,7 @@ class DemoLinux(
     // Allow large bzImages
     override val ramdiskAddress: ULong = 0x800_0000uL
 
-    val term = UartSerialTerminal(this, "term", tty)
+    val term = UartNetworkTerminal(this, "term", port, dummy=strictExecution)
 
     val dbg = if (x32dbg) x86Debugger(this, "dbg") else x64Debugger(this, "dbg", BUS64)
     private val trc = ComponentTracer<x86Core>(this, "trc")
@@ -158,8 +163,8 @@ class DemoLinux(
     )
 
     private val diskPathOrNull = diskPathList
-                                        .map { it.toFile() }
-                                        .find { it.exists() }
+        .map { it.toFile() }
+        .find { it.exists() }
 
     @DontAutoSerialize
     val disk = diskPathOrNull?.let { path ->
@@ -168,12 +173,12 @@ class DemoLinux(
             "disk_external",
             RandomAccessFile(path, "rw"),
         )
-    } ?: let { 
+    } ?: let {
         log.warning {
             val diskPaths = diskPathList.joinToString("\n") { "- $it" }
             "No disk at found. No disk will be connected. Searched in:\n$diskPaths"
         }
-        null 
+        null
     }
 
     private val zerodisk = RAM(
@@ -193,32 +198,13 @@ class DemoLinux(
 
     private val memoryLayout = buildMemoryLayout()
 
-    private val ioPorts = object : Module(this@DemoLinux, "ioports") {
-        override val ports = object : ModulePorts(this) {
-            val io = Slave("io", BUS16)
-        }
-
-        // Used by SeaBIOS
-        private val fastA20Gate = Register(ports.io, 0x92uL, Datatype.BYTE, "fastA20Gate", level = Level.SEVERE)
-        private val qemuPortSel = Register(ports.io, 0x510uL, Datatype.BYTE, "qemuPortSel", level = Level.SEVERE)
-        private val qemuPortData = Register(ports.io, 0x511uL, Datatype.BYTE, "qemuPortData", level = Level.SEVERE)
-
-        // Linux: arch/x86/boot/pm.c
-        private val x87Reset = Register(ports.io, 0xF1uL, Datatype.BYTE, "x87Reset", level = Level.SEVERE)
-
-        // Linux: arch/x86/boot/compressed/misc.c
-        private val vidPort1 = Register(ports.io, 0x3d4uL, Datatype.BYTE, "vidPort1", level = Level.SEVERE)
-        private val vidPort2 = Register(ports.io, 0x3d5uL, Datatype.BYTE, "vidPort2", level = Level.SEVERE)
-    }
-
-
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS36)
-        val io = Bus("io", BUS16)
+        val mem = Bus("mem")
+        val io = Bus("io")
         val pci = pci_bus("pci")
 
-        val rx_bus = Bus("rx_bus", BUS32)
-        val tx_bus = Bus("tx_bus", BUS32)
+        val rx_bus = Bus("rx_bus")
+        val tx_bus = Bus("tx_bus")
     }
 
     override val buses = Buses()
@@ -234,6 +220,15 @@ class DemoLinux(
 
         queueApi.forceClearState()
     }
+
+    // Used by SeaBIOS
+    private val fastA20Gate = Register(ports.io, 0x92uL, Datatype.BYTE, "fastA20Gate", level = SEVERE)
+    private val qemuPortSel = Register(ports.io, 0x510uL, Datatype.BYTE, "qemuPortSel", level = SEVERE)
+    private val qemuPortData = Register(ports.io, 0x511uL, Datatype.BYTE, "qemuPortData", level = SEVERE)
+
+    // Linux: arch/x86/boot/compressed/misc.c
+    private val vidPort1 = Register(ports.io, 0x3d4uL, Datatype.BYTE, "vidPort1", level = SEVERE)
+    private val vidPort2 = Register(ports.io, 0x3d5uL, Datatype.BYTE, "vidPort2", level = SEVERE)
 
     init {
         dbg.ports.breakpoint.connect(atom2758.x86.buses.virtual)
@@ -253,7 +248,7 @@ class DemoLinux(
 
         atom2758.pit.divider = 20uL
 
-        ioPorts.ports.io.connect(buses.io)
+        ports.io.connect(buses.io)
 
         atom2758.sata2.connect(
             DiskInfo(
@@ -293,7 +288,7 @@ class DemoLinux(
             it.second.connect(buses.mem, it.first)
         }
 
-        
+
         log.info { "[DEMO TOP] Loading bzImage: $bzImageName" }
         log.info { "[DEMO TOP] Loading initRd : $initRdName" }
 

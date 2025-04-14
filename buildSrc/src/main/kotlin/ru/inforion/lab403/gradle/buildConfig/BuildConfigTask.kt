@@ -49,8 +49,10 @@ open class BuildConfigTask : DefaultTask() {
         }
     }
 
+    override fun getGroup() = "kopycat"
+
     @Internal
-    val rootProjectDir = project.rootProject.projectDir
+    val rootProjectDir: File = project.rootProject.projectDir
 
     /**
      * Directory for codegen files
@@ -79,15 +81,8 @@ open class BuildConfigTask : DefaultTask() {
     }
 
     /**
-     * Path to a bunch of prebuild module's libraries.
-     * For example, `production/modules`
-     */
-    @Input
-    var kcModuleLibraries = "${rootProjectDir / "production/modules"}"
-
-    /**
      * Actual library for the module
-     * (name of directory in the [kcModuleLibraries])
+     * (name of directory in the e.g. `production/modules` directory)
      */
     @Input
     lateinit var kcLibraryDirectory: String
@@ -138,7 +133,7 @@ open class BuildConfigTask : DefaultTask() {
      *
      * Sources:
      * 1. Default arguments
-     * 2. Special variables (e.g. kcTopClass, kcModuleLibraries)
+     * 2. Special variables (e.g. kcTopClass)
      * 3. kcArguments
      */
     private fun prepareArguments(data: BuildConfigData) = linkedMapOf<String, String?>().also { arguments ->
@@ -154,8 +149,6 @@ open class BuildConfigTask : DefaultTask() {
         }
 
         arguments["-n"] = getKcTopClassFromFull(data.fullTopClass)
-        arguments["-y"] = kcModuleLibraries
-        arguments["-l"] = kcLibraryDirectory
         if (data.kcConstructorArgumentsString.isNotEmpty()) {
             arguments["-p"] = data.kcConstructorArgumentsString
         }

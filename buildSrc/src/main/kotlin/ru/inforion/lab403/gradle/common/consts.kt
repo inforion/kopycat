@@ -38,7 +38,6 @@ const val cleanTaskIdentifier = "clean"
 const val jarTaskIdentifier = "jar"
 
 const val implementation = "implementation"
-const val testImplementation = "testImplementation"
 
 const val jitpackURL = "https://jitpack.io"
 

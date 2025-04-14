@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.veos.filesystems
 
-import org.jetbrains.kotlin.backend.common.pop
 import ru.inforion.lab403.common.extensions.hexlify
 import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
@@ -104,7 +103,7 @@ class PseudoSocketFile(val port: Int, val isClient: Boolean = false) : ISocketFi
         if (acceptors.isEmpty()) // && nonblocking
             throw IONotReadyError(desc)
         log.fine { "[$address]: Accepted client ${acceptors.first().address}" }
-        return acceptors.pop()
+        return acceptors.removeAt(acceptors.size - 1)
     }
 
     override fun read(data: ByteArray): Int {

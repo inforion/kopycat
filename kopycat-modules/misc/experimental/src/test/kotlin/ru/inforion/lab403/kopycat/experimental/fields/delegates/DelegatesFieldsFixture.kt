@@ -32,11 +32,10 @@ import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.offsetField
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IMemoryRef
 import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IOffsetable
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 
 class DelegatesFieldsFixture(parent: Module, name: String) : Module(parent, name) {
-    val dmam = ports.Master("dmam", BUS32)
+    val dmam = ports.Port("dmam")
 
     inner class AbsoluteData : IMemoryRef {
         // For absolute fields delegates

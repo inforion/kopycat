@@ -35,6 +35,6 @@ class Fldl2t(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperan
     override val mnem = "fldl2t"
 
     override fun executeFPUInstruction() {
-        (op1 as x86FprRegister).push(core, LongDouble.log2_10(core.fpu.fwr.FPUControlWord).ieee754AsUnsigned())
+        (op1 as x86FprRegister).push(core, LongDouble.log2_10(core.fpu.softfloat).ieee754AsUnsigned())
     }
 }

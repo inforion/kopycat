@@ -28,6 +28,7 @@
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Debugger
@@ -39,13 +40,10 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.interfaces.IFetchReadWrite
-import ru.inforion.lab403.kopycat.modules.BUS12
 import ru.inforion.lab403.kopycat.modules.BUS16
-import ru.inforion.lab403.kopycat.modules.BUS28
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.elanSC520.SAM.TARGET_DEVICE.*
 import ru.inforion.lab403.kopycat.modules.elanSC520.SAM.TARGET_DEVICE.SDRAM
-import java.util.logging.Level.FINER
 
 /**
  *
@@ -113,25 +111,25 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val x5mem = Slave("x5mem", BUS32.ulong)  // internal AMD memory bus
-        val x5io = Slave("x5io", BUS16.ulong)  // internal AMD IO bus
+        val x5mem = Port("x5mem")  // internal AMD memory bus
+        val x5io = Port("x5io")  // internal AMD IO bus
 
         // SAM has config. regs in MMCR area
         // This area should be connected obviously to mmcro :)
-        val mmcr_s = Slave("mmcr_s", BUS12.ulong)
-        val gpio_s = Slave("gpio_s", BUS16.ulong)
+        val mmcr_s = Port("mmcr_s")
+        val gpio_s = Port("gpio_s")
 
         // Output buses from SAM after ADU (address decode unit)
-        val gpcs = masters(8, "gpcs")
-        val bootcs = Master("bootcs", BUS32.ulong, onError = LOGGING)
-        val romcs = masters(2, "romcs", BUS16.ulong)
-        val sdram = Master("sdram", BUS28.ulong)
+        val gpcs = ports(8, "gpcs")
+        val bootcs = Port("bootcs", onError = LOGGING)
+        val romcs = ports(2, "romcs")
+        val sdram = Port("sdram")
 
-        val mmcr_m = Master("mmcr_m", BUS12.ulong, onError = LOGGING)  // output port
-        val gpio_m = Master("gpio_m", BUS16.ulong, onError = EXCEPTION)  // output port
+        val mmcr_m = Port("mmcr_m", onError = LOGGING)  // output port
+        val gpio_m = Port("gpio_m", onError = EXCEPTION)  // output port
 
-        val pci_mem = Master("pci_mem", BUS32.ulong, onError = EXCEPTION)
-        val pci_io = Master("pci_io", BUS16.ulong, onError = LOGGING)
+        val pci_mem = Port("pci_mem", onError = EXCEPTION)
+        val pci_io = Port("pci_io", onError = LOGGING)
     }
 
     override val ports = Ports()
@@ -197,7 +195,7 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
         }
     }
 
-    private inner class PARx(port: SlavePort, val index: Int) :
+    private inner class PARx(port: Port, val index: Int) :
             Register(port, 0x88uL + 0x04u * index.uint, DWORD, "PAR$index") {
 
         val TARGET by field(31..29)
@@ -287,7 +285,7 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
 
     data class Region(
             val index: Int,
-            val port: MasterPort,
+            val port: Port,
             val range: ULongRange,
             val priority: Int,
             val executable: Boolean,
@@ -299,7 +297,7 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
 
         constructor(
                 index: Int,
-                port: MasterPort,
+                port: Port,
                 base: ULong,
                 size: ULong,
                 priority: Int,
@@ -318,7 +316,7 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = port.write(ea + offset, ss, size, value)
     }
 
-    inner class SAM_SPACE(port: SlavePort, size: ULong, name: String) : Area(port, 0u, size - 1u, name, ACCESS.R_W) {
+    inner class SAM_SPACE(port: Port, size: ULong, name: String) : Area(port, 0u, size - 1u, name, ACCESS.R_W) {
 
         private val mapping = mutableListOf<Region>()
 
@@ -326,7 +324,7 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
 
         private var accessedRegion: Region? = null
 
-        private fun beforeFetchOrRead(from: MasterPort, ea: ULong): Boolean {
+        private fun beforeFetchOrRead(from: Port, ea: ULong): Boolean {
             val region = regionByAddress(ea)
 
             if (region == null) {
@@ -342,10 +340,10 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
             return true
         }
 
-        override fun beforeFetch(from: MasterPort, ea: ULong) = beforeFetchOrRead(from, ea)
-        override fun beforeRead(from: MasterPort, ea: ULong) = beforeFetchOrRead(from, ea)
+        override fun beforeFetch(from: Port, ea: ULong, size: Int) = beforeFetchOrRead(from, ea)
+        override fun beforeRead(from: Port, ea: ULong, size: Int) = beforeFetchOrRead(from, ea)
 
-        override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean {
+        override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean {
             val region = regionByAddress(ea)
 
             if (region == null) {
@@ -371,7 +369,7 @@ class SAM(parent: Module, name: String) : Module(parent, name) {
 
         private fun addMapping(
                 index: Int,
-                port: MasterPort,
+                port: Port,
                 base: ULong,
                 size: ULong,
                 priority: Int,
