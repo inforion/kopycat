@@ -25,16 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
-import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.logging.FINER
+import ru.inforion.lab403.common.logging.FINEST
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
-import ru.inforion.lab403.kopycat.modules.BUS12
-import ru.inforion.lab403.kopycat.modules.BUS16
-import java.util.logging.Level
-import java.util.logging.Level.FINER
 
 
 class DMAC(parent: Module, name: String) : Module(parent, name) {
@@ -43,8 +40,8 @@ class DMAC(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mmcr = Slave("mmcr", BUS12.ulong)
-        val io = Slave("io", BUS16.ulong)
+        val mmcr = Port("mmcr")
+        val io = Port("io")
     }
 
     override val ports = Ports()
@@ -65,15 +62,15 @@ class DMAC(parent: Module, name: String) : Module(parent, name) {
     val SLDMACBP = Register(ports.io,0x000Cu, BYTE, name = "SLDMACBP")
     val SLDMARST = Register(ports.io,0x000Du, BYTE, name = "SLDMARST")
     val SLDMATMP = Register(ports.io,0x000Du, BYTE, name = "SLDMATMP")
-    val SLDMAMSKRST = Register(ports.io,0x000Eu, BYTE, name = "SLDMAMSKRST", level = Level.FINEST)
+    val SLDMAMSKRST = Register(ports.io,0x000Eu, BYTE, name = "SLDMAMSKRST", level = FINEST)
     val SLDMAGENMSK = Register(ports.io,0x000Fu, BYTE, name = "SLDMAGENMSK")
 
     // DMA Page and General Registers
-    val GPDMAGR0 = Register(ports.io,0x0080u, BYTE, name = "GPDMAGR0", level = Level.FINEST)
+    val GPDMAGR0 = Register(ports.io,0x0080u, BYTE, name = "GPDMAGR0", level = FINEST)
     val GPDMA2PG = Register(ports.io,0x0081u, BYTE, name = "GPDMA2PG")
     val GPDMA3PG = Register(ports.io,0x0082u, BYTE, name = "GPDMA3PG")
     val GPDMA1PG = Register(ports.io,0x0083u, BYTE, name = "GPDMA1PG")
-    val GPDMAGR1 = Register(ports.io,0x0084u, BYTE, name = "GPDMAGR1", level = Level.FINEST)
+    val GPDMAGR1 = Register(ports.io,0x0084u, BYTE, name = "GPDMAGR1", level = FINEST)
     val GPDMAGR2 = Register(ports.io,0x0085u, BYTE, name = "GPDMAGR2")
     val GPDMAGR3 = Register(ports.io,0x0086u, BYTE, name = "GPDMAGR3")
     val GPDMA0PG = Register(ports.io,0x0087u, BYTE, name = "GPDMA0PG")

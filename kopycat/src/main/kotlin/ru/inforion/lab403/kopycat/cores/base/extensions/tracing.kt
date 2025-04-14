@@ -28,7 +28,7 @@
 package ru.inforion.lab403.kopycat.cores.base.extensions
 
 import ru.inforion.lab403.common.extensions.truth
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 
 const val TRACER_EVENT_PRE_EXECUTE = 0
 const val TRACER_EVENT_POST_EXECUTE = 1
@@ -64,26 +64,26 @@ const val TRACER_REGISTER_EA: ULong = 0uL
 /**
  * {RU}Запросить выполнение хука трассировщика до исполнения инструкции{RU}
  */
-inline fun MasterPort.preExecute(status: Int): ULong = read(TRACER_REGISTER_EA, TRACER_EVENT_PRE_EXECUTE, status)
+inline fun Port.preExecute(status: Int): ULong = read(TRACER_REGISTER_EA, TRACER_EVENT_PRE_EXECUTE, status)
 
 /**
  * {RU}Запросить выполнение хука трассировщика после исполнения инструкции{RU}
  */
-inline fun MasterPort.postExecute(status: Int): ULong = read(TRACER_REGISTER_EA, TRACER_EVENT_POST_EXECUTE, status)
+inline fun Port.postExecute(status: Int): ULong = read(TRACER_REGISTER_EA, TRACER_EVENT_POST_EXECUTE, status)
 
 /**
  * {RU}Запросить выполнение хука трассировщика перед запуском эмуляции дебаггером{RU}
  */
-inline fun MasterPort.start(status: Int) = read(TRACER_REGISTER_EA, TRACER_EVENT_START, status)
+inline fun Port.start(status: Int) = read(TRACER_REGISTER_EA, TRACER_EVENT_START, status)
 
 /**
  * {RU}Запросить выполнение хука трассировщика после остановки эмуляции дебаггером{RU}
  */
-inline fun MasterPort.stop(status: Int) = read(TRACER_REGISTER_EA, TRACER_EVENT_STOP, status)
+inline fun Port.stop(status: Int) = read(TRACER_REGISTER_EA, TRACER_EVENT_STOP, status)
 
 /**
  * {RU}Запросить состояние трассировщика - включен или нет{RU}
  */
-inline fun MasterPort.working() = read(TRACER_REGISTER_EA, TRACER_EVENT_WORKING, 0).truth
+inline fun Port.working() = read(TRACER_REGISTER_EA, TRACER_EVENT_WORKING, 0).truth
 
-fun MasterPort.isTracerOk() = hasOuterConnection && access(TRACER_REGISTER_EA, -1) && working()
+fun Port.isTracerOk() = hasConnection && access(TRACER_REGISTER_EA, -1) && working()

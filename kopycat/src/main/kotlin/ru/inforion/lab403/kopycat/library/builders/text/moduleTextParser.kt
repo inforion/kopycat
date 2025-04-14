@@ -51,24 +51,13 @@ object moduleTextParser {
 
     fun getConnector(desc: String, module: Module) = getConnector(StackOfStrings(desc.split(".")), module)
 
-    fun getBusPortSize(size: Any): ULong = when (size) {
-        is String -> when {
-            size == "PIN" -> 1uL
-            size.startsWith("BUS") -> 1uL shl size.removePrefix("BUS").intByDec
-            size.startsWith("0x") -> size.removePrefix("0x").ulongByHex
-            else -> size.ulongByDec
-        }
-        is Int -> size.ulong_z
-        is Long -> size.ulong
-        else -> throw IllegalArgumentException("getBusPortSize accepts only: Int, Long, String")
-    }
-
     fun getPortType(type: String) = ModulePorts.Type.valueOf(type)
 
     fun getOffset(data: Any): ULong = when (data) {
         is Int -> data.ulong_z
+        is Double -> data.ulong // Gson
         is Long -> data.ulong
         is String -> data.removePrefixOrNull("0x")?.ulongByHex ?: data.ulongByDec
-        else -> throw IllegalArgumentException("getOffset accepts only: Int, Long, String")
+        else -> throw IllegalArgumentException("getOffset accepts only: Int, Long, String, Double")
     }
 }

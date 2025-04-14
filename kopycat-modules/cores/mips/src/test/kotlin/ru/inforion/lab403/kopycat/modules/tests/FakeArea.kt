@@ -37,7 +37,7 @@ class FakeArea(parent: Module, name: String, val size: ULong, value: ULong): Mod
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", this@FakeArea.size)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

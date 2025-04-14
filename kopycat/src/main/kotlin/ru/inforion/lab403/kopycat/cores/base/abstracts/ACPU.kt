@@ -29,7 +29,6 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
 
@@ -46,11 +45,10 @@ abstract class ACPU<
         E: Enum<E>>(
     core: R,
     name: String,
-    val busSize: ULong = BUS32
 ) : Module(core, name) {
 
-    open inner class Ports : ModulePorts(this) {
-        open val mem = Master("mem", busSize)
+    inner class Ports : ModulePorts(this) {
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

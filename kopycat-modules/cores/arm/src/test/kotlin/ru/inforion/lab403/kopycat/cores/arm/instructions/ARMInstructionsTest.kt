@@ -25,10 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.instructions
 
-import org.junit.After
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.Assertions.assertArrayEquals
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.utils.Shell
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException
@@ -42,9 +44,17 @@ import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.interfaces.*
 import unicorn.Unicorn
 import unicorn.Unicorn.*
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+@Execution(ExecutionMode.SAME_THREAD)
 class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
+    companion object {
+        private val unicorn = Unicorn(UC_ARCH_ARM, UC_MODE_ARM).also {
+            it.reg_write(UC_ARM_REG_APSR, 0)
+        }
+    }
+
     inner class Buses: ModuleBuses(this) {
         val mem = Bus("mem")
     }
@@ -54,8 +64,6 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
     private val arm = ARMv7Core(this, "arm", 48.MHz, 1.0)
     private val ram = RAM(this, "ram", 0x2_0000)
     private val boot = RAM(this, "boot", 0x0_1000)
-    private var insnSize = 0
-    private val startAddress: ULong = 0u
 
     init {
 //        log.level = Level.SEVERE
@@ -65,23 +73,12 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         initializeAndResetAsTopInstance()
     }
 
-    private fun createUnicorn(): Unicorn {
-        val unc = Unicorn(UC_ARCH_ARM, UC_MODE_ARM)
-        unc.reg_write(UC_ARM_REG_APSR, 0)
-        return unc
-    }
-
-    private var unicorn = createUnicorn()
-
-    private fun execute(data: ByteArray, offset: Int = 0) {
-        arm.store(startAddress + insnSize.uint, data)
+    private fun execute(data: ByteArray) {
+        arm.store(0u, data)
         arm.step()
         println("%16s -> %s".format(data.hexlify(), arm.cpu.insn))
-
-        unicorn.mem_write((startAddress + insnSize.uint).long, data)
-        unicorn.emu_start((startAddress + insnSize.uint).long,(startAddress + insnSize.uint + data.size.uint + 1u).long, 0, 1)
-
-        insnSize += data.size + offset
+        unicorn.mem_write(0, data)
+        unicorn.emu_start(0, data.size.long_z, 0, 1)
     }
 
     private fun assemble(instruction: String): ByteArray {
@@ -166,8 +163,11 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         unicorn.mem_write(address.long, data.long.pack(dtyp.bytes))
     }
 
-    private fun assertRegister(num: Int, expected: ULong, actual: ULong, type: String = "GPR") =
-            Assert.assertEquals("${arm.cpu.insn} -> $type r$num error: 0x${expected.hex8} != 0x${actual.hex8}", expected, actual)
+    private fun assertRegister(num: Int, expected: ULong, actual: ULong, type: String = "GPR") = assertEquals(
+        expected,
+        actual,
+        "${arm.cpu.insn} -> $type r$num error: 0x${expected.hex8} != 0x${actual.hex8}",
+    )
 
     private fun assertRegisters() {
         assertRegister(0,  unicorn.regRead(UC_ARM_REG_R0),  arm.cpu.regs.r0.value)
@@ -188,8 +188,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
     }
 
     private fun assertFlag(chr: String, expected: ULong, actual: ULong, type: String = "Flag") {
-        Assert.assertEquals("${arm.cpu.insn} -> $type ${chr.uppercase()} error: $expected != $actual",
-                expected, actual)
+        assertEquals(expected, actual, "${arm.cpu.insn} -> $type ${chr.uppercase()} error: $expected != $actual")
     }
 
     private fun assertFlags() {
@@ -202,25 +201,33 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
     }
 
     private fun assertMemory() {
-        Assert.assertArrayEquals("${arm.cpu.insn} -> Memory error",
-                unicorn.mem_read(startAddress.long, ram.size.long_z),
-                arm.load(startAddress, ram.size))
+        assertArrayEquals(
+            unicorn.mem_read(0, ram.size.long_z),
+            arm.load(0uL, ram.size),
+            "${arm.cpu.insn} -> Memory error"
+        )
     }
 
     private fun assertException(exception: ARMHardwareException) {
         assertTrue { arm.cpu.exception === exception }
     }
 
-    @Before fun resetTest() {
+    @BeforeEach fun resetTest() {
         arm.reset()
-        unicorn.mem_map(startAddress.long, ram.size.long_z, UC_PROT_ALL)
+        unicorn.mem_map(0, ram.size.long_z, UC_PROT_ALL)
+        status()
     }
 
-    @After fun checkPC() {
-        Assert.assertEquals("Program counter error: ${unicorn.regRead(UC_ARM_REG_R15).hex8} != ${arm.cpu.pc.hex8}",
-                unicorn.regRead(UC_ARM_REG_R15), arm.cpu.pc)
+    @AfterEach fun checkPC() {
+        val pc = unicorn.regRead(UC_ARM_REG_R15)
         unicorn.emu_stop()
-        unicorn.mem_unmap(startAddress.long, ram.size.long_z)
+        unicorn.mem_unmap(0, ram.size.long_z)
+
+        assertEquals(
+            pc,
+            arm.cpu.pc,
+            "Program counter error: ${pc.hex8} != ${arm.cpu.pc.hex8}"
+        )
     }
 
     @Test fun condEQFalse() {
@@ -2907,6 +2914,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         assertMemory()
     }
     @Test fun sel6(){
+        regs()
         execute(assemble("sel lr, r1, r8"))
         assertRegisters()
         assertFlags()
@@ -2958,6 +2966,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         assertMemory()
     }
     @Test fun uxtab6(){
+        regs()
         execute(assemble("uxtab lr, r1, r8, ROR #16"))
         assertRegisters()
         assertFlags()
@@ -3008,6 +3017,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         assertMemory()
     }
     @Test fun uxtab166(){
+        regs()
         execute(assemble("uxtab16 lr, r1, r8, ROR #16"))
         assertRegisters()
         assertFlags()
@@ -3058,6 +3068,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         assertMemory()
     }
     @Test fun uxtah6(){
+        regs()
         execute(assemble("uxtah lr, r1, r8, ROR #16"))
         assertRegisters()
         assertFlags()
@@ -3262,6 +3273,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         assertMemory()
     }
     @Test fun sxtab6(){
+        regs()
         execute(assemble("sxtab lr, r1, r8, ROR #16"))
         assertRegisters()
         assertFlags()
@@ -3312,6 +3324,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         assertMemory()
     }
     @Test fun sxtab166(){
+        regs()
         execute(assemble("sxtab16 lr, r1, r8, ROR #16"))
         assertRegisters()
         assertFlags()
@@ -3362,6 +3375,7 @@ class ARMInstructionsTest: Module(null, "ARMv7InstructionTest") {
         assertMemory()
     }
     @Test fun sxtah6(){
+        regs()
         execute(assemble("sxtah lr, r1, r8, ROR #16"))
         assertRegisters()
         assertFlags()

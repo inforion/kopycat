@@ -25,17 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import ru.inforion.lab403.common.extensions.hex
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.modules.cores.device.TestCore
-import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.common.Hub
-
+import kotlin.test.assertEquals
 
 
 class HubTest : Module(null, "Test hub device") {
@@ -46,7 +44,7 @@ class HubTest : Module(null, "Test hub device") {
     class ModulePeriph(parent: Module, name: String, registers: ArrayList<ULong>, areas: ArrayList<ULongRange>) :
             Module(parent, name) {
         inner class Ports : ModulePorts(this) {
-            val mem = Slave("mem")
+            val mem = Port("mem")
         }
         override val ports = Ports()
 
@@ -61,9 +59,9 @@ class HubTest : Module(null, "Test hub device") {
     }
 
     inner class Buses : ModuleBuses(this) {
-        val busMaster = Bus("mater")
-        val busSlave1 = Bus("slave1")
-        val busSlave2 = Bus("slave2")
+        val bus1 = Bus("bus 1")
+        val bus2 = Bus("bus 2")
+        val bus3 = Bus("bus 3")
     }
     override val buses = Buses()
 
@@ -79,17 +77,17 @@ class HubTest : Module(null, "Test hub device") {
             arrayListOf(0x0000u, 0x0018u, 0x0030u),
             arrayListOf(0x1000uL..0x3000uL, 0x8000uL..0xA000uL))
 
-    private val hub = Hub(this, "hub", "out0" to BUS32, "out1" to BUS32)
+    private val hub = Hub(this, "hub", "out0", "out1")
 
     init {
-        master.ports.mem.connect(buses.busMaster)
-        hub.ports.input.connect(buses.busMaster)
+        master.ports.mem.connect(buses.bus1)
+        hub.ports.input.connect(buses.bus1)
 
-        device1.ports.mem.connect(buses.busSlave1)
-        hub.ports.outputs[0].connect(buses.busSlave1)
+        device1.ports.mem.connect(buses.bus2)
+        hub.ports.outputs[0].connect(buses.bus2)
 
-        device2.ports.mem.connect(buses.busSlave2)
-        hub.ports.outputs[1].connect(buses.busSlave2)
+        device2.ports.mem.connect(buses.bus3)
+        hub.ports.outputs[1].connect(buses.bus3)
 
         initializeAndResetAsTopInstance()
     }
@@ -97,57 +95,64 @@ class HubTest : Module(null, "Test hub device") {
     @Test
     fun writeTo2Registers() {
         master.cpu.ports.mem.write(0u, 0, 4, VALUE)
-        Assert.assertEquals(hub.ports.outputs[0].read(0u, 0, 4), VALUE)
-        Assert.assertEquals(hub.ports.outputs[1].read(0u, 0, 4), VALUE)
+        assertEquals(hub.ports.outputs[0].read(0u, 0, 4), VALUE)
+        assertEquals(hub.ports.outputs[1].read(0u, 0, 4), VALUE)
     }
 
     @Test
     fun writeTo1Registers() {
         master.cpu.ports.mem.write(0x10u, 0, 4, VALUE)
-        Assert.assertEquals(hub.ports.outputs[0].read(0x10u, 0, 4), VALUE)
+        assertEquals(hub.ports.outputs[0].read(0x10u, 0, 4), VALUE)
     }
 
-    @Test(expected = MemoryAccessError::class)
+    @Test
     fun writeTo0Registers() {
-        master.cpu.ports.mem.write(0x50u, 0, 4, VALUE)
+        assertThrows<MemoryAccessError> {
+            master.cpu.ports.mem.write(0x50u, 0, 4, VALUE)
+        }
     }
 
     @Test
     fun writeTo2Areas() {
         master.cpu.ports.mem.write(0x1500u, 0, 4, VALUE)
-        Assert.assertEquals(hub.ports.outputs[0].read(0x1500u, 0, 4), VALUE)
-        Assert.assertEquals(hub.ports.outputs[1].read(0x1500u, 0, 4), VALUE)
+        assertEquals(hub.ports.outputs[0].read(0x1500u, 0, 4), VALUE)
+        assertEquals(hub.ports.outputs[1].read(0x1500u, 0, 4), VALUE)
     }
 
     @Test
     fun writeTo1Areas() {
         master.cpu.ports.mem.write(0x7000u, 0, 4, VALUE)
-        Assert.assertEquals(hub.ports.outputs[0].read(0x7000u, 0, 4), VALUE)
+        assertEquals(hub.ports.outputs[0].read(0x7000u, 0, 4), VALUE)
     }
 
-    @Test(expected = MemoryAccessError::class)
+    @Test
     fun writeTo0Areas() {
-        master.cpu.ports.mem.write(0xB000u, 0, 4, VALUE)
+        assertThrows<MemoryAccessError> {
+            master.cpu.ports.mem.write(0xB000u, 0, 4, VALUE)
+        }
     }
 
-    @Test(expected = MemoryAccessError::class)
+    @Test
     fun readFromFrom2Registers() {
-
-        hub.ports.outputs[0].write(0x10u, 0, 4, VALUE)
-        hub.ports.outputs[1].write(0x10u, 0, 4, VALUE)
-        val data = master.cpu.ports.mem.read(0x10u, 0, 4)
-        Assert.assertEquals(data, VALUE)
+        assertThrows<MemoryAccessError> {
+            hub.ports.outputs[0].write(0x10u, 0, 4, VALUE)
+            hub.ports.outputs[1].write(0x10u, 0, 4, VALUE)
+            val data = master.cpu.ports.mem.read(0x10u, 0, 4)
+            assertEquals(data, VALUE)
+        }
     }
 
     @Test
     fun readFromFrom1Registers() {
         hub.ports.outputs[0].write(0x10u, 0, 4, VALUE)
         val data = master.cpu.ports.mem.read(0x10u, 0, 4)
-        Assert.assertEquals(data, VALUE)
+        assertEquals(data, VALUE)
     }
 
-    @Test(expected = MemoryAccessError::class)
+    @Test
     fun readFromFrom0Registers() {
-        master.cpu.ports.mem.read(0x50u, 0, 4)
+        assertThrows<MemoryAccessError> {
+            master.cpu.ports.mem.read(0x50u, 0, 4)
+        }
     }
 }

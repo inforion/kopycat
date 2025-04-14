@@ -34,10 +34,8 @@ import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.ARMDecode
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.Thumb16Decoder
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.decoders.Thumb32Decoder
 import ru.inforion.lab403.kopycat.cores.arm.instructions.AARMInstruction
-import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.modules.cores.AARMCore.InstructionSet
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
-import java.util.logging.Level
 import ru.inforion.lab403.kopycat.interfaces.*
 
 

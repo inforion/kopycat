@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.elfloader
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.unhexlify
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.elfloader.enums.ElfMachine

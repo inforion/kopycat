@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.benchmarks
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.modules.virtarm.VirtARM
@@ -38,33 +38,33 @@ class VirtARMSerializationTest {
     private fun execute() {
         val exitPoint = 0xAFFCC7C0uL
 
-        val kopycat = Kopycat(null).apply {
+        Kopycat(null).apply {
             val top = VirtARM(null, "top")
             setSnapshotsDirectory("temp")
             open(top, null, false)
+        }.use { kopycat ->
+            kopycat.reset()
+
+            kopycat.save("VirtARMSerializationTest")
+            kopycat.run { _, core -> core.pc != exitPoint }
+            assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
+
+            // This part call true restore
+            kopycat.restore()
+            kopycat.run { _, core -> core.pc != exitPoint }
+            assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
+
+            kopycat.load("VirtARMSerializationTest")
+            kopycat.run { _, core -> core.pc != exitPoint }
+            assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
+
+            kopycat.save("VirtARMSerializationTest_TLB")
+            kopycat.load("VirtARMSerializationTest_TLB")
+            kopycat.load("VirtARMSerializationTest")
+
+            kopycat.run { step, core -> core.pc != exitPoint }
+            assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
         }
-
-        kopycat.reset()
-
-        kopycat.save("VirtARMSerializationTest")
-        kopycat.run { _, core -> core.pc != exitPoint }
-        assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
-
-        // This part call true restore
-        kopycat.restore()
-        kopycat.run { _, core -> core.pc != exitPoint }
-        assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
-
-        kopycat.load("VirtARMSerializationTest")
-        kopycat.run { _, core -> core.pc != exitPoint }
-        assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
-
-        kopycat.save("VirtARMSerializationTest_TLB")
-        kopycat.load("VirtARMSerializationTest_TLB")
-        kopycat.load("VirtARMSerializationTest")
-
-        kopycat.run { step, core -> core.pc != exitPoint }
-        assert(!kopycat.hasException()) { "fault = ${kopycat.exception()}" }
     }
 
     @Test

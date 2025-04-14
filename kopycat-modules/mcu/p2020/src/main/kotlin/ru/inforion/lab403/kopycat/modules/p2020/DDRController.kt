@@ -36,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 
  
@@ -56,9 +55,9 @@ class DDRController(
     inner class Ports : ModulePorts(this) {
         val inp: Translator
             get() = filter.ports.inp
-        val outp: Master
+        val outp: Port
             get() = filter.ports.outp
-        val ctrl = Slave("ctrl", BUS32)
+        val ctrl = Port("ctrl")
     }
 
     override val ports = Ports()
@@ -116,7 +115,7 @@ class DDRController(
         else -> throw GeneralException("Wrong n: $n")
     }
 
-    inner class Filter(parent: Module) : AddressTranslator(parent, "filter", BUS32) {
+    inner class Filter(parent: Module) : AddressTranslator(parent, "filter") {
         override fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong {
             for (i in 0..3) {
                 if (ea in cs_range(i)) {

@@ -29,10 +29,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.library.types.Resource
-import ru.inforion.lab403.kopycat.modules.UART_MASTER_BUS_SIZE
-import ru.inforion.lab403.kopycat.modules.UART_SLAVE_BUS_SIZE
 import ru.inforion.lab403.kopycat.modules.cortexm0.CORTEXM0
-import ru.inforion.lab403.kopycat.modules.cortexm0.NVIC
 import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import java.io.File
@@ -46,17 +43,17 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
     constructor(parent: Module, name: String, firmware: File) : this(parent, name, firmware.inputStream())
 
     inner class Ports : ModulePorts(this) {
-        val usart1_m = Proxy("usart1_m", UART_MASTER_BUS_SIZE)
-        val usart1_s = Proxy("usart1_s", UART_SLAVE_BUS_SIZE)
+        val usart1_m = Proxy("usart1_m")
+        val usart1_s = Proxy("usart1_s")
 
-        val usart2_m = Proxy("usart2_m", UART_MASTER_BUS_SIZE)
-        val usart2_s = Proxy("usart2_s", UART_SLAVE_BUS_SIZE)
+        val usart2_m = Proxy("usart2_m")
+        val usart2_s = Proxy("usart2_s")
 
-        val gpioa_in = Proxy("gpioa_in", GPIOx.PIN_COUNT)
-        val gpioa_out = Proxy("gpioa_out", GPIOx.PIN_COUNT)
+        val gpioa_in = Proxy("gpioa_in")
+        val gpioa_out = Proxy("gpioa_out")
 
-        val gpiob_in = Proxy("gpiob_in", GPIOx.PIN_COUNT)
-        val gpiob_out = Proxy("gpiob_out", GPIOx.PIN_COUNT)
+        val gpiob_in = Proxy("gpiob_in")
+        val gpiob_out = Proxy("gpiob_out")
     }
 
     override val ports = Ports()
@@ -75,7 +72,7 @@ class STM32F042 constructor(parent: Module, name: String, vararg parts: Pair<Any
         /**
          * Interrupts request bus
          */
-        val irq = Bus("irq", NVIC.INTERRUPT_COUNT)
+        val irq = Bus("irq")
     }
 
     override val buses = Buses()

@@ -36,7 +36,7 @@ class Fscale(
     override val mnem: String = "fscale"
 
     override fun executeFPUInstruction() {
-        core.fpu.stld(0, core.fpu.stld(0).scale(core.fpu.stld(1)))
+        core.fpu.stld(0, core.fpu.stld(0).fscale(core.fpu.stld(1)))
         core.fpu.fwr.FPUStatusWord.c1 = false // TODO: ... not always the case
     }
 }

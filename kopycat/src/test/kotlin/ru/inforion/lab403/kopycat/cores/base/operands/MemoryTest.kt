@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.operands
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD

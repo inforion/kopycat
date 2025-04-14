@@ -97,7 +97,7 @@ abstract class AMemory(
             this(parent, name, size, access, verbose, data.openStream())
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", this@AMemory.size)
+        val mem = Port("mem")
     }
 
     final override val ports = Ports()

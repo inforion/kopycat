@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.interfaces
 
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 
 @Suppress("INAPPLICABLE_JVM_NAME")
 interface IFetchable {
@@ -37,10 +37,11 @@ interface IFetchable {
      *
      * @param from порт от которого пришел запрос на чтение
      * @param ea адрес по которому будет происходит чтение
+     * @param size количество байт, которое необходимо считать
      * {RU}
      */
     @JvmName("beforeFetch")
-    fun beforeFetch(from: MasterPort, ea: ULong): Boolean = true
+    fun beforeFetch(from: Port, ea: ULong, size: Int): Boolean = true
 
     /**
      * {RU}

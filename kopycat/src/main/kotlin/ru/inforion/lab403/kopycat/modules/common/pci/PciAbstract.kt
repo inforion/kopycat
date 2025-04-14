@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.common.pci
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.common.logging.logger
+import ru.inforion.lab403.common.logging.*
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -37,8 +37,6 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.unmap
 import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.serializer.loadValue
 import ru.inforion.lab403.kopycat.serializer.storeValues
-import java.util.logging.Level
-import java.util.logging.Level.*
 
 @Suppress("unused", "PropertyName", "ClassName")
 
@@ -60,7 +58,7 @@ abstract class PciAbstract(
     inner class Ports : ModulePorts(this) {
         val pci = pci_slave("pci")
 
-        val mapper = Master("mapper")
+        val mapper = Port("mapper")
     }
 
     final override val ports = Ports()
@@ -85,14 +83,14 @@ abstract class PciAbstract(
     private var ioSpaceEnabled = false
     private var memSpaceEnabled = false
 
-    open inner class PCI_BAR constructor(
+    open inner class PCI_BAR(
         reg: Int,
         datatype: Datatype,
         name: String,
         val range: Int = 0,
         val area: Int = PCI_UNDEF_AREA,
         val index: Int = -1,
-        level: Level = FINER
+        level: LogLevel = FINER,
     ) : ByteAccessRegister(ports.pci, reg.ulong_z, datatype, name, level = level) {
         internal var sizeRequested = false
         internal var base: ULong = 0u
@@ -186,7 +184,7 @@ abstract class PciAbstract(
         name: String,
         default: ULong = 0u,
         writable: Boolean,
-        level: Level
+        level: LogLevel,
     ) : ByteAccessRegister(ports.pci, reg.ulong_z, datatype, name, default, writable, level = level) {
         /**
          * Convert this offset (reg) to full PCI device address for this target
@@ -197,10 +195,10 @@ abstract class PciAbstract(
         override fun stringify() = "${address.toPCIDeviceAddress()} $name data=0x${data.hex8}"
     }
 
-    open inner class PCI_CONF_FUNC_RD(reg: Int, datatype: Datatype, name: String, default: ULong = 0u, level: Level = CONFIG) :
+    open inner class PCI_CONF_FUNC_RD(reg: Int, datatype: Datatype, name: String, default: ULong = 0u, level: LogLevel = CONFIG) :
             PCI_CONF_FUNC(reg, datatype, name, default, false, level)
 
-    open inner class PCI_CONF_FUNC_WR(reg: Int, datatype: Datatype, name: String, default: ULong = 0u, level: Level = CONFIG) :
+    open inner class PCI_CONF_FUNC_WR(reg: Int, datatype: Datatype, name: String, default: ULong = 0u, level: LogLevel = CONFIG) :
             PCI_CONF_FUNC(reg, datatype, name, default, true, level)
 
     // read simultaneously two registers

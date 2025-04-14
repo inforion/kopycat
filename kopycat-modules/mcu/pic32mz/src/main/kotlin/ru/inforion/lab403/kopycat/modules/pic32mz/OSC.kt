@@ -42,7 +42,7 @@ class OSC(parent: Module, name: String) : Module(parent, name) {
     override val variables = Variables()
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem")
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

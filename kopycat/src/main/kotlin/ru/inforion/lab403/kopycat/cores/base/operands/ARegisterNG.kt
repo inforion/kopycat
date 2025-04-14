@@ -31,7 +31,7 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.ARegistersBankNG
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 
 abstract class ARegisterNG<in T: AGenericCore>(
-        val desc: ARegistersBankNG<T>.Register,  // TODO: should be renamed to reg after NG system become the main
+        val desc: ARegistersBankNG<in T>.Register,  // TODO: should be renamed to reg after NG system become the main
         access: Access,
         dtyp: Datatype = Datatype.DWORD,
         num: Int = WRONGI

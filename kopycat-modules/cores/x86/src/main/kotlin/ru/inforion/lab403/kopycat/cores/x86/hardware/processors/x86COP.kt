@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.x86.hardware.processors
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
@@ -44,7 +45,6 @@ import ru.inforion.lab403.kopycat.cores.x86.x86utils
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.interfaces.IConstructorSerializable
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
-import java.util.logging.Level.CONFIG
 
 
 class x86COP(core: x86Core, name: String) : ACOP<x86COP, x86Core>(core, name), IAutoSerializable {

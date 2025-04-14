@@ -34,8 +34,8 @@ class Fucomi(core: x86Core, opcode: ByteArray, prefs: Prefixes, private val popN
     override val mnem = "fucomi" + if (popNumber != 0) "p" else ""
 
     override fun executeFPUInstruction() {
-        val st0 = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
-        val sti = op2.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+        val st0 = op1.extValue(core).longDouble(core.fpu.softfloat)
+        val sti = op2.extValue(core).longDouble(core.fpu.softfloat)
         when {
             st0 > sti -> {
                 core.cpu.flags.eflags.zf = false

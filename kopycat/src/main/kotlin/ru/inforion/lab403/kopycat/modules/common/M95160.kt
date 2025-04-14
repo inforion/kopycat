@@ -63,9 +63,9 @@ class M95160(parent: Module, name: String, val eeprom: File): Module(parent, nam
     }
 
     inner class Ports : ModulePorts(this) {
-        val irq = Master("irq", PIN)
-        val csi = Slave("csi", PIN)
-        val cs = Slave("cs", PIN)
+        val irq = Port("irq")
+        val csi = Port("csi")
+        val cs = Port("cs")
     }
 
     override val ports = Ports()

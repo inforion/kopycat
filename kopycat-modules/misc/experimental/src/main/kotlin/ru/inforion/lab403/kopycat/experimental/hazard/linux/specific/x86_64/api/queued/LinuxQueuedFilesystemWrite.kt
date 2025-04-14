@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.experimental.hazard.linux.specific.x86_64.api.queued
 
-import org.jetbrains.kotlin.backend.common.push
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.extensions.readAvailableBytes
 import ru.inforion.lab403.common.logging.INFO
@@ -68,7 +67,7 @@ class LinuxQueuedFilesystemWrite<T>(
     val onClose = mutableListOf<LinuxQueuedFilesystemWrite<T>.() -> Unit>()
 
     private fun fileOpen() {
-        queued.functionsQueue.push(
+        queued.functionsQueue.add(
             FunQueuedUtilsData(
                 isReadyToCall = {
                     core.pc in availablePc && threadInfoBlock() != null
@@ -124,7 +123,7 @@ class LinuxQueuedFilesystemWrite<T>(
         content: ByteArray,
         fileIterator: ULong
     ) {
-        queued.functionsQueue.push(
+        queued.functionsQueue.add(
             FunQueuedUtilsData(
                 isReadyToCall = {
                     core.pc in availablePc && threadInfoBlock() != null
@@ -180,7 +179,7 @@ class LinuxQueuedFilesystemWrite<T>(
     }
 
     private fun fileClose(filePointer: ULong) {
-        queued.functionsQueue.push(
+        queued.functionsQueue.add(
             FunQueuedUtilsData(
                 isReadyToCall = {
                     core.pc in availablePc && threadInfoBlock() != null

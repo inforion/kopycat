@@ -35,11 +35,9 @@ import ru.inforion.lab403.kopycat.consoles.kotlin.CustomArgumentCompleter
 import ru.inforion.lab403.kopycat.consoles.kotlin.completers.KopycatBptClrCompleter
 import ru.inforion.lab403.kopycat.consoles.kotlin.completers.KopycatLoadCompleter
 import ru.inforion.lab403.kopycat.consoles.kotlin.completers.KopycatRunScriptCompleter
-import ru.inforion.lab403.kopycat.cores.base.AGenericCore
-import ru.inforion.lab403.kopycat.cores.base.AGenericDebugger
-import ru.inforion.lab403.kopycat.cores.base.AGenericTracer
-import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
+import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
+import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint
 import ru.inforion.lab403.kopycat.cores.base.common.ComponentTracer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
@@ -47,12 +45,12 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_STOP
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
-import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
-import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType.*
+import ru.inforion.lab403.kopycat.cores.base.enums.GDBBreakpointType.*
 import ru.inforion.lab403.kopycat.interactive.REPL
 import ru.inforion.lab403.kopycat.interfaces.IDebugger
 import ru.inforion.lab403.kopycat.interfaces.ITracer
 import ru.inforion.lab403.kopycat.library.ModuleLibraryRegistry
+import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.runtime.analyzer.stack.StackAnalyzer
 import ru.inforion.lab403.kopycat.runtime.analyzer.stack.printer
 import ru.inforion.lab403.kopycat.serializer.Serializer
@@ -146,6 +144,8 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
                 log.info { "Change scripts directory to '$value'" }
                 field = value
             }
+
+        var scriptResourceDir = "scripts"
     }
 
     class InitializeKopycatException(description: String) : Exception(description)
@@ -228,7 +228,7 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
 
     fun open(
         name: String,
-        library: String,
+        library: String?,
         snapshot: String?,
         parameters: String?,
         gdb: GDBServer?,
@@ -241,10 +241,14 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
 
     private fun instantiate(
         name: String,
-        library: String,
+        library: String?,
         parameters: String?
     ) = try {
-        registry!![library].instantiate(null, name, "top", parameters ?: "")
+        if (library != null) {
+            registry!![library]
+        } else {
+            registry!!.findLibraryWithModule { it.name == name }!!
+        }.instantiate(null, name, "top", parameters ?: "")
     } catch (error: InvocationTargetException) {
         val prms = if (parameters != null) " with $parameters" else ""
         log.severe { "Can't create module top[$name]$prms, see stack trace below if available..." }
@@ -428,14 +432,21 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
     @CustomArgumentCompleter(KopycatRunScriptCompleter::class)
     fun runScript(filename: String) {
         val file = (Path(scriptDir) / Path(filename.addExtension(".kts"))).toFile()
-        if (file.exists()) {
-            log.severe { "Executed $file" }
+        val text = if (file.exists()) {
+            log.severe { "Run script: ${file.absolutePath}" }
+            file.readText() + "\n"
         } else {
-            log.severe { "file $file does not exist" }
+            runCatching {
+                Resource(
+                    top::class.classResourcePath / scriptResourceDir / filename.addExtension(".kts")
+                ).readBytes()
+            }.getOrElse {
+                log.severe { "Could not find script \"$filename\"" }
+                return
+            }.decodeToString()
         }
 
-        log.severe { "Run script: ${file.absolutePath}" }
-        REPL.get().silentEval(file.readText() + "\n")
+        REPL.get().silentEval(text)
     }
 
     fun restore() {
@@ -586,7 +597,82 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
 
     override fun halt() = debugger.halt()
 
-    override fun bptSet(bpType: BreakpointType, address: ULong, comment: String?) = debugger.bptSet(bpType, address)
+    override fun bptSet(
+        access: Breakpoint.Access,
+        address: ULongRange,
+        comment: String?,
+    ) = debugger.bptSet(access, address, comment)
+
+    fun bptSet(
+        access: Breakpoint.Access,
+        address: ULong,
+        comment: String? = null,
+    ) = bptSet(access, address..address, comment)
+
+    /**
+     * {RU}
+     * Установить точку останова в эмуляторе с помощью текстового режима доступа
+     *
+     * @param address адрес точки останова
+     * @param access режим срабатывания точки останова в формате (x - execute, w - write, r - read)
+     * @param comment необязательный комментарий
+     *
+     * @return true - если точка останова была установлена
+     * {RU}
+     */
+    fun bptSet(address: ULong, access: String, comment: String? = null) = bptSet(address..address, access, comment)
+
+    /**
+     * {RU}
+     * Установить точку останова в эмуляторе с помощью текстового режима доступа
+     *
+     * @param range интервал адресов точки останова
+     * @param access режим срабатывания точки останова в формате (x - execute, w - write, r - read)
+     * @param comment необязательный комментарий
+     *
+     * @return true - если точка останова была установлена
+     * {RU}
+     */
+    fun bptSet(range: ULongRange, access: String, comment: String? = null): Boolean {
+        var code = 0
+        val tmp = access.lowercase()
+        if ('r' in tmp) code = code or 0b001
+        if ('w' in tmp) code = code or 0b010
+        if ('x' in tmp) code = code or 0b100
+        return bptSet(range, code, comment)
+    }
+
+    /**
+     * {RU}
+     * Установить точку останова в эмуляторе с помощью числового режима доступа
+     *
+     * @param address адрес точки останова
+     * @param access режим срабатывания точки останова в формате POSIX (100 - execute, 010 - write, 001 - read)
+     * @param comment необязательный комментарий
+     *
+     * @return true - если точка останова была установлена
+     * {RU}
+     */
+    fun bptSet(address: ULong, access: Int, comment: String? = null) =
+        bptSet(address..address, access, comment)
+
+    /**
+     * {RU}
+     * Установить точку останова в эмуляторе с помощью числового режима доступа
+     *
+     * @param range интервал адресов точки останова
+     * @param access режим срабатывания точки останова в формате POSIX (100 - execute, 010 - write, 001 - read)
+     * @param comment необязательный комментарий
+     *
+     * @return true - если точка останова была установлена
+     * {RU}
+     */
+    fun bptSet(range: ULongRange, access: Int, comment: String? = null): Boolean {
+        val accessEnum = Breakpoint.Access.entries.find { it.flags == access }
+        requireNotNull(accessEnum) { "Can't set breakpoint at address ${range.hex8} -> access should contain chars [rwx]" }
+        return bptSet(accessEnum, range, comment)
+    }
+
     @CustomArgumentCompleter(KopycatBptClrCompleter::class)
     override fun bptClr(address: ULong) = debugger.bptClr(address)
 
@@ -643,25 +729,6 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
      */
     fun hasException(): Boolean = exception() != null
 
-    /**
-     * {RU}
-     * Установить точку останова в эмуляторе с помощью текстового режима доступа
-     *
-     * @param address адрес точки останова
-     * @param access режим срабатывания точки останова в формате (x - execute, w - write, r - read)
-     *
-     * @return true - если точка останова была установлена
-     * {RU}
-     */
-    fun bptSet(address: ULong, access: String): Boolean {
-        var code = 0
-        val tmp = access.lowercase()
-        if ('r' in tmp) code = code or 0b001
-        if ('w' in tmp) code = code or 0b010
-        if ('x' in tmp) code = code or 0b100
-        return bptSet(address, code)
-    }
-
     fun memDump(address: ULong, length: Int, filename: String, ss: Int = 0) {
         val batchSize = 1 * 1024 * 1024
         val batches = length / batchSize
@@ -677,31 +744,6 @@ class Kopycat constructor(var registry: ModuleLibraryRegistry?) : IDebugger, Clo
                 it.write(core.load(iterAddr, remain, ss))
             }
         }
-    }
-
-    /**
-     * {RU}
-     * Установить точку останова в эмуляторе с помощью числового режима доступа
-     *
-     * @param address адрес точки останова
-     * @param access режим срабатывания точки останова в формате POSIX (100 - execute, 010 - write, 001 - read)
-     *
-     * @return true - если точка останова была установлена
-     * {RU}
-     */
-    fun bptSet(address: ULong, access: Int): Boolean {
-        var type: BreakpointType? = null
-        if (access[0] == 1)
-            type = READ
-        if (access[1] == 1)
-            type = if (type == READ) HARDWARE else WRITE
-        if (access[2] == 1) {
-            type = SOFTWARE
-        }
-
-        requireNotNull(type) { "Can't set breakpoint at address ${address.hex8} -> access should contain chars [rwx]" }
-
-        return bptSet(type, address)
     }
 
     /**

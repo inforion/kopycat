@@ -30,7 +30,6 @@ package ru.inforion.lab403.kopycat.modules.msp430x44x
 import ru.inforion.lab403.common.extensions.MHz
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
-import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Core
 import ru.inforion.lab403.kopycat.modules.cores.MSP430Debugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
@@ -39,8 +38,8 @@ import ru.inforion.lab403.kopycat.modules.memory.RAM
 class MSP430x44x(parent: Module?, name: String): Module(parent, name) {
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS16)
-        val irq = Bus("irq", BUS16)
+        val mem = Bus("mem")
+        val irq = Bus("irq")
     }
 
     override val buses = Buses()

@@ -6,8 +6,9 @@ createKopycatConfig {
         name = "default"
         description = "The default configuration for DemoLinux"
         kcConstructorArguments = [
-                "tty"         : defaults.osDefaultTty(),
+                "port"        : defaults.terminalPort().toString(),
                 "x32dbg"      : "false",
+                "strictExecution": "false",
 //                "bzImageName" : "vmlinuz",
 //                "initRdName"  : "initramfs.img",
 //                "packetSource": "127.0.0.1:3000",
@@ -16,10 +17,23 @@ createKopycatConfig {
     }
 
     addConfig {
+        name = "default-net"
+        description = "The default configuration with net for DemoLinux"
+        kcConstructorArguments = [
+                "port"        : defaults.terminalPort().toString(),
+                "x32dbg"      : "false",
+//                "bzImageName" : "vmlinuz",
+//                "initRdName"  : "initramfs.img",
+               "packetSource": "127.0.0.1:30003",
+        ]
+//            withConnectionInfo = true
+    }
+
+    addConfig {
         name = "default-x32"
         description = "The default x32 configuration for DemoLinux"
         kcConstructorArguments = [
-                "tty"         : defaults.osDefaultTty(),
+                "port"        : defaults.terminalPort().toString(),
                 "x32dbg"      : "true",
         ]
     }
@@ -28,7 +42,7 @@ createKopycatConfig {
         name = "default-vmlinuz"
         description = "The default vmlinuz configuration for DemoLinux"
         kcConstructorArguments = [
-                "tty"         : defaults.osDefaultTty(),
+                "port"        : defaults.terminalPort().toString(),
                 "x32dbg"      : "false",
                 "bzImageName" : "vmlinuz",
                 "initRdName"  : "initramfs.img",

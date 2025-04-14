@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.msp430x44x
 
 import ru.inforion.lab403.common.extensions.truth
+import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.cores.base.abstracts.APIC
 import ru.inforion.lab403.kopycat.cores.base.bit
@@ -33,7 +34,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.modules.BUS16
 
 @Suppress("PropertyName", "unused")
 
@@ -44,8 +44,8 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val irq = Slave("irq", INTERRUPT_COUNT)
-        val mem = Slave("mem", BUS16)
+        val irq = Port("irq")
+        val mem = Port("mem")
     }
 
     override val ports = Ports()
@@ -64,7 +64,15 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
     val USART1TX_INT = Interrupt(2,0xFFE6, 3, "USART1 TX")
     val USART1RX_INT = Interrupt(3,0xFFE4, 2, "USART1 RX")
 
-    val interrupts = Interrupts(ports.irq,  "IRQ", TACCR0_INT, TIMERA_INT, USART1TX_INT, USART1RX_INT)
+    val interrupts = Interrupts(
+        ports.irq,
+        "IRQ",
+        INTERRUPT_COUNT.ulong_z - 1u,
+        TACCR0_INT,
+        TIMERA_INT,
+        USART1TX_INT,
+        USART1RX_INT,
+    )
 
     val IE1 = object : Register(ports.mem, 0x00u, BYTE, "IE1") {
         var WDTIE by bit(0)   //Watchdog-timer interrupt enable

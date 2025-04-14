@@ -31,13 +31,13 @@ import ru.inforion.lab403.common.extensions.clr
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.common.extensions.set
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.LogLevel
 import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.modules.PIN
-import java.util.logging.Level
 
 
 class RCC(parent: Module, name: String) : Module(parent, name) {
@@ -64,8 +64,8 @@ class RCC(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x80)
-        val irq = Master("irq", PIN)
+        val mem = Port("mem")
+        val irq = Port("irq")
     }
 
     override val ports = Ports()
@@ -75,7 +75,7 @@ class RCC(parent: Module, name: String) : Module(parent, name) {
         default: ULong = 0x0000_0000u,
         writable: Boolean = true,
         readable: Boolean = true,
-        level: Level = Level.FINE
+        level: LogLevel = FINE
     ) : Register(ports.mem, register.offset, Datatype.DWORD, register.name, default, writable, readable, level)
 
     private val RCC_CR = object : RegisterBase(RegisterType.RCC_CR, 0x0000_0083u) {

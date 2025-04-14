@@ -26,7 +26,6 @@
 package ru.inforion.lab403.gradle.buildConfig
 
 import java.io.File
-import java.util.*
 
 /**
  * Default values, that can be used in gradle files
@@ -38,20 +37,6 @@ class BuildConfigDefaults(
     val kcLibraryDirectory: String,
     val kcFullTopClass: String,
 ) {
-    fun osDefaultTty(): String = osTty("COM6", "socat:KC_COM")
-
-    /**
-     * WARNING: Gradle/Groovy cannot interpret default arguments correctly
-     */
-    fun osTty(windowsDefault: String, linuxDefault: String): String {
-        val os = System.getProperty("os.name", "generic").toLowerCase(Locale.ENGLISH);
-        return if (os.contains("win")) {
-            windowsDefault
-        } else {
-            linuxDefault
-        }
-    }
-
     fun scriptsDir(): String {
         val packagePath = kcFullTopClass
             .split(".")
@@ -75,6 +60,8 @@ class BuildConfigDefaults(
     fun gdbPort() = 64128
 
     fun httpPort() = 64129
+
+    fun terminalPort() = 64130
 
     fun starter() = "ru.inforion.lab403.kopycat.KopycatStarter"
 

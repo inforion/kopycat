@@ -89,6 +89,7 @@ class JsonModuleFactoryBuilder(path: String, val jar: File?) : AFileModuleFactor
                 eval("import ru.inforion.lab403.kopycat.modules.memory.*")
                 eval("import ru.inforion.lab403.kopycat.modules.terminals.*")
                 eval("import ru.inforion.lab403.kopycat.modules.*")
+                eval("import ru.inforion.lab403.kopycat.interfaces.*")
             }
         }
 

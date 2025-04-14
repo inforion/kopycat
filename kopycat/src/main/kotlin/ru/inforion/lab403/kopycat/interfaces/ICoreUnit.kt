@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.interfaces
 
 import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.common.logging.logger
-import java.util.logging.Level
 
 
 interface ICoreUnit : IResettable, ITerminatable, ISerializable, IStringable {

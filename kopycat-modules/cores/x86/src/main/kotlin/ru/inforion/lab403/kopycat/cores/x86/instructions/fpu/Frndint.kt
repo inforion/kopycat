@@ -35,6 +35,6 @@ class Frndint(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operand:
 
     override fun executeFPUInstruction() = core.fpu.st(
         0,
-        core.fpu.st(0).longDouble(core.fpu.fwr.FPUControlWord).roundToNearestInt().ieee754AsUnsigned(),
+        core.fpu.st(0).longDouble(core.fpu.softfloat).roundedToNearestInt.ieee754AsUnsigned(),
     )
 }

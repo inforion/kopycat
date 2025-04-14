@@ -44,7 +44,7 @@ class ARMTestUnit(
         romPath: String): Module(parent, name) {
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS16)
+        val mem = Bus("mem")
     }
     override val buses = Buses()
 

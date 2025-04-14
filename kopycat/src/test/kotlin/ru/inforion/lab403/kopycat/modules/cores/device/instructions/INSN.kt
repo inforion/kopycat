@@ -26,9 +26,9 @@
 package ru.inforion.lab403.kopycat.modules.cores.device.instructions
 
 object INSN {
-    const val ADD = 0x0AA0_BEEFuL
-    const val MOV = 0x0AA0_DEADuL
-    const val MUL = 0x0AA0_C0DEuL
-    const val SUB = 0x0AA0_AFFEuL
-    const val INF = 0xFFFF_FFFFuL  // INFINITE LOOP INSTRUCTION
+    const val ADD = 0x0AA0_BEEFu
+    const val MOV = 0x0AA0_DEADu
+    const val MUL = 0x0AA0_C0DEu
+    const val SUB = 0x0AA0_AFFEu
+    const val INF = 0xFFFF_FFFFu  // INFINITE LOOP INSTRUCTION
 }

@@ -29,7 +29,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.gdbstub.GDBServer
 import ru.inforion.lab403.kopycat.auxiliary.IntelHexTranslator
 import ru.inforion.lab403.kopycat.modules.stm32f042.STM32F042
-import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
+import ru.inforion.lab403.kopycat.modules.terminals.UartNetworkTerminal
 
 object stm32f042_ihex {
     val firmware = """
@@ -913,7 +913,7 @@ object stm32f042_ihex {
 
         val top = object : Module(null, "top") {
             val mcu = STM32F042(this, "mcu", *translator.translate())
-            val term1 = UartSerialTerminal(this, "term1", "socat:")
+            val term1 = UartNetworkTerminal(this, "term1")
 
             // Make actual connection between CORE and RAM
             init {

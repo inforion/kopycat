@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.kernel
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
@@ -179,14 +179,16 @@ internal class VeosTest {
 
         var lastValidAddressFound = false
 
-        kopycat.run { step, core ->
-            val where = core.cpu.pc
-            if (where == mipsLastValidAddressValue)
-                lastValidAddressFound = true
-            step < maxStepsCount
+        kopycat.use { _ ->
+            kopycat.run { step, core ->
+                val where = core.cpu.pc
+                if (where == mipsLastValidAddressValue)
+                    lastValidAddressFound = true
+                step < maxStepsCount
+            }
+            assertFalse { kopycat.hasException() }
         }
 
-        assertFalse { kopycat.hasException() }
         assertTrue { lastValidAddressFound }
         assertTrue { top.veos.state == VEOS.State.Exit }
     }
@@ -196,24 +198,24 @@ internal class VeosTest {
         val executable = "memo-mips.elf"
         val root = VeosTest.getResourceUrl(executable).toURI().resolve(".").path
         val top = TestMipsUnixApp(root)
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
+            top.exec(executable)
 
-        top.exec(executable)
+            var lastValidAddressFound = false
 
-        var lastValidAddressFound = false
+            collect(maxStepsCount.int).first {
+                val where = kopycat.pcRead()
 
-        collect(maxStepsCount.int).first {
-            val where = kopycat.pcRead()
+                if (where == mipsLastValidAddressValue)
+                    lastValidAddressFound = true
 
-            if (where == mipsLastValidAddressValue)
-                lastValidAddressFound = true
+                !kopycat.step()
+            }
 
-            !kopycat.step()
+            assertFalse { kopycat.hasException() }
+            assertTrue { lastValidAddressFound }
+            assertTrue { top.veos.state == VEOS.State.Exit }
         }
-
-        assertFalse { kopycat.hasException() }
-        assertTrue { lastValidAddressFound }
-        assertTrue { top.veos.state == VEOS.State.Exit }
     }
 
 
@@ -228,14 +230,17 @@ internal class VeosTest {
 
         var lastValidAddressFound = false
 
-        kopycat.run { step, core ->
-            val where = core.cpu.pc
-            if (where == armLastValidAddressValue)
-                lastValidAddressFound = true
-            step < maxStepsCount
+        kopycat.use { _ ->
+            kopycat.run { step, core ->
+                val where = core.cpu.pc
+                if (where == armLastValidAddressValue)
+                    lastValidAddressFound = true
+                step < maxStepsCount
+            }
+
+            assertFalse { kopycat.hasException() }
         }
 
-        assertFalse { kopycat.hasException() }
         assertTrue { lastValidAddressFound }
         assertTrue { top.veos.state == VEOS.State.Exit }
     }
@@ -245,24 +250,25 @@ internal class VeosTest {
         val executable = "memo-arm.elf"
         val root = VeosTest.getResourceUrl(executable).toURI().resolve(".").path
         val top = TestARMUnixApp(root)
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
 
-        top.exec(executable)
+            top.exec(executable)
 
-        var lastValidAddressFound = false
+            var lastValidAddressFound = false
 
-        collect(maxStepsCount.int).first {
-            val where = kopycat.pcRead()
+            collect(maxStepsCount.int).first {
+                val where = kopycat.pcRead()
 
-            if (where == armLastValidAddressValue)
-                lastValidAddressFound = true
+                if (where == armLastValidAddressValue)
+                    lastValidAddressFound = true
 
-            !kopycat.step()
+                !kopycat.step()
+            }
+
+            assertFalse { kopycat.hasException() }
+            assertTrue { lastValidAddressFound }
+            assertTrue { top.veos.state == VEOS.State.Exit }
         }
-
-        assertFalse { kopycat.hasException() }
-        assertTrue { lastValidAddressFound }
-        assertTrue { top.veos.state == VEOS.State.Exit }
     }
 
     @Test
@@ -271,21 +277,21 @@ internal class VeosTest {
         val root = VeosTest.getResourceUrl(executable).toURI().resolve(".").path
 
         val top = ARMApplication(null, "top", root, executable)
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
+            val resultAddress = 0x00021074uL
 
-        val resultAddress = 0x00021074uL
+            kopycat.run { step, core ->
+                step < 1000uL
+            }
 
-        kopycat.run { step, core ->
-            step < 1000uL
+            repeat(10) {i ->
+                val data = kopycat.memRead(resultAddress + i*4, 4)
+                assertEquals(1uL, data)
+            }
+
+            assertFalse { kopycat.hasException() }
+            assertTrue { top.veos.state == VEOS.State.Exit }
         }
-
-        repeat(10) {i ->
-            val data = kopycat.memRead(resultAddress + i*4, 4)
-            assertEquals(1uL, data)
-        }
-
-        assertFalse { kopycat.hasException() }
-        assertTrue { top.veos.state == VEOS.State.Exit }
     }
 
     @Test
@@ -294,21 +300,21 @@ internal class VeosTest {
         val root = VeosTest.getResourceUrl(executable).toURI().resolve(".").path
 
         val top = MIPSApplication(null, "top", root, executable)
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
+            val resultAddress = 0x00410A88uL
 
-        val resultAddress = 0x00410A88uL
+            kopycat.run { step, core ->
+                step < 1000u
+            }
 
-        kopycat.run { step, core ->
-            step < 1000u
+            repeat(10) { i ->
+                val data = kopycat.memRead(resultAddress + i * 4, 4)
+                assertEquals(1uL, data)
+            }
+
+            assertFalse { kopycat.hasException() }
+            assertTrue { top.veos.state == VEOS.State.Exit }
         }
-
-        repeat(10) {i ->
-            val data = kopycat.memRead(resultAddress + i*4, 4)
-            assertEquals(1uL, data)
-        }
-
-        assertFalse { kopycat.hasException() }
-        assertTrue { top.veos.state == VEOS.State.Exit }
     }
 
     @Test
@@ -317,10 +323,10 @@ internal class VeosTest {
         val root = VeosTest.getResourceUrl(executable).toURI().resolve(".").path
 
         val top = x86WindowsApplication(null, "top", root, executable)
-        val kopycat = Kopycat(null).also { it.open(top, null, false) }
-
-        kopycat.run { step, core -> step < 1000u }
-        assertFalse { kopycat.hasException() }
-        assertTrue { top.veos.state == VEOS.State.Exit }
+        Kopycat(null).also { it.open(top, null, false) }.use { kopycat ->
+            kopycat.run { step, core -> step < 1000u }
+            assertFalse { kopycat.hasException() }
+            assertTrue { top.veos.state == VEOS.State.Exit }
+        }
     }
 }

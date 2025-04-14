@@ -16,10 +16,10 @@ fi
 
 case $ARCH in
 "arm")
-  module="ARMApplication"
+  script="veos-arm.sh"
   ;;
 "mips")
-  module="MIPSApplication"
+  script="veos-mips.sh"
   ;;
 "any")
   error_exit "Please, use soft-link to this script for one of available processor architectures"
@@ -63,7 +63,7 @@ fi
 if [ -n "$KOPYCAT_VEOS_WORKING_DIR" ]; then
   working_dir="dir=$KOPYCAT_VEOS_WORKING_DIR"
 else
-  working_dir="dir=."
+  working_dir="dir=$PWD"
 fi
 
 # Check LD_PRELOAD for VEOS
@@ -92,4 +92,5 @@ fi
 
 # Start the emulator
 
-kopycat $standalone $gdb $console -n $module -l veos -p "$working_dir,exec=$EXEC,args=$ARGS$ld_preload" $logging_conf
+cd "$(dirname "$0")"
+sh "../../../temp/config/bash/$script" $standalone $gdb "$console" -p "$working_dir,exec=$EXEC,args=$ARGS$ld_preload" $logging_conf

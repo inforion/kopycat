@@ -25,11 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.cores.v850es.instructions
 
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.kopycat.interfaces.*
-import org.junit.After
-import org.junit.Assert.assertEquals
-import org.junit.Before
-import org.junit.Test
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
@@ -40,6 +39,7 @@ import ru.inforion.lab403.kopycat.cores.v850es.enums.CONDITION
 import ru.inforion.lab403.kopycat.modules.cores.v850ESCore
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import java.nio.ByteOrder.LITTLE_ENDIAN
+import kotlin.test.assertEquals
 
 
 class V850ESInstructionsTest: Module(null, "v850esInstructionTest") {

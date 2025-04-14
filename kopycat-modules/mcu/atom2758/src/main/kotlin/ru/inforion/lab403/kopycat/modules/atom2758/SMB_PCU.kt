@@ -25,13 +25,12 @@
  */
 package ru.inforion.lab403.kopycat.modules.atom2758
 
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.modules.PCI_IO_AREA
 import ru.inforion.lab403.kopycat.modules.PCI_MEM_AREA
-import ru.inforion.lab403.kopycat.modules.common.pci.PciAbstract
 import ru.inforion.lab403.kopycat.modules.common.pci.PciDevice
-import java.util.logging.Level.CONFIG
 
 /**
  * **Intel Atom Processor E3800 Product Family**
@@ -46,8 +45,8 @@ class SMB_PCU(parent: Module, name: String) : PciDevice(parent, name, 0x8086, 0x
         const val BUS_IO_INDEX = 11
     }
 
-    val mem = ports.Slave("mem", BUS_SIZE)
-    val io = ports.Slave("io", BUS_SIZE)
+    val mem = ports.Port("mem")
+    val io = ports.Port("io")
 
     val SMB_Config_MBARL = PCI_BAR(0x10, DWORD, "SMB_Config_MBARL", 0x20, PCI_MEM_AREA, BUS_MEM_INDEX, CONFIG)
     val SMB_Config_MBARH = PCI_BAR(0x14, DWORD, "SMB_Config_MBARH", level = CONFIG)

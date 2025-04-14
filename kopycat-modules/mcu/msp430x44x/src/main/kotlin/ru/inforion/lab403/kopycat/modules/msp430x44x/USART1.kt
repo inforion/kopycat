@@ -39,8 +39,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.extensions.pending
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS16
-import ru.inforion.lab403.kopycat.modules.PIN
 
 
 class USART1(parent: Module, name: String) : Module(parent, name) {
@@ -49,9 +47,9 @@ class USART1(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", BUS16)
-        val irqRX = Master("irqRX", PIN)
-        val irqTX = Master("irqTX", PIN)
+        val mem = Port("mem")
+        val irqRX = Port("irqRX")
+        val irqTX = Port("irqTX")
     }
 
     override val ports = Ports()

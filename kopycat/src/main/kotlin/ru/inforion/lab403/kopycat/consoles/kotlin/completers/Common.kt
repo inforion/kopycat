@@ -33,9 +33,17 @@ internal object Common {
     fun completeRelativeFileList(
         jlineGroup: String? = null,
         dir: File,
+        recursive: Boolean = false,
         filter: (File) -> Boolean,
-    ) = dir.listFiles(filter)?.asSequence()?.map {
-        val relative = it.relativeTo(dir).path
+    ) = if (recursive) {
+        dir
+            .walk()
+            .asSequence()
+            .filter(filter)
+    } else {
+        dir.listFiles(filter)?.asSequence()
+    }?.map {
+        val relative = it.relativeTo(dir).invariantSeparatorsPath
         Candidate(
             "\"${StringEscapeUtils.escapeXSI(relative)}\")",
             relative,

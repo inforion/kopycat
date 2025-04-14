@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.cores.mips.integration
 
-import org.junit.Test
-import ru.inforion.lab403.common.extensions.ulong
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.utils.DynamicClassLoader
 import ru.inforion.lab403.kopycat.auxiliary.PerformanceTester
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -57,7 +56,7 @@ class MipsSimplePerformanceTest {
         }.afterReset {
             it.core.reg(GPR.SP.id, stackStart)
             it.core.pc = entryPoint
-        }.apply { run(1, 1) }
+        }.use { it.run(1, 1) }
     }
 
     @Test

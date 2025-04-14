@@ -31,6 +31,8 @@ import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.common.Module
+import java.io.Closeable
+import java.net.Socket
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.system.measureTimeMillis
@@ -50,7 +52,7 @@ class PerformanceTester<T: Module>(
         val maxExecute: ULong = ULONG_MAX,
         connectionInfo: Boolean = false,
         makeTop: () -> T
-) {
+): Closeable {
     companion object {
         @Transient private val log = logger(FINER)
     }
@@ -61,6 +63,8 @@ class PerformanceTester<T: Module>(
         open(makeTop(), null, false)
         if (connectionInfo) printModulesConnectionsInfo()
     }
+
+    override fun close() = kopycat.close()
 
     @Suppress("UNCHECKED_CAST")
     val top get() = kopycat.top as T
@@ -177,7 +181,7 @@ class PerformanceTester<T: Module>(
 
     /**
      * {EN}
-     * Add callback to invoke **all times** when [tty] terminal get a byte.
+     * Add callback to invoke **all times** when terminal on TCP [port] gets a byte.
      *
      * @param tty Path to device where wait for bytes
      * @param predicate Callback to invoke: input received char and return boolean when to stop
@@ -185,9 +189,9 @@ class PerformanceTester<T: Module>(
      * @return self for chain access
      * {EN}
      */
-    fun whenTerminalReceive(tty: String, predicate: (char: Char) -> Boolean): PerformanceTester<T> {
+    fun whenTerminalReceive(port: Int, predicate: (char: Char) -> Boolean): PerformanceTester<T> {
         thread {
-            val stream = tty.toFile().inputStream()
+            val stream = Socket("127.0.0.1", port).inputStream
 
             do {
                 val char = stream.read().char
@@ -201,7 +205,7 @@ class PerformanceTester<T: Module>(
 
     /**
      * {EN}
-     * Stops tester when terminal [tty] received specified string
+     * Stops tester when terminal on TCP port [port] received specified string
      *
      * @param tty Path to device where wait for bytes
      * @param string Waiting string
@@ -209,9 +213,9 @@ class PerformanceTester<T: Module>(
      * @return self for chain access
      * {EN}
      */
-    fun stopWhenTerminalReceive(tty: String, string: String): PerformanceTester<T> {
+    fun stopWhenTerminalReceive(port: Int, string: String): PerformanceTester<T> {
         var currentIndex = 0
-        whenTerminalReceive(tty) {
+        whenTerminalReceive(port) {
             if (it == string[currentIndex])
                 currentIndex++
             else

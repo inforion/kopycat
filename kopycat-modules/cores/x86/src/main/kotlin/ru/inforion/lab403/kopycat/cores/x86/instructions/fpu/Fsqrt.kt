@@ -39,7 +39,7 @@ class Fsqrt(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand
     override val mnem = "fsqrt"
 
     override fun executeFPUInstruction() {
-        val value = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
-        op1.extValue(core, value.sqrt().ieee754AsUnsigned())
+        val value = op1.extValue(core).longDouble(core.fpu.softfloat)
+        op1.extValue(core, value.sqrt.ieee754AsUnsigned())
     }
 }

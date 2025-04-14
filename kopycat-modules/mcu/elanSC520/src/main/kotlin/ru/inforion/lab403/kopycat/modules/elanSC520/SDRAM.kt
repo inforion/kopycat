@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
-import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -33,8 +33,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.BYTE
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS12
-import java.util.logging.Level.FINER
 
 /**
  *
@@ -47,7 +45,7 @@ class SDRAM(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mmcr = Slave("mmcr", BUS12.ulong)
+        val mmcr = Port("mmcr")
     }
 
     override val ports = Ports()

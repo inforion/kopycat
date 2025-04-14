@@ -32,8 +32,6 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
-import ru.inforion.lab403.kopycat.modules.PIN
-import kotlin.properties.Delegates
 
 class LED(parent: Module, name: String) : Module(parent, name) {
     companion object {
@@ -47,7 +45,7 @@ class LED(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val pin = Slave("pin", PIN)
+        val pin = Port("pin")
     }
 
     override val ports = Ports()

@@ -32,7 +32,7 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.stm32f042.LED
 import ru.inforion.lab403.kopycat.modules.stm32f042.STM32F042
-import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
+import ru.inforion.lab403.kopycat.modules.terminals.UartNetworkTerminal
 import java.io.File
 
 
@@ -41,8 +41,8 @@ class stm32f042_example(
         parent: Module?,
         name: String,
         firmware: String,
-        tty1: String? = null,
-        tty2: String? = null
+        tty1: Int? = UartNetworkTerminal.DEFAULT_PORT,
+        tty2: Int? = UartNetworkTerminal.DEFAULT_PORT + 1
 ) : Module(parent, name) {
 
     companion object {
@@ -67,15 +67,21 @@ class stm32f042_example(
     }
 
     inner class Buses : ModuleBuses(this) {
-        val gpioa_leds = Bus("gpioa_leds", LEDS_COUNT)
+        val gpioa_leds = Bus("gpioa_leds")
     }
 
     override val buses = Buses()
 
     val stm32f042 = createMCU(this, "stm32f042", firmware)
-    val term1 = UartSerialTerminal(this, "term1", tty1)
-    val term2 = UartSerialTerminal(this, "term2", tty2)
+    val term1 = UartNetworkTerminal(this, "term1", tty1, dummy = tty1 == null)
+    val term2 = UartNetworkTerminal(this, "term2", tty2, dummy = tty2 == null)
     val leds = Array(LEDS_COUNT) { LED(this, "led_$it") }
+
+    override fun terminate() {
+        super.terminate()
+        term1.close()
+        term2.close()
+    }
 
     fun sendStringIntoUART1(string: String) = term1.write(string)
     fun sendStringIntoUART2(string: String) = term2.write(string)

@@ -39,8 +39,8 @@ import ru.inforion.lab403.kopycat.cores.base.extensions.BRIDGE_MEM_BUS_INDEX
 import ru.inforion.lab403.kopycat.cores.base.extensions.PCI_ECAM_BUS_INDEX
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
 import ru.inforion.lab403.kopycat.modules.*
-import ru.inforion.lab403.kopycat.modules.atom2758.e1000.E1000
-import ru.inforion.lab403.kopycat.modules.atom2758.sata.SATA
+import ru.inforion.lab403.kopycat.modules.common.e1000.E1000
+import ru.inforion.lab403.kopycat.modules.common.sata.SATA
 import ru.inforion.lab403.kopycat.modules.common.pci.PciAddress
 
 class BRIDGE(
@@ -53,43 +53,47 @@ class BRIDGE(
     companion object {
         const val MEMORY_AREA = PCI_MEM_AREA
         const val IO_AREA = PCI_IO_AREA
+
+        const val SATA_BUS_MEM_INDEX_2 = 15
+        const val SATA_BUS_MEM_INDEX_3 = 16
+        const val E1000_BUS_MEM_INDEX = 17
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem_in = Slave("mem_in", memorySize)
-        val io_in = Slave("io_in", ioSize)
+        val mem_in = Port("mem_in")
+        val io_in = Port("io_in")
 
-        val mem_out = Master("mem_out", memorySize)
-        val io_out = Master("io_out", ioSize)
+        val mem_out = Port("mem_out")
+        val io_out = Port("io_out")
 
-        val mapper = Slave("mapper")
+        val mapper = Port("mapper")
 
-        val acpi = Master("acpi", ACPI.BUS_SIZE)
-        val pmc = Master("pmc", PMC.BUS_SIZE)
-        val gpio = Master("gpio", GPIO.BUS_SIZE)
-        val ioc = Master("ioc", IOC.BUS_SIZE)
-        val ilb = Master("ilb", ILB.BUS_SIZE)
-        val spi = Master("spi", SPI.BUS_SIZE)
-        val mphy = Master("mphy", MPHY.BUS_SIZE)
-        val punit = Master("punit", PUNIT.BUS_SIZE)
-        val rcrb = Master("rcrb", RCRB.BUS_SIZE)
+        val acpi = Port("acpi")
+        val pmc = Port("pmc")
+        val gpio = Port("gpio")
+        val ioc = Port("ioc")
+        val ilb = Port("ilb")
+        val spi = Port("spi")
+        val mphy = Port("mphy")
+        val punit = Port("punit")
+        val rcrb = Port("rcrb")
 
-        val smb_mem = Master("smb_mem", SMB_PCU.BUS_SIZE)
-        val smb_io = Master("smb_io", SMB_PCU.BUS_SIZE)
+        val smb_mem = Port("smb_mem")
+        val smb_io = Port("smb_io")
 
-        val smb20_0_mem = Master("smb20_0_mem", SMB_20.BUS_SIZE)
-        val smb20_1_mem = Master("smb20_1_mem", SMB_20.BUS_SIZE)
+        val smb20_0_mem = Port("smb20_0_mem")
+        val smb20_1_mem = Port("smb20_1_mem")
 
-        val usb20 = Master("usb20", USB20.BUS_SIZE)
+        val usb20 = Port("usb20")
 
-        val sata2 = Master("sata2", SATA.BUS_SIZE)
-        val sata3 = Master("sata3", SATA.BUS_SIZE)
+        val sata2 = Port("sata2")
+        val sata3 = Port("sata3")
 
-        val e1000 = Master("e1000", E1000.BUS_MEM_SIZE)
+        val e1000 = Port("e1000")
 
         
 
-        inner class Ecam() : Master("ecam", PCI_ECAM_BUS_SIZE) {
+        inner class Ecam() : Port("ecam") {
             override fun fetch(ea: ULong, ss: Int, size: Int): ULong = try {
                 super.fetch(ea, ss, size)
             } catch (e: MemoryAccessError) {
@@ -147,22 +151,22 @@ class BRIDGE(
 
         USB20.BUS_MEM_INDEX to ports.usb20,
 
-        SATA.BUS_MEM_INDEX_2 to ports.sata2,
-        SATA.BUS_MEM_INDEX_3 to ports.sata3,
+        SATA_BUS_MEM_INDEX_2 to ports.sata2,
+        SATA_BUS_MEM_INDEX_3 to ports.sata3,
 
-        E1000.BUS_MEM_INDEX to ports.e1000,
+        E1000_BUS_MEM_INDEX to ports.e1000,
         
 
         PCI_ECAM_BUS_INDEX to ports.ecam
     )
 
-    private val memory = MappingArea(ports.mem_in,"MEMORY", outputs, BRIDGE_MEM_BUS_INDEX)
-    private val io = MappingArea(ports.io_in, "IO", outputs, BRIDGE_IO_BUS_INDEX)
+    private val memory = MappingArea(ports.mem_in,"MEMORY", memorySize - 1u, outputs, BRIDGE_MEM_BUS_INDEX)
+    private val io = MappingArea(ports.io_in, "IO", ioSize - 1u, outputs, BRIDGE_IO_BUS_INDEX)
 
     @DontAutoSerialize
     private val mappings = mapOf(MEMORY_AREA to memory, IO_AREA to io)
 
-    private val mapper = Mapper(ports.mapper, "REMAP", mappings)
+    private val mapper = Mapper(ports.mapper, "REMAP", BUS32 - 1u, mappings)
 
     override fun serialize(ctxt: GenericSerializer) = super<IAutoSerializable>.serialize(ctxt)
 

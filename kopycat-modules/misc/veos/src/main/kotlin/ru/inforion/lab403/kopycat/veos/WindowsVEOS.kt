@@ -44,7 +44,7 @@ class WindowsVEOS<C: AGenericCore>(parent: Module, name: String, bus: ULong = BU
     override val loader = WindowsLoader(this)
 
     inner class Buses : VEOS<C>.Buses() {
-        val outp = Bus("outp", bus)
+        val outp = Bus("outp")
     }
 
     @DontAutoSerialize

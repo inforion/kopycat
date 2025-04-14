@@ -25,8 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.modules.cores.device
 
-import org.junit.Assert
-import org.junit.Before
+import org.junit.jupiter.api.BeforeEach
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
@@ -40,6 +39,7 @@ import ru.inforion.lab403.kopycat.modules.cores.device.operands.TestRegister
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.cores.base.operands.Memory as Mem
 import ru.inforion.lab403.kopycat.interfaces.*
+import kotlin.test.assertEquals
 
 abstract class ATest: Module(null, "Test") {
     protected fun displacement(
@@ -53,7 +53,7 @@ abstract class ATest: Module(null, "Test") {
             Mem<TestCore>(dtyp, atyp, address, ANY)
     protected fun error(value: ULong, expected: ULong, actual: ULong, operand: String, test: String): String =
             "Operands $operand $test test expected ${expected.hex}, but got ${actual.hex} for test ${value.hex}"
-    protected fun <T> assert(error: String, expected: T, actual: T) = Assert.assertEquals(error, expected, actual)
+    protected fun <T> assert(error: String, expected: T, actual: T) = assertEquals(expected, actual, error)
     protected fun load(address: ULong, size: Int): String = testCore.load(address, size).hexlify()
     protected fun load(address: ULong, dtyp: Datatype): ULong = testCore.read(dtyp, address, 0)
     protected fun store(address: ULong, data: String)= testCore.store(address, data.unhexlify())
@@ -74,7 +74,7 @@ abstract class ATest: Module(null, "Test") {
         initializeAndResetAsTopInstance()
     }
 
-    @Before fun resetTest() {
+    @BeforeEach fun resetTest() {
         testCore.reset()
     }
 

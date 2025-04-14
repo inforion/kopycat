@@ -29,13 +29,13 @@ import ru.inforion.lab403.common.extensions.clr
 import ru.inforion.lab403.common.extensions.get
 import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.common.extensions.ulong
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.arm.enums.Mode
 import ru.inforion.lab403.kopycat.cores.arm.enums.VectorTable
 import ru.inforion.lab403.kopycat.cores.arm.exceptions.ARMHardwareException.Unknown
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.modules.cores.ARMv6MCore
-import java.util.logging.Level.FINE
 import ru.inforion.lab403.kopycat.interfaces.*
 
 

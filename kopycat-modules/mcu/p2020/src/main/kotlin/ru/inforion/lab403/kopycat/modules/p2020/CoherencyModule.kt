@@ -26,18 +26,13 @@
 package ru.inforion.lab403.kopycat.modules.p2020
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
-import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
-import ru.inforion.lab403.kopycat.modules.BUS32
-import java.io.File
-import java.util.logging.Level
 
 
 
@@ -58,14 +53,14 @@ import java.util.logging.Level
 class CoherencyModule(parent: Module, name: String, startAddress: ULong = 0xFF700000uL) : Module(parent, name) {
 
     companion object {
-        @Transient val log = logger(Level.FINE)
+        @Transient val log = logger(FINE)
     }
 
     inner class Ports : ModulePorts(this) {
-        val outp = Master("out", BUS32)
-        val ctrl = Master("ctrl", BUS32)
+        val outp = Port("out")
+        val ctrl = Port("ctrl")
 //        val io = Master("io", BUS32)
-        val inp = Slave("in", BUS32)
+        val inp = Port("in")
     }
 
     override val ports = Ports()

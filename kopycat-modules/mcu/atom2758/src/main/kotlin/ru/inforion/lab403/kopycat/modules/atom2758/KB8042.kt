@@ -25,21 +25,21 @@
  */
 package ru.inforion.lab403.kopycat.modules.atom2758
 
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
+import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.modules.BUS16
-import java.util.logging.Level.CONFIG
 
 class KB8042(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val io = Slave("io", BUS16)
+        val io = Port("io")
     }
 
     override val ports = Ports()
 
-    private val KDATA = Register(ports.io, 0x60u, DWORD, "KDATA", level = CONFIG)
+    private val KDATA = Register(ports.io, 0x60u, Datatype.BYTE, "KDATA", level = CONFIG)
 
     private val KDCTL = object : Register(ports.io, 0x64u, DWORD, "KDCTL", level = CONFIG) {
         var PERR by bit(7)

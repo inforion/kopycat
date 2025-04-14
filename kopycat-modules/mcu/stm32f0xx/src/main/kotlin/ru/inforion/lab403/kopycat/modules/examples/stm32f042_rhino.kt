@@ -32,7 +32,7 @@ import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.stm32f042.BT
 import ru.inforion.lab403.kopycat.modules.stm32f042.LED
 import ru.inforion.lab403.kopycat.modules.stm32f042.STM32F042
-import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
+import ru.inforion.lab403.kopycat.modules.terminals.UartNetworkTerminal
 import java.io.File
 
 /**
@@ -54,8 +54,8 @@ import java.io.File
  * fw_bytes - прошивка в виде ByteArray
  * fw_file - прошивка в виде File
  * fw_res - прошивка в виде Resource (файл внутри Jar)
- * tty_dbg - отладочный UART
- * tty_bt - UART для bluetooth модуля
+ * port_dbg - отладочный UART
+ * port_bt - UART для bluetooth модуля
  * ПРИМЕЧАНИЕ: Если fw_bytes, fw_file или fw_res равен null, то будет создан эмулятор без загруженной прошивки
  *             рекомендуемый вариант, если прошивка будет загружаться в последствии через GDB RSP.
  *
@@ -68,17 +68,16 @@ import java.io.File
  */
 @Suppress("PrivatePropertyName")
 class stm32f042_rhino constructor(
-        parent: Module?, name: String, fw_bytes: ByteArray?, tty_dbg: String?, tty_bt: String?
+        parent: Module?, name: String, fw_bytes: ByteArray?, port_dbg: Int?, port_bt: Int?
 ) : Module(parent, name) {
 
     companion object {
         const val DEFAULT_FIRMWARE_PATH = "binaries/rhino_pass.bin"
-        const val LEDS_COUNT = 16
 
     }
 
     inner class Buses : ModuleBuses(this) {
-        val gpioa_leds = Bus("gpioa_leds", LEDS_COUNT)
+        val gpioa_leds = Bus("gpioa_leds")
     }
 
     override val buses = Buses()
@@ -88,25 +87,25 @@ class stm32f042_rhino constructor(
             this(parent, name, fw_bytes, null, null)
 
     // Firmware as file
-    constructor(parent: Module?, name: String, fw_file: File?, tty_dbg: String?, tty_bt: String?) :
+    constructor(parent: Module?, name: String, fw_file: File?, tty_dbg: Int?, tty_bt: Int?) :
             this(parent, name, fw_file?.readBytes(), tty_dbg, tty_bt)
     constructor(parent: Module?, name: String, fw_file: File?):
             this(parent, name, fw_file, null, null)
 
     // Firmware as resource
-    constructor(parent: Module?, name: String, fw_res: Resource?, tty_dbg: String?, tty_bt: String?) :
+    constructor(parent: Module?, name: String, fw_res: Resource?, tty_dbg: Int?, tty_bt: Int?) :
             this(parent, name, fw_res?.readBytes(), tty_dbg, tty_bt)
 
     // Default rhino firmware
-    constructor(parent: Module?, name: String, tty_dbg: String?, tty_bt: String?) :
+    constructor(parent: Module?, name: String, tty_dbg: Int?, tty_bt: Int?) :
             this(parent, name, Resource(DEFAULT_FIRMWARE_PATH), tty_dbg, tty_bt)
     constructor(parent: Module?, name: String) :
             this(parent, name, null, null)
 
     private val stm32f042 = STM32F042(this, "u1_stm32", fw_bytes ?: ByteArray(0))
 
-    private val usart_debug = UartSerialTerminal(this, "usart_debug", tty_dbg)
-    private val term_bt = UartSerialTerminal(this, "term_bt", tty_bt)
+    private val usart_debug = UartNetworkTerminal(this, "usart_debug", port_dbg)
+    private val term_bt = UartNetworkTerminal(this, "term_bt", port_bt)
 
     private val bluetooth = BT(this, "bluetooth")
 

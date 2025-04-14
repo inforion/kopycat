@@ -29,6 +29,8 @@ package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.ALL
+import ru.inforion.lab403.common.logging.SEVERE
+import ru.inforion.lab403.common.logging.WARNING
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.bits
@@ -39,13 +41,10 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareNotReadyExceptio
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.PIN
 import java.io.Serializable
-import java.util.logging.Level.SEVERE
-import java.util.logging.Level.WARNING
 
 
-class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, name) {
+class DMAC(parent: Module, name: String, channels: Int) : Module(parent, name) {
     companion object {
         @Transient val log = logger(ALL)
 
@@ -64,32 +63,32 @@ class DMAC(parent: Module, name: String, val channels: Int) : Module(parent, nam
         /**
          * Configuration registers port
          */
-        val mem = Slave("mem", 0x400)
+        val mem = Port("mem")
 
         /**
          * Direct memory access input/output port
          */
-        val io = Master("io")
+        val io = Port("io")
 
         /**
          * Direct memory access channels
          */
-        val drq = Slave("drq", channels)
+        val drq = Port("drq")
 
         /**
          * Interrupt request port pin for channel 1
          */
-        val irq_ch1 = Master("irq_ch1", PIN)
+        val irq_ch1 = Port("irq_ch1")
 
         /**
          * Interrupt request port pin for channel 2 and 3
          */
-        val irq_ch2_3 = Master("irq_ch2_3", PIN)
+        val irq_ch2_3 = Port("irq_ch2_3")
 
         /**
          * Interrupt request port pin for channel 4, 5, 6 and 7
          */
-        val irq_ch4_5_6_7 = Master("irq_ch4_5_6_7", PIN)
+        val irq_ch4_5_6_7 = Port("irq_ch4_5_6_7")
     }
 
     override val ports = Ports()

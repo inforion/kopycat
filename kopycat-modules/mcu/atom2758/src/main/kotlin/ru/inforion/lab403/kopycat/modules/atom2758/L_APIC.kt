@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.cores.base.bit
@@ -39,7 +40,6 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
-import java.util.logging.Level.CONFIG
 
 class L_APIC(parent: Module, name: String) : APIC(parent, name) {
     companion object {
@@ -48,9 +48,8 @@ class L_APIC(parent: Module, name: String) : APIC(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x10_0000)
-        val irq = Slave("irq", 255)
-        val irqMaster = Master("irqMaster", 255)
+        val mem = Port("mem")
+        val irq = Port("irq")
     }
 
     override val ports = Ports()
@@ -290,7 +289,7 @@ class L_APIC(parent: Module, name: String) : APIC(parent, name) {
             }
             if (count == 0uL) {
                 if (LVTT.mask.untruth) {
-                    ports.irqMaster.request(LVTT.vector.int)
+                    ports.irq.request(LVTT.vector.int)
                 }
 
                 when (timerMode) {
@@ -346,7 +345,7 @@ class L_APIC(parent: Module, name: String) : APIC(parent, name) {
         }
     }
 
-    private val IRQ = Interrupts(ports.irq, "APIC_IRQ",
+    private val IRQ = Interrupts(ports.irq, "APIC_IRQ", 254uL /* inclusively */,
         *(16..255).map { Interrupt(it, "APIC_IRQ${it}") }.toTypedArray(),
     )
 }

@@ -28,7 +28,6 @@ package ru.inforion.lab403.kopycat.modules.tests
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
-import ru.inforion.lab403.kopycat.modules.BUS30
 import ru.inforion.lab403.kopycat.modules.cores.MipsCore
 import ru.inforion.lab403.kopycat.modules.cores.MipsDebugger
 
@@ -77,7 +76,7 @@ class TestMipsDevice(parent: Module?, name: String, fwMode: Int, fakePrimitivesC
     */
 
     inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", BUS30)
+        val mem = Bus("mem")
     }
 
     override val buses = Buses()

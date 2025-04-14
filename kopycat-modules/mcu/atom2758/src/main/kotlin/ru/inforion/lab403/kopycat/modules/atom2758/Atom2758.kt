@@ -42,11 +42,9 @@ import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.ECXFeatures.*
 import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.EDXFeatures.*
 import ru.inforion.lab403.kopycat.cores.x86.enums.cpuid.MemoryType.*
 import ru.inforion.lab403.kopycat.interfaces.IAutoSerializable
-import ru.inforion.lab403.kopycat.modules.BUS16
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.BUS36
-import ru.inforion.lab403.kopycat.modules.atom2758.e1000.E1000
-import ru.inforion.lab403.kopycat.modules.atom2758.sata.SATA
+import ru.inforion.lab403.kopycat.modules.common.e1000.E1000
 import ru.inforion.lab403.kopycat.modules.common.NS16550
 import ru.inforion.lab403.kopycat.modules.common.PIC8259
 import ru.inforion.lab403.kopycat.modules.common.PIT8254
@@ -55,6 +53,7 @@ import ru.inforion.lab403.kopycat.modules.common.pci.PciHost
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_bus
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_connect
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_proxy
+import ru.inforion.lab403.kopycat.modules.common.sata.SATA
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.modules.memory.VOID
@@ -73,10 +72,10 @@ class Atom2758(
 ) : Module(parent, name), IAutoSerializable {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Proxy("mem", physicalBusSize)
-        val io = Proxy("io", BUS16)
-        val tx = Proxy("tx", BUS32)
-        val rx = Proxy("rx", BUS32)
+        val mem = Proxy("mem")
+        val io = Proxy("io")
+        val tx = Proxy("tx")
+        val rx = Proxy("rx")
         val pci = pci_proxy("pci")
     }
 
@@ -84,31 +83,29 @@ class Atom2758(
     override val ports = Ports()
 
     inner class Buses : ModuleBuses(this) {
-        val x86_mem = Bus("x86_mem", physicalBusSize)
-        val x86_io = Bus("x86_io", BUS16)
+        val x86_mem = Bus("x86_mem")
+        val x86_io = Bus("x86_io")
 
-        val nb_mem = Bus("nb_mem", physicalBusSize)  // north bridge
-        val nb_io = Bus("nb_io", BUS16)  // north bridge
+        val nb_mem = Bus("nb_mem")  // north bridge
+        val nb_io = Bus("nb_io")  // north bridge
 
-        val irq = Bus("irq", 255)  // north bridge
+        val irq = Bus("irq")  // north bridge
 
-        val rcrb = Bus("rcrb", RCRB.BUS_SIZE)
-        val spi = Bus("spi", SPI.BUS_SIZE)
+        val rcrb = Bus("rcrb")
+        val spi = Bus("spi")
 
         val pci = pci_bus("pci")
-        val rx_bus = Bus("rx_bus", BUS32)
-        val tx_bus = Bus("tx_bus", BUS32)
+        val rx_bus = Bus("rx_bus")
+        val tx_bus = Bus("tx_bus")
 
         val mapper = Bus("mapper")
 
-        val msg = Bus("msg", MESSAGE_BUS_SIZE)
+        val msg = Bus("msg")
     }
 
     @DontAutoSerialize
     override val buses = Buses()
 
-
-    val uio = UnknownIO(this, "uio")
 
 //    val mem_conv = RAM(this, "mem_conv", 0x100000)  // 1 MB
 
@@ -158,6 +155,7 @@ class Atom2758(
     val uart4 = VOID(this, "uart4", 0x10)
     val post = POST(this, "post")
     val smm = SMM(this, "smm")
+    val fpuio = FPUIO(this, "fpuio")
 
     val pcie1 = PCIe(this, "pcie1", 0x1F10)
     val pcie2 = PCIe(this, "pcie2", 0x1F11)
@@ -168,8 +166,21 @@ class Atom2758(
 
     val usb20 = USB20(this, "usb20")
 
-    val sata2 = SATA(this, "sata2", 2)
-    val sata3 = SATA(this, "sata3", 3)
+    val sata2 = SATA(
+        this,
+        "sata2",
+        0x1f22,
+        BRIDGE.SATA_BUS_MEM_INDEX_2,
+        BRIDGE.MEMORY_AREA,
+    )
+
+    val sata3 = SATA(
+        this,
+        "sata3",
+        0x1f23,
+        BRIDGE.SATA_BUS_MEM_INDEX_3,
+        BRIDGE.MEMORY_AREA,
+    )
 
     val e1000 = E1000(
         this,
@@ -181,7 +192,9 @@ class Atom2758(
             0xE2.byte,
             0xED.byte,
             0xFE.byte,
-        )
+        ),
+        busMemIndex = BRIDGE.E1000_BUS_MEM_INDEX,
+        bar0Area = BRIDGE.MEMORY_AREA,
     )
 
     
@@ -192,8 +205,6 @@ class Atom2758(
         frequency = 2.GHz,
         Generation.Pentium,
         ipc = 1.0,
-        virtualBusSize = virtualBusSize,
-        physicalBusSize = physicalBusSize,
     )
 
     override fun reset() {
@@ -436,9 +447,9 @@ class Atom2758(
         pit.ports.io.connect(buses.nb_io)
         rtc.ports.io.connect(buses.nb_io)
         kb.ports.io.connect(buses.nb_io)
-        uio.ports.io.connect(buses.nb_io)
         post.ports.io.connect(buses.nb_io)
         smm.ports.io.connect(buses.nb_io)
+        fpuio.ports.io.connect(buses.nb_io)
 
         uart0.ports.mem.connect(buses.nb_io, 0x300uL + 0x00F8u)
         uart0.ports.tx.connect(buses.tx_bus)
@@ -453,7 +464,6 @@ class Atom2758(
         pit.ports.irq.connect(buses.irq, 0u) // IRQ 0
         uart0.ports.irq.connect(buses.irq, 4u) // IRQ 4
         l_apic.ports.irq.connect(buses.irq)
-        l_apic.ports.irqMaster.connect(buses.irq)
 
         bridge.ports.ecam.connect(buses.pci)
         pci_host.ports.pci.connect(buses.pci)

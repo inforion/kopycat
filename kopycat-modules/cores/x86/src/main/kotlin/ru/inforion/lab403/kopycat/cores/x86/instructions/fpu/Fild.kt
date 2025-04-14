@@ -41,9 +41,9 @@ class Fild(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
         (op1 as x86FprRegister).push(
             core,
             when (op2.dtyp) {
-                Datatype.WORD -> a2.short.longDouble(core.fpu.fwr.FPUControlWord)
-                Datatype.DWORD -> a2.int.longDouble(core.fpu.fwr.FPUControlWord)
-                Datatype.QWORD -> a2.long.longDouble(core.fpu.fwr.FPUControlWord)
+                Datatype.WORD -> a2.short.longDouble(core.fpu.softfloat)
+                Datatype.DWORD -> a2.int.longDouble(core.fpu.softfloat)
+                Datatype.QWORD -> a2.long.longDouble(core.fpu.softfloat)
                 else -> TODO("Incorrect type")
             }.ieee754AsUnsigned()
         )

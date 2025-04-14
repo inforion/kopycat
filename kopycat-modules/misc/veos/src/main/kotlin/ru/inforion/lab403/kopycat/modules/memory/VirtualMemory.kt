@@ -30,7 +30,7 @@ import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.HardwareErrorHandler
-import ru.inforion.lab403.kopycat.cores.base.SlavePort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.ACCESS
@@ -54,7 +54,7 @@ class VirtualMemory constructor(
 ): Module(parent, name), IConstructorSerializable {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem")
+        val mem = Port("mem")
     }
 
     private var shareCount = 1
@@ -158,7 +158,7 @@ class VirtualMemory constructor(
 
 
     inner class FileSegment(
-            port: SlavePort,
+            port: Port,
             name: String,
             start: ULong,
             size: Int,

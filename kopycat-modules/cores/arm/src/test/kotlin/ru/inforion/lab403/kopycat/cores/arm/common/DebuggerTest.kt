@@ -25,20 +25,20 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.common
 
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
-import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType.*
+import ru.inforion.lab403.kopycat.cores.base.enums.GDBBreakpointType
+import ru.inforion.lab403.kopycat.cores.base.enums.GDBBreakpointType.*
 import ru.inforion.lab403.kopycat.library.types.Resource
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
 import ru.inforion.lab403.kopycat.modules.cores.ARMDebugger
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.interfaces.*
+import kotlin.test.assertEquals
 
 
 class DebuggerTest: Module(null, "ARM Debugger Test") {
@@ -55,7 +55,7 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
         boot.ports.mem.connect(buses.mem, 0x0800_0000u)
         dbg.ports.breakpoint.connect(buses.mem)
         initializeAndResetAsTopInstance()
-        arm.cpu.BXWritePC(0x1u)  // binary compiled as Thumb ARMv7
+        arm.cpu.BXWritePC(0x1u, false)  // binary compiled as Thumb ARMv7
     }
 
     private fun prepareStrings() {
@@ -104,15 +104,15 @@ class DebuggerTest: Module(null, "ARM Debugger Test") {
     private fun store(address: ULong, data: ULong, dtyp: Datatype) = arm.write(dtyp, address, data, 0)
 
     private fun assertPC(expected: ULong, actual: ULong, type: String = "PC") =
-            Assert.assertEquals("$type error: 0x${expected.hex8} != 0x${actual.hex8}", expected, actual)
+            assertEquals(expected, actual, "$type error: 0x${expected.hex8} != 0x${actual.hex8}")
 
-    @Before fun resetTest() {
+    @BeforeEach fun resetTest() {
         arm.reset()
         dbg.reset()
         prepareStrings()
     }
 
-    private fun setBreakpoint(address: ULong, btyp: BreakpointType = SOFTWARE) = dbg.bptSet(btyp, address)
+    private fun setBreakpoint(address: ULong, btyp: GDBBreakpointType = SOFTWARE) = dbg.bptSet(btyp.access, address..address)
     private fun deleteBreakpoint(address: ULong) = dbg.bptClr(address)
 
     @Test fun bptExecTest() {

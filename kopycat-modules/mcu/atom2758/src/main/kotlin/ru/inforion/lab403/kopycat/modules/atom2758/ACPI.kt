@@ -25,11 +25,11 @@
  */
 package ru.inforion.lab403.kopycat.modules.atom2758
 
+import ru.inforion.lab403.common.logging.CONFIG
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import java.util.logging.Level.CONFIG
-import java.util.logging.Level.FINE
 
 class ACPI(parent: Module, name: String) : Module(parent, name) {
     companion object {
@@ -38,7 +38,7 @@ class ACPI(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val io = Slave("io", BUS_SIZE)
+        val io = Port("io")
     }
 
     override val ports = Ports()

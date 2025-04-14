@@ -34,7 +34,7 @@ internal class SupportedMessage(val chunks: List<String>): GeneralRequestMessage
                 "swbreak+;" +
                 "hwbreak+;" +
                 "qXfer:features:read+;" +
-                "PacketSize=${server.packetSize}" +
+                "PacketSize=${server.packetSize};" +
                 "xmlRegisters=${debugger.ident()}"
         )
 

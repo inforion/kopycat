@@ -28,11 +28,8 @@ package ru.inforion.lab403.kopycat.interfaces
 import ru.inforion.lab403.common.extensions.byte
 import ru.inforion.lab403.common.extensions.uint
 import ru.inforion.lab403.kopycat.cores.base.HardwareErrorHandler
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
-import java.math.BigInteger
 
 @Suppress("INAPPLICABLE_JVM_NAME")
 interface IReadable {
@@ -44,10 +41,11 @@ interface IReadable {
      *
      * @param from порт от которого пришел запрос на чтение
      * @param ea адрес по которому будет происходить чтение
+     * @param size количество байт, которое необходимо считать
      * {RU}
      */
     @JvmName("beforeRead")
-    fun beforeRead(from: MasterPort, ea: ULong): Boolean = true
+    fun beforeRead(from: Port, ea: ULong, size: Int): Boolean = true
 
     /**
      * {RU}

@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.examples
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.readAvailableBytes
 import ru.inforion.lab403.common.extensions.string
 import ru.inforion.lab403.common.extensions.times
@@ -38,6 +38,8 @@ import ru.inforion.lab403.kopycat.modules.cores.ARMv6MCore
 import ru.inforion.lab403.kopycat.modules.examples.stm32f042_example
 import ru.inforion.lab403.kopycat.modules.terminals.UartTerminal
 import java.io.File
+import java.io.InputStream
+import java.net.Socket
 import kotlin.test.assertEquals
 
 
@@ -58,7 +60,9 @@ internal class stm32f042Tests {
     fun gpiox_led_test() {
         PerformanceTester(0x0800_11B4u, 100_000_000u) {
             stm32f042_example(null, "top", "example:gpiox_led")
-        }.run(2, 1)
+        }.use {
+            it.run(2, 1)
+        }
     }
 
     @Test
@@ -68,21 +72,27 @@ internal class stm32f042Tests {
                 val trc = ComponentTracer<ARMv6MCore>(it.stm32f042, "trc")
                 it.stm32f042.buses.connect(trc.ports.trace, it.stm32f042.dbg.ports.trace)
             }
-        }.run(2, 1)
+        }.use {
+            it.run(2, 1)
+        }
     }
 
     @Test
     fun gpiox_registers_test() {
         PerformanceTester(0x0800_241Eu, 10_000_000u) {
             stm32f042_example(null, "top", "example:gpiox_registers")
-        }.run(2, 1)
+        }.use {
+            it.run(2, 1)
+        }
     }
 
     @Test
     fun benchmark_qsort_test() {
         PerformanceTester(0x0800_1E62u) {
             stm32f042_example(null, "top", "example:benchmark_qsort")
-        }.run(5, 1)
+        }.use {
+            it.run(5, 1)
+        }
     }
 
     private fun String.readout(count: Int = -1): String {
@@ -92,9 +102,9 @@ internal class stm32f042Tests {
 
     private fun String.flush() = readout()
 
-    private fun assertFileContentStartswith(path: String, expected: String) {
-        val actual = path.readout(expected.length)
-        log.fine { "Stream output for $path: $actual" }
+    private fun assertInputStreamContentStartsWith(s: InputStream, expected: String) {
+        val actual = s.readNBytes(expected.length).decodeToString()
+        log.fine { "Stream output: $actual" }
         assertEquals(expected, actual)
     }
 
@@ -105,18 +115,24 @@ internal class stm32f042Tests {
     fun usart_poll_test() {
         val testStringPoll = "my-test-string?my-test-string\n"
 
-        val tester = PerformanceTester(0x800_1D82u, 1_000_000u) {
-            stm32f042_example(null, "top", "example:usart_poll", "socat:", "socat:")
+        var socket1: Socket? = null
+        var socket2: Socket? = null
+
+        PerformanceTester(0x800_1D82u, 1_000_000u) {
+            stm32f042_example(null, "top", "example:usart_poll").also {
+                socket1 = Socket("127.0.0.1", it.term1.port)
+                socket2 = Socket("127.0.0.1", it.term2.port)
+            }
         }.afterReset {
-            it.term1.socat?.pty1?.flush()
-            it.term2.socat?.pty1?.flush()
             it.sendStringIntoUART1(testStringPoll * 5)
         }.atAddressAlways(0x0800_1CF8u) {
             log.info { "main -> Enter" }
-        }.apply { run(5, 1) }
+        }.use {
+            it.run(5, 1)
 
-        assertFileContentStartswith(tester.top.term1.socat!!.pty1, testStringPoll)
-        assertFileContentStartswith(tester.top.term2.socat!!.pty1, testStringPoll)
+            assertInputStreamContentStartsWith(socket1!!.inputStream, testStringPoll)
+            assertInputStreamContentStartsWith(socket2!!.inputStream, testStringPoll)
+        }
     }
 
     /**
@@ -126,18 +142,24 @@ internal class stm32f042Tests {
     fun usart_dma_test() {
         val testStringDMA = "very very long string\n"
 
-        val tester = PerformanceTester(0x0800_23FCu, 1_000_000u) {
-            stm32f042_example(null, "top", "example:usart_dma", "socat:", "socat:")
+        var socket: Socket? = null
+
+        PerformanceTester(0x0800_23FCu, 1_000_000u) {
+            stm32f042_example(null, "top", "example:usart_dma").also {
+                socket = Socket("127.0.0.1", it.term2.port)
+            }
         }.atAddressOnce(0x0800_23EEu) {
             it.sendStringIntoUART1(testStringDMA * 20)
         }.atAddressAlways(0x0800_0684u) {
             log.severe { "Enter -> HAL_DMA_IRQHandler" }
         }.atAddressAlways(0x0800_07C6u) {
             log.severe { "Exit -> HAL_DMA_IRQHandler" }
-        }.apply { run(1, 0) }
+        }.use {
+            it.run(1, 0)
 
-        // in this test not echo just output to uart2
-        assertFileContentStartswith(tester.top.term2.socat!!.pty1, testStringDMA)
+            // in this test not echo just output to uart2
+            assertInputStreamContentStartsWith(socket!!.inputStream, testStringDMA)
+        }
     }
 
     /**
@@ -145,7 +167,7 @@ internal class stm32f042Tests {
      */
     @Test
     fun freertos_uart() {
-        val tester = PerformanceTester(0x0800_3338u, 15_000_000u) {
+        PerformanceTester(0x0800_3338u, 15_000_000u) {
             stm32f042_example(null, "top", "example:freertos_uart")
         }.atAddressAlways(0x0800_31FCu) {
             log.severe { "Enter -> StarterTaskHandler" }
@@ -155,6 +177,6 @@ internal class stm32f042Tests {
             log.severe { "Enter -> ProcessTaskHandler" }
         }.atAddressAlways(0x0800_32F8u) {
             log.severe { "Enter -> WatchDogHandler" }
-        }.run(5, 1)
+        }.use { it.run(5, 1) }
     }
 }

@@ -85,7 +85,7 @@ class NAND constructor(
             this(parent, name, id, blockCount, colLen, rowLen, pageSize, spareSize, pagesInBlock, bank1, null)
 //
     inner class Ports : ModulePorts(this) {
-        val nand = Slave("nand", NAND_BUS_SIZE)  // command
+        val nand = Port("nand")  // command
     }
 
     override val ports = Ports()

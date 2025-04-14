@@ -26,15 +26,11 @@
 package ru.inforion.lab403.kopycat.interfaces
 
 import ru.inforion.lab403.common.extensions.uint
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.HardwareErrorHandler
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.exceptions.HardwareException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
-import java.math.BigInteger
 
 
 @Suppress("INAPPLICABLE_JVM_NAME")
@@ -47,11 +43,12 @@ interface IWritable {
      *
      * @param from порт от которого пришел запрос на запись
      * @param ea адрес по которому будет происходить запись
+     * @param size количество байт, которое необходимо записать
      * @param value значение, которое будет записано
      * {RU}
      */
     @JvmName("beforeWrite")
-    fun beforeWrite(from: MasterPort, ea: ULong, value: ULong): Boolean = true
+    fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong): Boolean = true
 
     /**
      * {RU}

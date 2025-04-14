@@ -26,7 +26,7 @@
 package ru.inforion.lab403.kopycat.cores.base.common
 
 import ru.inforion.lab403.common.extensions.*
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessType
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
@@ -76,7 +76,7 @@ import java.nio.ByteOrder.LITTLE_ENDIAN
  * {EN}
  */
 class CachedMemoryStream(
-    private val reader: MasterPort,
+    private val reader: Port,
     where: ULong,
     val ss: Int,
     val type: AccessType,

@@ -39,8 +39,6 @@ import java.nio.ByteOrder
 
 abstract class BioslessDevice(parent: Module?, name: String) : Module(parent, name) {
     companion object {
-        const val DEFAULT_RAMDISK_ADDRESS = 0x0400_0000uL
-
         // Taken from qemu (SeaBIOS) boot log
         val DEFAULT_MEMORY_MAP = arrayOf(
             E820(0uL, 0x9fc00uL, E820.Companion.E820Type.Usable),
@@ -57,10 +55,12 @@ abstract class BioslessDevice(parent: Module?, name: String) : Module(parent, na
     abstract val x86: x86Core
     abstract val bzImage: ByteArray
     abstract val cmdline: String
-    open val ramdiskAddress: ULong = DEFAULT_RAMDISK_ADDRESS
+    open val ramdiskAddress: ULong get() = 0xC000_0000uL - ramdiskSize
     abstract val ramdisk: ByteArray?
     open val initramfsSize: ULong = 0uL
     open val e820: Array<E820> = DEFAULT_MEMORY_MAP
+
+    private val ramdiskSize by lazy { ramdisk?.size?.ulong_z ?: initramfsSize }
 
     private fun makeRAM(ramName: String, size: Int, fill: ByteArray.() -> Unit) = RAM(
         this,
@@ -70,7 +70,6 @@ abstract class BioslessDevice(parent: Module?, name: String) : Module(parent, na
     )
 
     protected fun buildMemoryLayout() = bzImage(bzImage).let { kernel ->
-        val ramdiskSize = ramdisk?.size?.ulong_z ?: initramfsSize
         val ramdiskRamSize = ((ramdiskSize + cmdline.length + 1u) ceil (0x1000uL)) * 0x1000uL
 
         val (low, high) = kernel.prepareBoot(

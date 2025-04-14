@@ -55,7 +55,7 @@ class ExternalDisk(
     val size = f.length().ulong
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", size + 1uL)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()
@@ -68,7 +68,7 @@ class ExternalDisk(
 
     // SATA reads one byte at a time, no need to implement anything but single byte reads and writes
     init {
-        object : Area(ports.mem, "area") {
+        object : Area(ports.mem, 0uL, size, "area") {
             private fun readByteFromDisk(ea: ULong): ULong {
                 return synchronized(f) {
                     f.seek(ea.long)

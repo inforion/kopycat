@@ -26,7 +26,6 @@
 package ru.inforion.lab403.kopycat.cores.x86.instructions.cpu.string
 
 import ru.inforion.lab403.common.extensions.uint
-import ru.inforion.lab403.common.extensions.ulong_z
 import ru.inforion.lab403.kopycat.cores.base.operands.AOperand
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.cores.x86.operands.x86Displacement
@@ -41,15 +40,8 @@ class Movs(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
         val dst = op1 as x86Displacement
         val src = op2 as x86Displacement
 
-        // Multiple bytes reading causes page-edge bug like IndexOutOfBounds in Module.Memory
-        val srcAddress = src.effectiveAddress(core)
-        val dstAddress = dst.effectiveAddress(core)
-        // wtf Просто смойте меня в унитаз
-        (0 until minOf(src.dtyp.bytes, dst.dtyp.bytes)).map { i ->
-            core.read(srcAddress + i.ulong_z, src.ssr.reg, 1)
-        }.forEachIndexed { i, value ->
-            core.write(dstAddress + i.ulong_z, dst.ssr.reg, 1, value)
-        }
+        val data = src.value(core)
+        dst.value(core, data)
 
         var spos = src.reg.value(core)
         var dpos = dst.reg.value(core)

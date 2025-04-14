@@ -29,9 +29,7 @@ import ru.inforion.lab403.common.extensions.MHz
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.x86.config.CPUID
 import ru.inforion.lab403.kopycat.cores.x86.config.Generation
-import ru.inforion.lab403.kopycat.modules.*
 import ru.inforion.lab403.kopycat.modules.common.pci.pci_proxy
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
@@ -56,15 +54,15 @@ class AMDElanSC520(
 ) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
-        val gpio = Proxy("gpio", BUS16)
+        val gpio = Proxy("gpio")
 
         val gpcs = proxies(8, "gpcs")
-        val bootcs = Proxy("bootcs", BUS32)
-        val romcs = proxies(2, "romcs", BUS16)
-        val sdram = Proxy("sdram", BUS28)
+        val bootcs = Proxy("bootcs")
+        val romcs = proxies(2, "romcs")
+        val sdram = Proxy("sdram")
 
-        val irq_pci = Proxy("irq_pci", PCI_INTERRUPTS_COUNT)
-        val irq_gp = Proxy("irq_gp", PIC.GP_INTERRUPT_COUNT)
+        val irq_pci = Proxy("irq_pci")
+        val irq_gp = Proxy("irq_gp")
 
         val pci = pci_proxy("pci")
         val map = Proxy("map")
@@ -73,8 +71,8 @@ class AMDElanSC520(
     override val ports = Ports()
 
     inner class Buses : ModuleBuses(this) {
-        val gpio = Bus("gpio", BUS16)
-        val mmcr = Bus("mmcr", BUS12)
+        val gpio = Bus("gpio")
+        val mmcr = Bus("mmcr")
     }
 
     override val buses = Buses()

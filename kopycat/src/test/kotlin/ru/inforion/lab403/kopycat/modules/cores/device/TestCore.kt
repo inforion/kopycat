@@ -39,20 +39,13 @@ class TestCore(parent: Module, name: String, frequency: Long = 77.MHz):
         ACore<TestCore, TestCPU, TestCOP>(parent, name, frequency, 1.0) {
 
     companion object {
-        fun program(vararg instructions: Any): ByteArray {
-            val ints = instructions.map { item ->
-                when (item) {
-                    is ULong -> listOf(item)
-                    else -> error("Wrong argument type: ${item::class}!")
+        fun program(vararg ints: UInt): ByteArray = ByteArrayOutputStream().apply {
+            DataOutputStream(this).apply {
+                ints.forEach {
+                    writeInt(it.int)
                 }
-            }.flatten()
-
-            return ByteArrayOutputStream().apply {
-                DataOutputStream(this).apply {
-                    ints.forEach { writeULong(it) }
-                }
-            }.toByteArray()
-        }
+            }
+        }.toByteArray()
     }
 
     override fun stringify(): String = "test core"

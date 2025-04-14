@@ -38,8 +38,8 @@ class Fucom(core: x86Core, opcode: ByteArray, prefs: Prefixes, private val popNu
     }
 
     override fun executeFPUInstruction() {
-        val a1 = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
-        val a2 = op2.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+        val a1 = op1.extValue(core).longDouble(core.fpu.softfloat)
+        val a2 = op2.extValue(core).longDouble(core.fpu.softfloat)
         when {
             a1 > a2 -> {
                 core.fpu.fwr.FPUStatusWord.c0 = false

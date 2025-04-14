@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.consoles.kotlin.completers
 import org.jline.reader.Candidate
 import org.jline.reader.ParsedLine
 import ru.inforion.lab403.common.extensions.hex
+import ru.inforion.lab403.common.extensions.hex8
 import ru.inforion.lab403.kopycat.Kopycat
 import ru.inforion.lab403.kopycat.consoles.kotlin.ICustomArgumentCompleter
 
@@ -42,10 +43,14 @@ internal class KopycatBptClrCompleter : ICustomArgumentCompleter {
         .asSequence()
         .map {
             Candidate(
-                "0x${it.key.hex}uL",
-                "0x${it.key.hex}",
+                "0x${it.range.first.hex}uL)",
+                if (it.range.first == it.range.last) {
+                    "0x${it.range.first.hex8}"
+                } else {
+                    "0x${it.range.hex8}"
+                },
                 "breakpoint",
-                null,
+                it.comment,
                 null,
                 null,
                 true,

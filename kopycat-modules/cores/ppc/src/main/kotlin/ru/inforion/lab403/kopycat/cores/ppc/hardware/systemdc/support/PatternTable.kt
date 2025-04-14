@@ -31,7 +31,6 @@ import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.hardware.systemdc.decoders.APPCDecoder
 import ru.inforion.lab403.kopycat.interfaces.ITableEntry
-import java.util.logging.Level
 
 class PatternTable(
         name: String,

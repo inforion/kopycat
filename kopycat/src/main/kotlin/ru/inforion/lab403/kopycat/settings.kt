@@ -28,7 +28,7 @@ package ru.inforion.lab403.kopycat
 import ru.inforion.lab403.kopycat.library.types.Resource
 import java.io.File
 import kotlin.reflect.full.starProjectedType
-import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * {EN}Settings for build configuration of Kopycat core{EN}
@@ -173,5 +173,5 @@ object settings {
     /**
      * {EN}Threshold to print Emulation running for string for debugger{EN}
      */
-    val printEmulatorRateThreshold = Duration.milliseconds(500)
+    val printEmulatorRateThreshold = 500.milliseconds
 }

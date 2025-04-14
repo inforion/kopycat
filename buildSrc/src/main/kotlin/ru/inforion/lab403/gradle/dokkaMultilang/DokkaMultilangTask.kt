@@ -29,7 +29,6 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.SourceSet
 import org.gradle.api.tasks.TaskAction
-import org.jetbrains.dokka.gradle.GradleSourceRootImpl
 import ru.inforion.lab403.gradle.common.forEachExtension
 import ru.inforion.lab403.gradle.common.getExtensionsAsList
 import ru.inforion.lab403.gradle.common.getSourceSets
@@ -120,13 +119,15 @@ open class DokkaMultilangTask : DefaultTask() {
         result.forEach { makeComment(it, languages, selected) }
 
         logger.lifecycle("Setup ${selected.task} sourceRoots to '${generatedTemporaryDir.path}'")
-        val dokkaRoot = GradleSourceRootImpl().also { it.path = generatedTemporaryDir.path }
-        selected.task.configuration.sourceRoots = mutableListOf(dokkaRoot)
+
+        selected.task.get().dokkaSourceSets.configureEach {
+            it.sourceRoots.setFrom(generatedTemporaryDir)
+        }
     }
 
     fun afterProjectEvaluate() {
         forEachExtension(DokkaMultilangPlugin.languagesExtension) { language: Language ->
-            language.task.also { dokkaTask -> dokkaTask.dependsOn(this) }
+            language.task.also { dokkaTask -> dokkaTask.get().dependsOn(this) }
         }
     }
 

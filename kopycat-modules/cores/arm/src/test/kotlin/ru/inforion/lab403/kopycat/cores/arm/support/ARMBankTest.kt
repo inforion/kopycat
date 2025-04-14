@@ -25,25 +25,23 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.support
 
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.MHz
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.modules.cores.ARMv7Core
-
+import kotlin.test.assertEquals
 
 
 class ARMBankTest: Module(null, "ARM Bank Test") {
     private fun assert(expected: ULong, actual: ULong) {
-        Assert.assertEquals(expected, actual)
+        assertEquals(expected, actual)
     }
 
     private val arm = ARMv7Core(this, "arm", 48.MHz, 1.0)
     private val bank = arm.cpu.sregs.cpsr
 
-    @Before
+    @BeforeEach
     fun resetTest() {
         arm.reset()
         bank.reset()
@@ -53,7 +51,7 @@ class ARMBankTest: Module(null, "ARM Bank Test") {
         bank.ITSTATE = 0b1010_1010u
         // initial mode for ARM is SVC mode CPSR[7..0] = 0x13
         assert(0b0000_0100_0000_0000_1010_1000_0001_0011u, arm.cpu.sregs.cpsr.value)
-        Assert.assertEquals(bank.ITSTATE, 0b1010_1010uL)
+        assertEquals(bank.ITSTATE, 0b1010_1010uL)
     }
 
     @Test fun test2() {
@@ -63,9 +61,9 @@ class ARMBankTest: Module(null, "ARM Bank Test") {
         bank.f  = true
         assert(0b0000_0110_0000_0110_1110_0000_0101_0011u, arm.cpu.sregs.cpsr.value)
         assert(0b0000_0110_0000_0110_1110_0000_0101_0011u, arm.cpu.sregs.cpsr.value)
-        Assert.assertEquals(bank.ge,0b0110uL)
-        Assert.assertEquals(bank.m, 0b10011uL)
-        Assert.assertEquals(bank.ITSTATE,0b1110_0011uL)
-        Assert.assertEquals(bank.f, true)
+        assertEquals(bank.ge,0b0110uL)
+        assertEquals(bank.m, 0b10011uL)
+        assertEquals(bank.ITSTATE,0b1110_0011uL)
+        assertEquals(bank.f, true)
     }
 }

@@ -25,11 +25,12 @@
  */
 package ru.inforion.lab403.gradle.dokkaMultilang
 
+import org.gradle.api.tasks.TaskProvider
 import org.jetbrains.dokka.gradle.DokkaTask
 
 class Language(val name: String) {
     lateinit var marker: String
-    lateinit var task: DokkaTask
+    lateinit var task: TaskProvider<DokkaTask>
 
     override fun toString() = "Language(name=$name, marker=$marker, task=$task)"
 }

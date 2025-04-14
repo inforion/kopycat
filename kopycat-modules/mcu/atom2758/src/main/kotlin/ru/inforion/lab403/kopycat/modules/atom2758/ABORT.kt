@@ -27,16 +27,10 @@ package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
-import ru.inforion.lab403.kopycat.modules.BUS16
-import ru.inforion.lab403.kopycat.modules.BUS32
-import java.util.logging.Level
-import java.util.logging.Level.CONFIG
 
 class ABORT(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x10_0000)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

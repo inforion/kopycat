@@ -29,7 +29,7 @@ package ru.inforion.lab403.kopycat.cores.base.extensions
 
 import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.common.extensions.ulong_z
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.interfaces.*
 
 
@@ -51,7 +51,7 @@ const val IRQ_INSERVICE_AREA = 2
  *
  * {EN}Request the specified interrupt{EN}
  */
-inline fun MasterPort.request(pin: Int) = outb(pin.ulong_z, 1u, IRQ_REQUEST_AREA)
+inline fun Port.request(pin: Int) = outb(pin.ulong_z, 1u, IRQ_REQUEST_AREA)
 
 /**
  * {EN}Check whether interrupt is requested now (pending){EN}
@@ -64,7 +64,7 @@ inline fun MasterPort.request(pin: Int) = outb(pin.ulong_z, 1u, IRQ_REQUEST_AREA
  * @return true - если прерывание ожидает обработки
  * {RU}
  */
-inline fun MasterPort.pending(pin: Int) = inb(pin.ulong_z, IRQ_REQUEST_AREA) == 1uL
+inline fun Port.pending(pin: Int) = inb(pin.ulong_z, IRQ_REQUEST_AREA) == 1uL
 
 /**
  * {EN}Check whether interrupt is in service now (in fact in handler){EN}
@@ -77,7 +77,7 @@ inline fun MasterPort.pending(pin: Int) = inb(pin.ulong_z, IRQ_REQUEST_AREA) == 
  * @return true - если прерывание в обработке
  * {RU}
  */
-inline fun MasterPort.inservice(pin: Int) = inb(pin.ulong_z, IRQ_INSERVICE_AREA) == 1uL
+inline fun Port.inservice(pin: Int) = inb(pin.ulong_z, IRQ_INSERVICE_AREA) == 1uL
 
 /**
  * {EN}Enable or disable interrupt{EN}
@@ -89,7 +89,7 @@ inline fun MasterPort.inservice(pin: Int) = inb(pin.ulong_z, IRQ_INSERVICE_AREA)
  * @param value включить или выключить
  * {RU}
  */
-inline fun MasterPort.enabled(pin: Int, value: Boolean) = outb(pin.ulong_z, value.ulong, IRQ_ENABLE_AREA)
+inline fun Port.enabled(pin: Int, value: Boolean) = outb(pin.ulong_z, value.ulong, IRQ_ENABLE_AREA)
 
 /**
  * {EN}Check whether interrupt enabled{EN}
@@ -102,7 +102,7 @@ inline fun MasterPort.enabled(pin: Int, value: Boolean) = outb(pin.ulong_z, valu
  * @return true - если прерывание включено
  * {RU}
  */
-inline fun MasterPort.enabled(pin: Int): Boolean = inb(pin.ulong_z, IRQ_ENABLE_AREA) == 1uL
+inline fun Port.enabled(pin: Int): Boolean = inb(pin.ulong_z, IRQ_ENABLE_AREA) == 1uL
 
 /**
  * {EN}Enable interrupt{EN}
@@ -113,7 +113,7 @@ inline fun MasterPort.enabled(pin: Int): Boolean = inb(pin.ulong_z, IRQ_ENABLE_A
  * @param pin номер прерывания
  * {RU}
  */
-inline fun MasterPort.enable(pin: Int) = enabled(pin, true)
+inline fun Port.enable(pin: Int) = enabled(pin, true)
 
 /**
  * {EN}Disable interrupt{EN}
@@ -124,4 +124,4 @@ inline fun MasterPort.enable(pin: Int) = enabled(pin, true)
  * @param pin номер прерывания
  * {RU}
  */
-inline fun MasterPort.disable(pin: Int) = enabled(pin, false)
+inline fun Port.disable(pin: Int) = enabled(pin, false)

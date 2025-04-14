@@ -264,8 +264,9 @@ class Serializer<T : ISerializable> constructor(
         val (_, time) = measureTimedValue {
             deserializedObjects.clear()
             zipFilePath = file.absolutePath
-            val zip = ZipFile(zipFilePath!!) // can't be merged with prev.
-            json = zip.readJsonEntry(stateJsonPath)
+            ZipFile(zipFilePath!!).use { zip -> // can't be merged with prev.
+                json = zip.readJsonEntry(stateJsonPath)
+            }
             snapshot = json!!.fromJson()
             doRestore = false
             target.deserialize(this, snapshot!!)
@@ -283,7 +284,7 @@ class Serializer<T : ISerializable> constructor(
             deserializedObjects.clear()
             if (json == null || snapshot == null) {
                 requireNotNull(zipFilePath) { "Restore failed. No last deserialized state." }.also { zipPath ->
-                    json = ZipFile(zipPath).readJsonEntry(stateJsonPath)
+                    json = ZipFile(zipPath).use { zip -> zip.readJsonEntry(stateJsonPath) }
                     snapshot = json!!.fromJson()
                 }
             }
@@ -296,7 +297,7 @@ class Serializer<T : ISerializable> constructor(
         return this
     }
 
-    fun isBinaryExists(name: String) = ZipFile(zipFilePath!!).isFileExists(name)
+    fun isBinaryExists(name: String) = ZipFile(zipFilePath!!).use { zip -> zip.isFileExists(name) }
 
     fun storeBinary(name: String, output: ByteBuffer): Map<String, Any?> {
         zipOut!!.writeBinaryEntry(name, output)
@@ -304,7 +305,7 @@ class Serializer<T : ISerializable> constructor(
     }
 
     fun loadBinary(snapshot: Map<String, Any?>, name: String, output: ByteBuffer): Boolean = zipFilePath!!.let {
-        if (ZipFile(it).readBinaryEntry(name, output)) {
+        if (ZipFile(it).use { zip -> zip.readBinaryEntry(name, output) }) {
             loadByteBuffer(snapshot, name, output, false)
             return true
         }
@@ -317,8 +318,7 @@ class Serializer<T : ISerializable> constructor(
         output: ByteBuffer,
         dirtyPages: Set<UInt>,
         pageSize: Int
-    ) = zipFilePath!!.let { zipPath ->
-        val zip = ZipFile(zipPath)
+    ) = ZipFile(zipFilePath!!).use { zip ->
         val entry = zip.getEntry(name)
         zip.getInputStream(entry).use { stream ->
             var pos = 0L

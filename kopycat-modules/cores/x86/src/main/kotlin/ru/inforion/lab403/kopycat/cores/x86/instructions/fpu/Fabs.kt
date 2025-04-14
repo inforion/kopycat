@@ -37,8 +37,8 @@ class Fabs(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<
     override val mnem = "fabs"
 
     override fun executeFPUInstruction() {
-        val value = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+        val value = op1.extValue(core).longDouble(core.fpu.softfloat)
         core.fpu.fwr.FPUStatusWord.c1 = false
-        op1.extValue(core, value.abs().ieee754AsUnsigned())
+        op1.extValue(core, value.abs.ieee754AsUnsigned())
     }
 }

@@ -47,12 +47,12 @@ class Fxam(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
             return
         }
 
-        val op = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+        val op = op1.extValue(core).longDouble(core.fpu.softfloat)
         core.fpu.fwr.FPUStatusWord.c0 = false
         core.fpu.fwr.FPUStatusWord.c2 = false
         core.fpu.fwr.FPUStatusWord.c3 = false
         when (op) {
-            LongDouble.zero(core.fpu.fwr.FPUControlWord) -> {
+            LongDouble.zero(core.fpu.softfloat) -> {
                 core.fpu.fwr.FPUStatusWord.c3 = true
             }
             // TODO: check for NaN, Unsupported, Infinity, Denormal number
@@ -62,6 +62,6 @@ class Fxam(core: x86Core, opcode: ByteArray, prefs: Prefixes, vararg operands: A
             }
         }
         // false for positive number and zero, true for negative
-        core.fpu.fwr.FPUStatusWord.c1 = op < LongDouble.zero(core.fpu.fwr.FPUControlWord)
+        core.fpu.fwr.FPUStatusWord.c1 = op < LongDouble.zero(core.fpu.softfloat)
     }
 }

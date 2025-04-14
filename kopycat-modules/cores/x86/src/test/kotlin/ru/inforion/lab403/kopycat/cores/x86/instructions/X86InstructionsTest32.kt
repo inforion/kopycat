@@ -25,11 +25,15 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
 import ru.inforion.lab403.kopycat.cores.x86.config.Generation
+import ru.inforion.lab403.kopycat.cores.x86.instructions.X86CommonTests.relativeJumpDecodeTestInner
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.memory.RAM
+import kotlin.test.assertEquals
+import kotlin.test.assertNull
 
 
 class X86InstructionsTest32: AX86InstructionTest() {
@@ -139,10 +143,10 @@ class X86InstructionsTest32: AX86InstructionTest() {
         assertGPRRegisters(eax = 0x18_2203u, esp = 0xFFFCu)
 
         val instructionPushEip = "push EAX"
-        gprRegisters(esp = 0xFFFCu)
+        gprRegisters(eax = x86.cpu.sregs.cs.value, esp = 0xFFFCu)
         execute(-1uL) { assemble(instructionPushEip) }
         assertAssembly(instructionPushEip)
-        assertGPRRegisters(esp = 0xFFF8u)
+        assertGPRRegisters(eax = x86.cpu.sregs.cs.value, esp = 0xFFF8u)
 
         val instructionPushCs = "push EAX"
         gprRegisters(eax = 0x2u, esp = 0xFFF8u)
@@ -153,32 +157,52 @@ class X86InstructionsTest32: AX86InstructionTest() {
         val instruction = "iret "
         execute { assemble(instruction) }
         assertAssembly(instruction)
+        assertNull(x86.cpu.exception)
         assertFlagRegisters(cf = true, vip = true, vif = true, ifq = true)
         assertIopl(2)
     }
 
     @Test fun iretTest2() {
-        val instructionPushFlag = "push EAX"
-        gprRegisters(eax = 0x18_2203u, esp = 0x1_0000u)
-        execute(-2uL) { assemble(instructionPushFlag) }
-        assertAssembly(instructionPushFlag)  // flags cf, pf, sf, of
-        assertGPRRegisters(eax = 0x18_2203u, esp = 0xFFFCu)
+        x86.mmu.gdtr.base = 0x1_0000uL
+        x86.mmu.gdtr.limit = 0x20u
+        x86.mmu.ldtr = 8u
+        ram0.write(0x1_0000u + x86.mmu.ldtr, 0, 8, 0x478a010100ffffuL) // LDT
+        ram0.write(0x1_0100u, 0, 8, 0x478a000100ffffuL)
 
-        val instructionPushEip = "push EAX"
-        gprRegisters(esp = 0xFFFCu, eax = 0x5u)
-        execute(-1uL) { assemble(instructionPushEip) }
-        assertAssembly(instructionPushEip)
-        assertGPRRegisters(esp = 0xFFF8u, eax = 0x5u)
+        val pushEax = assemble("push EAX")
 
-        val instructionPushCs = "push EAX"
-        gprRegisters(eax = 0x2u, esp = 0xFFF8u)
-        execute { assemble(instructionPushCs) }
-        assertAssembly(instructionPushCs)
-        assertGPRRegisters(eax = 0x2u, esp = 0xFFF4u)
+        gprRegisters(eax = 5u, esp = 0x1_0000u)
+        execute(-4uL) { pushEax } // SS
+        assertAssembly("push EAX")
+        assertGPRRegisters(eax = 5u, esp = 0xfffcu)
+
+        gprRegisters(eax = 0x100u, esp = 0xfffcu)
+        execute(-3uL) { pushEax } // SP
+        assertGPRRegisters(eax = 0x100u, esp = 0xfff8u)
+
+        gprRegisters(eax = 0x18_2203u, esp = 0xfff8u)
+        execute(-2uL) { pushEax } // flags cf, pf, sf, of
+        assertGPRRegisters(eax = 0x18_2203u, esp = 0xfff4u)
+
+        gprRegisters(eax = 0x5u, esp = 0xfff4u)
+        execute(-1uL) { pushEax } // CS
+        assertGPRRegisters(eax = 0x5u, esp = 0xfff0u)
+
+        gprRegisters(eax = 0x2u, esp = 0xfff0u)
+        execute { pushEax } // IP
+        assertGPRRegisters(eax = 0x2u, esp = 0xffecu)
 
         val instruction = "iret "
         execute { assemble(instruction) }
         assertAssembly(instruction)
+        assertNull(x86.cpu.exception)
+        assertEquals(2u, x86.cpu.regs.ip.value)
+        assertEquals(0x100u, x86.cpu.regs.sp.value)
+        assertEquals(0x05u, x86.cpu.sregs.cs.value)
+        assertEquals(0x05u, x86.cpu.sregs.ss.value)
+        assertEquals(0x150u, x86.mmu.translate(0x50uL, x86.cpu.sregs.cs.id, 1, AccessAction.LOAD))
         assertFlagRegisters(cf = true, vip = true, vif = true, ifq = true)
     }
+
+    @Test fun relativeJumpDecodeTest() = relativeJumpDecodeTestInner()
 }

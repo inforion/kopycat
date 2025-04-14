@@ -29,16 +29,15 @@ package ru.inforion.lab403.kopycat.modules.atom2758
 
 import ru.inforion.lab403.common.extensions.ULONG_MAX
 import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.Bus
-import ru.inforion.lab403.kopycat.cores.base.MasterPort
+import ru.inforion.lab403.kopycat.cores.base.Port
 import ru.inforion.lab403.kopycat.cores.base.Register
-import ru.inforion.lab403.kopycat.cores.base.SlavePort
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.BUS40
-import java.util.logging.Level.CONFIG
 
 const val MESSAGE_BUS_SIZE = BUS40
 const val MESSAGE_PORT_SIZE = BUS32
@@ -58,7 +57,7 @@ fun messageBusAddress(port: ULong, ext: ULong, offset: ULong) =
 fun <T : ModulePorts.APort> T.msg_connect(msg: Bus, port: Int = 0, ext: ULong = 0u, offset: ULong = 0u) =
     connect(msg, messageBusAddress(port.ulong_z, ext, offset))
 
-fun MasterPort.requestOperationType(port: ULong, opcode: Int): ULong {
+fun Port.requestOperationType(port: ULong, opcode: Int): ULong {
     val serviceAddress = messageBusAddress(port, 0u, MESSAGE_BUS_SERVICE_ADDR)
     return when {
         access(serviceAddress, opcode, 1) -> read(serviceAddress, opcode, 1)
@@ -67,7 +66,7 @@ fun MasterPort.requestOperationType(port: ULong, opcode: Int): ULong {
 }
 
 inline fun Module.MESSAGE_BUS_SERVICE_REGISTER(
-    port: SlavePort,
+    port: Port,
     noinline onRead: (ea: ULong, ss: Int, size: Int) -> ULong
 ) = object : Register(
     port,

@@ -33,7 +33,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
-import java.util.logging.Level
 
 @Suppress("unused", "PrivatePropertyName")
 
@@ -44,8 +43,8 @@ class SCB(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x80)
-        val irq = Master("irq", NVIC.INTERRUPT_COUNT)
+        val mem = Port("mem")
+        val irq = Port("irq")
     }
 
     override val ports = Ports()

@@ -26,13 +26,13 @@
 package ru.inforion.lab403.kopycat.cores.base.common
 
 import ru.inforion.lab403.common.extensions.INT_MAX
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.AGenericCore
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
 import ru.inforion.lab403.kopycat.interfaces.IResettable
 import ru.inforion.lab403.kopycat.interfaces.ISerializable
 import java.util.concurrent.atomic.AtomicInteger
-import java.util.logging.Level
 
 /**
  * {RU}
@@ -47,7 +47,7 @@ import java.util.logging.Level
  * {EN}Not a really queue but collection for support interrupts{EN}
  */
 class InterruptsQueue(val core: AGenericCore): IResettable, ISerializable {
-    @Transient private val log = logger(Level.INFO)
+    @Transient private val log = logger(INFO)
 
     val name: String = "Interrupts Queue"
 

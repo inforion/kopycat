@@ -27,6 +27,8 @@ package ru.inforion.lab403.kopycat.consoles
 
 import org.jline.reader.Candidate
 import org.jline.reader.Completer
+import org.jline.reader.LineReader
+import org.jline.reader.ParsedLine
 import org.jline.reader.impl.DefaultParser
 import org.jline.reader.impl.completer.AggregateCompleter
 import org.jline.reader.impl.completer.StringsCompleter
@@ -74,6 +76,69 @@ class Kotlin(val kopycat: Kopycat) : AConsole("Kotlin") {
         return Result(0, result.toString())
     }
 
+    override fun onComplete(reader: LineReader?, line: ParsedLine?, candidates: MutableList<Candidate>) {
+        val word = line!!.word()
+
+        if ("." !in word) {
+            val bindings = engine.context.getBindings(ENGINE_SCOPE)
+            val variables = bindings.keys.map { candidate(it, null, null) }
+            candidates.addAll(variables)
+        } else {
+            val domain = word.substringBeforeLast(".")
+            val name = word.substringAfterLast(".")
+
+            engine.runCatching { eval(domain) }.onSuccess { obj ->
+                if (obj != null) {
+                    val trimmedName = name.trim()
+                    if (trimmedName.contains("(")) {
+                        val parenthesis = trimmedName.indexOf("(")
+                        val withoutParenthesis = trimmedName.substring(0, parenthesis)
+                        val afterParenthesis = trimmedName.substring(parenthesis + 1)
+
+                        obj::class.members
+                            .filter { it.name == withoutParenthesis }
+                            .firstNotNullOfOrNull {
+                                it.findAnnotation<CustomArgumentCompleter>()
+                            }
+                            ?.let { annotation ->
+                                candidates.clear()
+                                candidates.addAll(
+                                    annotation.completer.createInstance().complete(line, kopycat)
+                                        .filter {
+                                            it.value().startsWith(afterParenthesis)
+                                        }
+                                        .map {
+                                            Candidate(
+                                                "$domain.$name${
+                                                    it.value().substring(trimmedName.length - parenthesis - 1)
+                                                }",
+                                                it.displ(),
+                                                it.group(),
+                                                it.descr(),
+                                                it.suffix(),
+                                                it.key(),
+                                                it.complete(),
+                                            )
+                                        }
+                                )
+                                return@onComplete
+                            }
+                    }
+
+                    val members = obj::class.members.filter { it.name.startsWith(trimmedName) }
+                    val result = if (members.size < 10) {
+                        members.map { candidate(it.name, domain, it.stringify()) }
+                    } else {
+                        members.map { candidate(it.name, domain, null) }
+                    }
+                    candidates.addAll(result)
+                }
+            }.onFailure {
+                log.finest { "Can't eval(domain):\n${it.stackTraceToString()}" }
+            }
+        }
+    }
+
     override val working get() = kopycat.working
 
     private fun String.stripAnsi() = AttributedString.stripAnsi(this)
@@ -90,66 +155,7 @@ class Kotlin(val kopycat: Kopycat) : AConsole("Kotlin") {
                     "super", "return", "object", "package", "null", "is",
                     "try", "throw", "true", "this", "typeof", "typealias",
                     "when", "while", "val", "var"),
-            Completer { _, line, candidates ->
-                val word = line.word()
-
-                if ("." !in word) {
-                    val bindings = engine.context.getBindings(ENGINE_SCOPE)
-                    val variables = bindings.keys.map { candidate(it, null, null) }
-                    candidates.addAll(variables)
-                } else {
-                    val domain = word.substringBeforeLast(".")
-                    val name = word.substringAfterLast(".")
-
-                    engine.runCatching { eval(domain) }.onSuccess { obj ->
-                        if (obj != null) {
-                            val trimmedName = name.trim()
-                            if (trimmedName.contains("(")) {
-                                val parenthesis = trimmedName.indexOf("(")
-                                val withoutParenthesis = trimmedName.substring(0, parenthesis)
-                                val afterParenthesis = trimmedName.substring(parenthesis + 1)
-
-                                obj::class.members
-                                    .filter { it.name == withoutParenthesis }
-                                    .firstNotNullOfOrNull {
-                                        it.findAnnotation<CustomArgumentCompleter>()
-                                    }
-                                    ?.let { annotation ->
-                                        candidates.clear()
-                                        candidates.addAll(
-                                            annotation.completer.createInstance().complete(line, kopycat)
-                                                .filter {
-                                                    it.value().startsWith(afterParenthesis)
-                                                }
-                                                .map {
-                                                    Candidate(
-                                                        "$domain.$name${it.value().substring(trimmedName.length - parenthesis - 1)}",
-                                                        it.displ(),
-                                                        it.group(),
-                                                        it.descr(),
-                                                        it.suffix(),
-                                                        it.key(),
-                                                        it.complete(),
-                                                    )
-                                                }
-                                        )
-                                        return@Completer
-                                    }
-                            }
-
-                            val members = obj::class.members.filter { it.name.startsWith(trimmedName) }
-                            val result = if (members.size < 10) {
-                                members.map { candidate(it.name, domain, it.stringify()) }
-                            } else {
-                                members.map { candidate(it.name, domain, null) }
-                            }
-                            candidates.addAll(result)
-                        }
-                    }.onFailure {
-                        log.finest { "Can't eval(domain):\n${it.stackTraceToString()}" }
-                    }
-                }
-            }
+            Completer(::complete)
     )
 
     override val parser = object : DefaultParser() {

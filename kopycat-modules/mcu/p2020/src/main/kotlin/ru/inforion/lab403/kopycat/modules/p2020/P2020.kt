@@ -30,26 +30,24 @@ import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
-import ru.inforion.lab403.kopycat.modules.BUS07
-import ru.inforion.lab403.kopycat.modules.BUS32
 import ru.inforion.lab403.kopycat.modules.cores.E500v2
 import ru.inforion.lab403.kopycat.modules.memory.RAM
-import ru.inforion.lab403.kopycat.modules.terminals.UartSerialTerminal
+import ru.inforion.lab403.kopycat.modules.terminals.UartNetworkTerminal
 import java.nio.ByteOrder
 
 
-class P2020(parent: Module?, name: String) : Module(parent, name) {
+class P2020(parent: Module?, name: String, port: Int? = null) : Module(parent, name) {
 
     inner class Buses : ModuleBuses(this) {
-        val cbus = Bus("cbus", BUS32)
-        val ctrl = Bus("ctrl", BUS32)
-        val mem = Bus("mem", BUS32)
-        val ddr = Bus("ddr", BUS32)
-        val l2sdram = Bus("l2sdram", BUS32)
-        val flash = Bus("flash", BUS32)
-        val rx_bus = Bus("rx_bus", BUS32)
-        val tx_bus = Bus("tx_bus", BUS32)
-        val i2c_bus = Bus("i2c_bus", BUS07)
+        val cbus = Bus("cbus")
+        val ctrl = Bus("ctrl")
+        val mem = Bus("mem")
+        val ddr = Bus("ddr")
+        val l2sdram = Bus("l2sdram")
+        val flash = Bus("flash")
+        val rx_bus = Bus("rx_bus")
+        val tx_bus = Bus("tx_bus")
+        val i2c_bus = Bus("i2c_bus")
     }
 
     override val buses = Buses()
@@ -87,7 +85,7 @@ class P2020(parent: Module?, name: String) : Module(parent, name) {
 //    val flash0 = RAM(this, "flash0", 0x8_0000, Resource("binaries/spi_flash.bin")) // 512 Kb
 //    val flash1 = RAM(this, "flash1", 0x8000, Resource("binaries/i2c_flash.bin"))   // 32 Kb
 
-    val term = UartSerialTerminal(this, "term", "socat:")
+    val term = UartNetworkTerminal(this, "term", port)
 
     init {
         // === CORE ===

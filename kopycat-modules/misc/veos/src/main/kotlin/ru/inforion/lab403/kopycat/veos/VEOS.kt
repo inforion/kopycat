@@ -27,7 +27,6 @@ package ru.inforion.lab403.kopycat.veos
 
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.common.logging.FINEST
-import ru.inforion.lab403.common.logging.logStackTrace
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.common.optional.orElse
 import ru.inforion.lab403.common.utils.lazyTransient
@@ -39,7 +38,6 @@ import ru.inforion.lab403.kopycat.cores.base.abstracts.ATracer
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
-import ru.inforion.lab403.kopycat.cores.base.exceptions.MemoryAccessError
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SKIP
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_STOP
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
@@ -70,14 +68,14 @@ abstract class VEOS<C : AGenericCore> constructor(
         parent: Module,
         name: String,
         val bus: ULong = BUS32
-): ATracer<C>(parent, name, bus), IAutoSerializable {
+): ATracer<C>(parent, name), IAutoSerializable {
 
     companion object {
         @Transient val log = logger(FINEST)
     }
 
     open inner class Buses : ModuleBuses(this) {
-        val mem = Bus("mem", bus)
+        val mem = Bus("mem")
     }
 
     @DontAutoSerialize
@@ -236,16 +234,16 @@ abstract class VEOS<C : AGenericCore> constructor(
     var timestamp: ULong = 0u
         private set
 
-    private val idleProcess by lazyTransient {
-        val memory = VirtualMemory(this@VEOS, "idleMemory", 0uL, 0uL)
+    private class IdleProcess(sys: System, memory: VirtualMemory) : Process(sys, -1, memory) {
+        override val processType = "idle"
 
-        object : Process(sys, -1, memory) {
-            override val processType = "idle"
-
-            init {
-                initContext(sys.idleProcessAddress, 0uL, sys.idleProcessAddress)
-            }
+        init {
+            initContext(sys.idleProcessAddress, 0uL, sys.idleProcessAddress)
         }
+    }
+
+    private val idleProcess by lazyTransient {
+        IdleProcess(sys, VirtualMemory(this@VEOS, "idleMemory", 0uL, 0uL))
     }
 
     private fun schedule() {

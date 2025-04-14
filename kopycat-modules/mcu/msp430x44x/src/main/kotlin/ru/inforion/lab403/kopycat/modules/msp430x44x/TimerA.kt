@@ -28,6 +28,7 @@ package ru.inforion.lab403.kopycat.modules.msp430x44x
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.truth
 import ru.inforion.lab403.common.extensions.uint
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.common.Module
@@ -37,22 +38,19 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.extensions.enabled
 import ru.inforion.lab403.kopycat.cores.base.extensions.request
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS16
-import ru.inforion.lab403.kopycat.modules.PIN
-import java.util.logging.Level
 
 
 
 class TimerA(parent: Module, name: String) : Module(parent, name) {
 
     companion object {
-        @Transient private val log = logger(Level.FINE)
+        @Transient private val log = logger(FINE)
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", BUS16)
-        val irq_reg = Master("irq_reg", PIN)
-        val irq_taccr0 = Master("irq_taccr0", PIN)
+        val mem = Port("mem")
+        val irq_reg = Port("irq_reg")
+        val irq_taccr0 = Port("irq_taccr0")
     }
 
     override val ports = Ports()

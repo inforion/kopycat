@@ -35,6 +35,6 @@ class Fldz(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand<
     override val mnem = "fldz"
 
     override fun executeFPUInstruction() {
-        (op1 as x86FprRegister).push(core, LongDouble.zero(core.fpu.fwr.FPUControlWord).ieee754AsUnsigned())
+        (op1 as x86FprRegister).push(core, LongDouble.zero(core.fpu.softfloat).ieee754AsUnsigned())
     }
 }

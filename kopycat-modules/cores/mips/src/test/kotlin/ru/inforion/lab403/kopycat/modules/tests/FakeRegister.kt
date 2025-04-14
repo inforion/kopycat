@@ -38,7 +38,7 @@ class FakeRegister(parent: Module, name: String, value: ULong): Module(parent, n
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 4)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

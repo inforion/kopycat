@@ -35,6 +35,6 @@ class Fldpi(core: x86Core, opcode: ByteArray, prefs: Prefixes, operand: AOperand
     override val mnem = "fldpi"
 
     override fun executeFPUInstruction() {
-        (op1 as x86FprRegister).push(core, LongDouble.pi(core.fpu.fwr.FPUControlWord).ieee754AsUnsigned())
+        (op1 as x86FprRegister).push(core, LongDouble.pi(core.fpu.softfloat).ieee754AsUnsigned())
     }
 }

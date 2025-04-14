@@ -25,13 +25,13 @@
  */
 package ru.inforion.lab403.kopycat.cores.arm.support
 
-import org.junit.Assert
-import org.junit.Test
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.assertThrows
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.support.Mask
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.support.Stub
 import ru.inforion.lab403.kopycat.cores.arm.hardware.systemdc.support.Table
 import ru.inforion.lab403.kopycat.cores.base.exceptions.DecoderException
-
+import kotlin.test.assertEquals
 
 
 class ARMMaskTest {
@@ -39,7 +39,7 @@ class ARMMaskTest {
         val mask = Mask.create(raw, offset)
         val str = "$raw, $offset - ${value.toString(2)}"
         val res = mask.suit(value)
-        Assert.assertEquals(str, res, expected)
+        assertEquals(res, expected, str)
     }
 
     // MOV r9, r0, #4096
@@ -49,7 +49,7 @@ class ARMMaskTest {
         val m3 = Mask.create("-", 4)
         val mres = m1 + m2 + m3
         val isSuit = mres.suit(0xE3017050u)
-        Assert.assertEquals(true, isSuit)
+        assertEquals(true, isSuit)
     }
 
     @Test fun testNotE3017050() {
@@ -58,21 +58,21 @@ class ARMMaskTest {
         val m3 = Mask.create("-", 4)
         val mres = m1 + m2 + m3
         val isSuit = mres.suit(0xE3017050u)
-        Assert.assertEquals(false, isSuit)
+        assertEquals(false, isSuit)
     }
 
     @Test fun testNegativePositiveMerge() {
         val m1 = Mask.create("xx0x1 not 0x011", 20)
         val m2 = Mask.create("not 1111", 16)
         val mres = m1 + m2
-        Assert.assertEquals("[xxxxxxxxx0x1xxxxxxxxxxxxxxxxxxxx|xxxxxxx0x0111111xxxxxxxxxxxxxxxx]", "$mres")
+        assertEquals("[xxxxxxxxx0x1xxxxxxxxxxxxxxxxxxxx|xxxxxxx0x0111111xxxxxxxxxxxxxxxx]", "$mres")
     }
 
     @Test fun testNegativeEmptyMerge() {
         val m1 = Mask.create("xx0x1", 20)
         val m2 = Mask.create("not 1111", 16)
         val mres = m1 + m2
-        Assert.assertEquals("[xxxxxxxxx0x1xxxxxxxxxxxxxxxxxxxx|xxxxxxxxxxxx1111xxxxxxxxxxxxxxxx]", "$mres")
+        assertEquals("[xxxxxxxxx0x1xxxxxxxxxxxxxxxxxxxx|xxxxxxxxxxxx1111xxxxxxxxxxxxxxxx]", "$mres")
     }
 
     @Test fun testPositiveXBeginTrue(){
@@ -159,12 +159,14 @@ class ARMMaskTest {
         assert(raw, offset, value, true)
     }
 
-    @Test (expected = IllegalArgumentException::class)
+    @Test
     fun testNegativeXAllMiddleFalse() {
-        val raw = "not xxxxxx"
-        val offset = 19
-        val value = 0b01010111uL
-        assert(raw, offset, value, false)
+        assertThrows<IllegalArgumentException> {
+            val raw = "not xxxxxx"
+            val offset = 19
+            val value = 0b01010111uL
+            assert(raw, offset, value, false)
+        }
     }
 
     @Test fun testNegativeXEndTrue() {
@@ -195,12 +197,14 @@ class ARMMaskTest {
         assert(raw, offset, value, false)
     }
 
-    @Test (expected = IllegalArgumentException::class)
+    @Test
     fun testCombXAllMiddleFalse() {
-        val raw = "xxxx not xxxx"
-        val offset = 5
-        val value = 0b10100uL
-        assert(raw, offset, value, false)
+        assertThrows<IllegalArgumentException> {
+            val raw = "xxxx not xxxx"
+            val offset = 5
+            val value = 0b10100uL
+            assert(raw, offset, value, false)
+        }
     }
 
     @Test fun testCombXMiddleTrue() {
@@ -261,7 +265,7 @@ class ARMMaskTest {
             exc.message
         }
 
-        Assert.assertEquals("ldrl", message)
+        assertEquals("ldrl", message)
     }
 
 

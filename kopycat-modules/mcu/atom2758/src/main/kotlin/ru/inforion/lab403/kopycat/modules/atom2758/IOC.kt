@@ -36,7 +36,7 @@ class IOC(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val io = Slave("io", BUS_SIZE)
+        val io = Port("io")
     }
 
     override val ports = Ports()

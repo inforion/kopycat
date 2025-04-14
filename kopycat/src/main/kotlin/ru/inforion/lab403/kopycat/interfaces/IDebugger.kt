@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.interfaces
 
+import ru.inforion.lab403.kopycat.cores.base.common.Breakpoint
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
-import ru.inforion.lab403.kopycat.cores.base.enums.BreakpointType
 import java.math.BigInteger
 
 
@@ -75,15 +75,15 @@ interface IDebugger {
      * {RU}
      * Установить точку останова в эмуляторе с помощью варианта режима доступа в виде GDB_BPT перечисления
      *
-     * @param address адрес точки останова
-     * @param bpType режим срабатывания точки останова (ACCESS - read или write, EXEC - execute)
-     * @param comment комментарий к точки останова
+     * @param access режим срабатывания точки останова
+     * @param range интервал точки останова
+     * @param comment комментарий к точке останова
      *
      * @return true - если точка останова была установлена
      * {RU}
      */
     @JvmName("bptSet")
-    fun bptSet(bpType: BreakpointType, address: ULong, comment: String? = null): Boolean
+    fun bptSet(access: Breakpoint.Access, range: ULongRange, comment: String? = null): Boolean
 
     /**
      * {RU}

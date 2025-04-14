@@ -27,12 +27,12 @@ package ru.inforion.lab403.kopycat.experimental.tracer
 
 import ru.inforion.lab403.common.extensions.hex
 import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.LogLevel
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SKIP
 import ru.inforion.lab403.kopycat.cores.base.extensions.TRACER_STATUS_SUCCESS
 import ru.inforion.lab403.kopycat.runtime.abi.IAbi
-import java.util.logging.Level
 
 class TracerBypassUtils(val abi: IAbi) {
     companion object {
@@ -42,8 +42,7 @@ class TracerBypassUtils(val abi: IAbi) {
 
     val core get() = abi.core
 
-    fun log(level: Level, functionName: String, vararg argumentNames: String): ULong {
-
+    fun log(level: LogLevel, functionName: String, vararg argumentNames: String): ULong {
         log.log(level) {
             buildString {
                 append("[0x${core.pc.hex}] Called $functionName. ")

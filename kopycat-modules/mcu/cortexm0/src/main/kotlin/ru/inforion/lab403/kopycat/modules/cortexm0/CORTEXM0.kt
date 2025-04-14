@@ -31,7 +31,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModuleBuses
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.modules.cores.ARMv6MCore
-import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.interfaces.*
 
 
@@ -44,7 +43,7 @@ class CORTEXM0(parent: Module, name: String) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
         val mem = Proxy("mem")
-        val irq = Proxy("irq", NVIC.INTERRUPT_COUNT)
+        val irq = Proxy("irq")
     }
 
     override val ports = Ports()

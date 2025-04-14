@@ -52,25 +52,25 @@ class Fdiv(
             popCount: Int,
             r: Boolean = false,
         ) {
-            val a1 = op1.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+            val a1 = op1.extValue(core).longDouble(core.fpu.softfloat)
             val a2 = if (!int) {
                 if (op2 is x86FprRegister) {
-                    op2.extValue(core).longDouble(core.fpu.fwr.FPUControlWord)
+                    op2.extValue(core).longDouble(core.fpu.softfloat)
                 } else {
-                    op2.longDouble(core, core.fpu.fwr.FPUControlWord)
+                    op2.longDouble(core, core.fpu.softfloat)
                 }
             } else {
                 when (op2.dtyp) {
-                    Datatype.WORD -> op2.value(core).short.longDouble(core.fpu.fwr.FPUControlWord)
-                    else -> op2.value(core).int.longDouble(core.fpu.fwr.FPUControlWord)
+                    Datatype.WORD -> op2.value(core).short.longDouble(core.fpu.softfloat)
+                    else -> op2.value(core).int.longDouble(core.fpu.softfloat)
                 }
             }
 
-            if (!r && a2.isZero()) {
+            if (!r && a2.isZero) {
                 throw x86HardwareException.DivisionByZero(core.pc)
             }
 
-            if (r && a1.isZero()) {
+            if (r && a1.isZero) {
                 throw x86HardwareException.DivisionByZero(core.pc)
             }
 

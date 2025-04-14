@@ -25,7 +25,6 @@
  */
 package ru.inforion.lab403.kopycat.experimental.linux.biosless
 
-import org.jetbrains.kotlin.library.impl.buffer
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.bit
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
@@ -33,6 +32,7 @@ import ru.inforion.lab403.kopycat.auxiliary.fields.common.AbsoluteField
 import ru.inforion.lab403.kopycat.auxiliary.fields.delegates.absoluteField
 import ru.inforion.lab403.kopycat.auxiliary.fields.interfaces.IMemoryRef
 import ru.inforion.lab403.kopycat.interfaces.IReadWrite
+import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
@@ -187,7 +187,7 @@ class bzImage(private val bytes: ByteArray) : IMemoryRef, IReadWrite {
     /** Code to be loaded at or 0x10000 or 0x100000 depending on [LoadFlagsClass.loadedHigh] */
     private fun protectedModeCode() = (512 * (setupSects.int + 1)).let { bytes[it until it + sysSize.int * 16] }
 
-    override fun read(ea: ULong, ss: Int, size: Int) = with(bytes.buffer.order(ByteOrder.LITTLE_ENDIAN)) {
+    override fun read(ea: ULong, ss: Int, size: Int) = with(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)) {
         when (size) {
             BYTE.bytes -> get(ea.int).ulong_z
             WORD.bytes -> getShort(ea.int).ulong_z
@@ -197,7 +197,7 @@ class bzImage(private val bytes: ByteArray) : IMemoryRef, IReadWrite {
     }
 
     override fun write(ea: ULong, ss: Int, size: Int, value: ULong): Unit =
-        with(bytes.buffer.order(ByteOrder.LITTLE_ENDIAN)) {
+        with(ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)) {
             when (size) {
                 BYTE.bytes -> put(ea.int, value.byte)
                 WORD.bytes -> putShort(ea.int, value.short)

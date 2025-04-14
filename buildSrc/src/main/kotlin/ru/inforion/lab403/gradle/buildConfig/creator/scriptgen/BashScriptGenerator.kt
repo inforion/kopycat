@@ -75,7 +75,8 @@ java \
   `# KC Entrypoint` \
   "$starterClass" \
   `# KC Arguments` \
-$argumentsStr
+$argumentsStr \
+  "💲@"
 """.replace("💲", "${'$'}")
     }
 

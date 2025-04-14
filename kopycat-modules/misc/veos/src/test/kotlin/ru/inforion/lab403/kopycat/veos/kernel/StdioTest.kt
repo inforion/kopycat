@@ -25,7 +25,7 @@
  */
 package ru.inforion.lab403.kopycat.veos.kernel
 
-import org.junit.Test
+import org.junit.jupiter.api.Test
 import ru.inforion.lab403.common.extensions.div
 import ru.inforion.lab403.common.extensions.getResourceUrl
 import ru.inforion.lab403.common.extensions.string
@@ -61,7 +61,7 @@ internal class StdioTest {
         val stream = ByteArrayOutputStream(100 * 1024)
         top.veos.ioSystem.reserve(StreamFile(stream), FileSystem.STDOUT_INDEX)
 
-        kopycat.run { step, core -> true }
+        kopycat.use { _ -> kopycat.run { step, core -> true } }
 
         var failed = false
 

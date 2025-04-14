@@ -27,11 +27,12 @@ package ru.inforion.lab403.kopycat.modules.stm32f042
 
 import ru.inforion.lab403.common.extensions.insert
 import ru.inforion.lab403.common.logging.ALL
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.LogLevel
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import java.util.logging.Level
 
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class TSC(parent: Module, name: String) : Module(parent, name) {
@@ -61,7 +62,7 @@ class TSC(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x80)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()
@@ -71,13 +72,13 @@ class TSC(parent: Module, name: String) : Module(parent, name) {
         default: ULong = 0x0000_0000u,
         writable: Boolean = true,
         readable: Boolean = true,
-        level: Level = Level.FINE
+        level: LogLevel = FINE
     ) : Register(ports.mem, register.offset, Datatype.DWORD, register.name, default, writable, readable, level)
 
     private open inner class TSC_IOGCSR_TYP : RegisterBase(
         RegisterType.TSC_IOGCSR,
         default = 0x00FF_00FFu,
-        level = Level.ALL
+        level = ALL
     ) { // def value signalize that acquisition enable and complete
         override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
             val filtered = value.insert(default, 23..16) // this pins are read only

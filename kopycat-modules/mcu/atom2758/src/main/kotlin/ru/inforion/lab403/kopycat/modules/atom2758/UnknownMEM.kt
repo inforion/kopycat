@@ -32,7 +32,7 @@ import ru.inforion.lab403.kopycat.modules.BUS32
 class UnknownMEM(parent: Module, name: String) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", BUS32)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()

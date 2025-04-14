@@ -25,10 +25,8 @@
  */
 package ru.inforion.lab403.kopycat.cores.base.common
 
-import ru.inforion.lab403.common.extensions.ulong
 import ru.inforion.lab403.kopycat.annotations.DontAutoSerialize
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 /**
  * {EN}
@@ -46,8 +44,6 @@ import ru.inforion.lab403.kopycat.modules.BUS32
  *
  * @param parent parent module that contains the current module (translator)
  * @param name module name
- * @property widthIn input address space width
- * @property widthOut output address space width
  * {EN}
  *
  * {RU}
@@ -59,19 +55,12 @@ import ru.inforion.lab403.kopycat.modules.BUS32
  *
  * @param parent Родительский модуль, который содержит текущий модуль
  * @param name Имя модуля
- * @property widthIn Ширина входного адресного пространства
- * @property widthOut Ширина выходного адресного пространства
  * {RU}
  */
-open class AddressTranslator(
-        parent: Module,
-        name: String,
-        val widthIn: ULong = BUS32,
-        val widthOut: ULong = BUS32
-) : Module(parent, name) {
+open class AddressTranslator(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val outp = Master("out", widthOut)
-        val inp = Translator("in", outp, widthIn, this@AddressTranslator)
+        val outp = Port("out")
+        val inp = Translator("in", outp, this@AddressTranslator)
     }
 
     @DontAutoSerialize

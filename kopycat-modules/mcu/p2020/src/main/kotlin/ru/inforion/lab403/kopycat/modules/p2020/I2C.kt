@@ -35,8 +35,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS07
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 /**
  * Created by shiftdj on 18.01.2021.
@@ -47,8 +45,8 @@ class I2C(parent: Module, name: String) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
 //        val inp = Slave("in", BUS32)
-        val ctrl = Slave("ctrl", BUS32)
-        val outp = Master("outp", BUS07)
+        val ctrl = Port("ctrl")
+        val outp = Port("outp")
     }
 
     override val ports = Ports()

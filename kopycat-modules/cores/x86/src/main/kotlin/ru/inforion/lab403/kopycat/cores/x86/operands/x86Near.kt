@@ -27,19 +27,31 @@ package ru.inforion.lab403.kopycat.cores.x86.operands
 
 import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.long
-import ru.inforion.lab403.common.extensions.long_s
-import ru.inforion.lab403.common.extensions.ulong_z
+import ru.inforion.lab403.common.extensions.signext
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
+import ru.inforion.lab403.kopycat.cores.base.like
 import ru.inforion.lab403.kopycat.cores.base.operands.Near
 import ru.inforion.lab403.kopycat.cores.x86.hardware.systemdc.Prefixes
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 
-class x86Near private constructor(dtyp: Datatype, val x86offset: ULong, override val ssr: x86Register) :
-    Near<x86Core>(x86offset.int, dtyp) {
+class x86Near private constructor(
+    dtyp: Datatype,
+    val x86offset: ULong,
+    override val ssr: x86Register,
+    private val insnLen: Int,
+    private val opsize: Datatype,
+) : Near<x86Core>(x86offset.int, dtyp) {
 
-    constructor(dtyp: Datatype, offset: ULong, prefixes: Prefixes) :
-            this(dtyp, offset, prefixes.ssr())
+    constructor(dtyp: Datatype, offset: ULong, prefixes: Prefixes, insnLen: Int) :
+            this(dtyp, offset, prefixes.ssr(), insnLen, prefixes.opsize)
 
     override fun value(core: x86Core) = x86offset
-    override fun toString() = if (x86offset.long > 0) "0x%04X".format(x86offset.long) else "-0x%04X".format(x86offset.long)
+    override fun toString(): String {
+        var actualOffset = x86offset.long + insnLen
+        if (dtyp != opsize) {
+            actualOffset = actualOffset signext dtyp.msb
+        }
+
+        return "0x%04X".format(actualOffset like opsize)
+    }
 }

@@ -33,11 +33,9 @@ import ru.inforion.lab403.kopycat.cores.base.common.AddressTranslator
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.AccessAction
-import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 
 // P2020 - 0xFE00_0000
@@ -46,9 +44,9 @@ class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: UL
     inner class Ports : ModulePorts(this) {
         val inp: Translator
             get() = filter.ports.inp
-        val outp: Master
+        val outp: Port
             get() = filter.ports.outp
-        val ctrl = Slave("ctrl", BUS32)
+        val ctrl = Port("ctrl")
     }
 
     override val ports = Ports()
@@ -82,7 +80,7 @@ class EnhancedLocalBusCtrl(parent: Module, name: String, val romResetAddress: UL
         return ba..ba + (inv(am) and 0xFFFF_FFFFu)
     }
 
-    inner class Filter(parent: Module) : AddressTranslator(parent, "filter", BUS32) {
+    inner class Filter(parent: Module) : AddressTranslator(parent, "filter") {
         override fun translate(ea: ULong, ss: Int, size: Int, LorS: AccessAction): ULong {
             // Bypass ignored
             if (eLBC_LBCR.LDIS == 0) {

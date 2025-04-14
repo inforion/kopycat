@@ -25,15 +25,17 @@
  */
 package ru.inforion.lab403.kopycat.cores.x86.instructions
 
-import org.junit.Assert
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.parallel.Execution
+import org.junit.jupiter.api.parallel.ExecutionMode
 import ru.inforion.lab403.common.extensions.*
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.x86.config.Generation
 import ru.inforion.lab403.kopycat.cores.x86.enums.x86GPR
 import ru.inforion.lab403.kopycat.cores.x86.hardware.processors.x86CPU
 import ru.inforion.lab403.kopycat.cores.x86.hardware.registers.FWRBank
+import ru.inforion.lab403.kopycat.cores.x86.instructions.X86CommonTests.relativeJumpDecodeTestInner
 import ru.inforion.lab403.kopycat.cores.x86.instructions.fpu.longDouble
 import ru.inforion.lab403.kopycat.interfaces.ine
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
@@ -44,6 +46,7 @@ import kotlin.Double.Companion.NaN
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 
+@Execution(ExecutionMode.SAME_THREAD)
 class X86InstructionsTest64: AX86InstructionTest() {
     override val x86 = x86Core(this, "x86 Core", 400.MHz, Generation.Pentium, 1.0)
     override val ram0 = RAM(this, "ram0", 0xFFF_FFFF)
@@ -64,7 +67,7 @@ class X86InstructionsTest64: AX86InstructionTest() {
     override val mode = 64L
     override val bitMode = byteArrayOf()
 
-    @Before fun reset64() {
+    @BeforeEach fun reset64() {
         x86.cpu.apply {
             // 64-bit
             csl = true
@@ -1795,8 +1798,7 @@ class X86InstructionsTest64: AX86InstructionTest() {
             x86.fpu.fwr.FPUStatusWord.value = sw
 
             assertEquals(tag, x86.fpu.fwr.FPUTagWord.value, "Expected FPTAG = ${tag.hex4}")
-            assertEquals(popped, core.ine(0x1234uL, 10).longDouble(x86.fpu.fwr.FPUControlWord).double)
-
+            assertEquals(popped, core.ine(0x1234uL, 10).longDouble(x86.fpu.softfloat).double)
 
             for (i in 0..7) {
                 assertEquals(st[i], x86.fpu.stld(i).double, "Expected st$i = ${st[i]}")
@@ -1899,10 +1901,6 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
                     execute { assemble(insn) }
                     assertAssembly("$insn fpr[0]")
-                    if ((x86.fpu.st(0) - unicorn.st(0)).abs() == BigInteger.ONE) {
-                        // TODO: why is the least significant bit different sometimes?
-                        x86.fpu.st(0, unicorn.st(0))
-                    }
                     assert()
                 }
             }
@@ -1927,19 +1925,19 @@ class X86InstructionsTest64: AX86InstructionTest() {
                     this@run.pc = pc
                     this@run.rc = rc
                 }
+
+                val st0 = v.longDouble(this.test.x86.fpu.softfloat).ieee754AsUnsigned()
+                this.test.x86.fpu.st(0, st0)
+
+                sync()
+
+                execute { assemble("f$insn dword [0x1234]") }
+                assertAssembly("f$insn fpr[0], dword[+0x1234]")
+                assert()
+                execute { assemble("f$insn qword [0x1345]") }
+                assertAssembly("f$insn fpr[0], qword[+0x1345]")
+                assert()
             }
-
-            val st0 = v.longDouble(this.test.x86.fpu.fwr.FPUControlWord).ieee754AsUnsigned()
-            this.test.x86.fpu.st(0, st0)
-
-            sync()
-
-            execute { assemble("f$insn dword [0x1234]") }
-            assertAssembly("f$insn fpr[0], dword[+0x1234]")
-            assert()
-            execute { assemble("f$insn qword [0x1345]") }
-            assertAssembly("f$insn fpr[0], qword[+0x1345]")
-            assert()
         }
     }
 
@@ -1955,8 +1953,8 @@ class X86InstructionsTest64: AX86InstructionTest() {
                     this@run.rc = rc
                 }
 
-                val st0 = v1.longDouble(this.test.x86.fpu.fwr.FPUControlWord).ieee754AsUnsigned()
-                val st1 = v2.longDouble(this.test.x86.fpu.fwr.FPUControlWord).ieee754AsUnsigned()
+                val st0 = v1.longDouble(this.test.x86.fpu.softfloat).ieee754AsUnsigned()
+                val st1 = v2.longDouble(this.test.x86.fpu.softfloat).ieee754AsUnsigned()
                 this.test.x86.fpu.st(0, st0)
                 this.test.x86.fpu.st(1, st1)
                 sync()
@@ -2000,7 +1998,7 @@ class X86InstructionsTest64: AX86InstructionTest() {
                     this@run.rc = rc
                 }
 
-                val st0 = v.longDouble(this.test.x86.fpu.fwr.FPUControlWord).ieee754AsUnsigned()
+                val st0 = v.longDouble(this.test.x86.fpu.softfloat).ieee754AsUnsigned()
                 this.test.x86.fpu.st(0, st0)
 
                 sync()
@@ -2178,7 +2176,7 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
     @Test fun fist() = GenericParallelTest(
         arrayOf(
-            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
             GenericParallelTest.Mem(0x1234uL, "0000000000000000"),
         ).asIterable(),
     ).test(this, unicorn) {
@@ -2194,9 +2192,9 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
     @Test fun fistp() = GenericParallelTest(
         arrayOf(
-            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(1, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(2, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(2, 123.4.longDouble(x86.fpu.softfloat)),
             GenericParallelTest.Mem(0x1234uL, "0000000000000000"),
         ).asIterable(),
     ).test(this, unicorn) {
@@ -2220,7 +2218,7 @@ class X86InstructionsTest64: AX86InstructionTest() {
                 ByteOrder.LITTLE_ENDIAN)),
             GenericParallelTest.Mem(0x123cuL, (-123.0f).ieee754AsUnsigned().pack(4,
                 ByteOrder.LITTLE_ENDIAN)),
-            GenericParallelTest.Mem(0x1240uL, (-789.0).longDouble(x86.fpu.fwr.FPUControlWord).byteBufferLe),
+            GenericParallelTest.Mem(0x1240uL, (-789.0).longDouble(x86.fpu.softfloat).byteArrayLe),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fld dword [0x123C]") }
@@ -2244,8 +2242,8 @@ class X86InstructionsTest64: AX86InstructionTest() {
     // DB /7 FSTP m80fp
     @Test fun fstMem() = GenericParallelTest(
         arrayOf(
-            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(1, 234.5.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 234.5.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fstp qword [0x1234]") }
@@ -2274,7 +2272,7 @@ class X86InstructionsTest64: AX86InstructionTest() {
     // DD D8+i FSTP ST(i)
     @Test fun fstFp() = GenericParallelTest(
         arrayOf(
-            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fst st5") }
@@ -2293,10 +2291,10 @@ class X86InstructionsTest64: AX86InstructionTest() {
     // DA E9 FUCOMPP
     @Test fun fucom() = GenericParallelTest(
         arrayOf<GenericParallelTest.Condition>(
-            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(1, 234.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(2, 12.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(3, 123.5.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 234.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(2, 12.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(3, 123.5.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fucom st2") }
@@ -2324,9 +2322,9 @@ class X86InstructionsTest64: AX86InstructionTest() {
     // DF E8+i FUCOMIP ST0, ST(i)
     @Test fun fucomi() = GenericParallelTest(
         arrayOf<GenericParallelTest.Condition>(
-            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(1, 234.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(2, 12.4.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 234.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(2, 12.4.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fucomi st1") }
@@ -2349,7 +2347,7 @@ class X86InstructionsTest64: AX86InstructionTest() {
                     this@run.pc = pc
                     this@run.rc = rc
                 }
-                this.test.x86.fpu.st(0, 123.5.longDouble(this.test.x86.fpu.fwr.FPUControlWord).ieee754AsUnsigned())
+                this.test.x86.fpu.st(0, 123.5.longDouble(this.test.x86.fpu.softfloat).ieee754AsUnsigned())
 
                 sync()
 
@@ -2363,13 +2361,13 @@ class X86InstructionsTest64: AX86InstructionTest() {
     @Test fun frndintHuman() = parallel(this, unicorn) {
         fun testcase(rc: FWRBank.RoundControl, inp: Double, outp: Double) {
             this.test.x86.fpu.fwr.FPUControlWord.rc = rc
-            this.test.x86.fpu.st(0, inp.longDouble(this.test.x86.fpu.fwr.FPUControlWord).ieee754AsUnsigned())
+            this.test.x86.fpu.st(0, inp.longDouble(this.test.x86.fpu.softfloat).ieee754AsUnsigned())
             sync()
 
             execute { assemble("frndint") }
             assertAssembly("frndint ")
             assert()
-            Assert.assertTrue(outp == this.test.x86.fpu.stld(0).double)
+            assertEquals(outp, this.test.x86.fpu.stld(0).double)
         }
 
         // Default mode in Python
@@ -2537,8 +2535,32 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
     @Test fun fscale() = GenericParallelTest(
         arrayOf(
-            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.fwr.FPUControlWord)),
-            GenericParallelTest.x87(1, 2.0.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 2.0.longDouble(x86.fpu.softfloat)),
+        ).asIterable(),
+        arrayOf(
+            GenericParallelTest.x87(0, 234.3.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 0.0.longDouble(x86.fpu.softfloat)),
+        ).asIterable(),
+        arrayOf(
+            GenericParallelTest.x87(0, 0.0.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 345.8.longDouble(x86.fpu.softfloat)),
+        ).asIterable(),
+        arrayOf(
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 1.2.longDouble(x86.fpu.softfloat)),
+        ).asIterable(),
+        arrayOf(
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, 1.8.longDouble(x86.fpu.softfloat)),
+        ).asIterable(),
+        arrayOf(
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, (-1.2).longDouble(x86.fpu.softfloat)),
+        ).asIterable(),
+        arrayOf(
+            GenericParallelTest.x87(0, 123.4.longDouble(x86.fpu.softfloat)),
+            GenericParallelTest.x87(1, (-1.8).longDouble(x86.fpu.softfloat)),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fscale") }
@@ -2578,13 +2600,13 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
     @Test fun fabs() = GenericParallelTest(
         arrayOf(
-            GenericParallelTest.x87(0, 0.5.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 0.5.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
         arrayOf(
-            GenericParallelTest.x87(0, (-0.5).longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, (-0.5).longDouble(x86.fpu.softfloat)),
         ).asIterable(),
         arrayOf(
-            GenericParallelTest.x87(0, NaN.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, NaN.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fabs ") }
@@ -2593,13 +2615,13 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
     @Test fun fsqrt() = GenericParallelTest(
         arrayOf(
-            GenericParallelTest.x87(0, 0.5.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 0.5.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
         arrayOf(
-            GenericParallelTest.x87(0, (-0.5).longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, (-0.5).longDouble(x86.fpu.softfloat)),
         ).asIterable(),
         arrayOf(
-            GenericParallelTest.x87(0, NaN.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, NaN.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fsqrt ") }
@@ -2609,13 +2631,13 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
     @Test fun fchs() = GenericParallelTest(
         arrayOf(
-            GenericParallelTest.x87(0, 0.5.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, 0.5.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
         arrayOf(
-            GenericParallelTest.x87(0, (-0.5).longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, (-0.5).longDouble(x86.fpu.softfloat)),
         ).asIterable(),
         arrayOf(
-            GenericParallelTest.x87(0, NaN.longDouble(x86.fpu.fwr.FPUControlWord)),
+            GenericParallelTest.x87(0, NaN.longDouble(x86.fpu.softfloat)),
         ).asIterable(),
     ).test(this, unicorn) {
         execute { assemble("fchs ") }
@@ -2785,4 +2807,6 @@ class X86InstructionsTest64: AX86InstructionTest() {
         assertAssembly("rol rsi, cl")
         assert()
     }
+
+    @Test fun relativeJumpDecodeTest() = relativeJumpDecodeTestInner()
 }

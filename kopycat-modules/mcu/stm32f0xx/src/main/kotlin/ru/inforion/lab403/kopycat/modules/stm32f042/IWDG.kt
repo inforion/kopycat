@@ -25,9 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.modules.stm32f042
 
-import ru.inforion.lab403.common.extensions.int
 import ru.inforion.lab403.common.extensions.kHz
 import ru.inforion.lab403.common.logging.ALL
+import ru.inforion.lab403.common.logging.FINE
+import ru.inforion.lab403.common.logging.LogLevel
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
@@ -35,7 +36,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.base.field
-import java.util.logging.Level
 
 @Suppress("PrivatePropertyName", "PropertyName", "SpellCheckingInspection")
 class IWDG(parent: Module, name: String) : Module(parent, name) {
@@ -55,7 +55,7 @@ class IWDG(parent: Module, name: String) : Module(parent, name) {
     }
 
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x400u)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()
@@ -65,7 +65,7 @@ class IWDG(parent: Module, name: String) : Module(parent, name) {
             default: ULong = 0x0000_0000u,
             writable: Boolean = true,
             readable: Boolean = true,
-            level: Level = Level.FINE
+            level: LogLevel = FINE
     ) : Register(ports.mem, register.offset, Datatype.DWORD, register.name, default, writable, readable, level)
 
 

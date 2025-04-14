@@ -25,18 +25,18 @@
  */
 package ru.inforion.lab403.kopycat.cores.ppc.hardware.processors
 
+import ru.inforion.lab403.common.logging.INFO
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.GenericSerializer
 import ru.inforion.lab403.kopycat.cores.base.abstracts.ACOP
 import ru.inforion.lab403.kopycat.cores.base.exceptions.GeneralException
 import ru.inforion.lab403.kopycat.cores.ppc.exceptions.PPCHardwareException
 import ru.inforion.lab403.kopycat.modules.cores.PPCCore
-import java.util.logging.Level
 
 
 class PPCCOP(core: PPCCore, name: String) : ACOP<PPCCOP, PPCCore>(core, name) {
     companion object {
-        @Transient val log = logger(Level.INFO)
+        @Transient val log = logger(INFO)
     }
 
     override fun processInterrupts() {

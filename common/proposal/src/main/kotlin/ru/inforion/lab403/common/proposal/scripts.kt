@@ -26,8 +26,12 @@
 package ru.inforion.lab403.common.proposal
 
 import ru.inforion.lab403.common.utils.DynamicClassLoader
-import java.lang.Thread.currentThread
 import javax.script.*
+import kotlin.script.experimental.host.ScriptingHostConfiguration
+import kotlin.script.experimental.jvm.baseClassLoader
+import kotlin.script.experimental.jvm.jvm
+import kotlin.script.experimental.jvmhost.jsr223.KotlinJsr223ScriptEngineImpl
+import kotlin.script.experimental.util.PropertiesCollection
 
 fun getScriptEngineByName(name: String): ScriptEngine = ScriptEngineManager().getEngineByName(name)
 
@@ -37,21 +41,16 @@ fun ScriptEngine.setBindings(vararg values: Pair<String, Any?>) =
         scriptEngineBindings(*values).also { setBindings(it, ScriptContext.ENGINE_SCOPE) }
 
 fun kotlinScriptEngine(vararg objects: Pair<String, Any?>): ScriptEngine {
-    val thread = currentThread()
-    val backup = thread.contextClassLoader
-    thread.contextClassLoader = DynamicClassLoader
-
     val engine = getScriptEngineByName("kotlin").apply {
         setBindings(*objects)
-        val context = objects.joinToString("\n") { (name, value) ->
-            var result = "val $name = bindings[\"$name\"]"
-            if (value != null) result += " as ${value::class.qualifiedName}"
-            result
-        }
-        eval(context)
-    }
+    } as KotlinJsr223ScriptEngineImpl
 
-    thread.contextClassLoader = backup
+    @Suppress("unchecked_cast")
+    val properties = PropertiesCollection::class.java.getDeclaredField("properties").also {
+        it.isAccessible = true
+    }.get(engine.evaluationConfiguration) as MutableMap<PropertiesCollection.Key<*>, Any?>
+
+    properties[ScriptingHostConfiguration.jvm.baseClassLoader] = DynamicClassLoader
 
     return engine
 }

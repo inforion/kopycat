@@ -29,14 +29,13 @@ package ru.inforion.lab403.kopycat.modules.elanSC520
 
 import org.joda.time.DateTime
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINER
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.common.SystemClock
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.WORD
 import ru.inforion.lab403.kopycat.cores.base.field
-import ru.inforion.lab403.kopycat.modules.BUS16
-import java.util.logging.Level
 import kotlin.reflect.KProperty
 
 /**
@@ -44,11 +43,11 @@ import kotlin.reflect.KProperty
  */
 class RTC(parent: Module, name: String) : Module(parent, name) {
     companion object {
-        @Transient val log = logger(Level.FINER)
+        @Transient val log = logger(FINER)
     }
 
     inner class Ports : ModulePorts(this) {
-        val io = Slave("io", BUS16.ulong)
+        val io = Port("io")
     }
 
     override val ports = Ports()

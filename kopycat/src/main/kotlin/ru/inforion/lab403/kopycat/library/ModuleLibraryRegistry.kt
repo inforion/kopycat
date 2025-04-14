@@ -37,12 +37,13 @@ import ru.inforion.lab403.kopycat.library.builders.JsonModuleFactoryBuilder
 import ru.inforion.lab403.kopycat.library.builders.text.PluginConfig
 import ru.inforion.lab403.kopycat.library.exceptions.LibraryNotFoundError
 import ru.inforion.lab403.kopycat.library.types.LibraryInfo
+import ru.inforion.lab403.kopycat.library.types.ModuleInfo
 import ru.inforion.lab403.kopycat.settings
 import java.io.File
 import java.io.InputStream
 
 
-class ModuleLibraryRegistry constructor(
+class ModuleLibraryRegistry(
     val regCfgLine: String?,
     val libCfgLine: String?,
     vararg libraries: ModuleFactoryLibrary
@@ -199,6 +200,10 @@ class ModuleLibraryRegistry constructor(
         }
         return library
     }
+
+    fun findLibraryWithModule(f: (ModuleInfo) -> Boolean) = libraries
+        .values
+        .find { lib -> lib.getAvailableAllModules().find(f) != null }
 
     /**
      * {EN}Get registry top modules only{EN}

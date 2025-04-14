@@ -26,6 +26,7 @@
 package ru.inforion.lab403.kopycat.modules.elanSC520
 
 import ru.inforion.lab403.common.extensions.*
+import ru.inforion.lab403.common.logging.FINE
 import ru.inforion.lab403.common.logging.logger
 import ru.inforion.lab403.kopycat.cores.base.*
 import ru.inforion.lab403.kopycat.cores.base.abstracts.AInterrupt
@@ -34,7 +35,6 @@ import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.*
 import ru.inforion.lab403.kopycat.modules.*
-import java.util.logging.Level.*
 import kotlin.collections.set
 
 
@@ -53,16 +53,16 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
     inner class Ports : ModulePorts(this) {
         // control ports
-        val mmcr = Slave("mmcr", BUS12)
-        val io = Slave("io", BUS16)
+        val mmcr = Port("mmcr")
+        val io = Port("io")
 
         // external ports
-        val gp = Slave("gp", GP_INTERRUPT_COUNT)
-        val pci = Slave("pci", PCI_INTERRUPTS_COUNT)
-        val uart = Slave("uart", UART.INTERRUPT_COUNT)
+        val gp = Port("gp")
+        val pci = Port("pci")
+        val uart = Port("uart")
 
         // internal ports
-        val pit = Slave("pit", PIT.INTERRUPT_COUNT)
+        val pit = Port("pit")
     }
 
     override val ports = Ports()
@@ -106,7 +106,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
         protected var omitICW4 = false
 
         private val xIR = object : Register(ports.io, desc.portLo, BYTE, "${desc.prefix}IR", writable = false) {
-            override fun beforeRead(from: MasterPort, ea: ULong) = portLowReadState == CR_LOW_READ_STATE.IR
+            override fun beforeRead(from: Port, ea: ULong, size: Int) = portLowReadState == CR_LOW_READ_STATE.IR
 
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
                 data = pins.filter { it.pending }.fold(0) { result, it -> result or (1 shl it.num) }.ulong_z
@@ -116,7 +116,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
         }
 
         private val xISR = object : Register(ports.io, desc.portLo, BYTE, "${desc.prefix}ISR", writable = false) {
-            override fun beforeRead(from: MasterPort, ea: ULong) = portLowReadState == CR_LOW_READ_STATE.ISR
+            override fun beforeRead(from: Port, ea: ULong, size: Int) = portLowReadState == CR_LOW_READ_STATE.ISR
 
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
                 data = pins.filter { it.inService }.fold(0) { result, it -> result or (1 shl it.num) }.ulong_z
@@ -126,8 +126,8 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
         }
 
         private val xINTMSK = object : Register(ports.io, desc.portHi, BYTE, "${desc.prefix}INTMSK") {
-            override fun beforeRead(from: MasterPort, ea: ULong) = portHighWriteState == CR_HIGH_WRITE_STATE.MSK
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = portHighWriteState == CR_HIGH_WRITE_STATE.MSK
+            override fun beforeRead(from: Port, ea: ULong, size: Int) = portHighWriteState == CR_HIGH_WRITE_STATE.MSK
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) = portHighWriteState == CR_HIGH_WRITE_STATE.MSK
 
             override fun read(ea: ULong, ss: Int, size: Int): ULong {
                 data = pins.filter { it.masked }.fold(0) { result, it -> result or (1 shl it.num) }.ulong_z
@@ -152,7 +152,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
             override fun stringify() = "${super.toString()} [T7T3=$T7T3 A10A8=$A10A8]"
 
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) =
                     portHighWriteState == CR_HIGH_WRITE_STATE.ICW2
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
@@ -175,7 +175,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
             override fun stringify() = "${super.toString()} [SFNM=$SFNM BUF_MS=$BUF_MS AEOI=$AEOI PM=$PM]"
 
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) =
                     portHighWriteState == CR_HIGH_WRITE_STATE.ICW4
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
@@ -193,7 +193,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
             override fun stringify() = "${super.stringify()} [R_SL_EOI=$R_SL_EOI SLCT_ICW1=$SLCT_ICW1 IS_OCW3=$IS_OCW3 LS=$LS]"
 
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[SLCT_ICW1_BIT] == 0uL && value[IS_OCW3_BIT] == 0uL
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) = value[SLCT_ICW1_BIT] == 0uL && value[IS_OCW3_BIT] == 0uL
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
                 super.write(ea, ss, size, value)
@@ -211,7 +211,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
             override fun stringify() = "${super.stringify()} [ESMM_SMM=$ESMM_SMM SLCT_ICW1=$SLCT_ICW1 IS_OCW3=$IS_OCW3 P=$P RR_RIS=$RR_RIS]"
 
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[SLCT_ICW1_BIT] == 0uL && value[IS_OCW3_BIT] == 1uL
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) = value[SLCT_ICW1_BIT] == 0uL && value[IS_OCW3_BIT] == 1uL
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
                 super.write(ea, ss, size, value)
@@ -260,7 +260,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
             override fun stringify() = "${super.stringify()} [SLCT_ICW1=$SLCT_ICW1 LTIM=$LTIM ADI=$ADI SNGL=$SNGL IC4=$IC4]"
 
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[SLCT_ICW1_BIT] == 1uL
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) = value[SLCT_ICW1_BIT] == 1uL
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
                 super.write(ea, ss, size, value)
@@ -294,7 +294,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
             override fun stringify() = "${super.stringify()} [S2=$S2 S5=$S5]"
 
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) =
                     portHighWriteState == CR_HIGH_WRITE_STATE.ICW3
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
@@ -335,7 +335,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
 
             override fun stringify() = "${super.stringify()} [SLCT_ICW1=$SLCT_ICW1 LTIM=$LTIM ADI=$ADI SNGL=$SNGL IC4=$IC4]"
 
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) = value[SLCT_ICW1_BIT] == 1uL
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) = value[SLCT_ICW1_BIT] == 1uL
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
                 super.write(ea, ss, size, value)
@@ -348,7 +348,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
         }
 
         private val xICW3 = object : Register(ports.io, desc.portHi, BYTE, "${desc.prefix}ICW3", readable = false) {
-            override fun beforeWrite(from: MasterPort, ea: ULong, value: ULong) =
+            override fun beforeWrite(from: Port, ea: ULong, size: Int, value: ULong) =
                     portHighWriteState == CR_HIGH_WRITE_STATE.ICW3
 
             override fun write(ea: ULong, ss: Int, size: Int, value: ULong) {
@@ -474,7 +474,7 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
             ROUTE.P21 to Entry(master, 6),
             ROUTE.P22 to Entry(master, 7))
 
-    inner class MAP_REG(port: SlavePort, address: ULong, name: String) : Register(port, address, BYTE, name) {
+    inner class MAP_REG(port: Port, address: ULong, name: String) : Register(port, address, BYTE, name) {
 
         var interrupt: Interrupt? = null
 
@@ -547,32 +547,47 @@ class PIC(parent: Module, name: String) : APIC(parent, name) {
     val GP9IMAP = MAP_REG(ports.mmcr, 0xD59u, "GP9IMAP")
     val GP10IMAP = MAP_REG(ports.mmcr, 0xD5Au, "GP10IMAP")
 
-    private val GP_IRQ = Interrupts(ports.gp, "GP_IRQ",
-            Interrupt(0, GP0IMAP, "GPIRQ0"),
-            Interrupt(1, GP1IMAP, "GPIRQ1"),
-            Interrupt(2, GP2IMAP, "GPIRQ2"),
-            Interrupt(3, GP3IMAP, "GPIRQ3"),
-            Interrupt(4, GP4IMAP, "GPIRQ4"),
-            Interrupt(5, GP5IMAP, "GPIRQ5"),
-            Interrupt(6, GP6IMAP, "GPIRQ6"),
-            Interrupt(7, GP7IMAP, "GPIRQ7"),
-            Interrupt(8, GP8IMAP, "GPIRQ8"),
-            Interrupt(9, GP9IMAP, "GPIRQ9"),
-            Interrupt(10, GP10IMAP, "GPIRQ10"))
+    private val GP_IRQ = Interrupts(
+        ports.gp,
+        "GP_IRQ",
+        GP_INTERRUPT_COUNT.ulong_z - 1u,
+        Interrupt(0, GP0IMAP, "GPIRQ0"),
+        Interrupt(1, GP1IMAP, "GPIRQ1"),
+        Interrupt(2, GP2IMAP, "GPIRQ2"),
+        Interrupt(3, GP3IMAP, "GPIRQ3"),
+        Interrupt(4, GP4IMAP, "GPIRQ4"),
+        Interrupt(5, GP5IMAP, "GPIRQ5"),
+        Interrupt(6, GP6IMAP, "GPIRQ6"),
+        Interrupt(7, GP7IMAP, "GPIRQ7"),
+        Interrupt(8, GP8IMAP, "GPIRQ8"),
+        Interrupt(9, GP9IMAP, "GPIRQ9"),
+        Interrupt(10, GP10IMAP, "GPIRQ10"),
+    )
 
-    private val PIT_IRQ = Interrupts(ports.pit, "PIT_IRQ",
-            Interrupt(0, PIT0MAP, "PIT0IRQ"),
-            Interrupt(1, PIT1MAP, "PIT1IRQ"),
-            Interrupt(2, PIT2MAP, "PIT2IRQ"))
+    private val PIT_IRQ = Interrupts(
+        ports.pit,
+        "PIT_IRQ",
+        PIT.INTERRUPT_COUNT.ulong_z - 1u,
+        Interrupt(0, PIT0MAP, "PIT0IRQ"),
+        Interrupt(1, PIT1MAP, "PIT1IRQ"),
+        Interrupt(2, PIT2MAP, "PIT2IRQ"),
+    )
 
-    private val PCI_IRQ = Interrupts(ports.pci, "PCI_IRQ",
-            Interrupt(0, PCIINTAMAP, "INTA"),
-            Interrupt(1, PCIINTBMAP, "INTB"),
-            Interrupt(2, PCIINTCMAP, "INTC"),
-            Interrupt(3, PCIINTDMAP, "INTD"))
+    private val PCI_IRQ = Interrupts(
+        ports.pci,
+        "PCI_IRQ",
+        PCI_INTERRUPTS_COUNT.ulong_z - 1u,
+        Interrupt(0, PCIINTAMAP, "INTA"),
+        Interrupt(1, PCIINTBMAP, "INTB"),
+        Interrupt(2, PCIINTCMAP, "INTC"),
+        Interrupt(3, PCIINTDMAP, "INTD"),
+    )
 
-    private val UART_IRQ = Interrupts(ports.uart, "UART_IRQ",
-            Interrupt(0, UART1MAP, "UART1IRQ"),
-            Interrupt(1, UART2MAP, "UART1IRQ"))
-
+    private val UART_IRQ = Interrupts(
+        ports.uart,
+        "UART_IRQ",
+        UART.INTERRUPT_COUNT.ulong_z - 1u,
+        Interrupt(0, UART1MAP, "UART1IRQ"),
+        Interrupt(1, UART2MAP, "UART1IRQ"),
+    )
 }

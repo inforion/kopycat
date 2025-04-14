@@ -25,10 +25,10 @@
  */
 package ru.inforion.lab403.kopycat.modules.atom2758
 
+import ru.inforion.lab403.common.logging.CONFIG
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 import ru.inforion.lab403.kopycat.cores.base.common.ModulePorts
 import ru.inforion.lab403.kopycat.cores.base.enums.Datatype
-import java.util.logging.Level
 
 /**
  * Intel Atom Processor C2000 Product Family for Microserver
@@ -36,12 +36,12 @@ import java.util.logging.Level
  */
 class IOAPIC(parent: Module, name: String) : Module(parent, name) {
     inner class Ports : ModulePorts(this) {
-        val mem = Slave("mem", 0x1000)
+        val mem = Port("mem")
     }
 
     override val ports = Ports()
 
-    val IDX = Register(ports.mem, 0x0000u, Datatype.DWORD, "IOAPIC_IDX", level = Level.CONFIG)
-    val WDW = Register(ports.mem, 0x0010u, Datatype.DWORD, "IOAPIC_WDW", level = Level.CONFIG)
-    val EOI = Register(ports.mem, 0x0040u, Datatype.DWORD, "IOAPIC_EOI", level = Level.CONFIG)
+    val IDX = Register(ports.mem, 0x0000u, Datatype.DWORD, "IOAPIC_IDX", level = CONFIG)
+    val WDW = Register(ports.mem, 0x0010u, Datatype.DWORD, "IOAPIC_WDW", level = CONFIG)
+    val EOI = Register(ports.mem, 0x0040u, Datatype.DWORD, "IOAPIC_EOI", level = CONFIG)
 }

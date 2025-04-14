@@ -75,7 +75,7 @@ class CompactFlash(
         val cycleTimePioIordy: Int = 0) : Module(parent, name) {
 
     inner class Ports : ModulePorts(this) {
-        val ata = Slave("ata", ATA_BUS_SIZE)
+        val ata = Port("ata")
     }
 
     override val ports = Ports()
@@ -132,7 +132,7 @@ class CompactFlash(
         if (file != null) gzipInputStreamIfPossible(file.path).read(this.array())
     }
 
-    val terminal = object : Area(ports.ata,"DATA") {
+    val terminal = object : Area(ports.ata, 0u, ATA_BUS_SIZE - 1u, "DATA") {
         override fun fetch(ea: ULong, ss: Int, size: Int) = throw IllegalAccessException("$name may not be fetched!")
 
         override fun read(ea: ULong, ss: Int, size: Int) = when (ss) {

@@ -27,11 +27,10 @@ package ru.inforion.lab403.kopycat.experimental.fields.common
 
 import ru.inforion.lab403.kopycat.auxiliary.fields.common.*
 import ru.inforion.lab403.kopycat.cores.base.common.Module
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 
 class CommonFieldsFixture(parent: Module, name: String) : Module(parent, name) {
-    val dmam = ports.Master("dmam", BUS32)
+    val dmam = ports.Port("dmam")
 
     val field10 = AbsoluteField(dmam, "FIELD_10", 0x10uL, 4)
     val field20 = AbsoluteReadField(dmam, "FIELD_20", 0x20uL, 4)

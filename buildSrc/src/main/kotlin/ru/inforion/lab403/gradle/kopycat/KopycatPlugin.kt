@@ -31,18 +31,21 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import ru.inforion.lab403.gradle.common.kotlinPluginString
 
+@Suppress("unused")
 class KopycatPlugin : Plugin<Project> {
     override fun apply(project: Project) {
-        project.plugins.apply(kotlinPluginString)
-
-        val extensions = project.extensions.create(
-                KopycatExtensions.extensionIdentifier,
-                KopycatExtensions::class.java)
-
-        val task = project.tasks.create(
-                BuildKopycatModuleTask.taskIdentifier,
-                BuildKopycatModuleTask::class.java)
-
-        project.afterEvaluate { task.afterProjectEvaluate(extensions) }
+        if (project != project.rootProject) {
+            project.plugins.apply(kotlinPluginString)
+            val task = project.tasks.create(
+                BuildKopycatModuleTask.TASK_ID,
+                BuildKopycatModuleTask::class.java,
+            )
+            project.afterEvaluate { task.afterProjectEvaluate() }
+        } else {
+            project.extensions.create(
+                BuildKopycatModuleConfigExtension.EXT_ID,
+                BuildKopycatModuleConfigExtension::class.java,
+            )
+        }
     }
 }

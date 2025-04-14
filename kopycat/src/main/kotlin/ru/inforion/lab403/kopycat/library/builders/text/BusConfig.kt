@@ -27,6 +27,6 @@ package ru.inforion.lab403.kopycat.library.builders.text
 
 import ru.inforion.lab403.kopycat.cores.base.common.Module
 
-class BusConfig(val name: String, val size: String) {
-    fun create(module: Module) = module.buses.Bus(name, moduleTextParser.getBusPortSize(size))
+class BusConfig(val name: String) {
+    fun create(module: Module) = module.buses.Bus(name)
 }

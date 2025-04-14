@@ -35,7 +35,6 @@ import ru.inforion.lab403.kopycat.cores.base.enums.Datatype.DWORD
 import ru.inforion.lab403.kopycat.cores.base.enums.Status
 import ru.inforion.lab403.kopycat.cores.base.extensions.*
 import ru.inforion.lab403.kopycat.interfaces.ITracer
-import ru.inforion.lab403.kopycat.modules.BUS32
 
 /**
  * {RU}
@@ -50,11 +49,7 @@ import ru.inforion.lab403.kopycat.modules.BUS32
  * @property io регистр для взаимодействия с трассировщиком
  * {RU}
  */
-abstract class ATracer<R: AGenericCore>(
-        parent: Module?,
-        name: String,
-        val memoryBusSize: ULong = BUS32
-): Module(parent, name), ITracer<R> {
+abstract class ATracer<R: AGenericCore>(parent: Module?, name: String): Module(parent, name), ITracer<R> {
 
     /**
      * {RU}Объект-логгер{RU}
@@ -72,8 +67,8 @@ abstract class ATracer<R: AGenericCore>(
      * {RU}
      */
     inner class Ports : ModulePorts(this) {
-        val mem = Proxy("mem", memoryBusSize)
-        val trace = Slave("trace", TRACER_BUS_SIZE)
+        val mem = Proxy("mem")
+        val trace = Port("trace")
     }
 
     final override val ports = Ports()
