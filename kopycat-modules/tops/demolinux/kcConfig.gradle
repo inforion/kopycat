@@ -37,17 +37,4 @@ createKopycatConfig {
                 "x32dbg"      : "true",
         ]
     }
-
-    addConfig {
-        name = "default-vmlinuz"
-        description = "The default vmlinuz configuration for DemoLinux"
-        kcConstructorArguments = [
-                "port"        : defaults.terminalPort().toString(),
-                "x32dbg"      : "false",
-                "bzImageName" : "vmlinuz",
-                "initRdName"  : "initramfs.img",
-//                "packetSource": "127.0.0.1:3000",
-        ]
-//            withConnectionInfo = true
-    }
 }

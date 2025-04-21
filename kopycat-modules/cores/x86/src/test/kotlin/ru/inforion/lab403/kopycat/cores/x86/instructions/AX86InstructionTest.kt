@@ -285,4 +285,12 @@ abstract class AX86InstructionTest: Module(null, "x86InstructionTest") {
             "Program counter error: ${size.hex8} != ${x86.cpu.regs.rip.value.hex8}"
         )
     }
+
+    fun assertDecode(assembled: ByteArray, kc: String) {
+        x86.store(x86.pc, assembled)
+        x86.doDecodeInstruction()
+        assertAssembly(kc)
+    }
+
+    fun assertDecode(nasm: String, kc: String) = assertDecode(assemble(nasm), kc)
 }

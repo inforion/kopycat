@@ -1654,8 +1654,9 @@ class E1000(
     /** RX Descriptor Control queue 1 */
     @Suppress("unused")
     private val RXDCTL1 = object : Register(mem, 0x2928uL, DWORD, "RXDCTL1", level = REG_LOG_LEVEL) {
-        override fun read(ea: ULong, ss: Int, size: Int) = RXDCTL0.read(ea, ss, size)
-        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) = RXDCTL0.write(ea, ss, size, value)
+        override fun read(ea: ULong, ss: Int, size: Int) = RXDCTL0.read(ea - 0x0100uL, ss, size)
+        override fun write(ea: ULong, ss: Int, size: Int, value: ULong) =
+            RXDCTL0.write(ea - 0x0100uL, ss, size, value)
     }
 
     /** TX Descriptor Tail */
