@@ -64,7 +64,7 @@ import ru.inforion.lab403.kopycat.modules.common.pci.pci_bus
 import ru.inforion.lab403.kopycat.modules.cores.x64Debugger
 import ru.inforion.lab403.kopycat.modules.cores.x86Core
 import ru.inforion.lab403.kopycat.modules.cores.x86Debugger
-import ru.inforion.lab403.kopycat.modules.demolinux.linux.Linux040302Top
+import ru.inforion.lab403.kopycat.modules.demolinux.linux.Linux0419324Top
 import ru.inforion.lab403.kopycat.modules.memory.RAM
 import ru.inforion.lab403.kopycat.modules.terminals.UartNetworkTerminal
 import ru.inforion.lab403.kopycat.modules.tracer.DynamicTracer
@@ -91,8 +91,8 @@ class DemoLinux(
      */
     x32dbg: Boolean = false,
 
-    bzImageName: String = "bzImage",
-    initRdName: String = "rootfs.cpio",
+    bzImageName: String = "bzImage.gz",
+    initRdName: String = "rootfs.cpio.gz",
 
     /**
      * E1000 packet source string.
@@ -104,7 +104,7 @@ class DemoLinux(
     /**
      * Use tracer for network hooking
      */
-    val strictExecution: Boolean = false,
+    strictExecution: Boolean = false,
 ) : BioslessDevice(parent, name) {
     companion object {
         @Transient
@@ -188,7 +188,7 @@ class DemoLinux(
     )
 
     @DontAutoSerialize
-    val linux by lazy { Linux040302Top(atom2758.x86) }
+    val linux by lazy { Linux0419324Top(atom2758.x86) }
 
     val stackAnalyzer = StackAnalyzer(x86StackAnalyzerCore(atom2758.x86.cpu), captureAll = false) {
         set(0, 0xFFFF_FFFF_FFFF_FFFFuL .. 0x1000_0000_0000_0000uL)
@@ -217,7 +217,6 @@ class DemoLinux(
 
     override fun deserialize(ctxt: GenericSerializer, snapshot: Map<String, Any>) {
         super.deserialize(ctxt, snapshot)
-
         queueApi.forceClearState()
     }
 
@@ -394,6 +393,9 @@ class DemoLinux(
             for (i in 1u..0xFFu) {
                 cpuid(0x40000000u + i * 0x100u, CPUID(0u, 0u, 0u, 0u))
             }
+
+            // Used by Linux to detect KVM
+            cpuid(0x4000_0001u, 0u, 0u, 0u, 0u)
         }
     }
 }

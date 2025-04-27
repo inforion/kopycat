@@ -208,6 +208,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
     private val iretDc = IRetDC(core)
 
     private val nopDc = NopDC(core)
+    private val nopXchgDc = NopXchgDC(core, xchgDc, nopDc)
     private val intoDc = SimpleDC(core, ::Into)
     private val intDC = IntDC(core)
     private val int3Dc = SimpleDC(core, ::Int3)
@@ -797,7 +798,7 @@ class x86SystemDecoder(val core: x86Core, val cpu: x86CPU) : ICoreUnit {
             /*6*/ pushaDc,    popaDc,     null,       movsx,      fsOvr,      gsOvr,      operOvr,    addrOvr,    pushDc,     imulDC,     pushDc,     imulDC,     null,       inswDc,     null,       outswDC,
             /*7*/ joDc,       jnoDc,      jbDc,       jnbDc,      jeDc,       jneDc,      jbeDc,      jaDc,       jsDc,       jnsDc,      jpeDc,      jpoDc,      jlDc,       jgeDc,      jleDc,      jgDc,
             /*8*/ group_1,    group_1,    group_1,    group_1,    testDc,     testDc,     xchgDc,     xchgDc,     movDc,      movDc,      movDc,      movDc,      movDc,      leaDc,      movDc,      popDc,
-            /*9*/ nopDc,      xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     cwdeDc,     cdqDc,      callDc,     fwaitDc,    pushfDc,    popfDc,     sahfDc,     lahfDc,
+            /*9*/ nopXchgDc,  xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     xchgDc,     cwdeDc,     cdqDc,      callDc,     fwaitDc,    pushfDc,    popfDc,     sahfDc,     lahfDc,
             /*A*/ movDc,      movDc,      movDc,      movDc,      movsDc,     movsDc,     cmpsDc,     cmpsDc,     testDc,     testDc,     stosDc,     stosDc,     lodsDc,     lodsDc,     scasDc,     scasDc,
             /*B*/ movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,      movDc,
             /*C*/ group_2,    group_2,    retDc,      retDc,      lesDc,      ldsDc,      group_11,   group_11,   enterDc,    leaveDc,    retDc,      retDc,      int3Dc,     intDC,      intoDc,     iretDc,

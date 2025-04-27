@@ -35,14 +35,6 @@ object X86CommonTests {
     fun AX86InstructionTest.relativeJumpDecodeTestInner() {
         x86.pc = 0x100uL
 
-        fun testcase(assembled: ByteArray, kc: String) {
-            x86.store(x86.pc, assembled)
-            x86.doDecodeInstruction()
-            assertAssembly(kc)
-        }
-
-        fun testcase(nasm: String, kc: String) = testcase(assemble(nasm), kc)
-
         fun ULong.formatAddr() = "0x%04X".format(
             (
                 this like when (x86.cpu.mode) {
@@ -54,29 +46,29 @@ object X86CommonTests {
         )
 
         // Call; E8
-        testcase("call near 1", "call 0x0001")
-        testcase("call near 6", "call 0x0006")
-        testcase("call near -0x10", "call ${0xfffffffffffffff0uL.formatAddr()}")
+        assertDecode("call near 1", "call 0x0001")
+        assertDecode("call near 6", "call 0x0006")
+        assertDecode("call near -0x10", "call ${0xfffffffffffffff0uL.formatAddr()}")
 
         // Jcc; 7C
-        testcase("7c06".unhexlify(), "jl 0x0008")
-        testcase("7cf0".unhexlify(), "jl ${0xfffffffffffffff2uL.formatAddr()}")
+        assertDecode("7c06".unhexlify(), "jl 0x0008")
+        assertDecode("7cf0".unhexlify(), "jl ${0xfffffffffffffff2uL.formatAddr()}")
 
         // Jcc; 8C
-        testcase("jl near 0x10", "jl 0x0010")
-        testcase("jl near -0x10", "jl ${0xfffffffffffffff0uL.formatAddr()}")
+        assertDecode("jl near 0x10", "jl 0x0010")
+        assertDecode("jl near -0x10", "jl ${0xfffffffffffffff0uL.formatAddr()}")
 
         // Jmp; EB
-        testcase("eb10".unhexlify(), "jmp 0x0012")
-        testcase("ebf0".unhexlify(), "jmp ${0xfffffffffffffff2uL.formatAddr()}")
+        assertDecode("eb10".unhexlify(), "jmp 0x0012")
+        assertDecode("ebf0".unhexlify(), "jmp ${0xfffffffffffffff2uL.formatAddr()}")
 
         // Jmp; E9
-        testcase("jmp near 0x10", "jmp 0x0010")
-        testcase("jmp near -0x10", "jmp ${0xfffffffffffffff0uL.formatAddr()}")
+        assertDecode("jmp near 0x10", "jmp 0x0010")
+        assertDecode("jmp near -0x10", "jmp ${0xfffffffffffffff0uL.formatAddr()}")
 
         // Loop; E2
-        testcase("loop 0x10", "loop 0x0010")
-        testcase("loop -0x10", "loop ${0xfffffffffffffff0uL.formatAddr()}")
+        assertDecode("loop 0x10", "loop 0x0010")
+        assertDecode("loop -0x10", "loop ${0xfffffffffffffff0uL.formatAddr()}")
 
         x86.pc = 0uL
     }

@@ -1,0 +1,44 @@
+FROM docker.io/gcc:13.3.0-bookworm AS builder
+
+RUN apt-get update && apt-get --yes install cpio rsync bc libelf-dev
+
+RUN useradd -d /build -m builder
+USER builder
+WORKDIR /build
+
+ARG BUILDROOT_VER=2024.02.8
+
+# Download buildroot
+RUN wget "https://buildroot.org/downloads/buildroot-${BUILDROOT_VER}.tar.gz" && \
+  tar vxf "buildroot-${BUILDROOT_VER}.tar.gz" && \
+  rm -v "buildroot-${BUILDROOT_VER}.tar.gz" && \
+  mv -v "buildroot-${BUILDROOT_VER}" buildroot
+
+# Apply buildroot patch
+COPY patches/buildroot-kernel-no-compression.patch /build/
+RUN cd /build/buildroot && patch -p1 < /build/buildroot-kernel-no-compression.patch
+
+# Create a rootfs overlay
+RUN mkdir -p /build/overlay/usr/sbin/ && \
+  /usr/bin/echo -e '#!/usr/bin/ash\nexec login -f root' > /build/overlay/usr/sbin/autologin && \
+  chmod +x /build/overlay/usr/sbin/autologin
+
+# Copy buildroot config and download sources
+COPY configs/buildroot.config /build/buildroot/.config
+RUN cd /build/buildroot && make source
+
+# Build toolchain and dependencies
+RUN cd /build/buildroot && make $(make show-targets | grep -o "host-\w*" | xargs)
+RUN cd /build/buildroot && make linux-depends busybox-depends
+
+# Build busybox
+COPY configs/busybox.config /build/
+RUN cd /build/buildroot && make busybox
+
+# Build kernel
+COPY patches/linux/4.19.324/no-compression.patch /build/linux-no-compression.patch
+COPY configs/linux.config /build/
+RUN cd /build/buildroot && make linux
+
+# Build ramdisk
+RUN cd /build/buildroot && make

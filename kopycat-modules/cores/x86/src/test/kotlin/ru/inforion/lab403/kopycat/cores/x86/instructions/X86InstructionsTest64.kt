@@ -1818,33 +1818,33 @@ class X86InstructionsTest64: AX86InstructionTest() {
         pushExpect(0x0uL, 0x1111uL, true, arrayOf(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0))
 
         // Overflow
-        pushExpect(0x3a41uL, 0x9111uL, false, arrayOf(Double.NaN, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0))
-        pushExpect(0x3241uL, 0xa111uL, true, arrayOf(Double.NaN, Double.NaN, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0))
-        pushExpect(0x2a41uL, 0xa911uL, false, Array(3) { Double.NaN } + arrayOf(0.0, 1.0, 0.0, 1.0, 0.0))
-        pushExpect(0x2241uL, 0xaa11uL, true, Array(4) { Double.NaN } + arrayOf(0.0, 1.0, 0.0, 1.0))
-        pushExpect(0x1a41uL, 0xaa91uL, false, Array(5) { Double.NaN } + arrayOf(0.0, 1.0, 0.0))
-        pushExpect(0x1241uL, 0xaaa1uL, true, Array(6) { Double.NaN } + arrayOf(0.0, 1.0))
-        pushExpect(0x0a41uL, 0xaaa9uL, false, Array(7) { Double.NaN } + arrayOf(0.0))
-        pushExpect(0x0241uL, 0xaaaauL, true, Array(8) { Double.NaN })
+        pushExpect(0x3a41uL, 0x9111uL, false, arrayOf(NaN, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0))
+        pushExpect(0x3241uL, 0xa111uL, true, arrayOf(NaN, NaN, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0))
+        pushExpect(0x2a41uL, 0xa911uL, false, Array(3) { NaN } + arrayOf(0.0, 1.0, 0.0, 1.0, 0.0))
+        pushExpect(0x2241uL, 0xaa11uL, true, Array(4) { NaN } + arrayOf(0.0, 1.0, 0.0, 1.0))
+        pushExpect(0x1a41uL, 0xaa91uL, false, Array(5) { NaN } + arrayOf(0.0, 1.0, 0.0))
+        pushExpect(0x1241uL, 0xaaa1uL, true, Array(6) { NaN } + arrayOf(0.0, 1.0))
+        pushExpect(0x0a41uL, 0xaaa9uL, false, Array(7) { NaN } + arrayOf(0.0))
+        pushExpect(0x0241uL, 0xaaaauL, true, Array(8) { NaN })
 
         // Overflow x2
-        pushExpect(0x3a41uL, 0xaaaauL, false, Array(8) { Double.NaN })
+        pushExpect(0x3a41uL, 0xaaaauL, false, Array(8) { NaN })
 
-        popExpect(0x0041uL, 0xeaaauL, Double.NaN, Array(8) { Double.NaN })
-        popExpect(0x0841uL, 0xeaabuL, Double.NaN, Array(8) { Double.NaN })
-        popExpect(0x1041uL, 0xeaafuL, Double.NaN, Array(8) { Double.NaN })
-        popExpect(0x1841uL, 0xeabfuL, Double.NaN, Array(8) { Double.NaN })
-        popExpect(0x2041uL, 0xeaffuL, Double.NaN, Array(8) { Double.NaN })
-        popExpect(0x2841uL, 0xebffuL, Double.NaN, Array(8) { Double.NaN })
-        popExpect(0x3041uL, 0xefffuL, Double.NaN, Array(8) { Double.NaN })
-        popExpect(0x3841uL, 0xffffuL, Double.NaN, Array(8) { Double.NaN })
+        popExpect(0x0041uL, 0xeaaauL, NaN, Array(8) { NaN })
+        popExpect(0x0841uL, 0xeaabuL, NaN, Array(8) { NaN })
+        popExpect(0x1041uL, 0xeaafuL, NaN, Array(8) { NaN })
+        popExpect(0x1841uL, 0xeabfuL, NaN, Array(8) { NaN })
+        popExpect(0x2041uL, 0xeaffuL, NaN, Array(8) { NaN })
+        popExpect(0x2841uL, 0xebffuL, NaN, Array(8) { NaN })
+        popExpect(0x3041uL, 0xefffuL, NaN, Array(8) { NaN })
+        popExpect(0x3841uL, 0xffffuL, NaN, Array(8) { NaN })
 
         // Underflow
-        popExpect(0x0041uL, 0xffffuL, Double.NaN, Array(8) { Double.NaN })
-        popExpect(0x0841uL, 0xffffuL, Double.NaN, Array(8) { Double.NaN })
+        popExpect(0x0041uL, 0xffffuL, NaN, Array(8) { NaN })
+        popExpect(0x0841uL, 0xffffuL, NaN, Array(8) { NaN })
 
-        pushExpect(0x0041uL, 0xfffcuL, false, Array(8) { if (it == 0) 1.0 else Double.NaN })
-        popExpect(0x0841uL, 0xffffuL, 1.0, Array(8) { if (it == 7) 1.0 else Double.NaN })
+        pushExpect(0x0041uL, 0xfffcuL, false, Array(8) { if (it == 0) 1.0 else NaN })
+        popExpect(0x0841uL, 0xffffuL, 1.0, Array(8) { if (it == 7) 1.0 else NaN })
     }
 
     @Test fun x87Pop() = parallel(this, unicorn) {
@@ -1886,10 +1886,10 @@ class X86InstructionsTest64: AX86InstructionTest() {
     private fun x87ConstTest(insn: String) {
         parallel(this, unicorn) {
             // Fuzz PC and RC
-            for (pc in FWRBank.PrecisionControl.values()) {
+            for (pc in FWRBank.PrecisionControl.entries) {
                 if (pc == FWRBank.PrecisionControl.Invalid) continue
 
-                for (rc in FWRBank.RoundControl.values()) {
+                for (rc in FWRBank.RoundControl.entries) {
                     this.test.x86.fpu.fwr.FPUControlWord.run {
                         this@run.pc = pc
                         this@run.rc = rc
@@ -1917,10 +1917,10 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
     private fun Parallel.x87ArithmTestMemFp(insn: String, v: Double) {
         // Fuzz PC and RC
-        for (pc in FWRBank.PrecisionControl.values()) {
+        for (pc in FWRBank.PrecisionControl.entries) {
             if (pc == FWRBank.PrecisionControl.Invalid) continue
 
-            for (rc in FWRBank.RoundControl.values()) {
+            for (rc in FWRBank.RoundControl.entries) {
                 this.test.x86.fpu.fwr.FPUControlWord.run {
                     this@run.pc = pc
                     this@run.rc = rc
@@ -1944,10 +1944,10 @@ class X86InstructionsTest64: AX86InstructionTest() {
     private fun x87ArithmTestFpFp(insn: String, v1: Double, v2: Double) = parallel(this, unicorn) {
         // Fuzz PC and RC
         val fld1 = assemble("fld1")
-        for (pc in FWRBank.PrecisionControl.values()) {
+        for (pc in FWRBank.PrecisionControl.entries) {
             if (pc == FWRBank.PrecisionControl.Invalid) continue
 
-            for (rc in FWRBank.RoundControl.values()) {
+            for (rc in FWRBank.RoundControl.entries) {
                 this.test.x86.fpu.fwr.FPUControlWord.run {
                     this@run.pc = pc
                     this@run.rc = rc
@@ -1989,10 +1989,10 @@ class X86InstructionsTest64: AX86InstructionTest() {
 
     private fun Parallel.x87ArithmTestInt(insn: String, v: Double) {
         // Fuzz PC and RC
-        for (pc in FWRBank.PrecisionControl.values()) {
+        for (pc in FWRBank.PrecisionControl.entries) {
             if (pc == FWRBank.PrecisionControl.Invalid) continue
 
-            for (rc in FWRBank.RoundControl.values()) {
+            for (rc in FWRBank.RoundControl.entries) {
                 this.test.x86.fpu.fwr.FPUControlWord.run {
                     this@run.pc = pc
                     this@run.rc = rc
@@ -2339,10 +2339,10 @@ class X86InstructionsTest64: AX86InstructionTest() {
     // D9 FC FRNDINT
     @Test fun frndint() = parallel(this, unicorn) {
         // Fuzz PC and RC
-        for (pc in FWRBank.PrecisionControl.values()) {
+        for (pc in FWRBank.PrecisionControl.entries) {
             if (pc == FWRBank.PrecisionControl.Invalid) continue
 
-            for (rc in FWRBank.RoundControl.values()) {
+            for (rc in FWRBank.RoundControl.entries) {
                 this.test.x86.fpu.fwr.FPUControlWord.run {
                     this@run.pc = pc
                     this@run.rc = rc
@@ -2809,4 +2809,25 @@ class X86InstructionsTest64: AX86InstructionTest() {
     }
 
     @Test fun relativeJumpDecodeTest() = relativeJumpDecodeTestInner()
+
+    @Test fun xchgRexWDecodeTest() {
+        x86.pc = 0x100uL
+
+        // XCHG RAX, r64
+        // XCHG r64, RAX
+        assertDecode("xchg rax, rbx", "xchg rax, rbx")
+        assertDecode("xchg r8, rax", "xchg rax, r8")
+        assertDecode("xchg rax, r9", "xchg rax, r9")
+
+        // XCHG r/m64, r64
+        // XCHG r64, r/m64
+        assertDecode("xchg rax, qword [0x100]", "xchg qword[+0x0100], rax")
+        assertDecode("xchg qword [0x100], r8", "xchg qword[+0x0100], r8")
+
+        // etc
+        assertDecode("xchg eax, r8d", "xchg eax, r8d")
+        assertDecode("nop", "nop ")
+
+        x86.pc = 0uL
+    }
 }

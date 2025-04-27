@@ -1,10 +1,9 @@
---- a/linux/Config.in	2024-02-28 19:57:37.393259903 +0300
-+++ b/linux/Config.in	2024-02-28 19:57:41.773259797 +0300
-@@ -334,7 +334,6 @@
- 
+--- a/linux/Config.in
++++ b/linux/Config.in
+@@ -335,5 +335,5 @@
  config BR2_LINUX_KERNEL_UNCOMPRESSED
  	bool "uncompressed"
 -	depends on BR2_s390x
- 
++	depends on BR2_s390x || BR2_i386 || BR2_x86_64
+
  endchoice
- 

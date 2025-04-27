@@ -12,7 +12,7 @@ plugins {
 }
 
 base.archivesName.set("kopycat")
-version = "0.10.00"
+version = "0.11.00"
 group = "ru.inforion.lab403"
 description = "Hardware systems Kotlin emulator"
 
