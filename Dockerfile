@@ -1,28 +1,42 @@
-FROM openjdk:11
+FROM docker.io/openjdk:11 AS base
 
 RUN apt-get update -y --allow-releaseinfo-change && \
-    apt-get install -y bash sed git socat && \
+    apt-get install -y bash socat dos2unix && \
     rm -rf /var/lib/apt/lists/*
 
+FROM base AS builder
+
+RUN apt-get update -y && \
+    apt-get install -y git git-lfs && \
+    rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/inforion/kotlin-extensions.git /opt/kexts && \
+    cd /opt/kexts && \
+    rm -rf .git && \
+    chmod +x gradlew && \
+    dos2unix gradlew && \
+    ./gradlew --no-daemon publishToMavenLocal
+
+RUN git clone https://github.com/inforion/kopycat.git /opt/kopycat && \
+    cd /opt/kopycat && \
+    rm -rf .git && \
+    chmod +x gradlew && \
+    dos2unix gradlew && \
+    ./gradlew --no-daemon buildKopycatModule && \
+    ./gradlew --no-daemon createKopycatConfig
+
+RUN mkdir /opt/kcroot && \
+    cd /opt/kopycat && \
+    for i in $(find . -type d -wholename '*/kopycat-modules/**/src/main/resources/**/scripts'); do \
+        mkdir -p "/opt/kcroot/$i"; \
+        cp -r "$i" "/opt/kcroot/$i/../"; \
+    done && \
+    cp /opt/kopycat/temp/config/bash/*.sh /opt/kcroot/
+
+FROM base AS result
+
 WORKDIR /opt/kopycat
+COPY --from=builder /opt/kopycat/production /opt/kopycat/production
+COPY --from=builder /opt/kcroot /opt/kopycat
 
-COPY . /opt/kopycat/
-COPY settings.generic.gradle.kts ./settings.gradle.kts
-
-RUN echo "Copying m2 (if exists)..." && \
-    if [ -d ./.m2 ]; then mv -v ./.m2 /root/.m2; fi && \
-    echo "Setting up git repository..." && \
-    git config --global init.defaultBranch master && \
-    git config --global user.email unknown && \
-    git config --global user.name unknown && \
-    git init && \
-    touch README.md && \
-    git add README.md && \
-    git commit -m "Initial commit" && \
-    echo "Setting up the project..." && \
-    sed -i 's/\r//' ./gradlew && \
-    ./gradlew --no-daemon -i classes && \
-    echo "Post-process clearance" && \
-    ./gradlew --no-daemon -i clean && \
-    rm -rf /root/.gradle && \
-    echo "Finished"
+RUN chmod +x *.sh && sed -i '/^\.\/gradlew/d' *.sh
