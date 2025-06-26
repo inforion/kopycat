@@ -2,9 +2,9 @@
 
 [Читать на русском](README-ru.md)
 
-**Kopycat** is a multi-processor architectures system and user-level (with VEOS module) emulator.
-
 # Description
+
+**Kopycat** is a multi-processor architectures system and user-level (with VEOS module) emulator.
 
 Main features are:
 
