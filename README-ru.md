@@ -74,6 +74,27 @@ ___
 
 >**_Примечание:_** В руководстве подразумевается, что вы уже клонировали проект *Kopycat* на ваше устройство. Если нет:`git clone https://github.com/inforion/kopycat.git`
 
+<details>
+<summary>Скриншоты</summary>
+
+Kotlin-консоль:
+
+![Kotlin-консоль](images/kopycat-console.png)
+
+Терминал socat:
+
+![Терминал socat](images/terminal-socat.png)
+
+Сообщение в консоли о подключении gdb-клиента:
+
+![Сообщение в консоли о подключении gdb-клиента](images/gdb-connected-log.png)
+
+Отладка через IDA:
+
+![Отладка через IDA](images/gdb-ida.png)
+
+</details>
+
 ---
 
 ### Предварительные требования
