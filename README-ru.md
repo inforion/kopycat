@@ -21,7 +21,7 @@
 **Микроконтроллеры (MCU):** Cortex-M0, STM32F0xx, MSP430x44x, PIC32MZ, P2020, Atom 2758, ElanSC520
 
 ## История возникновения
-Началом проекта послужила задача эмуляции устройства с необычной архитектурой процессора. 
+Началом проекта послужила задача эмуляции устройства с нераспространенной архитектурой процессора. 
 Существующие платформы для эмуляции аппаратных устройств (в частности, QEMU) не поддерживали эту архитектуру. 
 Для решения возникшей проблемы было два пути: 
 1. Дополнение существующего эмулятора.
@@ -40,6 +40,7 @@
 программы без исходного кода или даже изменить логику работы эмулятора.
 - *Интеграция с другими инструментами*: для того, чтобы Kopycat можно было использовать в паре с другим ПО, в нем были 
 реализованы протокол удаленного вызова процедур (RPC) и REST API.
+
 Безусловно, JVM в совокупности с использованием трейсеров и других дополнительных функций эмулятора сильно сказывается на
 скорости его работы. Поэтому еще одной важной функцией является создание "снапшотов" - снимков состояния работы, с помощью
 которых можно возобновлять работу эмулятора с определенного момента.
@@ -160,8 +161,10 @@ mv buildroot-2023.11.1 buildroot-unpacked
 5. **Запустите эмулятор с помощью скрипта**
 
    Перед запуском эмулятора, убедитесь, что у вас есть все необходимые для работы ресурсы (ядро и rootfs для demolinux).
-   Они должны находиться в директории `./kopycat-modules/**/src/main/resources/**/binaries` модуля или в `./kopycat/resources/**/binaries`. 
-   Первая директория будет использоваться, чтобы положить ядро в jar во время сборки, а вторая, чтобы получить его во время выполнения программы.
+   Они должны находиться в директории `./kopycat-modules/**/src/main/resources/**/binaries` модуля или в `.
+   /kopycat/resources/**/binaries` (если их нет, создайте их по инструкции в [первом пункте руководства](#1-подготовка-дистрибутива-при-помощи-buildroot) 
+   и перенесите в директорию `./kopycat-modules/**/src/main/resources/**/binaries`). Первая директория будет 
+   использоваться, чтобы положить ядро в jar во время сборки, а вторая, чтобы получить его во время выполнения программы.
    Запустите скрипт:
     ```bash
     ./kopycat-private/temp/config/bash/demolinux-default.sh
@@ -214,7 +217,7 @@ mv buildroot-2023.11.1 buildroot-unpacked
    ./gradlew publishToMavenLocal
    ```
    
-3. **Соберите Kopycat**
+3. **Откройте и соберите Kopycat**
 
    ```powershell
    ./gradlew createKopycatConfig
@@ -334,10 +337,17 @@ mv buildroot-2023.11.1 buildroot-unpacked
 ### 3.1 Диск
 
 Создаем диск в корне проекта `fallocate -l 30M disks/demo.bin`  
-Можно проверить, что эмулятор видит диск как устройство:
 
+>**_Примечание:_** Обратите внимание, что fallocate может не сработать, если вы пытаетесь его использовать, например,
+> в файловой системе хоста в WSL. В этом случае создайте файл в директории /tmp или /opt и перенесите его в 
+> директорию disks в корне kopycat 
+
+Можно проверить, что эмулятор видит диск как устройство:
 ```
-# fdisk -l
+$ fdisk -l
+```
+*Вывод:*
+```
 Disk /dev/sda: 0 MB, 65536 bytes, 128 sectors
 0 cylinders, 255 heads, 63 sectors/track
 Units: sectors of 1 * 512 = 512 bytes
@@ -350,16 +360,23 @@ Units: sectors of 1 * 512 = 512 bytes
 Disk /dev/sdb doesn't contain a valid partition table
 ```
 
-Далее, требуется создать на диске таблицу разделов и один раздел ext4. Удобнее делать это на хосте (или в WSL для Windows):
+Далее, требуется создать на диске таблицу разделов и один раздел ext4. Удобнее делать это на хосте (или в WSL для 
+Windows). 
 
+>**_Примечание:_** При создании таблицы разделов на хосте стоит выключить эмулятор
+
+Привяжем файл к устройству:
+```bash
+$ sudo losetup -fP --show ./demo.bin
 ```
-// привязываем к устройству
-# sudo losetup -fP --show ./demo.bin
-//← вернётся, например, /dev/loop0
-// создаем таблицу разделов
-# sudo fdisk /dev/loop0
+Должно вернутся имя устройство, например, /dev/loop0
 
-// команды fdisk
+Создадим таблицу разделов:
+```bash
+$ sudo fdisk /dev/loop0
+```
+Последовательность ввода в интерфейсе fdisk:
+```
 o    очистить старую таблицу и создать DOS
 n    новый раздел
 p    primary
@@ -367,9 +384,13 @@ p    primary
      первый сектор – <Enter>
      последний сектор – <Enter> (весь диск)
 w    записать и выйти
-
-// Форматируем раздел
-# sudo mkfs.ext4 /dev/loop0p1 -L GUESTDISK
+```
+Форматируем раздел и создаем файловую систему:
+```bash
+$ sudo mkfs.ext4 /dev/loop0p1 -L GUESTDISK
+```
+*Вывод*
+```bash
 mke2fs 1.46.5 (30-Dec-2021)
 Creating filesystem with 7672 4k blocks and 7680 inodes
 
@@ -377,55 +398,65 @@ Allocating group tables: done
 Writing inode tables: done
 Creating journal (1024 blocks): done
 Writing superblocks and filesystem accounting information: done
-
-// Отвязываем устройство
-# sudo losetup -d /dev/loop0
-
+```
+Отвязываем устройство:
+```bash
+$ sudo losetup -d /dev/loop0
 ```
 
 Теперь, когда на диске есть отформатированный раздел, можно попытаться смонтировать его в эмуляторе и проверить работу  
 В эмуляторе:
-
-```
-# partprobe /dev/sdb
+```bash
+$ partprobe /dev/sdb
  sdb: sdb1
-# mkdir data
-# mount /dev/sdb1 data
+ 
+$ mkdir data
+$ mount /dev/sdb1 data
 EXT4-fs (sdb1): mounted filesystem with ordered data mode. Opts: (null)
-# cd data
-# echo test test test > testfile
-# cd ..
-# umount data && sync
+
+$ cd data
+$ echo test test test > testfile
+$ cd ..
+$ umount data && sync
 ```
 
-В диск был записан файл testfile с содержимым "test test test".  
+В диск был записан файл testfile с содержимым "test test test".
 Можем убедиться в наличии файла и его содержимого вновь на хосте (или WSL):
-
-```
-# sudo losetup --find --show --partscan ./demo.bin
+```bash
+$ sudo losetup --find --show --partscan ./demo.bin
 /dev/loop0
-# sudo mkdir /mnt/testdisk
-# sudo mount /dev/loop0p1 /mnt/testdisk
-# ls /mnt/testdisk
+
+$ sudo mkdir /mnt/testdisk
+$ sudo mount /dev/loop0p1 /mnt/testdisk
+$ ls /mnt/testdisk
 lost+found  testfile
-# cat /mnt/testdisk/testfile
+
+$ cat /mnt/testdisk/testfile
 test test test
 ```
 
 ### 3.2 Сеть
 
-Для проверки работы сети требуется поднять виртуальный TAP-интерфейс на хосте на порту, указанном в параметрах запуска эмулятора:
+Для проверки работы сети требуется поднять виртуальный TAP-интерфейс на хосте на порту, указанном в параметрах 
+запуска эмулятора.
+
+>**_Примечание:_** Поднятие TAP-интерфейса нужно выполнить **ДО ЗАПУСКА ЭМУЛЯТОРА!**
 
 ```bash
 sudo socat tun:192.168.19.2/24,tun-type=tap,iff-up,iff-no-pi tcp-listen:30003
 ```
 
-На Windows аналогичное действие можно провернуть при помощи WSL и проброса портов.  
-В Windows (Powershell):
+В Windows команда socat остается неизменной, хотя запускается в WSL, однако предварительно требуется выполнить проброс 
+портов.
 
+Узнаем ip-адрес wsl в подсети хоста:
 ```Powershell
 PS wsl hostname -I
-172.27.181.15 172.17.0.1 10.69.69.1
+172.27.181.15
+```
+
+Прокинем порты, используя адрес, полученный на последнем шаге (Powershell):
+```Powershell
 PS netsh interface portproxy add v4tov4 `
 >>   listenaddress=0.0.0.0 listenport=30003 `
 >>   connectaddress=172.27.181.15 connectport=30003
@@ -434,30 +465,45 @@ PS New-NetFirewallRule -DisplayName "WSL PortProxy 30003" `
 >>   -Direction Inbound -Protocol TCP -LocalPort 30003 -Action Allow
 ```
 
-В WSL:
-
-```bash
-sudo socat tun:192.168.19.2/24,tun-type=tap,iff-up,iff-no-pi tcp-listen:30003
-```
-
->**_Примечание:_** Все перечисленные ранее шаги нужно выполнить **ДО ЗАПУСКА ЭМУЛЯТОРА!**  
+После чего можно поднять сеть приведенной ранее командой socat.
 
 Для теста поднимем также python http.server в WSL в директории с каким-нибудь тестовым файлом:  
 `python3 -m http.server`  
-Наконец, проверка работы сети в эмуляторе:
+Наконец, проверка работы сети в эмуляторе.
 
+>**_Примечание:_** Некоторые команды требуют ожидания
+
+Поднимем сеть eth0:
 ```
-# ip link set eth0 up
+$ ip link set eth0 up
+```
+*Вывод:*
+```
 IPv6: ADDRCONF(NETDEV_UP): eth0: link is not ready
 e1000e: eth0 NIC Link is Up 1000 Mbps Full Duplex, Flow Control: Rx/Tx
 IPv6: ADDRCONF(NETDEV_CHANGE): eth0: link becomes ready
-# ip addr add 192.168.19.10/24 dev eth0
-# wget http://192.168.19.2:8000/test
+```
+Назначим IP-адрес:
+```
+$ ip addr add 192.168.19.10/24 dev eth0
+```
+Попробуем скачать файл test с хоста:
+```
+$ wget http://192.168.19.2:8000/test
+```
+*Вывод:*
+```
 Connecting to 192.168.19.2:8000 (192.168.19.2:8000)
 saving to 'test'
 test                 100% |********************************|    10  0:00:00 ETA
 'test' saved
-# cat test
+```
+Убедимся, что содержимое скачанного файла совпадает с содержимым этого файла на хосте:
+```
+$ cat test
+```
+*Вывод:*
+```
 test file
 ```
 
@@ -482,17 +528,20 @@ sudo iptables -A FORWARD -i eth0 -o tap0 -m state --state RELATED,ESTABLISHED -j
 
 Теперь нужно настроить маршрут по умолчанию в эмуляторе:
 ```
-# ip route show
+$ ip route show
 192.168.19.0/24 dev eth0 scope link  src 192.168.19.10
-# ip route add default via 192.168.19.2 dev eth0
-# ip route show
+$ ip route add default via 192.168.19.2 dev eth0
+$ ip route show
 default via 192.168.19.2 dev eth0
 192.168.19.0/24 dev eth0 scope link  src 192.168.19.10
 ```
 192.168.19.10 - адрес хоста в созданной в предыдущем пункте сети.
 Наконец, попробуем связаться с 8.8.8.8 (Google public DNC):
 ```
-# ping 8.8.8.8
+$ ping 8.8.8.8
+```
+Получим:
+```
 PING 8.8.8.8 (8.8.8.8): 56 data bytes
 64 bytes from 8.8.8.8: seq=0 ttl=100 time=4.000 ms
 64 bytes from 8.8.8.8: seq=1 ttl=100 time=0.000 ms
