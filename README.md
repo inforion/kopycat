@@ -5,36 +5,39 @@
 # About the project
 ## Description
 
-**Kopycat** is a multi-processor architectures system and user-level (with VEOS module) emulator.
+**Kopycat** is an emulator for hardware platforms, designed to create virtual replicas of physical devices with 
+various architectures.
 
 **Main features** are:
 
 - Easy to assemble a new device. Configure your own platform using Kotlin.
 - Easy to customize. Create your own platform-module using Kotlin.
 - Cross-platform. Kopycat uses JVM as a backend and can be run on Windows, Linux and OSX.
-- One-to-one correspondence. Virtual platform representation is identical to block diagram.
-- Multiple supported architectures: MIPS, ARM, MSP430, v850ES, x86.
+- One-to-one correspondence. Virtual platform representation is identical to the diagram of emulating device.
+- Multiple supported architectures: MIPS, ARM, MSP430, v850ES, x86_64.
 - User-level mode. Can emulate a standalone ELF-file without full system emulation.
 
 This project contains:
 
-**CPU cores:** ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86, PowerPC (E500v2)
+**CPU cores:** ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86_64, PowerPC (E500v2)
 
 **MCUs:** Cortex-M0, STM32F0xx, MSP430x44x, PIC32MZ, P2020, Atom 2758, ElanSC520
 
 ## Origin
-The history of the project began with the need to emulate a device with a rare processor architecture.  
-At that time, existing platforms for emulating hardware devices (like QEMU) did not support this architecture.  
+The project originated from the task of emulating a device with an uncommon processor architecture.  
+Existing platforms for emulating hardware devices (like QEMU) did not support this architecture.  
 There were two ways to solve the problem:
+
 1. Modifying existing software.
 2. Building our own solution.
 
 We decided to go with the second option.
 
-Besides emulating the target architecture, the Kopycat project had other goals to make emulating specific devices easier in the future, such as:
+Besides emulating the target architecture, the Kopycat project had other goals to make emulating specific devices easier, such as:
 - *Easy development*: To make it simple to add new architectures and modules, we chose Kotlin as the programming language because it has many helpful syntax features.
 - *Advanced interaction tools*: Kopycat includes tools for flexible interaction with the emulation process. For example, it has "tracers" that describe the logic executed for each assembly instruction of the device. With these, you can, for example, build a call stack for a program without its source code or even change how the emulator works.
-- *Integration with other tools*: To allow Kopycat to work with other software, we added remote procedure call (rpc) and REST API protocols.  
+- *Integration with other tools*: To allow Kopycat to work with other software, we added remote procedure call (RPC) 
+  and REST API protocols.  
 
 Of course, using the JVM together with tracers and other extra emulator features affects its speed. That’s why another important feature is creating "snapshots"—saved states that let you restart the emulator from a specific point.
 
@@ -43,13 +46,16 @@ Kopycat has a modular architecture, which makes it quick to create an emulator f
 The modules form a hierarchy of components, where the emulated device is called the top module.  
 The modules interact with each other using a bus architecture. Buses, in turn, connect to modules through ports.  
 Here’s an example of a simple architecture:  
+
 ![](images/simple_device_example.png)
 
 This approach lets you describe a device’s architecture in a way that matches its physical block diagram during development.
 
 The top module is initialized in an instance of the Kopycat class. A Kotlin console is provided to manage the emulator.  
-Protocols like gdb, rest, and rpc are also available. To allow connections to the emulated device’s system, the UartNetworkTerminal class is used.  
-Overall, the virtual device and its interaction with the main operating system can be shown in this diagram:  
+Protocols like GDB, REST, and RPC are also available. To allow connections to the emulated device’s system, the 
+UartNetworkTerminal class is used. Overall, the virtual device and its interaction with the main operating system 
+can be shown in this diagram:  
+
 ![](images/kopycat_top_structure_scheme.png)
 
 ___
@@ -63,6 +69,27 @@ Fast overview:
 - Finally, after the emulator has been launched, we cover how to work with networking (E1000) and disk (SATA) devices. The section helps expand your usage of *Kopycat*, especially for working with networking and disk.
 
 >**_NOTE:_** The guide implies, that you have already cloned *Kopycat* project on your device. If not:`git clone https://github.com/inforion/kopycat.git`
+
+<details>
+<summary>Screenshots</summary>
+
+Kotlin-console:
+
+![Kotlin-console](images/kopycat-console.png)
+
+Socat terminal:
+
+![Socat terminal](images/terminal-socat.png)
+
+Message about GDB connection established in the console:
+
+![Message about GDB connection established in the console](images/gdb-connected-log.png)
+
+Debug with IDA:
+
+![Debug with IDA](images/gdb-ida.png)
+
+</details>
 
 ___
 
@@ -157,6 +184,10 @@ ___
    These files should be located either in:
    - `./kopycat-modules/**/src/main/resources/**/binaries`(used to embed the kernel in the JAR during project build);
    - `./kopycat/resources/**/binaries`(used to load the kernel at runtime).
+
+   If you don't have those resources, you can find an instruction how to get them in the 
+   [first part of this user guide](#1-preparing-the-distribution-using-buildroot). Don't forget to move them to the 
+   one of mentioned resource directories
 
    Run the script to launch Kopycat:
     ```bash
@@ -320,33 +351,55 @@ You can launch Kopycat with docker using Dockerfile in Kopycat repository
 ### 3.1 Disk
 Create a disk in the project root:
 `fallocate -l 30M disks/demo.bin`
+
+>**_NOTE:_** Fallocate may not work if you are trying to use it, for example, on the host file 
+> system in WSL. In this case, create a file in the /tmp or /opt directory and then move it to the disks directory 
+> in the root of kopycat.
+
 You can verify that the emulator detects it:
+```bash
+$ fdisk -l
 ```
-# fdisk -l
+*Output:*
+```
 Disk /dev/sda: 0 MB, 65536 bytes, 128 sectors
 Disk /dev/sda doesn't contain a valid partition table
 
 Disk /dev/sdb: 30 MB, 31457280 bytes, 61440 sectors  # ← Our disk
 Disk /dev/sdb doesn't contain a valid partition table
 ```
-Next, create a partition table and a single ext4 partition. It's more convenient to do this on the host (or in WSL on Windows):
-```
-// attach device
-# sudo losetup -fP --show ./demo.bin
-//← e.g. /dev/loop0
-// create the partition table
-# sudo fdisk /dev/loop0
+Next, create a partition table and a single ext4 partition. It's more convenient to do this on the host (or in WSL 
+on Windows).
 
-// fdisk commands:
+>**_NOTE:_** It is recommended to turn off an emulator while you are creating a partition table on the host.
+
+Let's attach file as the device:
+```bash
+$ sudo losetup -fP --show ./demo.bin
+```
+You should get the name of the device. For example, /dev/loop0
+
+Create the partition table:
+```bash
+$ sudo fdisk /dev/loop0
+```
+
+Sequence of commands to input in the fdisk's cli:
+```
 o    → clear old partition table
 n    → new partition
 p    → primary
 1    → partition number
 <Enter> for first and last sector (full disk)
 w    → write and exit
+```
 
-// format the partition
-# sudo mkfs.ext4 /dev/loop0p1 -L GUESTDISK
+Format the partition:
+```bash
+$ sudo mkfs.ext4 /dev/loop0p1 -L GUESTDISK
+```
+*Output:*
+```
 mke2fs 1.46.5 (30-Dec-2021)
 Creating filesystem with 7672 4k blocks and 7680 inodes
 
@@ -354,44 +407,61 @@ Allocating group tables: done
 Writing inode tables: done
 Creating journal (1024 blocks): done
 Writing superblocks and filesystem accounting information: done
-
-// detach device
-# sudo losetup -d /dev/loop0
+```
+Detach device:
+```bash
+$ sudo losetup -d /dev/loop0
 ```
 Now that the disk has a formatted partition, you can mount and test it in the emulator:
 ```
-# partprobe /dev/sdb
+$ partprobe /dev/sdb
  sdb: sdb1
-# mkdir data
-# mount /dev/sdb1 data
+ 
+$ mkdir data
+$ mount /dev/sdb1 data
 EXT4-fs (sdb1): mounted filesystem with ordered data mode. Opts: (null)
-# cd data
-# echo test test test > testfile
-# cd ..
-# umount data && sync
+
+$ cd data
+$ echo test test test > testfile
+$ cd ..
+$ umount data && sync
 ```
+
 To verify the contents from the host (or WSL):
 ```
-# sudo losetup --find --show --partscan ./demo.bin
+$ sudo losetup --find --show --partscan ./demo.bin
 /dev/loop0
-# sudo mkdir /mnt/testdisk
-# sudo mount /dev/loop0p1 /mnt/testdisk
-# ls /mnt/testdisk
+
+$ sudo mkdir /mnt/testdisk
+$ sudo mount /dev/loop0p1 /mnt/testdisk
+$ ls /mnt/testdisk
 lost+found  testfile
-# cat /mnt/testdisk/testfile
+
+$ cat /mnt/testdisk/testfile
 test test test
 ```
 You should see the file `testfile` with content: `test test test`.
+
 ### 3.2 Network
-To test networking, bring up a virtual TAP interface on the host with the port specified in the emulator launch parameters:
+To test networking, bring up a virtual TAP interface on the host with the port specified in the emulator launch 
+parameters.
+
+>**_NOTE:_** Make sure all these steps are completed **before launching the emulator**.
+
 ```
 sudo socat tun:192.168.19.2/24,tun-type=tap,iff-up,iff-no-pi tcp-listen:30003
 ```
-On Windows, this can be done using WSL and port forwarding.  
-In Windows PowerShell:
+
+On Windows, this can be done using socat in WSL. The command itself is the same, but we need to do port forwarding 
+in Windows. 
+
+Get wsl IP-address in the host's network (Powershell):
 ```
 PS wsl hostname -I
-172.27.181.15 172.17.0.1 10.69.69.1
+172.27.181.15 192.168.19.2
+```
+Use received address to port forwarding (Powershell):
+```
 PS netsh interface portproxy add v4tov4 `
 >>   listenaddress=0.0.0.0 listenport=30003 `
 >>   connectaddress=172.27.181.15 connectport=30003
@@ -399,30 +469,47 @@ PS netsh interface portproxy add v4tov4 `
 PS New-NetFirewallRule -DisplayName "WSL PortProxy 30003" `
 >>   -Direction Inbound -Protocol TCP -LocalPort 30003 -Action Allow
 ```
-In WSL:
-```
-sudo socat tun:192.168.19.2/24,tun-type=tap,iff-up,iff-no-pi tcp-listen:30003
-```
->**_NOTE:_** Make sure all these steps are completed **before launching the emulator**.
 
 To test network functionality, start a simple Python server in the same directory with a test file:
 `python3 -m http.server`
-Then in the emulator:
+
+Finally, we can test network in the emulator.
+
+>**_Note:_** Some commands require waiting to execute.
+
+Let's set up a network interface in the emulator:
+```bash
+$ ip link set eth0 up
 ```
-# ip link set eth0 up
+*Output:*
+```
 IPv6: ADDRCONF(NETDEV_UP): eth0: link is not ready
 e1000e: eth0 NIC Link is Up 1000 Mbps Full Duplex, Flow Control: Rx/Tx
 IPv6: ADDRCONF(NETDEV_CHANGE): eth0: link becomes ready
-# ip addr add 192.168.19.10/24 dev eth0
-# wget http://192.168.19.2:8000/test
+```
+Assign an IP-address:
+```
+$ ip addr add 192.168.19.10/24 dev eth0
+```
+Try to download test file from the host:
+```
+$ wget http://192.168.19.2:8000/test
+```
+*Output:*
+```
 Connecting to 192.168.19.2:8000 (192.168.19.2:8000)
 saving to 'test'
 test                 100% |********************************|    10  0:00:00 ETA
 'test' saved
-# cat test
+```
+Make sure, that content of the downloaded file matches with a content of this file on the host:
+```
+$ cat test
+```
+*Output:*
+```
 test file
 ```
-You should see the contents of the test file printed.
 
 ### 3.3 Global network
 if you want to connect to global network, you will have to take a few additional steps.
@@ -443,17 +530,21 @@ sudo iptables -A FORWARD -i eth0 -o tap0 -m state --state RELATED,ESTABLISHED -j
 *eth0* is an interface to get access to the global network. You can define your interface with `ip addr show`
 
 Now we need to set default gateway in emulator:
-```
-# ip route show
+```bash
+$ ip route show
 192.168.19.0/24 dev eth0 scope link  src 192.168.19.10
-# ip route add default via 192.168.19.2 dev eth0
-# ip route show
+
+$ ip route add default via 192.168.19.2 dev eth0
+$ ip route show
 default via 192.168.19.2 dev eth0
 192.168.19.0/24 dev eth0 scope link  src 192.168.19.10
 ```
 Finally, lets try to ping 8.8.8.8 (Google public DNC):
+```bash
+$ ping 8.8.8.8
 ```
-# ping 8.8.8.8
+*Output:*
+```
 PING 8.8.8.8 (8.8.8.8): 56 data bytes
 64 bytes from 8.8.8.8: seq=0 ttl=100 time=4.000 ms
 64 bytes from 8.8.8.8: seq=1 ttl=100 time=0.000 ms

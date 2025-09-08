@@ -16,7 +16,7 @@
 
 Проект включает:
 
-**Ядра процессоров:** ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86, PowerPC (E500v2)
+**Ядра процессоров:** ARMv6, ARMv6M, ARMv7, MIPS, MSP430, v850ES, x86_64, PowerPC (E500v2)
 
 **Микроконтроллеры (MCU):** Cortex-M0, STM32F0xx, MSP430x44x, PIC32MZ, P2020, Atom 2758, ElanSC520
 
@@ -551,6 +551,7 @@ sudo iptables -A FORWARD -i eth0 -o tap0 -m state --state RELATED,ESTABLISHED -j
 ```
 $ ip route show
 192.168.19.0/24 dev eth0 scope link  src 192.168.19.10
+
 $ ip route add default via 192.168.19.2 dev eth0
 $ ip route show
 default via 192.168.19.2 dev eth0
