@@ -143,6 +143,7 @@ mv buildroot-2023.11.1 buildroot-unpacked
 2. Run the build script:
    `./Build.sh`
 3. The kernel image and filesystem will be in `./kopycat-modules/tops/demolinux/src/main/buildroot/buildroot-unpacked/output/images/`
+
 >**_NOTE:_** On Windows, you can use WSL or Docker as a virtual environment for script execution and kernel building.
 ___
 ## 2. Launching Kopycat
@@ -178,9 +179,9 @@ ___
     ```bash
     sudo apt install socat
     ```
-5. **Run the script**
+5. **Run the script to launch Kopycat**
 
-   Before starting the emulator, make sure that you have all necessary resources (kernel and rootfs for demolinux).
+   Before launching the emulator, make sure that you have all necessary resources (kernel and rootfs for demolinux).
    These files should be located either in:
    - `./kopycat-modules/**/src/main/resources/**/binaries`(used to embed the kernel in the JAR during project build);
    - `./kopycat/resources/**/binaries`(used to load the kernel at runtime).
@@ -197,22 +198,32 @@ ___
 
    >**_NOTE_**: Runtime kernel has more priority.
 
-6. **Load and start the demo in Kopycat**  
+6. **Start Kopycat**  
    In the Kopycat console, run:
 
     ```bash
-    kc.load("snapshot_name_from_dir_kopycat/temp/demolinux/")
     kc.start()
     ```
+
+   if you have a **snapshot**, where the system is fully booted and ready, you can load it to avoid waiting:
+   ```bash
+   kc.load("snapshot_name.zip")
+   ```
+
+   >**_NOTE_**: Snapshots allow you to save device's state and load it whenever you want to get this state. To create a
+   > snapshot use `kc.save("snapshot_name")` command. Snapshots are located in the `./temp/demolinux` directory by
+   > default (in demolinux). When you want to load snapshot, it also must be located in this directory.
+
+   >**_NOTE_**: Snapshot directory is defined in the launch command using the "-w" option.
+
 7. **Connect via socat**
 
     ```bash
     socat -,rawer,escape=0x0f tcp4:localhost:64130
     ```
-   
-   >**_NOTE_**: We are using socat with rawer mode to disable echo and to pass control characters to the guest. if for some reason you can't use socat with rawer mode, try `socat pty,raw,echo=0,iexten=0,isig=0,ixon=0,icanon=0,min=1,time=0,escape=0x0f tcp4:localhost:64130`
+
 8. **Verify Demolinux operation**  
-   Enter the following commands and wait for output:
+   Once the system has booted and the console is accessible, enter the following commands and wait for the output:
 
    ```bash
    ls -l
@@ -257,24 +268,52 @@ The main differences is using powershell instead of bash and how to get socat.
    ```
    And then add it to the PATH, so you can use socat from powershell.
 
-5. **Run the PowerShell script**
+5. **Run the PowerShell script to launch Kopycat**
+
+   Before launching the emulator, make sure that you have all necessary resources (kernel and rootfs for demolinux).
+   These files should be located either in:
+   - `./kopycat-modules/**/src/main/resources/**/binaries`(used to embed the kernel in the JAR during project build);
+   - `./kopycat/resources/**/binaries`(used to load the kernel at runtime).
+
+   If you don't have those resources, you can find an instruction how to get them in the
+   [first part of this user guide](#1-preparing-the-distribution-using-buildroot). Don't forget to move them to the
+   one of mentioned resource directories
 
     ```powershell
     .\kopycat\temp\config\powershell\demolinux-default.ps1
     ```
-6. **Load and start the demo in Kopycat**  
+
+   >**_NOTE_**: Also, note that in demolinux_x86, for example, Kopycat looks for the kernel and rootfs as "bzImage.gz" and "rootfs.cpio.gz". If you want to override the default resource names (e.g., to use uncompressed files), you can specify them in the top module parameters in the program launch command `-p "...,bzImageName=bzImage,initRdName=rootfs.cpio"`
+
+   >**_NOTE_**: Runtime kernel has more priority.
+
+6. **Start Kopycat**  
     In the Kopycat console, run:
 
     ```powershell
-    kc.load("snapshot_name_from_kopycat\temp\demolinux\")
     kc.start()
     ```
+
+   if you have a **snapshot**, where the system is fully booted and ready, you can load it to avoid waiting:
+   ```powershell
+   kc.load("snapshot_name.zip")
+   ```
+
+   >**_NOTE_**: Snapshots allow you to save device's state and load it whenever you want to get this state. To create a 
+   > snapshot use `kc.save("snapshot_name")` command. Snapshots are located in the `./temp/demolinux` directory by 
+   > default (in demolinux). When you want to load snapshot, it also must be located in this directory.
+
+   >**_NOTE_**: Snapshot directory is defined in the launch command using the "-w" option.
+
 7. **Connect via socat**
     ```powershell
     socat -,rawer,escape=0x0f tcp4:localhost:64130
     ```
+
+   >**_NOTE_**: We are using socat with rawer mode to disable echo and to pass control characters to the guest. if for some reason you can't use socat with rawer mode, try `socat pty,raw,echo=0,iexten=0,isig=0,ixon=0,icanon=0,min=1,time=0,escape=0x0f tcp4:localhost:64130`
+
 8. **Verify Demolinux operation**  
-   Enter the following commands and wait for output:
+   Once the system has booted and the console is accessible, enter the following commands and wait for the output:
 
    ```bash
    ls -l
@@ -321,27 +360,43 @@ You can launch Kopycat with docker using Dockerfile in Kopycat repository
    First volume contains snapshots to work with. Second is a directory with kernel, rootfs etc.
    Also, you can use `docker cp` command instead of volumes.
 
-4. **Start kopycat in the container**
+4. **Run the script in the container**
 
     ```bash
     ./demolinux-default.sh
     ```
-5. **Load and start the demo in Kopycat**
+   
+5. **Start Kopycat**
 
    In the Kopycat console, run:
-    ```
-    kc.load("snapshot_name_from_kopycat\temp\demolinux\")
+
+    ```powershell
     kc.start()
     ```
+
+   if you have a **snapshot**, where the system is fully booted and ready, you can load it to avoid waiting:
+   ```powershell
+   kc.load("snapshot_name.zip")
+   ```
+
+   >**_NOTE_**: Snapshots allow you to save device's state and load it whenever you want to get this state. To create a
+   > snapshot use `kc.save("snapshot_name")` command. Snapshots are located in the `./temp/demolinux` directory by
+   > default (in demolinux). When you want to load snapshot, it also must be located in this directory.
+
+   >**_NOTE_**: Snapshot directory is defined in the launch command using the "-w" option.
+
 6. **Connect via socat in Docker container**
    
    ```bash
    docker exec -it kopycat-container bash
    socat -,rawer,escape=0x0f tcp:localhost:64130
    ```
+
+   >**_NOTE_**: We are using socat with rawer mode to disable echo and to pass control characters to the guest. if for some reason you can't use socat with rawer mode, try `socat pty,raw,echo=0,iexten=0,isig=0,ixon=0,icanon=0,min=1,time=0,escape=0x0f tcp4:localhost:64130`
+
 7. **Verify Demolinux operation**  
 
-   Enter the following commands and wait for output:
+   Once the system has booted and the console is accessible, enter the following commands and wait for the output:
    ```bash
    ls -l
    cat /proc/meminfo
